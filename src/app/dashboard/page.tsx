@@ -1,5 +1,6 @@
 "use client"
 
+import React from 'react'
 import { useState, useEffect } from "react"
 import {
   ChevronDown,
@@ -21,6 +22,10 @@ import {
   ChevronRight,
   Minimize,
   Maximize,
+  DollarSign,
+  AlertTriangle,
+  Briefcase,
+  Leaf,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -621,6 +626,21 @@ const territoryMap = {
   // ... add more as needed
 };
 
+// Helper for icons for each area
+const areaIcons: Record<string, React.ReactNode> = {
+  'Financial Administration and Sustainability': <DollarSign className="h-6 w-6" />,
+  'Disaster Preparedness and Safety': <AlertTriangle className="h-6 w-6" />,
+  'Peace and Order': <Shield className="h-6 w-6" />,
+  'Social Protection and Sensitivity': <Users className="h-6 w-6" />,
+  'Business-Friendliness and Competitiveness': <Briefcase className="h-6 w-6" />,
+  'Environmental Management': <Leaf className="h-6 w-6" />,
+  // fallback
+  'Health': <Heart className="h-6 w-6" />,
+  'Education': <GraduationCap className="h-6 w-6" />,
+  'Transportation': <Car className="h-6 w-6" />,
+  'Waste Management': <Trash2 className="h-6 w-6" />,
+}
+
 export default function SIGLADashboard() {
   const [currentView, setCurrentView] = useState("map")
   const [selectedPin, setSelectedPin] = useState<number | null>(null)
@@ -634,8 +654,89 @@ export default function SIGLADashboard() {
   const [hoveredTerritoryId, setHoveredTerritoryId] = useState<string | null>(null);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [isTerritoryModalOpen, setIsTerritoryModalOpen] = useState(false);
+  const [selectedServiceArea, setSelectedServiceArea] = useState<string | null>(null);
 
   const serviceKeys = ["health", "education", "transportation", "publicSafety", "wasteManagement", "socialServices"]
+
+  // Add useEffect for map interactivity
+  useEffect(() => {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) return;
+
+    const territories = mapElement.querySelectorAll('path[id]');
+    
+    territories.forEach((territory) => {
+      const territoryId = territory.getAttribute('id');
+      if (!territoryId) return;
+
+      const svgElement = territory as SVGPathElement;
+
+      // Add hover effects
+      territory.addEventListener('mouseenter', () => {
+        setHoveredTerritoryId(territoryId);
+        svgElement.style.cursor = 'pointer';
+        svgElement.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))';
+        svgElement.style.transition = 'all 0.2s ease';
+      });
+
+      territory.addEventListener('mouseleave', () => {
+        setHoveredTerritoryId(null);
+        svgElement.style.cursor = 'default';
+        svgElement.style.filter = '';
+        svgElement.style.transition = '';
+      });
+
+      // Add click handler
+      territory.addEventListener('click', () => {
+        setSelectedTerritoryId(territoryId);
+        setIsTerritoryModalOpen(true);
+        
+        // Add visual feedback for selected territory
+        territories.forEach(t => {
+          const tElement = t as SVGPathElement;
+          tElement.style.filter = '';
+          tElement.style.stroke = '';
+          tElement.style.strokeWidth = '';
+        });
+        
+        svgElement.style.stroke = '#3b82f6';
+        svgElement.style.strokeWidth = '2';
+        svgElement.style.filter = 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.3))';
+      });
+    });
+
+    // Cleanup function
+    return () => {
+      territories.forEach((territory) => {
+        territory.removeEventListener('mouseenter', () => {});
+        territory.removeEventListener('mouseleave', () => {});
+        territory.removeEventListener('click', () => {});
+      });
+    };
+  }, []);
+
+  // Function to get territory data
+  const getTerritoryData = (territoryId: string) => {
+    return territoryMap[territoryId as keyof typeof territoryMap] || null;
+  };
+
+  // Function to close territory modal
+  const closeTerritoryModal = () => {
+    setIsTerritoryModalOpen(false);
+    setSelectedTerritoryId(null);
+    
+    // Remove visual selection
+    const mapElement = document.getElementById('map');
+    if (mapElement) {
+      const territories = mapElement.querySelectorAll('path[id]');
+      territories.forEach(t => {
+        const tElement = t as SVGPathElement;
+        tElement.style.filter = '';
+        tElement.style.stroke = '';
+        tElement.style.strokeWidth = '';
+      });
+    }
+  };
 
   const handlePinClick = (pinId: number) => {
     setSelectedPin(pinId)
@@ -699,6 +800,115 @@ export default function SIGLADashboard() {
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [isModalOpen, selectedService])
+
+  // Helper to compute overall satisfaction
+  function getOverallSatisfaction(territoryId: string): string {
+    const territory = getTerritoryData(territoryId);
+    if (!territory) return 'N/A';
+    // If the territory is from mapPins, use serviceAreas
+    const pin = mapPins.find(pin => pin.location === territory.name);
+    if (!pin) return 'N/A';
+    const values = Object.values(pin.serviceAreas).map((area: any) => {
+      if (area.satisfaction === 'high') return 3;
+      if (area.satisfaction === 'medium') return 2;
+      if (area.satisfaction === 'low') return 1;
+      return 0;
+    }) as number[];
+    if (!values.length) return 'N/A';
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    if (avg >= 2.5) return 'High';
+    if (avg >= 1.5) return 'Medium';
+    return 'Low';
+  }
+
+  // Helper to compute overall need of action
+  function getOverallAction(territoryId: string): string {
+    const territory = getTerritoryData(territoryId);
+    if (!territory) return 'N/A';
+    const pin = mapPins.find(pin => pin.location === territory.name);
+    if (!pin) return 'N/A';
+    const values = Object.values(pin.serviceAreas).map((area: any) => {
+      if (area.action === 'high') return 3;
+      if (area.action === 'medium') return 2;
+      if (area.action === 'low') return 1;
+      return 0;
+    }) as number[];
+    if (!values.length) return 'N/A';
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    if (avg >= 2.5) return 'High';
+    if (avg >= 1.5) return 'Medium';
+    return 'Low';
+  }
+
+  // Helper to get a display name for a territory
+  function getTerritoryDisplayName(territoryId: string): string {
+    const territory = getTerritoryData(territoryId);
+    if (territory && territory.name) {
+      if (territory.name.toLowerCase() === 'osmena') return 'Osmeña';
+      if (territory.name.toLowerCase() === 'haradabutai') return 'Harada Butai';
+      return territory.name;
+    }
+    // Remove leading numbers and capitalize first letter
+    const cleaned = territoryId.replace(/^\d+/, '');
+    if (cleaned.toLowerCase() === 'osmena') return 'Osmeña';
+    if (cleaned.toLowerCase() === 'haradabutai') return 'Harada Butai';
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  // Helper for color coding based on percentage
+  function getPercentColor(percent: number) {
+    if (percent >= 70) return 'bg-green-100 text-green-800 border-green-300';
+    if (percent >= 40) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    return 'bg-red-100 text-red-800 border-red-300';
+  }
+
+  // Helper to generate a random percentage (for demo)
+  function getRandomPercent() {
+    return Math.floor(Math.random() * 61) + 30; // 30-90
+  }
+
+  // Helper for random criteria
+  const criteriaTypes = [
+    { label: 'High Satisfaction, Low Action Needed', color: 'bg-green-100 text-green-800 border-green-300' },
+    { label: 'High Satisfaction, High Need of Action', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+    { label: 'Low Satisfaction, High Need of Action', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+    { label: 'Low Satisfaction, Low Action Needed', color: 'bg-gray-100 text-gray-800 border-gray-300' },
+  ];
+  function getRandomCriteria() {
+    return criteriaTypes[Math.floor(Math.random() * criteriaTypes.length)];
+  }
+
+  // Helper for random recommendation
+  const recommendations = [
+    'Maintain current programs and monitor satisfaction.',
+    'Increase outreach and support for vulnerable groups.',
+    'Invest in infrastructure and training.',
+    'Enhance transparency and accountability.',
+    'Promote community engagement and feedback.',
+    'Focus on sustainability and long-term planning.',
+  ];
+  function getRandomRecommendation() {
+    return recommendations[Math.floor(Math.random() * recommendations.length)];
+  }
+
+  // Helper for green/red coloring only
+  const satisfactionTypes = [
+    { label: 'High Satisfaction', color: 'bg-green-100 text-green-800 border-green-400 border-dashed' },
+    { label: 'Low Satisfaction', color: 'bg-red-100 text-red-800 border-red-400 border-dashed' },
+  ];
+  function getRandomSatisfaction() {
+    return satisfactionTypes[Math.floor(Math.random() * satisfactionTypes.length)];
+  }
+
+  // Static satisfaction values for each area
+  const areaSatisfaction: Record<string, 'high' | 'low'> = {
+    'Financial Administration and Sustainability': 'low',
+    'Disaster Preparedness and Safety': 'high',
+    'Peace and Order': 'low',
+    'Social Protection and Sensitivity': 'low',
+    'Business-Friendliness and Competitiveness': 'low',
+    'Environmental Management': 'high',
+  };
 
   return (
     <div className={`${isFullScreen ? "h-screen" : "min-h-screen"}`} style={{ backgroundColor: "#dbeafe" }}>
@@ -904,7 +1114,48 @@ export default function SIGLADashboard() {
               </CardContent>
             </Card>
 
-
+            {/* Details Cards Row */}
+            {!isFullScreen && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Card: Hover Details */}
+                <Card className="bg-card border-border shadow-sm h-56">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-semibold text-text-primary">Baranggay Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="overflow-y-auto max-h-40">
+                    {hoveredTerritoryId ? (
+                      <div className="space-y-2">
+                        <p className="text-base font-semibold text-text-primary">
+                          {getTerritoryDisplayName(hoveredTerritoryId)}
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                          Population: {getTerritoryData(hoveredTerritoryId)?.population?.toLocaleString() || 'N/A'}
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">
+                          Hovering. Click on the map to view more details.
+                        </p>
+                        {getTerritoryData(hoveredTerritoryId)?.description && (
+                          <p className="text-xs text-text-secondary mt-2">
+                            {getTerritoryData(hoveredTerritoryId)?.description}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-text-muted text-sm">Hover over a territory to see details here.</div>
+                    )}
+                  </CardContent>
+                </Card>
+                {/* Right Card: Placeholder for future content */}
+                <Card className="bg-card border-border shadow-sm h-56">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-semibold text-text-primary">More Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="overflow-y-auto max-h-40">
+                    <div className="text-text-muted text-sm">Additional analytics or content can go here.</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         )}
 
@@ -960,9 +1211,9 @@ export default function SIGLADashboard() {
                       1
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-text-primary">Hover and Select a Territory</p>
+                      <p className="text-sm font-medium text-text-primary">Interactive Territory Map</p>
                       <p className="text-xs text-text-secondary mt-1">
-                        Hover over a pin and select a territory to view its Satisfaction Index and details.
+                        Hover over a territory on the map and click to view its Satisfaction Index and details.
                       </p>
                     </div>
                   </div>
@@ -993,8 +1244,191 @@ export default function SIGLADashboard() {
 
                   <div className="mt-4 p-3 rounded-lg bg-info-light border border-info/20">
                     <p className="text-xs text-info-text">
-                      <span className="font-medium">Tip:</span> Pins represent different territories. The map will be populated with real geographic data and Satisfaction Index metrics in the full implementation.
+                      <span className="font-medium">Tip:</span> Territories are highlighted when you hover over them. Click on any territory to view detailed information about its services and satisfaction levels.
                     </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Territory Modal */}
+      {isTerritoryModalOpen && selectedTerritoryId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Dark Background Overlay */}
+          <div className="absolute inset-0 bg-black/50" onClick={closeTerritoryModal} />
+
+          {/* Modal Content */}
+          <div className="relative z-10 w-full max-w-3xl">
+            <Card className="bg-card border-border shadow-lg">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-xl font-semibold text-text-primary">
+                      {getTerritoryDisplayName(selectedTerritoryId)}
+                    </CardTitle>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={closeTerritoryModal}
+                    className="h-8 w-8 rounded-full hover:bg-hover text-text-muted hover:text-text-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-6 items-stretch">
+                  {/* Left: Territory Details */}
+                  <div className="flex-1 flex flex-col gap-4 justify-between">
+                    <div>
+                      {/* Remove the territory name above the image placeholder in the left column of the territory modal */}
+                      {/*
+                      <h2 className="text-xl font-bold text-text-primary mb-2">{getTerritoryDisplayName(selectedTerritoryId)}</h2>
+                      */}
+                      <div className="border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center py-8 mb-4 bg-background">
+                        <MapPin className="h-12 w-12 text-border mb-2" />
+                        <div className="text-text-muted text-base font-medium">Territorial Map</div>
+                        <div className="text-text-muted text-xs">{getTerritoryDisplayName(selectedTerritoryId)}</div>
+                      </div>
+                      <div className="flex flex-col items-center mb-2">
+                        <div className="text-xs text-text-secondary mb-1">Population</div>
+                        <div className="text-3xl font-bold text-text-primary mb-1">{getTerritoryData(selectedTerritoryId)?.population?.toLocaleString() || 'N/A'}</div>
+                      </div>
+                      <div className="text-xs text-text-secondary text-center mb-4 min-h-[32px]">{getTerritoryData(selectedTerritoryId)?.description || 'No summary available.'}</div>
+                    </div>
+                    <Button className="w-full h-12 text-base font-semibold" variant="outline" onClick={() => window.print()}>
+                      Export to PDF
+                    </Button>
+                  </div>
+                  {/* Right: Service Areas Performance */}
+                  <div className="flex-1 flex flex-col gap-10 items-center justify-center">
+                    {!selectedServiceArea ? (
+                      <>
+                        {/* Overall Satisfaction Score */}
+                        {(() => {
+                          // Core Areas
+                          const coreAreas = [
+                            'Financial Administration and Sustainability',
+                            'Disaster Preparedness and Safety',
+                            'Peace and Order',
+                          ];
+                          // Essential Areas
+                          const essentialAreas = [
+                            'Social Protection and Sensitivity',
+                            'Business-Friendliness and Competitiveness',
+                            'Environmental Management',
+                          ];
+                          // Get scores (85 for 'high', 35 for 'low')
+                          const getScore = (area: string) => areaSatisfaction[area] === 'high' ? 85 : 35;
+                          const C = coreAreas.map(getScore);
+                          const E = essentialAreas.map(getScore);
+                          const overall = ((C[0] + C[1] + C[2]) / 3 * 0.8) + (Math.max(E[0], E[1], E[2]) * 0.2);
+                          const color = overall >= 50 ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300';
+                          return (
+                            <div className={`w-full flex justify-center mb-6`}>
+                              <div className={`rounded-lg border px-6 py-4 text-center font-bold text-lg ${color}`}>Overall Satisfaction Score: {Math.round(overall)}%</div>
+                            </div>
+                          );
+                        })()}
+                        <div className="w-full">
+                          <h3 className="text-center text-lg font-bold mb-4">Core Service Areas</h3>
+                          <div className="grid grid-cols-3 gap-x-12 gap-y-8 justify-items-center mb-10 p-2 place-content-center">
+                            {['Financial Administration and Sustainability', 'Disaster Preparedness and Safety', 'Peace and Order'].map((area) => {
+                              const satisfaction = areaSatisfaction[area];
+                              const percent = satisfaction === 'high' ? 85 : 35;
+                              const colorClass = getPercentColor(percent);
+                              return (
+                                <button
+                                  key={area}
+                                  onClick={() => setSelectedServiceArea(area)}
+                                  className={`w-28 h-28 border rounded-lg flex flex-col items-center justify-center transition p-0 ${colorClass} relative group`}
+                                  tabIndex={0}
+                                >
+                                  <span className="text-xl mb-1">{areaIcons[area]}</span>
+                                  <span className="text-[10px] text-text-secondary text-center leading-tight">{area}</span>
+                                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full whitespace-nowrap px-2 py-1 rounded bg-black text-white text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none z-20 mt-2">
+                                    {area}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <h3 className="text-center text-lg font-bold mb-4 mt-10">Essential Governance Area</h3>
+                          <div className="grid grid-cols-3 gap-x-12 gap-y-8 justify-items-center p-2 place-content-center">
+                            {['Social Protection and Sensitivity', 'Business-Friendliness and Competitiveness', 'Environmental Management'].map((area) => {
+                              const satisfaction = areaSatisfaction[area];
+                              const percent = satisfaction === 'high' ? 85 : 35;
+                              const colorClass = getPercentColor(percent);
+                              return (
+                                <button
+                                  key={area}
+                                  onClick={() => setSelectedServiceArea(area)}
+                                  className={`w-28 h-28 border rounded-lg flex flex-col items-center justify-center transition p-0 ${colorClass} relative group`}
+                                  tabIndex={0}
+                                >
+                                  <span className="text-xl mb-1">{areaIcons[area]}</span>
+                                  <span className="text-[10px] text-text-secondary text-center leading-tight">{area}</span>
+                                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full whitespace-nowrap px-2 py-1 rounded bg-black text-white text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none z-20 mt-2">
+                                    {area}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // Service Area Detail View
+                      selectedServiceArea ? (
+                        <div className="flex flex-col gap-4">
+                          <button onClick={() => setSelectedServiceArea(null)} className="text-sm text-primary font-medium flex items-center gap-1 mb-2 hover:underline">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            Back to Service Areas
+                          </button>
+                          <div className="rounded-lg border p-4 flex flex-col items-center bg-background">
+                            <span className="font-semibold text-lg mb-1">{selectedServiceArea}</span>
+                            <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                              {/* Satisfaction Score */}
+                              {(() => {
+                                const satisfaction = areaSatisfaction[selectedServiceArea!];
+                                const percent = satisfaction === 'high' ? 85 : 35;
+                                return (
+                                  <div className={`rounded-lg border p-3 flex flex-col items-center ${getPercentColor(percent)}`}>
+                                    <span className="font-semibold text-xs mb-1">Satisfaction Score</span>
+                                    <span className="text-xl font-bold">{percent}%</span>
+                                  </div>
+                                );
+                              })()}
+                              {/* Need for Action Score */}
+                              {(() => {
+                                // For demo, high satisfaction = low need, low satisfaction = high need
+                                const satisfaction = areaSatisfaction[selectedServiceArea!];
+                                const percent = satisfaction === 'high' ? 30 : 80;
+                                return (
+                                  <div className={`rounded-lg border p-3 flex flex-col items-center ${getPercentColor(percent)}`}>
+                                    <span className="font-semibold text-xs mb-1">Need for Action</span>
+                                    <span className="text-xl font-bold">{percent}%</span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                            <div className="w-full flex justify-center mb-4">
+                              <div className="rounded-lg bg-yellow-100 border border-yellow-300 px-4 py-3 text-sm text-yellow-900 text-center font-medium">
+                                Recommendation: {getRandomRecommendation()}
+                              </div>
+                            </div>
+                            <Button className="w-full h-10 text-base font-semibold" variant="outline">
+                              View Interview Excerpts
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null
+                    )}
                   </div>
                 </div>
               </CardContent>
