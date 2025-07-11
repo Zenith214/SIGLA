@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,6 +22,7 @@ export default function SiglaLogin() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
+  const router = useRouter()
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -69,11 +70,17 @@ export default function SiglaLogin() {
 
     // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Simulate success/failure
-      if (formData.email === "admin@sigla.gov" && formData.password === "password123") {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+      if (res.ok) {
         setLoginStatus("success")
+        router.push("/dashboard")
       } else {
         setLoginStatus("error")
       }
@@ -89,7 +96,7 @@ export default function SiglaLogin() {
       {/* Background Emblem */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
         <img
-          src="/placeholder.svg?height=400&width=400&text=Government+Emblem"
+          src="/globe.svg"
           alt="SIGLA Government Emblem"
           className="max-w-md max-h-md object-contain"
         />
@@ -262,6 +269,17 @@ export default function SiglaLogin() {
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
+              {/* Register Button */}
+              <div className="mt-4 text-center">
+                <span className="text-sm" style={{ color: "#333333" }}>Don't have an account?</span>
+                <a
+                  href="/register"
+                  className="ml-2 text-sm font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
+                  style={{ color: "#0072CE", "--tw-ring-color": "#0072CE" } as React.CSSProperties}
+                >
+                  Register
+                </a>
+              </div>
             </CardContent>
           </Card>
 

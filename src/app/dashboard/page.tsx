@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useRouter } from "next/navigation"
 
 // Sample map pins data with service area satisfaction and action levels
 const mapPins = [
@@ -655,6 +656,7 @@ export default function SIGLADashboard() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [isTerritoryModalOpen, setIsTerritoryModalOpen] = useState(false);
   const [selectedServiceArea, setSelectedServiceArea] = useState<string | null>(null);
+  const router = useRouter();
 
   const serviceKeys = ["health", "education", "transportation", "publicSafety", "wasteManagement", "socialServices"]
 
@@ -911,7 +913,17 @@ export default function SIGLADashboard() {
   };
 
   return (
-    <div className={`${isFullScreen ? "h-screen" : "min-h-screen"}`} style={{ backgroundColor: "#dbeafe" }}>
+    <div className="min-h-screen bg-blue-50">
+      {/* Logout Button */}
+      <div className="flex justify-end p-4">
+        <button
+          onClick={() => router.push("/")}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition font-medium"
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Header */}
       <header className={`sticky top-0 z-50 bg-primary border-b border-primary-dark ${isFullScreen ? "hidden" : ""}`}>
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
