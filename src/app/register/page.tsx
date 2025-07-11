@@ -57,6 +57,9 @@ export default function SiglaRegister() {
       email: "",
       password: "",
       confirmPassword: "",
+      phone: "",
+      organization: "",
+      jobTitle: "",
     }
     if (!formData.firstName) newErrors.firstName = "First name is required"
     if (!formData.lastName) newErrors.lastName = "Last name is required"
@@ -109,18 +112,6 @@ export default function SiglaRegister() {
     return !Object.values(newErrors).some((err) => err)
   }
 
-  const handleNext = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validateStep1()) {
-      setStep(2)
-    }
-  }
-
-  const handleBack = (e: React.FormEvent) => {
-    e.preventDefault()
-    setStep(1)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateAll()) return
@@ -139,19 +130,37 @@ export default function SiglaRegister() {
           organization: formData.organization,
           jobTitle: formData.jobTitle,
         }),
+        credentials: "include",
       })
       if (res.ok) {
         setRegisterStatus("success")
         setApiError("")
-        router.push("/dashboard")
+        // Automatically log in after registration
+        try {
+          const loginRes = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+            }),
+            credentials: "include",
+          });
+          if (loginRes.ok) {
+            router.push("/dashboard");
+          } else {
+            setApiError("Registration succeeded but automatic login failed. Please log in manually.");
+          }
+        } catch (e) {
+          setApiError("Registration succeeded but automatic login failed. Please log in manually.");
+        }
       } else {
         setRegisterStatus("error")
-        const data = await res.json()
-        setApiError(data.error || data.message || "Unknown error")
+        setApiError("Failed to register. Please try again.")
       }
     } catch (error) {
       setRegisterStatus("error")
-      setApiError(error instanceof Error ? error.message : String(error))
+      setApiError("Failed to register. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -215,6 +224,7 @@ export default function SiglaRegister() {
                         placeholder="Enter your first name"
                         disabled={isLoading}
                         aria-describedby={errors.firstName ? "firstName-error" : undefined}
+                        required
                       />
                       {errors.firstName && (
                         <p
@@ -246,6 +256,7 @@ export default function SiglaRegister() {
                         placeholder="Enter your last name"
                         disabled={isLoading}
                         aria-describedby={errors.lastName ? "lastName-error" : undefined}
+                        required
                       />
                       {errors.lastName && (
                         <p
@@ -277,6 +288,8 @@ export default function SiglaRegister() {
                         placeholder="Enter your email address"
                         disabled={isLoading}
                         aria-describedby={errors.email ? "email-error" : undefined}
+                        required
+                        pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
                       />
                       {errors.email && (
                         <p
@@ -309,6 +322,8 @@ export default function SiglaRegister() {
                           placeholder="Enter your password"
                           disabled={isLoading}
                           aria-describedby={errors.password ? "password-error" : undefined}
+                          required
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -352,6 +367,8 @@ export default function SiglaRegister() {
                           placeholder="Confirm your password"
                           disabled={isLoading}
                           aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                          required
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -388,12 +405,18 @@ export default function SiglaRegister() {
                         id="phone"
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        onChange={(e) => {
+                          // Only allow digits and max 11 characters
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 11)
+                          handleInputChange("phone", value)
+                        }}
                         className={`transition-colors ${errors.phone ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
                         style={{ borderColor: errors.phone ? "#C8102E" : "#CCCCCC", "--tw-ring-color": "#0072CE" } as React.CSSProperties }
                         placeholder="Enter your phone number"
                         disabled={isLoading}
                         aria-describedby={errors.phone ? "phone-error" : undefined}
+                        required
+                        maxLength={11}
                       />
                       {errors.phone && (
                         <p
@@ -422,6 +445,7 @@ export default function SiglaRegister() {
                         placeholder="Enter your organization or company name"
                         disabled={isLoading}
                         aria-describedby={errors.organization ? "organization-error" : undefined}
+                        required
                       />
                       {errors.organization && (
                         <p
@@ -450,6 +474,7 @@ export default function SiglaRegister() {
                         placeholder="Enter your job title or role"
                         disabled={isLoading}
                         aria-describedby={errors.jobTitle ? "jobTitle-error" : undefined}
+                        required
                       />
                       {errors.jobTitle && (
                         <p

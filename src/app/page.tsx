@@ -77,6 +77,7 @@ export default function SiglaLogin() {
           email: formData.email,
           password: formData.password,
         }),
+        credentials: "include",
       })
       if (res.ok) {
         setLoginStatus("success")

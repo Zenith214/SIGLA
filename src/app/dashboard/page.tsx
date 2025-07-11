@@ -33,6 +33,8 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
+import jwt from "jsonwebtoken"
 
 // Sample map pins data with service area satisfaction and action levels
 const mapPins = [
@@ -642,6 +644,48 @@ const areaIcons: Record<string, React.ReactNode> = {
   'Waste Management': <Trash2 className="h-6 w-6" />,
 }
 
+// Helper to get user name from JWT cookie
+function useUserName() {
+  const [userName, setUserName] = useState<string | null>(null);
+  useEffect(() => {
+    const token = Cookies.get("sigla_token");
+    if (token) {
+      try {
+        const decoded: any = jwt.decode(token);
+        if (decoded && decoded.firstName && decoded.lastName) {
+          setUserName(`${decoded.firstName} ${decoded.lastName}`);
+        } else if (decoded && decoded.firstName) {
+          setUserName(decoded.firstName);
+        } else if (decoded && decoded.lastName) {
+          setUserName(decoded.lastName);
+        } else {
+          setUserName(null);
+        }
+      } catch {
+        setUserName(null);
+      }
+    } else {
+      setUserName(null);
+    }
+  }, []);
+  return userName;
+}
+
+// Fetch user info from /api/me
+function useUserFirstName() {
+  const [firstName, setFirstName] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.firstName) setFirstName(data.firstName);
+        else setFirstName(null);
+      })
+      .catch(() => setFirstName(null));
+  }, []);
+  return firstName;
+}
+
 export default function SIGLADashboard() {
   const [currentView, setCurrentView] = useState("map")
   const [selectedPin, setSelectedPin] = useState<number | null>(null)
@@ -656,6 +700,8 @@ export default function SIGLADashboard() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [isTerritoryModalOpen, setIsTerritoryModalOpen] = useState(false);
   const [selectedServiceArea, setSelectedServiceArea] = useState<string | null>(null);
+  const userName = useUserName();
+  const firstName = useUserFirstName();
   const router = useRouter();
 
   const serviceKeys = ["health", "education", "transportation", "publicSafety", "wasteManagement", "socialServices"]
@@ -914,16 +960,6 @@ export default function SIGLADashboard() {
 
   return (
     <div className="min-h-screen bg-blue-50">
-      {/* Logout Button */}
-      <div className="flex justify-end p-4">
-        <button
-          onClick={() => router.push("/")}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition font-medium"
-        >
-          Logout
-        </button>
-      </div>
-
       {/* Header */}
       <header className={`sticky top-0 z-50 bg-primary border-b border-primary-dark ${isFullScreen ? "hidden" : ""}`}>
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
@@ -935,7 +971,6 @@ export default function SIGLADashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Navigation moved here - closer to user */}
             <nav className="hidden md:flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -963,12 +998,8 @@ export default function SIGLADashboard() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 text-white hover:bg-white/10">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Admin" />
-                    <AvatarFallback className="bg-primary-dark text-white">AD</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:block font-medium">Admin User</span>
+                <Button variant="ghost" className="flex items-center gap-2 text-white hover:bg-white/10 min-w-[120px] px-4">
+                  <span className="font-medium truncate">Welcome {firstName ?? ""}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -988,7 +1019,15 @@ export default function SIGLADashboard() {
                   <FileText className="mr-2 h-4 w-4 text-text-secondary" />
                   <span className="text-text-primary">Reports</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-hover text-error">Sign out</DropdownMenuItem>
+                <DropdownMenuItem
+                  className="hover:bg-hover text-error"
+                  onClick={() => {
+                    Cookies.remove("sigla_token", { path: "/" });
+                    router.push("/");
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
