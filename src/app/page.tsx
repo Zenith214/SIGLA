@@ -119,9 +119,9 @@ export default function SiglaLogin() {
             <CardContent>
               {/* Status Messages */}
               {loginStatus === "success" && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "white" }}>
+                <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "#f8fafc", fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
                   <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>Login successful! Redirecting to dashboard...</AlertDescription>
+                  <AlertDescription style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>Login successful! Redirecting to dashboard...</AlertDescription>
                 </Alert>
               )}
 

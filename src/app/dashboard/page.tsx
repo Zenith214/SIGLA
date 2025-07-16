@@ -708,17 +708,14 @@ export default function SIGLADashboard() {
 
   // Add useEffect for map interactivity
   useEffect(() => {
+    if (currentView !== "map") return;
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
-
     const territories = mapElement.querySelectorAll('path[id]');
-    
     territories.forEach((territory) => {
       const territoryId = territory.getAttribute('id');
       if (!territoryId) return;
-
       const svgElement = territory as SVGPathElement;
-
       // Add hover effects
       territory.addEventListener('mouseenter', () => {
         setHoveredTerritoryId(territoryId);
@@ -726,19 +723,16 @@ export default function SIGLADashboard() {
         svgElement.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))';
         svgElement.style.transition = 'all 0.2s ease';
       });
-
       territory.addEventListener('mouseleave', () => {
         setHoveredTerritoryId(null);
         svgElement.style.cursor = 'default';
         svgElement.style.filter = '';
         svgElement.style.transition = '';
       });
-
       // Add click handler
       territory.addEventListener('click', () => {
         setSelectedTerritoryId(territoryId);
         setIsTerritoryModalOpen(true);
-        
         // Add visual feedback for selected territory
         territories.forEach(t => {
           const tElement = t as SVGPathElement;
@@ -746,22 +740,18 @@ export default function SIGLADashboard() {
           tElement.style.stroke = '';
           tElement.style.strokeWidth = '';
         });
-        
         svgElement.style.stroke = '#3b82f6';
         svgElement.style.strokeWidth = '2';
         svgElement.style.filter = 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.3))';
       });
     });
-
     // Cleanup function
     return () => {
       territories.forEach((territory) => {
-        territory.removeEventListener('mouseenter', () => {});
-        territory.removeEventListener('mouseleave', () => {});
-        territory.removeEventListener('click', () => {});
+        territory.replaceWith(territory.cloneNode(true));
       });
     };
-  }, []);
+  }, [currentView]);
 
   // Function to get territory data
   const getTerritoryData = (territoryId: string) => {
