@@ -692,7 +692,8 @@ export default function SIGLADashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalData, setModalData] = useState<any>(null)
   const [selectedService, setSelectedService] = useState<string | null>(null)
-  const [surveyYearCycle, setSurveyYearCycle] = useState<string>("2025")
+  const currentYear = new Date().getFullYear().toString();
+  const [surveyYearCycle, setSurveyYearCycle] = useState<string>(currentYear);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [currentExcerptIndex, setCurrentExcerptIndex] = useState(0)
@@ -983,6 +984,15 @@ export default function SIGLADashboard() {
               >
                 <BarChart3 className="h-4 w-4" />
                 Analytics
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10`}
+                onClick={() => router.push('/survey')}
+              >
+                <MapPin className="h-4 w-4" />
+                Survey
               </Button>
             </nav>
 
