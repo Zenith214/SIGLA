@@ -1011,7 +1011,10 @@ export default function SIGLADashboard() {
                     3
                   </Badge>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-hover">
+                <DropdownMenuItem 
+                  className="hover:bg-hover"
+                  onClick={() => router.push('/settings')}
+                >
                   <Settings className="mr-2 h-4 w-4 text-text-secondary" />
                   <span className="text-text-primary">Settings</span>
                 </DropdownMenuItem>

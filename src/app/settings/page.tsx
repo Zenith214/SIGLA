@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +36,14 @@ const sectionTitles = {
 export default function AdminSettingsPanel() {
   const [activeSection, setActiveSection] = useState("survey-cycles")
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [dateTime, setDateTime] = useState("")
+
+  useEffect(() => {
+    const update = () => setDateTime(new Date().toLocaleString())
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const renderSection = () => {
     switch (activeSection) {
@@ -87,14 +95,15 @@ export default function AdminSettingsPanel() {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto">
-          <Link
-            href="/dashboard"
-            className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
+          <div className="ml-auto flex items-center gap-4">
+            <span className="text-white text-xs md:text-sm font-mono bg-black/20 rounded px-2 py-1">{dateTime}</span>
+            <Link
+              href="/dashboard"
+              className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
         </header>
 
         {/* Main Content */}

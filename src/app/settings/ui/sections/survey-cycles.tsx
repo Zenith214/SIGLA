@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,12 +19,23 @@ const surveyCycles = [
 export function SurveyCycles() {
   const [selectedYear, setSelectedYear] = useState("2024")
   const [archivePrevious, setArchivePrevious] = useState(false)
+  const [dateTime, setDateTime] = useState("")
+
+  useEffect(() => {
+    const update = () => setDateTime(new Date().toLocaleString())
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">Survey Cycles</h1>
-        <p className="text-gray-600 text-lg">Manage survey cycles and their schedules</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900">Survey Cycles</h1>
+          <p className="text-gray-600 text-lg">Manage survey cycles and their schedules</p>
+        </div>
+        <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
       </div>
 
       {/* Active Survey Cycle */}

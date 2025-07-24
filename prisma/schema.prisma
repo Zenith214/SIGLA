@@ -23,4 +23,85 @@ model User {
   organization String?
   jobTitle     String?
   createdAt    DateTime @default(now())
+  assignments  Assignment[]
+  role         String?
+  status       String?
+  lastLogin    DateTime?
+}
+
+model Barangay {
+  barangay_id   Int      @id @default(autoincrement())
+  barangay_name String   @unique
+  seal          String   @default("no")
+  description   String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime?
+  households    Int?
+  population    Int?
+  captain       String?
+  currentStatus String?
+  history       Json?
+  // Relations
+  assignments   Assignment[]
+  surveyTargets SurveyTarget[]
+  surveys       Survey[]
+}
+
+model SurveyCycle {
+  cycle_id    Int      @id @default(autoincrement())
+  year        String
+  status      String   @default("Active") // ENUM('Active','Completed','Archived')
+  start_date  DateTime
+  end_date    DateTime
+  responses   Int?
+  created_at  DateTime @default(now())
+  updated_at  DateTime?
+}
+
+model SurveyTarget {
+  target_id    Int      @id @default(autoincrement())
+  barangay_id  Int
+  target       Int
+  achieved     Int?
+  percentage   Int?
+  created_at   DateTime @default(now())
+  updated_at   DateTime?
+  // Relations
+  barangay     Barangay @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+
+  @@map("survey_target")
+}
+
+model Assignment {
+  assignment_id Int      @id @default(autoincrement())
+  barangay_id   Int
+  user_id       Int
+  status        String   @default("Pending") // ENUM('Active','Pending','Completed')
+  progress      Int?
+  created_at    DateTime @default(now())
+  updated_at    DateTime?
+  // Relations
+  barangay      Barangay @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Backup {
+  backup_id Int      @id @default(autoincrement())
+  date      DateTime
+  time      DateTime
+  size      String?
+  status    String   @default("Success") // ENUM('Success','Failed')
+}
+
+model Survey {
+  survey_id     Int      @id @default(autoincrement())
+  barangay_id   Int
+  status        String   @default("draft") // ENUM('draft','ongoing','completed','archived')
+  analyzed_data Json?
+  raw_data      Json?
+  created_at    DateTime @default(now())
+  updated_at    DateTime?
+  // Relations
+  barangay      Barangay @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
 }

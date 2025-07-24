@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
     if (!isPasswordValid) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
+    // Update lastLogin
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
     // Generate JWT with user info
     const token = jwt.sign(
       {
