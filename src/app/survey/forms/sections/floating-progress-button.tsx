@@ -12,6 +12,7 @@ interface FloatingProgressButtonProps {
 
 export function FloatingProgressButton({ sections, currentSection, onSectionChange }: FloatingProgressButtonProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [touchStartY, setTouchStartY] = useState(0)
 
   const completedSections = sections.filter((section) => section.status === "completed").length
   const totalSections = sections.length
@@ -42,6 +43,21 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
   const handleSectionSelect = (sectionId: string) => {
     onSectionChange(sectionId)
     setIsDrawerOpen(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touchY = e.touches[0].clientY
+    setTouchStartY(touchY)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchY = e.changedTouches[0].clientY
+    const deltaY = touchY - touchStartY
+    
+    // If swipe down more than 50px, close drawer
+    if (deltaY > 50) {
+      setIsDrawerOpen(false)
+    }
   }
 
   return (
@@ -80,6 +96,8 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
           isDrawerOpen ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ maxHeight: "80vh" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="p-6">
           {/* Drawer Header */}
