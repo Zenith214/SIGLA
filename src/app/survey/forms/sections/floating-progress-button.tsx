@@ -69,7 +69,7 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
       {/* Mobile Drawer Overlay */}
       {isDrawerOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 block lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-30 z-40 block lg:hidden"
           onClick={() => setIsDrawerOpen(false)}
         />
       )}
