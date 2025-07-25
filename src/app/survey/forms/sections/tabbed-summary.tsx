@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { JSX, useState } from "react"
 import { ArrowLeft, Send } from "lucide-react"
 import type { SurveyData, SectionStatus } from "../page"
 
@@ -23,9 +23,21 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
     { id: "environmental", name: "Environmental", dataKey: "environmental" as keyof SurveyData },
   ]
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: any): string | JSX.Element => {
     if (Array.isArray(value)) {
       return value.length > 0 ? value.join(", ") : "None selected"
+    }
+    if (typeof value === "object" && value !== null) {
+      // Handle object case - render key-value pairs
+      return (
+        <div>
+          {Object.entries(value).map(([key, val]) => (
+            <div key={key}>
+              <strong>{key}:</strong> {formatValue(val)}
+            </div>
+          ))}
+        </div>
+      )
     }
     return value || "Not answered"
   }
@@ -163,3 +175,4 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
     </div>
   )
 }
+

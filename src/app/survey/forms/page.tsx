@@ -29,12 +29,16 @@ export interface SectionStatus {
 
 export interface Question {
   id: string
-  type: "radio" | "checkbox" | "text" | "textarea"
+  type: "radio" | "checkbox" | "text" | "textarea" | "grouped"
   question: string
   options?: string[]
   required?: boolean
+  dependsOn?: string
+  dependsOnValue?: string
+  mainQuestion?: string
+  mainOptions?: string[]
+  followUpQuestions?: Question[]
 }
-
 export default function SurveyApp() {
   const [currentSection, setCurrentSection] = useState("initialization")
   const [surveyData, setSurveyData] = useState<SurveyData>({
