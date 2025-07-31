@@ -1,11 +1,45 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Define routes that do NOT require authentication
 const PUBLIC_PATHS = [
   '/',
   '/register',
   '/success',
+];
+
+// Define admin-only routes
+const ADMIN_ROUTES = [
+  '/settings',
+  '/api/users',
+  '/api/barangays',
+  '/api/survey-cycles',
+  '/api/survey-targets',
+  '/api/assignments',
+  '/api/backups',
+];
+
+// Define interviewer-only routes
+const INTERVIEWER_ROUTES = [
+  '/survey/forms',
+  '/survey/barangay',
+];
+
+// Define all protected routes that require authentication
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/settings',
+  '/survey',
+  '/api/users',
+  '/api/barangays',
+  '/api/survey-cycles',
+  '/api/survey-targets',
+  '/api/assignments',
+  '/api/backups',
+  '/api/me',
 ];
 
 // Helper to check if the path is public
@@ -24,30 +58,108 @@ function isPublic(path: string) {
   return PUBLIC_PATHS.includes(path);
 }
 
+// Helper to check if the path requires authentication
+function requiresAuth(path: string) {
+  // Check if path matches any protected route
+  return PROTECTED_ROUTES.some(route => path.startsWith(route));
+}
+
+// Helper to validate JWT token
+function validateToken(token: string): { valid: boolean; user?: any; error?: string } {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || !decoded.id || !decoded.email) {
+      return { valid: false, error: 'Invalid token structure' };
+    }
+    return { valid: true, user: decoded };
+  } catch (error) {
+    return { valid: false, error: 'Invalid or expired token' };
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow public paths
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
-  // Check for the sigla_token cookie
-  const token = request.cookies.get('sigla_token');
-  if (!token) {
-    // Redirect to login page
+  // Check if route requires authentication
+  if (!requiresAuth(pathname)) {
+    // For non-public, non-protected routes, redirect to login
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/';
     loginUrl.searchParams.set('redirected', '1');
     return NextResponse.redirect(loginUrl);
   }
 
-  // Allow access
-  return NextResponse.next();
+  // Check for the sigla_token cookie
+  const token = request.cookies.get('sigla_token');
+  if (!token || !token.value) {
+    // No token found, redirect to login
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/';
+    loginUrl.searchParams.set('redirected', '1');
+    loginUrl.searchParams.set('reason', 'no_token');
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Validate the token
+  const tokenValidation = validateToken(token.value);
+  if (!tokenValidation.valid) {
+    // Invalid token, redirect to login
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/';
+    loginUrl.searchParams.set('redirected', '1');
+    loginUrl.searchParams.set('reason', 'invalid_token');
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const user = tokenValidation.user!;
+  const userRole = (user.role || 'viewer').toLowerCase();
+
+  // Special redirect for interviewers accessing dashboard
+  if (pathname === '/dashboard' && userRole === 'interviewer') {
+    const surveyUrl = request.nextUrl.clone();
+    surveyUrl.pathname = '/survey/forms';
+    return NextResponse.redirect(surveyUrl);
+  }
+
+  // Check admin routes
+  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
+    if (userRole !== 'admin') {
+      // Redirect to dashboard for non-admin users
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
+      return NextResponse.redirect(dashboardUrl);
+    }
+  }
+
+  // Check interviewer routes
+  if (INTERVIEWER_ROUTES.some(route => pathname.startsWith(route))) {
+    if (userRole !== 'interviewer' && userRole !== 'admin') {
+      // Redirect to dashboard for non-interviewer users
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
+      return NextResponse.redirect(dashboardUrl);
+    }
+  }
+
+  // Add user info to headers for client-side access
+  const response = NextResponse.next();
+  response.headers.set('x-user-id', user.id.toString());
+  response.headers.set('x-user-role', userRole);
+  response.headers.set('x-user-email', user.email);
+
+  return response;
 }
 
 export const config = {
   matcher: [
-    // Match all routes except those in PUBLIC_PATHS and static/api
-    '/((?!api|_next|favicon.ico|assets|public|.*\\.(svg|png|jpg|jpeg|css|js|ico|woff|woff2|ttf)$).*)',
+    // Match all routes except static files and Next.js internals
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|css|js|ico|woff|woff2|ttf)$).*)',
   ],
 }; 

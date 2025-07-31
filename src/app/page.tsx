@@ -1,14 +1,14 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Shield, Lock } from "lucide-react"
 
 export default function SiglaLogin() {
   const [showPassword, setShowPassword] = useState(false)
@@ -22,7 +22,42 @@ export default function SiglaLogin() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
+  const [pageLoading, setPageLoading] = useState(true)
+  const [redirectMessage, setRedirectMessage] = useState("")
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Add page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Check for redirect messages
+  useEffect(() => {
+    const redirected = searchParams.get('redirected');
+    const reason = searchParams.get('reason');
+    
+    if (redirected === '1') {
+      let message = "";
+      switch (reason) {
+        case 'no_token':
+          message = "Please log in to access the requested page.";
+          break;
+        case 'invalid_token':
+          message = "Your session has expired. Please log in again.";
+          break;
+        case 'insufficient_permissions':
+          message = "You don't have permission to access that page. Please log in with appropriate credentials.";
+          break;
+        default:
+          message = "Please log in to continue.";
+      }
+      setRedirectMessage(message);
+    }
+  }, [searchParams]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -35,6 +70,11 @@ export default function SiglaLogin() {
     // Clear errors when user starts typing
     if (errors[field as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+
+    // Clear redirect message when user starts typing
+    if (redirectMessage) {
+      setRedirectMessage("");
     }
   }
 
@@ -67,6 +107,7 @@ export default function SiglaLogin() {
 
     setIsLoading(true)
     setLoginStatus("idle")
+    setRedirectMessage("") // Clear any redirect messages
 
     // Simulate API call
     try {
@@ -81,7 +122,13 @@ export default function SiglaLogin() {
       })
       if (res.ok) {
         setLoginStatus("success")
-        router.push("/dashboard")
+        // Get user role and redirect accordingly
+        const userData = await res.json();
+        if (userData.role === 'interviewer') {
+          router.push("/survey/forms");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setLoginStatus("error")
       }
@@ -90,6 +137,36 @@ export default function SiglaLogin() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+        {/* Background Emblem */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
+          <img
+            src="/globe.svg"
+            alt="SIGLA Government Emblem"
+            className="max-w-md max-h-md object-contain"
+          />
+        </div>
+
+        {/* Main Content */}
+        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+          <div className="w-full max-w-md">
+            <Card className="shadow-lg border-0">
+              <CardHeader className="text-center pb-6">
+                <Skeleton className="h-8 w-48 mx-auto mb-2" />
+                <Skeleton className="h-4 w-64 mx-auto" />
+              </CardHeader>
+              <CardContent>
+                <SkeletonForm />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -117,6 +194,14 @@ export default function SiglaLogin() {
             </CardHeader>
 
             <CardContent>
+              {/* Redirect Messages */}
+              {redirectMessage && (
+                <Alert className="mb-4 border-0" style={{ backgroundColor: "#0072CE", color: "white" }}>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>{redirectMessage}</AlertDescription>
+                </Alert>
+              )}
+
               {/* Status Messages */}
               {loginStatus === "success" && (
                 <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "#f8fafc", fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
@@ -156,18 +241,9 @@ export default function SiglaLogin() {
                     }}
                     placeholder="Enter your email address"
                     disabled={isLoading}
-                    aria-describedby={errors.email ? "email-error" : undefined}
                   />
                   {errors.email && (
-                    <p
-                      id="email-error"
-                      className="text-sm flex items-center gap-1"
-                      style={{ color: "#C8102E" }}
-                      role="alert"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.email}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.email}</p>
                   )}
                 </div>
 
@@ -182,7 +258,7 @@ export default function SiglaLogin() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
-                      className={`pr-10 transition-colors ${
+                      className={`transition-colors pr-10 ${
                         errors.password ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
                       }`}
                       style={{
@@ -195,116 +271,46 @@ export default function SiglaLogin() {
                       }}
                       placeholder="Enter your password"
                       disabled={isLoading}
-                      aria-describedby={errors.password ? "password-error" : undefined}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded"
-                      style={{ "--tw-ring-color": "#0072CE" } as React.CSSProperties}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
                       disabled={isLoading}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
                     </button>
                   </div>
                   {errors.password && (
-                    <p
-                      id="password-error"
-                      className="text-sm flex items-center gap-1"
-                      style={{ color: "#C8102E" }}
-                      role="alert"
-                    >
-                      <AlertCircle className="h-4 w-4" />
-                      {errors.password}
-                    </p>
+                    <p className="text-sm text-red-600">{errors.password}</p>
                   )}
                 </div>
 
-                {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300 focus:ring-2 focus:ring-opacity-50"
-                      style={{ "--tw-ring-color": "#0072CE" } as React.CSSProperties}
-                      disabled={isLoading}
-            />
-                    <span className="text-sm" style={{ color: "#333333" }}>
-                      Remember me
-                    </span>
-                  </label>
-                  <a
-                    href="#"
-                    className="text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
-                    style={
-                      {
-                        color: "#0072CE",
-                        "--tw-ring-color": "#0072CE",
-                      } as React.CSSProperties
-                    }
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-
-                {/* Login Button */}
+                {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="w-full font-medium transition-colors focus:ring-2 focus:ring-opacity-50"
-                  style={
-                    {
-                      backgroundColor: "#0072CE",
-                      color: "white",
-                      "--tw-ring-color": "#0072CE",
-                    } as React.CSSProperties
-                  }
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#005FA3"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#0072CE"
+                  className="w-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    backgroundColor: "#0072CE",
+                    color: "white",
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                    padding: "12px 24px",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 114, 206, 0.2), 0 2px 4px -1px rgba(0, 114, 206, 0.1)",
                   }}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
-              {/* Register Button */}
-              <div className="mt-4 text-center">
-                <span className="text-sm" style={{ color: "#333333" }}>Don't have an account?</span>
-                <a
-                  href="/register"
-                  className="ml-2 text-sm font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
-                  style={{ color: "#0072CE", "--tw-ring-color": "#0072CE" } as React.CSSProperties}
-                >
-                  Register
-                </a>
-              </div>
+
             </CardContent>
           </Card>
-
-          {/* Footer */}
-          <div className="text-center mt-8">
-            <p className="text-sm" style={{ color: "#333333" }}>
-              Need help? Contact{" "}
-              <a
-                href="#"
-                className="hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
-                style={
-                  {
-                    color: "#0072CE",
-                    "--tw-ring-color": "#0072CE",
-                  } as React.CSSProperties
-                }
-              >
-                system administrator
-              </a>
-            </p>
-            <p className="text-xs mt-2" style={{ color: "#333333" }}>
-              © 2024 SIGLA System. All rights reserved.
-            </p>
-          </div>
         </div>
       </main>
     </div>

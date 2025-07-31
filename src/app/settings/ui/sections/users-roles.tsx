@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Skeleton, SkeletonTable, SkeletonUserCard } from "@/components/ui/skeleton"
 
-const roleOptions = ["Admin", "Interviewer", "Viewer"];
-const statusOptions = ["Active", "Inactive"];
+const roleOptions = ["admin", "interviewer", "viewer"];
+const statusOptions = ["active", "inactive"];
 
 export function UsersRoles() {
   const [users, setUsers] = useState<any[]>([])
@@ -26,8 +27,8 @@ export function UsersRoles() {
     lastName: "",
     email: "",
     password: "",
-    role: "Viewer",
-    status: "Active",
+    role: "viewer",
+    status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
   })
 
@@ -39,7 +40,7 @@ export function UsersRoles() {
         return res.json()
       })
       .then((data) => {
-        setUsers(data)
+        setUsers(data.users || data) // Handle both new and old API response formats
         setLoading(false)
       })
       .catch((err) => {
@@ -51,7 +52,10 @@ export function UsersRoles() {
   // Edit
   const handleEditClick = (user: any) => {
     setEditingUser(user)
-    setEditForm({ ...user })
+    setEditForm({ 
+      ...user,
+      role: user.role?.toLowerCase() || 'viewer'
+    })
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
@@ -59,14 +63,14 @@ export function UsersRoles() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch("/api/users", {
-        method: "PUT",
+      const res = await fetch(`/api/users/${editForm.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({ role: editForm.role }),
       })
       if (!res.ok) throw new Error("Failed to update user")
       const updated = await res.json()
-      setUsers(users.map(u => (u.id === updated.id ? updated : u)))
+      setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
       setEditForm(null)
     } catch (err: any) {
@@ -105,7 +109,7 @@ export function UsersRoles() {
       lastName: "",
       email: "",
       password: "",
-      role: "Viewer",
+      role: "viewer",
       status: "Active",
       lastLogin: new Date().toISOString().slice(0, 10),
     })
@@ -124,10 +128,18 @@ export function UsersRoles() {
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error("Failed to add user")
-      const created = await res.json()
-      setUsers([...users, created])
+      const response = await res.json()
+      setUsers([response.user, ...users])
       setAddingUser(false)
-      setAddForm({})
+      setAddForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        role: "viewer",
+        status: "active",
+        lastLogin: new Date().toISOString().slice(0, 10),
+      })
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -137,10 +149,25 @@ export function UsersRoles() {
 
   // Role stats
   const roleStats = [
-    { role: "Admin", count: users.filter(u => u.role === "Admin").length, color: "bg-red-100 text-red-800" },
-    { role: "Interviewer", count: users.filter(u => u.role === "Interviewer").length, color: "bg-blue-100 text-blue-800" },
-    { role: "Viewer", count: users.filter(u => u.role === "Viewer").length, color: "bg-gray-100 text-gray-800" },
+    { role: "admin", count: users.filter(u => u.role === "admin").length, color: "bg-red-100 text-red-800" },
+    { role: "interviewer", count: users.filter(u => u.role === "interviewer").length, color: "bg-blue-100 text-blue-800" },
+    { role: "viewer", count: users.filter(u => u.role === "viewer").length, color: "bg-gray-100 text-gray-800" },
   ]
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <SkeletonTable />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -208,9 +235,9 @@ export function UsersRoles() {
                       <Badge
                         variant="outline"
                         className={`text-xs ${
-                          user.role === "Admin"
+                          user.role === "admin"
                             ? "border-red-200 text-red-700"
-                            : user.role === "Interviewer"
+                            : user.role === "interviewer"
                               ? "border-blue-200 text-blue-700"
                               : "border-gray-200 text-gray-700"
                         }`}
@@ -219,8 +246,8 @@ export function UsersRoles() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.status === "Active" ? "default" : "secondary"} className="text-xs">
-                        {user.status}
+                      <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
+                        {user.status || "active"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-600">{user.lastLogin ? user.lastLogin.slice(0, 10) : ""}</TableCell>

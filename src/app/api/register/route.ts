@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
         phone,
         organization,
         jobTitle,
+        role: 'viewer', // Default role for new registrations
       },
     });
     return NextResponse.json({ message: 'User registered successfully' }, { status: 201 });

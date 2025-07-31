@@ -1,13 +1,13 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 
 export default function SiglaRegister() {
@@ -36,7 +36,16 @@ export default function SiglaRegister() {
   const [isLoading, setIsLoading] = useState(false)
   const [registerStatus, setRegisterStatus] = useState<"idle" | "success" | "error">("idle")
   const [apiError, setApiError] = useState("")
+  const [pageLoading, setPageLoading] = useState(true)
   const router = useRouter()
+
+  // Add page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -135,25 +144,10 @@ export default function SiglaRegister() {
       if (res.ok) {
         setRegisterStatus("success")
         setApiError("")
-        // Automatically log in after registration
-        try {
-          const loginRes = await fetch("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: formData.email,
-              password: formData.password,
-            }),
-            credentials: "include",
-          });
-          if (loginRes.ok) {
-            router.push("/dashboard");
-          } else {
-            setApiError("Registration succeeded but automatic login failed. Please log in manually.");
-          }
-        } catch (e) {
-          setApiError("Registration succeeded but automatic login failed. Please log in manually.");
-        }
+        // Redirect to login page after successful registration
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
       } else {
         setRegisterStatus("error")
         setApiError("Failed to register. Please try again.")
@@ -164,6 +158,35 @@ export default function SiglaRegister() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+        {/* Background Emblem */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
+          <img
+            src="/globe.svg"
+            alt="SIGLA Government Emblem"
+            className="max-w-md max-h-md object-contain"
+          />
+        </div>
+        {/* Main Content */}
+        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+          <div className="w-full max-w-2xl">
+            <Card className="shadow-lg border-0">
+              <CardHeader className="text-center pb-6">
+                <Skeleton className="h-8 w-48 mx-auto mb-2" />
+                <Skeleton className="h-4 w-64 mx-auto" />
+              </CardHeader>
+              <CardContent>
+                <SkeletonForm />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -193,7 +216,7 @@ export default function SiglaRegister() {
               {registerStatus === "success" && (
                 <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "white" }}>
                   <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>Registration successful! You can now log in.</AlertDescription>
+                  <AlertDescription>Registration successful! You will be redirected to the login page in 2 seconds.</AlertDescription>
                 </Alert>
               )}
               {registerStatus === "error" && (

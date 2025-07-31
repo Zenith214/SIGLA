@@ -27,19 +27,23 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
-    // Generate JWT with user info
+    // Generate JWT with user info including role
     const token = jwt.sign(
       {
         id: user.id,
         firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
+                        lastName: user.lastName,
+                email: user.email,
+                role: (user.role || 'viewer').toLowerCase(), // Ensure role is lowercase
       },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
     // Set JWT as HttpOnly cookie
-    const response = NextResponse.json({ message: 'Login successful' }, { status: 200 });
+                  const response = NextResponse.json({ 
+                message: 'Login successful',
+                role: (user.role || 'viewer').toLowerCase()
+              }, { status: 200 });
     response.cookies.set('sigla_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

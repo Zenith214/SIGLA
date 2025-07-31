@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   ChevronDown,
   FileText,
@@ -26,15 +27,18 @@ import {
   AlertTriangle,
   Briefcase,
   Leaf,
+  AlertCircle,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useRouter } from "next/navigation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import Cookies from "js-cookie"
 import jwt from "jsonwebtoken"
+import { Skeleton, SkeletonMap, SkeletonDashboard } from "@/components/ui/skeleton"
+import { Navigation } from "lucide-react"
 
 // Sample map pins data with service area satisfaction and action levels
 const mapPins = [
@@ -686,6 +690,21 @@ function useUserFirstName() {
   return firstName;
 }
 
+// Fetch user role from /api/me
+function useUserRole() {
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+              .then(data => {
+          if (data && data.role) setRole(data.role.toLowerCase());
+          else setRole('viewer');
+        })
+      .catch(() => setRole('viewer'));
+  }, []);
+  return role;
+}
+
 export default function SIGLADashboard() {
   const [currentView, setCurrentView] = useState("map")
   const [selectedPin, setSelectedPin] = useState<number | null>(null)
@@ -701,11 +720,47 @@ export default function SIGLADashboard() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [isTerritoryModalOpen, setIsTerritoryModalOpen] = useState(false);
   const [selectedServiceArea, setSelectedServiceArea] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [redirectMessage, setRedirectMessage] = useState("");
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle');
+  const [isSupported, setIsSupported] = useState(false);
   const userName = useUserName();
   const firstName = useUserFirstName();
+  const userRole = useUserRole();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const serviceKeys = ["health", "education", "transportation", "publicSafety", "wasteManagement", "socialServices"]
+
+  // Add loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Check for redirect messages
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+    
+    if (reason === 'insufficient_permissions') {
+      setRedirectMessage("You don't have permission to access that page. You've been redirected to the dashboard.");
+      
+      // Auto-hide the message after 5 seconds
+      const timer = setTimeout(() => {
+        setRedirectMessage("");
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
+  // Check for geolocation support
+  useEffect(() => {
+    setIsSupported('geolocation' in navigator);
+  }, []);
 
   // Add useEffect for map interactivity
   useEffect(() => {
@@ -753,6 +808,113 @@ export default function SIGLADashboard() {
       });
     };
   }, [currentView]);
+
+  // Function to capture current location
+  const handleLocationCapture = async () => {
+    if (!isSupported) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setLocationStatus('capturing');
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      setCurrentLocation({ lat: latitude, lng: longitude });
+      setLocationStatus('success');
+
+      // Find the nearest barangay and zoom to it
+      const nearestBarangay = findNearestBarangay(latitude, longitude);
+      if (nearestBarangay) {
+        // Simulate zooming to the barangay by highlighting it
+        highlightBarangay(nearestBarangay);
+      }
+
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setLocationStatus('error');
+      alert('Failed to get your location. Please check your browser permissions.');
+    }
+  };
+
+  // Function to find nearest barangay based on coordinates
+  const findNearestBarangay = (lat: number, lng: number) => {
+    // This is a simplified implementation
+    // In a real app, you would have actual barangay boundaries
+    const barangayCoordinates = [
+      { name: '1katipunan', lat: 14.5995, lng: 120.9842 },
+      { name: '2tanwalang', lat: 14.5967, lng: 120.9798 },
+      { name: '3solongvale', lat: 14.5967, lng: 120.9798 },
+      { name: '4tala-o', lat: 14.5967, lng: 120.9798 },
+      { name: '5balasinon', lat: 14.5967, lng: 120.9798 },
+      { name: '6haradabutai', lat: 14.5967, lng: 120.9798 },
+      { name: '7roxas', lat: 14.5967, lng: 120.9798 },
+      { name: '8newcebu', lat: 14.5967, lng: 120.9798 },
+      { name: '9palili', lat: 14.5967, lng: 120.9798 },
+      { name: '10talas', lat: 14.5967, lng: 120.9798 },
+      { name: '14kiblagon', lat: 14.5967, lng: 120.9798 },
+      { name: '15laperas', lat: 14.5967, lng: 120.9798 },
+      { name: '19poblacion', lat: 14.5967, lng: 120.9798 },
+      { name: '25waterfall', lat: 14.5967, lng: 120.9798 },
+    ];
+
+    let nearest = barangayCoordinates[0];
+    let minDistance = calculateDistance(lat, lng, nearest.lat, nearest.lng);
+
+    barangayCoordinates.forEach(barangay => {
+      const distance = calculateDistance(lat, lng, barangay.lat, barangay.lng);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = barangay;
+      }
+    });
+
+    return nearest;
+  };
+
+  // Function to calculate distance between two points
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Function to highlight a barangay on the map
+  const highlightBarangay = (barangay: { name: string; lat: number; lng: number }) => {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) return;
+
+    // Remove previous highlights
+    const territories = mapElement.querySelectorAll('path[id]');
+    territories.forEach(t => {
+      const tElement = t as SVGPathElement;
+      tElement.style.filter = '';
+      tElement.style.stroke = '';
+      tElement.style.strokeWidth = '';
+    });
+
+    // Highlight the selected barangay
+    const targetTerritory = mapElement.querySelector(`path[id="${barangay.name}"]`) as SVGPathElement;
+    if (targetTerritory) {
+      targetTerritory.style.stroke = '#3b82f6';
+      targetTerritory.style.strokeWidth = '3';
+      targetTerritory.style.filter = 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.6))';
+      targetTerritory.style.transition = 'all 0.3s ease';
+    }
+  };
 
   // Function to get territory data
   const getTerritoryData = (territoryId: string) => {
@@ -985,15 +1147,17 @@ export default function SIGLADashboard() {
                 <BarChart3 className="h-4 w-4" />
                 Analytics
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10`}
-                onClick={() => router.push('/survey')}
-              >
-                <MapPin className="h-4 w-4" />
-                Survey
-              </Button>
+              {userRole === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`flex items-center gap-2 font-medium text-white hover:bg-white/10`}
+                  onClick={() => router.push('/survey/forms')}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Survey
+                </Button>
+              )}
             </nav>
 
             <DropdownMenu>
@@ -1011,13 +1175,15 @@ export default function SIGLADashboard() {
                     3
                   </Badge>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="hover:bg-hover"
-                  onClick={() => router.push('/settings')}
-                >
-                  <Settings className="mr-2 h-4 w-4 text-text-secondary" />
-                  <span className="text-text-primary">Settings</span>
-                </DropdownMenuItem>
+                {userRole === 'admin' && (
+                  <DropdownMenuItem 
+                    className="hover:bg-hover"
+                    onClick={() => router.push('/settings')}
+                  >
+                    <Settings className="mr-2 h-4 w-4 text-text-secondary" />
+                    <span className="text-text-primary">Settings</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="hover:bg-hover">
                   <FileText className="mr-2 h-4 w-4 text-text-secondary" />
                   <span className="text-text-primary">Reports</span>
@@ -1039,7 +1205,17 @@ export default function SIGLADashboard() {
 
       {/* Main Content */}
       <main className={`${isFullScreen ? "fixed inset-0 z-40 bg-background h-full" : "p-4 lg:p-6"}`}>
-        {currentView === "map" && (
+        {/* Redirect Notification */}
+        {redirectMessage && (
+          <Alert className="mb-4 border-0" style={{ backgroundColor: "#0072CE", color: "white" }}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{redirectMessage}</AlertDescription>
+          </Alert>
+        )}
+        
+        {isLoading ? (
+          <SkeletonDashboard />
+        ) : currentView === "map" && (
           <div className={isFullScreen ? "h-full p-4" : "h-full"}>
             {/* Interactive Map Card */}
             <Card className="bg-card border-border shadow-sm h-full flex flex-col">
@@ -1050,8 +1226,39 @@ export default function SIGLADashboard() {
                     <CardDescription className="text-sm text-text-secondary">
                       Hover and Choose a territory to view Satisfaction Index for different areas.
                     </CardDescription>
+                    {currentLocation && locationStatus === 'success' && (
+                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        Location captured: {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+                      </div>
+                    )}
+                    {locationStatus === 'error' && (
+                      <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Failed to capture location. Please check browser permissions.
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleLocationCapture}
+                      disabled={locationStatus === 'capturing' || !isSupported}
+                      className="h-8 px-3"
+                    >
+                      {locationStatus === 'capturing' ? (
+                        <>
+                          <Navigation className="h-4 w-4 mr-1 animate-spin" />
+                          Capturing...
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="h-4 w-4 mr-1" />
+                          Capture Current Location
+                        </>
+                      )}
+                    </Button>
                     <span className="text-sm text-text-secondary">Survey Year:</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

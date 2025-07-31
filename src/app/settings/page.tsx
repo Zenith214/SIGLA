@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { AdminSidebar } from "./ui/admin-sidebar"
+import { Skeleton, SkeletonSidebar } from "@/components/ui/skeleton"
 import { SurveyCycles } from "./ui/sections/survey-cycles"
 import { Barangays } from "./ui/sections/barangays"
 import { SurveyTargets } from "./ui/sections/survey-targets"
@@ -37,6 +38,7 @@ export default function AdminSettingsPanel() {
   const [activeSection, setActiveSection] = useState("survey-cycles")
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [dateTime, setDateTime] = useState("")
+  const [pageLoading, setPageLoading] = useState(true)
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -44,6 +46,13 @@ export default function AdminSettingsPanel() {
     const interval = setInterval(update, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const renderSection = () => {
     switch (activeSection) {
@@ -62,6 +71,31 @@ export default function AdminSettingsPanel() {
       default:
         return <SurveyCycles />
     }
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-blue-50">
+        <div className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4">
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-4 w-32" />
+          <div className="ml-auto flex items-center gap-4">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-8 w-32" />
+          </div>
+        </div>
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <SkeletonSidebar />
+            </div>
+            <div className="lg:col-span-3">
+              <Skeleton className="h-96 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
