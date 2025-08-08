@@ -237,7 +237,7 @@ export function SurveyTargets() {
             <div className="p-8 text-center text-gray-500">Loading...</div>
           ) : error ? (
             <div className="p-8 text-center text-red-500">{error}</div>
-          ) : Array.isArray(targets) ? (
+          ) : Array.isArray(targets) && targets.length > 0 ? (
             <div className="space-y-6">
               {targets.map((target) => {
                 const barangay = barangays.find((b: any) => b.barangay_id === target.barangay_id)
@@ -269,8 +269,8 @@ export function SurveyTargets() {
               })}
             </div>
           ) : (
-            <div className="text-red-500 text-center">
-              {error || (typeof targets === 'object' && targets !== null && 'error' in targets ? targets.error : "No data available.")}
+            <div className="text-gray-500 text-center">
+              No survey targets found.
             </div>
           )}
         </CardContent>

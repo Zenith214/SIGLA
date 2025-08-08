@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import * as Prisma from '@prisma/client';
 
-const prisma = new PrismaClient();
+const prisma = new Prisma.PrismaClient();
 
 export async function GET() {
   const assignments = await prisma.assignment.findMany();
@@ -28,4 +28,4 @@ export async function DELETE(req: NextRequest) {
   const { assignment_id } = await req.json();
   await prisma.assignment.delete({ where: { assignment_id } });
   return NextResponse.json({ success: true });
-} 
+}

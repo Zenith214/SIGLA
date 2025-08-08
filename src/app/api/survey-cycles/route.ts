@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import * as Prisma from '@prisma/client';
 
-const prisma = new PrismaClient();
+const prisma = new Prisma.PrismaClient();
 
 export async function GET() {
   const cycles = await prisma.surveyCycle.findMany();
@@ -28,4 +28,4 @@ export async function DELETE(req: NextRequest) {
   const { cycle_id } = await req.json();
   await prisma.surveyCycle.delete({ where: { cycle_id } });
   return NextResponse.json({ success: true });
-} 
+}

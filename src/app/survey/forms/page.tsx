@@ -26,9 +26,9 @@ export interface SurveyData {
   financialAdmin: Record<string, any>
   disasterPrep: Record<string, any>
   safetyPeace: Record<string, any>
-  socialProtection: Record<string, any>
   businessFriendly: Record<string, any>
   environmental: Record<string, any>
+  socialProtection: Record<string, any>
 }
 
 export interface SectionStatus {
@@ -45,9 +45,14 @@ export interface Question {
   required?: boolean
   dependsOn?: string
   dependsOnValue?: string
+  partHeader?: string; // New property for section part headers
   mainQuestion?: string
   mainOptions?: string[]
   followUpQuestions?: Question[]
+  conditionalNext?: {
+    value: string; // The value that triggers the jump
+    skipToId: string; // The ID of the question to jump to
+  }[];
 }
 
 // Hook to get user information
@@ -111,9 +116,9 @@ export default function SurveyApp() {
     financialAdmin: {},
     disasterPrep: {},
     safetyPeace: {},
-    socialProtection: {},
     businessFriendly: {},
     environmental: {},
+    socialProtection: {}, // Added missing property
   })
 
   const [sections, setSections] = useState<SectionStatus[]>([
@@ -201,7 +206,17 @@ export default function SurveyApp() {
             sectionId={currentSection}
             data={surveyData}
             onUpdate={updateSurveyData}
-            onComplete={(nextSection) => handleSectionComplete(currentSection, nextSection)}
+            onComplete={(nextSection) => {
+              const nextSectionMap: Record<string, string> = {
+                financial: "disaster",
+                disaster: "safety",
+                safety: "social",
+                social: "business", // Ensure social leads to business
+                business: "environmental",
+                environmental: "summary",
+              };
+              handleSectionComplete(currentSection, nextSectionMap[currentSection] || "summary");
+            }}
             onBack={() => {
               const sectionOrder = [
                 "initialization",
@@ -218,6 +233,7 @@ export default function SurveyApp() {
                 setCurrentSection(sectionOrder[currentIndex - 1])
               }
             }}
+            onResetSectionStatus={updateSectionStatus} // Pass the function down
           />
         )
       case "summary":
@@ -288,7 +304,7 @@ export default function SurveyApp() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header user={user} currentSection={getCurrentSectionName()} />
-      <div className="p-6 pt-24">
+      <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Desktop Sections Card - Hidden on Mobile */}

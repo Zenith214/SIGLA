@@ -1,7 +1,11 @@
 "use client"
 
-import { MapPin, FileText, User, Navigation, AlertCircle } from "lucide-react"
+import { MapPin, FileText, User, Navigation, AlertCircle, ChevronDown, LogOut, LayoutDashboard } from "lucide-react"
 import { useState, useEffect } from "react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
 
 interface HeaderProps {
   user: {
@@ -25,6 +29,7 @@ export function Header({ user, currentSection }: HeaderProps) {
   const [location, setLocation] = useState<LocationData | null>(null)
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState<string>('')
+  const router = useRouter()
 
   // Get current location
   const getCurrentLocation = () => {
@@ -133,6 +138,11 @@ export function Header({ user, currentSection }: HeaderProps) {
     }
   }
 
+  const handleSignOut = () => {
+    Cookies.remove("sigla_token", { path: "/" });
+    router.push("/");
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="px-6 py-4">
@@ -152,48 +162,58 @@ export function Header({ user, currentSection }: HeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Location Status */}
+            {/* Location Status (visible outside dropdown for quick glance) */}
             <div className="hidden md:flex items-center space-x-2">
               {getLocationStatusDisplay()}
             </div>
 
-            {/* Location Details (if available) */}
-            {location && locationStatus === 'success' && (
-              <div className="hidden lg:flex items-center space-x-2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                <span>{location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</span>
-                {location.address && (
-                  <span className="max-w-32 truncate" title={location.address}>
-                    • {location.address.split(',')[0]}
-                  </span>
+            {/* User Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+                  <img
+                    src={user.avatar || "/placeholder.svg"}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full bg-blue-100"
+                  />
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-600">
+                      {user.role} • {user.id}
+                    </p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-card border-border shadow-lg">
+                <div className="p-4">
+                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-600">{user.role}</p>
+                  <p className="text-xs text-gray-600">{user.id}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={getCurrentLocation} disabled={locationStatus === 'requesting'} className="cursor-pointer">
+                  <Navigation className="mr-2 h-4 w-4" />
+                  <span>{locationStatus === 'requesting' ? 'Refreshing Location...' : 'Refresh Location'}</span>
+                </DropdownMenuItem>
+                {location && locationStatus === 'success' && (
+                  <DropdownMenuItem className="flex-col items-start text-xs text-gray-500 cursor-default" onSelect={e => e.preventDefault()}>
+                    <span className="font-medium">Current Location:</span>
+                    <span className="truncate w-full">{location.address}</span>
+                    <span>{location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}</span>
+                  </DropdownMenuItem>
                 )}
-              </div>
-            )}
-
-            {/* User Info */}
-            <div className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg">
-              <img
-                src={user.avatar || "/placeholder.svg"}
-                alt={user.name}
-                className="w-8 h-8 rounded-full bg-blue-100"
-              />
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-600">
-                  {user.role} • {user.id}
-                </p>
-              </div>
-              <User className="w-4 h-4 text-gray-400 sm:hidden" />
-            </div>
-
-            {/* Refresh Location Button */}
-            <button
-              onClick={getCurrentLocation}
-              disabled={locationStatus === 'requesting'}
-              className="hidden md:flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Navigation className="w-3 h-3" />
-              <span>Refresh</span>
-            </button>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/survey')} className="cursor-pointer">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Back to Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

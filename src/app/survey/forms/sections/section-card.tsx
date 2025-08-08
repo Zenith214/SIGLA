@@ -10,6 +10,9 @@ interface SectionCardProps {
 }
 
 export function SectionCard({ sections, currentSection, onSectionChange }: SectionCardProps) {
+  // Filter out the 'summary' section from progress calculation
+  const filterableSections = sections.filter(s => s.id !== 'summary');
+
   const getStatusIcon = (status: SectionStatus["status"]) => {
     switch (status) {
       case "completed":
@@ -71,14 +74,14 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
           <div className="flex justify-between items-center mb-2">
             <span>Progress</span>
             <span className="font-medium">
-              {sections.filter((s) => s.status === "completed").length} / {sections.length}
+              {filterableSections.filter((s) => s.status === "completed").length} / {filterableSections.length}
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{
-                width: `${(sections.filter((s) => s.status === "completed").length / sections.length) * 100}%`,
+                width: `${(filterableSections.filter((s) => s.status === "completed").length / filterableSections.length) * 100}%`,
               }}
             />
           </div>

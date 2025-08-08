@@ -1,318 +1,118 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Shield, Lock } from "lucide-react"
+import React from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ImageCarousel } from "@/components/ImageCarousel";
+import {
+  Shield,
+  BarChart3,
+  Link as LinkIcon,
+  Zap,
+  Eye,
+  CheckCircle,
+  Building2,
+  Handshake,
+  Database,
+} from "lucide-react";
 
-export default function SiglaLogin() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
-  const [pageLoading, setPageLoading] = useState(true)
-  const [redirectMessage, setRedirectMessage] = useState("")
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // Add page loading effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPageLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Check for redirect messages
-  useEffect(() => {
-    const redirected = searchParams.get('redirected');
-    const reason = searchParams.get('reason');
-    
-    if (redirected === '1') {
-      let message = "";
-      switch (reason) {
-        case 'no_token':
-          message = "Please log in to access the requested page.";
-          break;
-        case 'invalid_token':
-          message = "Your session has expired. Please log in again.";
-          break;
-        case 'insufficient_permissions':
-          message = "You don't have permission to access that page. Please log in with appropriate credentials.";
-          break;
-        default:
-          message = "Please log in to continue.";
-      }
-      setRedirectMessage(message);
-    }
-  }, [searchParams]);
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-
-    // Clear errors when user starts typing
-    if (errors[field as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
-    }
-
-    // Clear redirect message when user starts typing
-    if (redirectMessage) {
-      setRedirectMessage("");
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validation
-    const newErrors = {
-      email: "",
-      password: "",
-    }
-
-    if (!formData.email) {
-      newErrors.email = "Email address is required"
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address"
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required"
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
-    }
-
-    setErrors(newErrors)
-
-    if (newErrors.email || newErrors.password) {
-      return
-    }
-
-    setIsLoading(true)
-    setLoginStatus("idle")
-    setRedirectMessage("") // Clear any redirect messages
-
-    // Simulate API call
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-        credentials: "include",
-      })
-      if (res.ok) {
-        setLoginStatus("success")
-        // Get user role and redirect accordingly
-        const userData = await res.json();
-        if (userData.role === 'interviewer') {
-          router.push("/survey/forms");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        setLoginStatus("error")
-      }
-    } catch (error) {
-      setLoginStatus("error")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (pageLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
-        {/* Background Emblem */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
-          <img
-            src="/globe.svg"
-            alt="SIGLA Government Emblem"
-            className="max-w-md max-h-md object-contain"
-          />
-        </div>
-
-        {/* Main Content */}
-        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
-          <div className="w-full max-w-md">
-            <Card className="shadow-lg border-0">
-              <CardHeader className="text-center pb-6">
-                <Skeleton className="h-8 w-48 mx-auto mb-2" />
-                <Skeleton className="h-4 w-64 mx-auto" />
-              </CardHeader>
-              <CardContent>
-                <SkeletonForm />
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
-    )
-  }
+export default function LandingPage() {
+  const dashboardImages = [
+    "https://via.placeholder.com/1200x675/4299E1/FFFFFF?text=Dashboard+Overview",
+    "https://via.placeholder.com/1200x675/38A169/FFFFFF?text=Analytics+Report",
+    "https://via.placeholder.com/1200x675/63B3ED/FFFFFF?text=Data+Management",
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
-      {/* Background Emblem */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
-        <img
-          src="/globe.svg"
-          alt="SIGLA Government Emblem"
-          className="max-w-md max-h-md object-contain"
-        />
-      </div>
-
-      {/* Main Content */}
-      <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
-        <div className="w-full max-w-md">
-          <Card className="shadow-lg border-0">
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
-                System Login
-              </CardTitle>
-              <CardDescription style={{ color: "#333333" }}>
-                Enter your credentials to access the SIGLA system
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              {/* Redirect Messages */}
-              {redirectMessage && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#0072CE", color: "white" }}>
-                  <Lock className="h-4 w-4" />
-                  <AlertDescription>{redirectMessage}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Status Messages */}
-              {loginStatus === "success" && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "#f8fafc", fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>Login successful! Redirecting to dashboard...</AlertDescription>
-                </Alert>
-              )}
-
-              {loginStatus === "error" && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#C8102E", color: "white" }}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Invalid credentials. Please check your email and password.</AlertDescription>
-                </Alert>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium" style={{ color: "#333333" }}>
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`transition-colors ${
-                      errors.email ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
-                    }`}
-                    style={{
-                      borderColor: errors.email ? "#C8102E" : "#CCCCCC",
-                      ...(errors.email
-                        ? {}
-                        : ({
-                            "--tw-ring-color": "#0072CE",
-                          } as React.CSSProperties)),
-                    }}
-                    placeholder="Enter your email address"
-                    disabled={isLoading}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-600">{errors.email}</p>
-                  )}
-                </div>
-
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium" style={{ color: "#333333" }}>
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
-                      className={`transition-colors pr-10 ${
-                        errors.password ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
-                      }`}
-                      style={{
-                        borderColor: errors.password ? "#C8102E" : "#CCCCCC",
-                        ...(errors.password
-                          ? {}
-                          : ({
-                              "--tw-ring-color": "#0072CE",
-                            } as React.CSSProperties)),
-                      }}
-                      placeholder="Enter your password"
-                      disabled={isLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      disabled={isLoading}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-red-600">{errors.password}</p>
-                  )}
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    backgroundColor: "#0072CE",
-                    color: "white",
-                    fontWeight: 600,
-                    fontSize: "1rem",
-                    padding: "12px 24px",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 114, 206, 0.2), 0 2px 4px -1px rgba(0, 114, 206, 0.1)",
-                  }}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Signing In..." : "Sign In"}
-                </Button>
-              </form>
-
-            </CardContent>
-          </Card>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#dbeafe] text-gray-900">
+      {/* Hero Section */}
+      <header className="w-full py-16 md:py-24 text-center bg-gradient-to-b from-[#dbeafe] to-white animate-fade-in">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-center mb-6 animate-slide-up">
+            {/* Placeholder for Government Logo */}
+            <div className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mr-4 shadow-lg">
+              <Building2 className="h-9 w-9 text-white" />
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight text-gray-900">
+              SIGLA System
+            </h1>
+          </div>
+          <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-10 animate-slide-up animation-delay-200">
+            Empowering Governance Through Technology: Centralizing Operations for Data-Driven Decisions.
+          </p>
+          <Link href="/login" className="animate-slide-up animation-delay-400">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-10 py-4 rounded-lg shadow-xl transition-all duration-300 hover:scale-105">
+              Proceed to Login
+            </Button>
+          </Link>
         </div>
+      </header>
+
+      <main className="flex-1 flex flex-col items-center w-full max-w-7xl px-4 py-12 md:py-16">
+        {/* About Section */}
+        <section className="w-full text-center mb-16 animate-fade-in animation-delay-600">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">About the System</h2>
+          <p className="text-lg md:text-xl text-gray-700 max-w-4xl mx-auto mb-12">
+            The SIGLA System is an internal government platform designed to centralize and streamline various operational processes. By integrating key functions and providing robust data analytics, it aims to enhance efficiency, foster transparency, and support informed decision-making across all levels of local governance.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-800">
+              <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Secure Operations</h3>
+              <p className="text-gray-600">Ensuring the integrity and confidentiality of all government data and processes.</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-1000">
+              <BarChart3 className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Data-Driven Insights</h3>
+              <p className="text-gray-600">Transforming raw data into actionable intelligence for strategic planning.</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-1200">
+              <LinkIcon className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Seamless Integration</h3>
+              <p className="text-gray-600">Connecting various government departments and functions for unified workflow.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* System Preview Section */}
+        <section className="w-full mb-16 animate-fade-in animation-delay-1400">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">System Overview</h2>
+          <ImageCarousel images={dashboardImages} aspectRatio="video" autoplay={true} loop={true} />
+          <p className="text-center text-lg text-gray-700 mt-6 max-w-3xl mx-auto">
+            A glimpse into the intuitive interface and comprehensive dashboards that empower government officials with real-time information and control.
+          </p>
+        </section>
+
+        {/* Benefits Section */}
+        <section className="w-full text-center mb-16 animate-fade-in animation-delay-1600">
+          <h2 className="text-3xl md:text-4xl font-bold mb-8">Key Benefits</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-1800">
+              <Zap className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Enhanced Efficiency</h3>
+              <p className="text-gray-600">Automate routine tasks and streamline workflows to save time and resources.</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-2000">
+              <Eye className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Increased Transparency</h3>
+              <p className="text-gray-600">Provide clear visibility into operations and financial administration.</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200 animate-slide-up animation-delay-2200">
+              <CheckCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Accurate Data</h3>
+              <p className="text-gray-600">Ensure reliable and precise data for robust reporting and analysis.</p>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer className="w-full max-w-7xl text-center py-6 text-gray-600 text-sm border-t border-gray-300 mt-8 bg-white">
+        <p className="mb-1">For Official Use Only</p>
+        <p className="mb-1">Internal Contact: support@sigla.gov (placeholder)</p>
+        <p>System Version: 1.0.0 (placeholder)</p>
+        <p className="mt-2">© 2024 SIGLA System. All rights reserved.</p>
+      </footer>
     </div>
-  )
+  );
 }

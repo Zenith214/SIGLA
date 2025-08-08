@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import * as Prisma from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
+const prisma = new Prisma.PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
@@ -93,4 +93,4 @@ export async function GET(
   } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch user' }, { status: 500 });
   }
-} 
+}

@@ -14,9 +14,11 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [touchStartY, setTouchStartY] = useState(0)
 
-  const completedSections = sections.filter((section) => section.status === "completed").length
-  const totalSections = sections.length
-  const progressPercentage = (completedSections / totalSections) * 100
+  // Filter out the 'summary' section from progress calculation
+  const filterableSections = sections.filter(s => s.id !== 'summary');
+  const completedSections = filterableSections.filter((section) => section.status === "completed").length
+  const totalSections = filterableSections.length
+  const progressPercentage = (totalSections > 0) ? (completedSections / totalSections) * 100 : 0;
 
   const getStatusIcon = (status: SectionStatus["status"]) => {
     switch (status) {
