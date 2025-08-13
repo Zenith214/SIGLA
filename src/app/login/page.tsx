@@ -125,7 +125,7 @@ export default function SiglaLogin() {
         // Get user role and redirect accordingly
         const userData = await res.json();
         if (userData.role === 'interviewer') {
-          router.push("/survey/forms");
+          router.push("/survey/");
         } else {
           router.push("/dashboard");
         }

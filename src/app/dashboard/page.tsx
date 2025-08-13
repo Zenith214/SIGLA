@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   ChevronDown,
@@ -396,6 +396,80 @@ const territoryMap = {
       },
     },
   },
+  '4tala-o': {
+    name: 'Tala-o',
+    population: 2900,
+    description: 'Famous for its markets.',
+    coordinates: "14.6045° N, 120.9889° E",
+    serviceAreas: {
+      health: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Health center is easily accessible and staff are very professional.",
+            respondent: "Tom Smith, 50, Business Owner",
+            date: "2 days ago",
+          },
+        ],
+      },
+      education: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Schools are well-maintained with dedicated teachers. Very satisfied with education quality.",
+            respondent: "Sara Johnson, 35, Parent",
+            date: "1 week ago",
+          },
+        ],
+      },
+      transportation: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Public transportation is reliable and affordable. Very satisfied with the service.",
+            respondent: "Bob Brown, 42, Driver",
+            date: "3 days ago",
+          },
+        ],
+      },
+      publicSafety: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Police visibility has increased and response time is much faster. Feel safer in the community.",
+            respondent: "Lisa White, 48, Shop Owner",
+            date: "4 days ago",
+          },
+        ],
+      },
+      wasteManagement: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Regular collection and better waste segregation education.",
+            respondent: "David Wilson, 55, Vendor",
+            date: "5 days ago",
+          },
+        ],
+      },
+      socialServices: {
+        satisfaction: "high",
+        action: "low",
+        excerpts: [
+          {
+            text: "Senior citizen programs and assistance for PWDs are very comprehensive and helpful.",
+            respondent: "Grace Lee, 62, Senior Citizen",
+            date: "6 days ago",
+          },
+        ],
+      },
+    },
+  },
   '5balasinon': {
     name: 'Balasinon',
     population: 3700,
@@ -544,150 +618,196 @@ const territoryMap = {
       },
     },
   },
-  '7roxas': { name: 'Roxas', population: 3300, description: 'Popular for its schools.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '8newcebu': { name: 'New Cebu', population: 2800, description: 'A new development area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '9palili': { name: 'Palili', population: 2600, description: 'Known for its riverside.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '10talas': { name: 'Talas', population: 3500, description: 'A lively community.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '14kiblagon': { name: 'Kiblagon', population: 3000, description: 'A developing area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '15laperas': { name: 'Laperas', population: 2500, description: 'Residential and agricultural.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '19poblacion': { name: 'Poblacion', population: 4500, description: 'The main town center.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '25waterfall': { name: 'Waterfall', population: 1800, description: 'Known for its natural attractions.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '13mckinley': { name: 'McKinley', population: 2200, description: 'Historic and scenic.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '18luparan': { name: 'Luparan', population: 2900, description: 'A growing community.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '24labon': { name: 'Labon', population: 1500, description: 'Rural and peaceful.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '20tagolilong': { name: 'Tagolilong', population: 3100, description: 'Mixed-use area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '11carre': { name: 'Carre', population: 2700, description: 'Residential with local businesses.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '12buguis': { name: 'Buguis', population: 3800, description: 'A bustling commercial hub.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '16clib': { name: 'Clib', population: 2000, description: 'Quiet residential area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '17osmena': { name: 'Osmeña', population: 4000, description: 'A central and busy district.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '23parame': { name: 'Parame', population: 3400, description: 'Developing urban fringe.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
-  '22litos': { name: 'Litos', population: 2300, description: 'Suburban residential.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
-    health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
-    education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
-    transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
-    publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
-    wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
-    socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
-  }},
+  '7roxas': {
+    name: 'Roxas', population: 3300, description: 'Popular for its schools.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '8newcebu': {
+    name: 'New Cebu', population: 2800, description: 'A new development area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '9palili': {
+    name: 'Palili', population: 2600, description: 'Known for its riverside.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '10talas': {
+    name: 'Talas', population: 3500, description: 'A lively community.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '14kiblagon': {
+    name: 'Kiblagon', population: 3000, description: 'A developing area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '15laperas': {
+    name: 'Laperas', population: 2500, description: 'Residential and agricultural.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '19poblacion': {
+    name: 'Poblacion', population: 4500, description: 'The main town center.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '25waterfall': {
+    name: 'Waterfall', population: 1800, description: 'Known for its natural attractions.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '13mckinley': {
+    name: 'McKinley', population: 2200, description: 'Historic and scenic.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '18luparan': {
+    name: 'Luparan', population: 2900, description: 'A growing community.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '24labon': {
+    name: 'Labon', population: 1500, description: 'Rural and peaceful.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '20tagolilong': {
+    name: 'Tagolilong', population: 3100, description: 'Mixed-use area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '11carre': {
+    name: 'Carre', population: 2700, description: 'Residential with local businesses.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '12buguis': {
+    name: 'Buguis', population: 3800, description: 'A bustling commercial hub.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '16clib': {
+    name: 'Clib', population: 2000, description: 'Quiet residential area.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '17osmena': {
+    name: 'Osmeña', population: 4000, description: 'A central and busy district.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '23parame': {
+    name: 'Parame', population: 3400, description: 'Developing urban fringe.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '22litos': {
+    name: 'Litos', population: 2300, description: 'Suburban residential.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy health excerpt.", respondent: "Dummy", date: "Today" }] },
+      education: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy education excerpt.", respondent: "Dummy", date: "Today" }] },
+      transportation: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy transportation excerpt.", respondent: "Dummy", date: "Today" }] },
+      publicSafety: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy public safety excerpt.", respondent: "Dummy", date: "Today" }] },
+      wasteManagement: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy waste management excerpt.", respondent: "Dummy", date: "Today" }] },
+      socialServices: { satisfaction: "high", action: "low", excerpts: [{ text: "Dummy social services excerpt.", respondent: "Dummy", date: "Today" }] },
+    }
+  },
+  '21lapla': {
+    name: 'Lapla', population: 2100, description: 'A coastal community.', coordinates: "14.5967° N, 120.9798° E", serviceAreas: {
+      health: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Health services are adequate but could use more specialists.", respondent: "Local Resident", date: "Today" }] },
+      education: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Schools are functional but need more resources.", respondent: "Parent", date: "Today" }] },
+      transportation: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Transportation is available but could be improved.", respondent: "Commuter", date: "Today" }] },
+      publicSafety: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Generally safe but needs more security presence.", respondent: "Resident", date: "Today" }] },
+      wasteManagement: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Waste collection is regular but needs better facilities.", respondent: "Community Leader", date: "Today" }] },
+      socialServices: { satisfaction: "medium", action: "medium", excerpts: [{ text: "Social programs are available but need expansion.", respondent: "Social Worker", date: "Today" }] },
+    }
+  },
 };
 
 const getSatisfactionColor = (satisfaction: string, action: string) => {
@@ -806,10 +926,10 @@ function useUserRole() {
   useEffect(() => {
     fetch('/api/me', { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
-              .then(data => {
-          if (data && data.role) setRole(data.role.toLowerCase());
-          else setRole('viewer');
-        })
+      .then(data => {
+        if (data && data.role) setRole(data.role.toLowerCase());
+        else setRole('viewer');
+      })
       .catch(() => setRole('viewer'));
   }, []);
   return role;
@@ -853,15 +973,15 @@ export default function SIGLADashboard() {
   // Check for redirect messages
   useEffect(() => {
     const reason = searchParams.get('reason');
-    
+
     if (reason === 'insufficient_permissions') {
       setRedirectMessage("You don't have permission to access that page. You've been redirected to the dashboard.");
-      
+
       // Auto-hide the message after 5 seconds
       const timer = setTimeout(() => {
         setRedirectMessage("");
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
@@ -935,6 +1055,11 @@ export default function SIGLADashboard() {
 
   // Helper to get fill color for territories based on satisfaction
   const getTerritoryFillColor = (territoryId: string) => {
+    if (!territoryMap[territoryId]) {
+      console.warn(`Territory ${territoryId} not found in territoryMap`);
+      return '#6b7280'; // Gray for unknown territories
+    }
+    
     const overallSatisfaction = getOverallSatisfaction(territoryId);
     switch (overallSatisfaction) {
       case 'High':
@@ -948,90 +1073,247 @@ export default function SIGLADashboard() {
     }
   };
 
-  // Add useEffect for map interactivity
-  useEffect(() => {
-    if (currentView !== "map") return;
+  // Function to apply colors to all territories
+  const applyTerritoryColors = useCallback(() => {
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
     const territories = mapElement.querySelectorAll('path[id]');
-
-    // Function to reset all territory styles
-    const resetTerritoryStyles = () => {
-      territories.forEach((t) => {
-        const tElement = t as SVGPathElement;
-        const territoryId = tElement.getAttribute('id');
-        if (territoryId) {
-          tElement.style.fill = getTerritoryFillColor(territoryId); // Reset to base color
-        }
-        tElement.style.filter = '';
-        tElement.style.stroke = '';
-        tElement.style.strokeWidth = '';
-      });
-    };
-
-    // Apply initial colors and attach event listeners
+    
     territories.forEach((territory) => {
       const territoryId = territory.getAttribute('id');
-      if (!territoryId) return;
-      const svgElement = territory as SVGPathElement;
-
-      // Set initial fill color
-      svgElement.style.fill = getTerritoryFillColor(territoryId);
-
-      // Add hover effects
-      const handleMouseEnter = () => {
-        setHoveredTerritoryId(territoryId);
-        svgElement.style.cursor = 'pointer';
-        if (selectedTerritoryId !== territoryId) { // Don't override selected style
-          svgElement.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))';
-          svgElement.style.transition = 'all 0.2s ease';
-        }
-      };
-      const handleMouseLeave = () => {
-        setHoveredTerritoryId(null);
-        svgElement.style.cursor = 'default';
-        if (selectedTerritoryId !== territoryId) { // Don't override selected style
-          svgElement.style.filter = '';
-          svgElement.style.transition = '';
-        }
-      };
-      const handleClick = () => {
-        resetTerritoryStyles(); // Reset all before applying new selection
-        setSelectedTerritoryId(territoryId);
-        setIsTerritoryModalOpen(true);
-        // Apply visual feedback for selected territory
-        svgElement.style.stroke = '#3b82f6';
-        svgElement.style.strokeWidth = '2';
-        svgElement.style.filter = 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.3))';
-      };
-
-      territory.addEventListener('mouseenter', handleMouseEnter);
-      territory.addEventListener('mouseleave', handleMouseLeave);
-      territory.addEventListener('click', handleClick);
-
-      // Cleanup function for event listeners
-      return () => {
-        territory.removeEventListener('mouseenter', handleMouseEnter);
-        territory.removeEventListener('mouseleave', handleMouseLeave);
-        territory.removeEventListener('click', handleClick);
-      };
+      if (territoryId) {
+        const svgElement = territory as SVGPathElement;
+        const color = getTerritoryFillColor(territoryId);
+        // Force apply the color using both methods
+        svgElement.style.fill = color;
+        svgElement.setAttribute('fill', color);
+        // Ensure the element is visible
+        svgElement.style.opacity = '1';
+        svgElement.style.visibility = 'visible';
+      }
     });
+  }, []);
 
-    // Cleanup function for the entire effect
-    return () => {
-      // When component unmounts or currentView changes, reset all styles
-      territories.forEach((territory) => {
-        const tElement = territory as SVGPathElement;
-        const territoryId = tElement.getAttribute('id');
-        if (territoryId) {
-          tElement.style.fill = getTerritoryFillColor(territoryId); // Reset to base color
-        }
-        tElement.style.filter = '';
-        tElement.style.stroke = '';
-        tElement.style.strokeWidth = '';
+  // Add useEffect to ensure colors are applied on mount and view changes with improved initialization
+  useEffect(() => {
+    if (currentView === "map") {
+      // Apply colors immediately
+      applyTerritoryColors();
+      
+      // Set up multiple retries with increasing delays
+      const timeouts: NodeJS.Timeout[] = [];
+      
+      // Retry after short delays
+      [100, 300, 500, 1000, 2000].forEach((delay, index) => {
+        const timeoutId = setTimeout(() => {
+          console.log(`Retry ${index + 1}: Applying territory colors after ${delay}ms`);
+          applyTerritoryColors();
+        }, delay);
+        timeouts.push(timeoutId);
       });
+      
+      // Also listen for when the SVG is fully loaded
+      const mapElement = document.getElementById('map');
+      if (mapElement) {
+        const handleSVGLoad = () => {
+          console.log('SVG loaded event triggered');
+          applyTerritoryColors();
+        };
+        
+        mapElement.addEventListener('load', handleSVGLoad);
+        
+        // Cleanup
+        return () => {
+          timeouts.forEach(clearTimeout);
+          mapElement.removeEventListener('load', handleSVGLoad);
+        };
+      }
+      
+      return () => {
+        timeouts.forEach(clearTimeout);
+      };
+    }
+  }, [currentView, applyTerritoryColors]);
+
+  // Add useEffect for map interactivity with improved error handling
+  useEffect(() => {
+    if (currentView !== "map") return;
+    
+    // Use a timeout to ensure SVG is fully rendered
+    const setupMapInteractivity = () => {
+      const mapElement = document.getElementById('map');
+      if (!mapElement) {
+        console.warn('Map element not found');
+        return null;
+      }
+      
+      const territories = mapElement.querySelectorAll('path[id]');
+      if (territories.length === 0) {
+        console.warn('No territory paths found in SVG');
+        return null;
+      }
+
+      console.log(`Found ${territories.length} territory paths`);
+
+      // Function to reset all territory styles
+      const resetTerritoryStyles = () => {
+        territories.forEach((t) => {
+          const tElement = t as SVGPathElement;
+          const territoryId = tElement.getAttribute('id');
+          if (territoryId && territoryMap[territoryId]) {
+            tElement.style.fill = getTerritoryFillColor(territoryId);
+          }
+          tElement.style.filter = '';
+          tElement.style.stroke = '';
+          tElement.style.strokeWidth = '';
+        });
+      };
+
+      const eventListeners: Array<() => void> = [];
+
+      // Apply initial colors and attach event listeners
+      territories.forEach((territory) => {
+        const territoryId = territory.getAttribute('id');
+        if (!territoryId || !territoryMap[territoryId]) {
+          console.warn(`Territory ID ${territoryId} not found in territoryMap`);
+          return;
+        }
+        
+        const svgElement = territory as SVGPathElement;
+
+        // Set initial fill color with error handling
+        try {
+          svgElement.style.fill = getTerritoryFillColor(territoryId);
+          svgElement.style.transition = 'all 0.2s ease';
+        } catch (error) {
+          console.error(`Error setting fill color for ${territoryId}:`, error);
+        }
+
+        // Add hover effects with debugging
+        const handleMouseEnter = (e: MouseEvent) => {
+          console.log(`Mouse entered territory: ${territoryId}`);
+          setHoveredTerritoryId(territoryId);
+          svgElement.style.cursor = 'pointer';
+          if (selectedTerritoryId !== territoryId) {
+            svgElement.style.filter = 'brightness(1.2) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))';
+          }
+        };
+        
+        const handleMouseLeave = (e: MouseEvent) => {
+          console.log(`Mouse left territory: ${territoryId}`);
+          setHoveredTerritoryId(null);
+          svgElement.style.cursor = 'default';
+          if (selectedTerritoryId !== territoryId) {
+            svgElement.style.filter = '';
+          }
+        };
+        
+        const handleClick = (e: Event) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`Territory clicked: ${territoryId}`);
+          
+          resetTerritoryStyles();
+          setSelectedTerritoryId(territoryId);
+          setIsTerritoryModalOpen(true);
+          
+          // Apply visual feedback for selected territory
+          svgElement.style.stroke = '#3b82f6';
+          svgElement.style.strokeWidth = '2';
+          svgElement.style.filter = 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.3))';
+        };
+
+        // Add event listeners with error handling
+        try {
+          territory.addEventListener('mouseenter', handleMouseEnter, { passive: true });
+          territory.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+          territory.addEventListener('click', handleClick);
+          
+          console.log(`✅ Event listeners attached to ${territoryId}`);
+
+          // Store cleanup functions
+          eventListeners.push(() => {
+            territory.removeEventListener('mouseenter', handleMouseEnter);
+            territory.removeEventListener('mouseleave', handleMouseLeave);
+            territory.removeEventListener('click', handleClick);
+          });
+        } catch (error) {
+          console.error(`❌ Failed to attach event listeners to ${territoryId}:`, error);
+        }
+      });
+
+      return eventListeners;
     };
-  }, [currentView, selectedTerritoryId]); // Re-run when currentView or selectedTerritoryId changes
+
+    // Setup with delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      const listeners = setupMapInteractivity();
+      
+      // Store listeners for cleanup
+      if (listeners) {
+        (window as any).__mapEventListeners = listeners;
+      }
+    }, 100);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+      
+      // Clean up event listeners
+      const listeners = (window as any).__mapEventListeners;
+      if (listeners && Array.isArray(listeners)) {
+        listeners.forEach(cleanup => cleanup());
+        delete (window as any).__mapEventListeners;
+      }
+
+      // Reset all territory styles
+      const mapElement = document.getElementById('map');
+      if (mapElement) {
+        const territories = mapElement.querySelectorAll('path[id]');
+        territories.forEach((territory) => {
+          const tElement = territory as SVGPathElement;
+          const territoryId = tElement.getAttribute('id');
+          if (territoryId && territoryMap[territoryId]) {
+            tElement.style.fill = getTerritoryFillColor(territoryId);
+          }
+          tElement.style.filter = '';
+          tElement.style.stroke = '';
+          tElement.style.strokeWidth = '';
+        });
+      }
+    };
+  }, [currentView, selectedTerritoryId]);
+
+  // Fallback hover detection using mouse position tracking
+  useEffect(() => {
+    if (currentView !== "map") return;
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      const mapElement = document.getElementById('map');
+      if (!mapElement) return;
+
+      // Get the element under the mouse cursor
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+      
+      if (elementUnderMouse && elementUnderMouse.tagName === 'path') {
+        const territoryId = elementUnderMouse.getAttribute('id');
+        if (territoryId && territoryMap[territoryId] && hoveredTerritoryId !== territoryId) {
+          console.log(`🎯 Fallback hover detected: ${territoryId}`);
+          setHoveredTerritoryId(territoryId);
+        }
+      } else if (hoveredTerritoryId && !mapElement.contains(elementUnderMouse)) {
+        // Mouse is outside the map, clear hover
+        setHoveredTerritoryId(null);
+      }
+    };
+
+    // Add global mouse move listener as fallback
+    document.addEventListener('mousemove', handleGlobalMouseMove, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+    };
+  }, [currentView, hoveredTerritoryId]);
 
   // Function to capture current location
   const handleLocationCapture = async () => {
@@ -1098,10 +1380,10 @@ export default function SIGLADashboard() {
     const R = 6371; // Earth's radius in kilometers
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -1137,7 +1419,7 @@ export default function SIGLADashboard() {
   const closeTerritoryModal = () => {
     setIsTerritoryModalOpen(false);
     setSelectedTerritoryId(null);
-    
+
     const mapElement = document.getElementById('map');
     if (mapElement) {
       const territories = mapElement.querySelectorAll('path[id]');
@@ -1163,6 +1445,126 @@ export default function SIGLADashboard() {
   const handleServiceClick = (service: string) => {
     setSelectedService(service)
     setCurrentExcerptIndex(0)
+  }
+
+  // Debug function to check SVG map status
+  const debugMapStatus = () => {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+      console.error('❌ Map element not found');
+      return;
+    }
+    
+    console.log('✅ Map element found');
+    
+    const territories = mapElement.querySelectorAll('path[id]');
+    console.log(`📍 Found ${territories.length} territory paths`);
+    
+    territories.forEach((territory, index) => {
+      const territoryId = territory.getAttribute('id');
+      const pathData = territory.getAttribute('d');
+      const currentFill = territory.getAttribute('fill') || (territory as SVGPathElement).style.fill;
+      
+      console.log(`${index + 1}. Territory: ${territoryId}`);
+      console.log(`   - Path length: ${pathData?.length || 0}`);
+      console.log(`   - Current fill: ${currentFill}`);
+      console.log(`   - Computed style fill: ${getComputedStyle(territory as Element).fill}`);
+      
+      if (territoryId && !territoryMap[territoryId]) {
+        console.warn(`⚠️ Territory ${territoryId} missing from territoryMap`);
+      }
+      
+      // Check if path is valid
+      if (!pathData || pathData.length === 0) {
+        console.error(`❌ Invalid path data for ${territoryId}`);
+      }
+    });
+    
+    // Check for missing territories in the map
+    Object.keys(territoryMap).forEach(territoryId => {
+      const pathElement = mapElement.querySelector(`path[id="${territoryId}"]`);
+      if (!pathElement) {
+        console.warn(`⚠️ Path element missing for territory: ${territoryId}`);
+      }
+    });
+    
+    // Force reapply colors
+    console.log('🎨 Reapplying territory colors...');
+    applyTerritoryColors();
+  }
+
+  // Function to fix common SVG path issues
+  const fixSVGPaths = () => {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) return;
+    
+    const territories = mapElement.querySelectorAll('path[id]');
+    let fixedCount = 0;
+    
+    territories.forEach((territory) => {
+      const territoryId = territory.getAttribute('id');
+      if (!territoryId) return;
+      
+      const svgElement = territory as SVGPathElement;
+      
+      // Fix common issues
+      if (!svgElement.style.fill || svgElement.style.fill === 'none') {
+        svgElement.style.fill = getTerritoryFillColor(territoryId);
+        fixedCount++;
+      }
+      
+      // Ensure visibility
+      if (svgElement.style.display === 'none' || svgElement.style.visibility === 'hidden') {
+        svgElement.style.display = '';
+        svgElement.style.visibility = 'visible';
+        fixedCount++;
+      }
+      
+      // Ensure pointer events
+      if (svgElement.style.pointerEvents === 'none') {
+        svgElement.style.pointerEvents = 'auto';
+        fixedCount++;
+      }
+    });
+    
+    console.log(`🔧 Fixed ${fixedCount} SVG path issues`);
+    alert(`Fixed ${fixedCount} SVG path issues. Check console for details.`);
+  }
+
+  // Function to test hover functionality
+  const testHoverFunctionality = () => {
+    console.log('🧪 Testing hover functionality...');
+    
+    // Test by programmatically setting hover state
+    const firstTerritoryId = Object.keys(territoryMap)[0];
+    if (firstTerritoryId) {
+      console.log(`Setting hover state to: ${firstTerritoryId}`);
+      setHoveredTerritoryId(firstTerritoryId);
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        console.log('Resetting hover state');
+        setHoveredTerritoryId(null);
+      }, 3000);
+    }
+    
+    // Check if event listeners are attached
+    const mapElement = document.getElementById('map');
+    if (mapElement) {
+      const territories = mapElement.querySelectorAll('path[id]');
+      let listenersCount = 0;
+      
+      territories.forEach((territory) => {
+        const territoryId = territory.getAttribute('id');
+        if (territoryId && territoryMap[territoryId]) {
+          // Check if element has event listeners (this is a rough check)
+          const hasListeners = territory.onmouseenter !== null || territory.onmouseleave !== null;
+          if (hasListeners) listenersCount++;
+        }
+      });
+      
+      console.log(`📊 Event listeners status: ${listenersCount}/${territories.length} territories have listeners`);
+    }
   }
 
   const handleBackToServices = () => {
@@ -1229,9 +1631,8 @@ export default function SIGLADashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10 ${
-                  currentView === "map" ? "bg-primary-dark" : ""
-                }`}
+                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10 ${currentView === "map" ? "bg-primary-dark" : ""
+                  }`}
                 onClick={() => setCurrentView("map")}
               >
                 <MapPin className="h-4 w-4" />
@@ -1240,9 +1641,8 @@ export default function SIGLADashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10 ${
-                  currentView === "analytics" ? "bg-primary-dark" : ""
-                }`}
+                className={`flex items-center gap-2 font-medium text-white hover:bg-white/10 ${currentView === "analytics" ? "bg-primary-dark" : ""
+                  }`}
                 onClick={() => setCurrentView("analytics")}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -1253,7 +1653,7 @@ export default function SIGLADashboard() {
                   variant="ghost"
                   size="sm"
                   className={`flex items-center gap-2 font-medium text-white hover:bg-white/10`}
-                  onClick={() => router.push('/survey/forms')}
+                  onClick={() => router.push('/survey/')}
                 >
                   <MapPin className="h-4 w-4" />
                   Survey
@@ -1277,7 +1677,7 @@ export default function SIGLADashboard() {
                   </Badge>
                 </DropdownMenuItem>
                 {userRole === 'admin' && (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="hover:bg-hover"
                     onClick={() => router.push('/settings')}
                   >
@@ -1313,7 +1713,7 @@ export default function SIGLADashboard() {
             <AlertDescription>{redirectMessage}</AlertDescription>
           </Alert>
         )}
-        
+
         {isLoading ? (
           <SkeletonDashboard />
         ) : currentView === "map" && (
@@ -1360,6 +1760,33 @@ export default function SIGLADashboard() {
                         </>
                       )}
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={debugMapStatus}
+                      className="h-8 px-3 text-xs"
+                      title="Debug map SVG paths"
+                    >
+                      🔍 Debug Map
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fixSVGPaths}
+                      className="h-8 px-3 text-xs"
+                      title="Fix common SVG path issues"
+                    >
+                      🔧 Fix SVG
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={testHoverFunctionality}
+                      className="h-8 px-3 text-xs"
+                      title="Test hover functionality"
+                    >
+                      🧪 Test Hover
+                    </Button>
                     <span className="text-sm text-text-secondary">Survey Year:</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1369,7 +1796,7 @@ export default function SIGLADashboard() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-32 bg-card border-border">
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="hover:bg-hover"
                           onClick={() => setSurveyYearCycle("2025")}
                         >
@@ -1392,69 +1819,110 @@ export default function SIGLADashboard() {
                       viewBox="0 0 1920 892"
                       xmlns="http://www.w3.org/2000/svg"
                       xmlnsXlink="http://www.w3.org/1999/xlink"
+                      style={{ backgroundColor: 'transparent' }}
                     >
+                      <style>
+                        {`
+                          path[id] {
+                            stroke: #e5e7eb;
+                            stroke-width: 0.5;
+                            transition: all 0.2s ease;
+                            fill-opacity: 1;
+                            stroke-opacity: 1;
+                            pointer-events: auto;
+                          }
+                          path[id]:hover {
+                            stroke: #3b82f6;
+                            stroke-width: 2;
+                            filter: brightness(1.1) drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+                            cursor: pointer;
+                          }
+                          path[id]:focus {
+                            outline: 2px solid #3b82f6;
+                            outline-offset: 2px;
+                          }
+                        `}
+                      </style>
                       <defs id="defs1"></defs>
                       <g id="layer2">
                         <path
                           d="m 253.69699,47.954044 h 12.34745 l -0.0546,-3.842369 47.96954,-0.101523 -0.10152,-4.060913 26.95431,-0.203046 0.0508,4.060914 15.83756,0.05076 0.10152,4.060914 12.08122,-0.05076 -0.0508,3.807107 11.97969,0.203046 -0.0508,4.162436 16.09137,-0.05076 -0.0508,3.807106 12.13198,0.101523 v 3.959391 h 11.87817 l 0.0508,3.959391 h 15.83756 l 0.10152,4.111675 12.03046,-0.152284 0.10152,4.111675 15.88833,-0.05076 v 4.060913 l 24.06091,-0.05076 0.0508,4.162437 19.89848,-0.152285 v 4.010153 l 8.07106,0.101522 0.15229,3.90863 11.87817,0.101523 v 3.604061 l 11.92894,0.253807 0.0508,3.857868 7.96954,0.152284 -0.0508,3.90863 15.98985,0.10152 0.0508,3.90863 24.01015,0.10152 0.10152,3.85787 15.78681,0.15228 0.10152,4.06092 h 11.77665 l 0.15228,3.8071 h 8.02031 l 0.10152,4.16244 h 11.87817 l 0.0508,3.85787 12.03046,0.15228 0.10152,3.95939 11.77665,0.10153 0.0508,3.75634 8.07107,0.0508 0.0508,3.85787 11.87817,0.10152 0.15229,3.24873 -12.03046,-0.0508 -0.10152,4.01016 -11.9797,-0.0508 0.0508,4.06092 -12.08122,-0.10153 v 4.16244 l -11.9797,-0.10152 v 3.95939 h -11.87817 l -0.0508,4.06091 -12.03046,0.0508 -0.0508,3.90863 h -7.81726 l -0.10152,4.01016 -11.87818,-0.25381 -0.10152,4.11167 h -12.03046 l -0.0508,4.01016 -11.82741,0.0508 -0.15228,4.01015 -11.89406,1e-4 -0.0718,4.09189 h -11.91672 v 3.94831 l -11.98851,0.0718 -0.0718,3.87652 -11.98851,0.14357 v 3.94832 h -16.00861 v 3.94831 l -16.00861,0.14357 v 4.0201 l -43.79037,-0.28715 -0.14357,4.37904 -35.31945,-0.14357 v -7.89663 l -4.0201,-0.21536 0.0718,-3.73295 -4.09189,-0.14358 -0.0718,-8.11198 -3.66116,-0.0718 0.0718,-3.58937 -4.23546,-0.14358 -0.0896,-8.06805 -3.85787,-0.0508 -0.0254,-4.01015 h -4.01015 l 0.0508,-7.96954 -3.98477,-0.0762 -0.0254,-3.93401 -4.03553,-0.0761 -0.0254,-3.78172 -4.03554,-0.0762 0.0508,-8.1472 -4.01015,0.0508 0.0254,-3.93401 h -4.16243 l 0.1269,-8.07107 -4.01015,-0.0254 v -3.93401 l -3.95939,0.0254 -0.0254,-8.04568 -4.01016,-0.0254 0.0508,-3.95939 -3.95939,0.0254 -0.0508,-7.96954 h -3.95939 l 0.0508,-4.2132 -4.01015,0.10153 -0.10152,-7.99493 -3.88325,0.0254 -0.0254,-4.035526 -3.96897,-0.02136 -0.10768,-4.002152 -7.96841,0.0179 V 90.95478 l -4.03805,0.05384 0.018,-4.038046 -8.02225,-0.01795 v -4.055993 l -8.00431,0.03589 -0.0359,-3.948312 -3.93037,-0.0179 0.0897,-4.038047 -8.05815,0.05384 -0.018,-4.038046 H 285.786 l 0.0718,-4.038047 -8.09404,-0.03589 0.0538,-3.930366 h -4.0201 l 0.018,-4.055993 -8.02226,0.07179 0.0179,-4.055993 -8.02225,0.01795 -0.0179,-4.038046 h -4.05599 z"
                           id="1katipunan"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 217.7665,43.90863 11.0533,-0.07614 0.0127,4.035533 16.09137,-0.05076 V 51.9797 l 7.86802,-0.101523 0.10152,3.908629 3.95939,0.152284 0.003,3.824 7.89663,0.07179 -0.0718,4.0201 8.21967,0.07179 0.0359,3.804737 h 4.0201 l 0.0359,4.055994 7.89663,0.143575 0.0718,3.84063 3.76885,0.07179 v 3.984206 l 8.11198,0.143575 v 3.876524 h 4.0201 l 0.002,3.994851 7.96954,0.07614 -0.0254,3.90863 7.98223,0.06345 0.0888,3.972082 3.97208,0.02538 0.0381,3.997462 7.90609,0.01269 0.0508,3.946704 3.99746,0.0761 v 7.85533 l 3.99746,0.0761 -0.0127,3.99746 3.95939,0.0254 v 8.00762 l 4.03554,-0.0127 0.0634,3.95939 3.93401,0.0254 0.0508,8.00761 3.93401,0.0254 0.0254,3.97208 3.98477,0.0254 v 7.93147 l 3.99746,0.0127 0.0254,4.03553 4.02285,0.0508 0.0127,7.89341 3.90863,0.0254 0.0254,4.06091 3.98477,0.0127 5.6e-4,4.00231 4.0201,-0.0359 0.0359,8.0402 4.0201,0.0359 v 3.84063 l 3.98421,0.0718 -0.009,8.0043 h 3.96626 l 0.009,3.97524 4.00215,0.0269 0.0269,7.95943 3.95729,0.0628 0.0269,3.93934 4.00215,0.0359 -0.009,7.99533 4.01113,0.0538 0.0449,2.97918 h -4.10984 l 0.0808,8.02226 -4.00215,-0.0359 v 3.99318 l -3.99318,-0.0359 -0.0269,8.06712 -3.96626,0.0359 -0.0269,3.97523 -3.95728,-0.009 -0.0718,8.0043 -3.96626,0.009 v 3.97523 l -3.95728,-0.0269 -0.0359,8.0402 -4.03804,-0.0179 0.0269,4.00215 -4.08292,0.0269 0.0538,8.01328 -3.9842,-0.0628 0.0179,4.09189 h -3.96625 l -0.0897,7.96841 h -3.9842 l -0.0179,3.96626 -3.96626,-0.0179 -0.0179,8.0402 -11.98851,-0.0538 -0.0179,4.03804 -15.97272,0.0179 -0.0538,3.98421 -19.97487,-0.0359 0.0359,4.09189 -16.06245,-0.0897 0.018,4.03804 -20.06461,-0.0179 0.0718,4.02009 -15.95477,-0.0359 -0.0718,4.03805 -19.92102,-0.0359 -9e-5,4.05144 -16.01523,-0.0761 v 4.13706 l -16.00254,-0.0508 -0.0622,3.96281 -19.93,0.0269 -0.009,3.96626 -16.05215,0.0643 0.0127,3.93401 -19.97461,-0.0127 v 4.03553 l -15.97716,0.0254 v 3.95939 l -7.04315,-0.0127 -0.0254,-19.92385 -3.97208,-0.0254 0.0381,-8.033 -4.03553,-0.0127 0.0381,-7.96954 -4.04823,-0.0254 -0.0127,-8.02031 -3.99746,0.0508 0.0254,-8.05837 -4.02284,0.0127 -0.0761,-16.00254 -3.946703,0.0254 0.03807,-15.98985 h -4.022843 l 0.02538,-7.01776 3.95939,0.0127 -0.02538,-4.04823 4.060916,0.0254 -0.0508,-3.99746 4.02284,-0.0381 -0.0127,-3.93401 4.02284,0.0127 -0.0127,-4.04822 h 4.07361 l -0.0508,-3.95939 4.09898,0.0254 -0.0888,-8.04569 h 4.03553 l -0.0127,-12.00507 3.98477,-0.0127 -0.0381,-12.98224 h -3.98477 l 0.0254,-16.02792 h -4.02284 l 0.0127,-12.00507 -4.02284,0.0127 0.0127,-16.01523 -3.98478,0.0254 0.0381,-6.9797 7.91878,0.0254 -0.0254,-4.02284 8.07106,0.0254 v -4.03553 l 8.00762,0.0254 v -4.02284 l 4.18781,-0.0127 -0.17766,-7.96955 3.98477,-0.0127 -0.10152,-7.98223 4.12436,-0.0254 -0.0127,-8.0203 4.01016,0.0635 -0.0381,-8.00762 4.07361,-0.0381 -0.0634,-7.982234 4.06091,-0.01269 -0.0635,-7.969543 4.02284,0.03807 -0.0508,-4.060914 4.03553,0.01269 -0.0381,-4.022842 8.07107,0.03807 -0.0127,-4.060914 4.02284,0.03807 -0.0508,-4.048223 4.02284,0.01269 -0.0381,-3.972081 8.07107,0.03807 -0.0254,-4.048223 h 4.01015 l -0.0508,-3.984772 4.0736,-0.02538 -0.0508,-3.997462 3.99746,0.01269 0.0254,-3.984772 8.00762,-0.01269 -0.0508,-4.010153 4.06092,0.05076 -0.0381,-4.022843 3.98477,0.01269 z"
                           id="2tanwalang"
+
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 681.74785,143.89803 7.07107,0.0359 -0.018,7.93252 3.96626,0.0359 0.0179,7.98636 4.03805,0.0538 -0.0359,7.89662 4.0201,0.0538 v 7.96842 l 3.98421,-0.018 0.0179,11.98851 h 4.03805 l -0.0179,12.13209 3.91144,-0.0148 0.0254,11.92893 4.04822,0.0254 -0.0761,8.00762 4.07361,-0.0254 0.0381,11.97969 3.95939,0.0381 -0.0127,11.96701 h 4.03553 v 16.01523 l 3.95939,0.0254 0.0127,15.9137 4.01015,0.0254 0.0254,20.03808 3.99747,0.0381 -0.0635,19.97462 4.01016,-0.0127 0.0254,15.97715 4.02284,0.0127 -0.0634,20.06346 h 4.04822 l 0.0508,19.93654 3.9467,-0.0254 0.0381,16.02792 3.93401,0.0127 0.0254,20.05076 h 3.95939 l 0.0127,19.92386 4.02284,0.0381 0.0381,15.96447 3.95939,0.0127 0.0381,7.05584 H 745.7995 l 0.0381,-4.06092 -64.07361,0.0761 -0.0634,-4.06092 -35.9264,0.0381 0.0381,-4.06091 -16.02792,0.0634 -0.0127,-4.03553 h -11.9797 l -0.0254,-4.02284 -16.00254,0.0127 0.0254,-3.95939 -12.00507,-0.0127 -0.0381,-3.99747 -11.95432,-0.0254 0.0254,-3.97208 -16.0533,-0.0254 v -3.98477 l -7.98223,0.0254 -0.0254,-4.06091 h -7.98224 l 0.0254,-3.95939 -7.99492,0.0254 0.0127,-4.02285 h -8.03299 l -0.0127,-4.03553 -8.02031,-0.0127 0.0127,-4.01015 -4.02284,0.0381 0.0127,-4.02284 -7.99492,-0.0127 -0.0254,-4.01016 -7.98223,0.0635 0.0381,-4.02285 h -8.03299 l 0.0761,-3.99746 -8.07107,0.0381 0.0127,-4.04822 -4.02284,0.0127 -0.0381,-3.98477 -7.94416,-0.0127 0.0127,-3.99747 -8.07107,0.0381 0.0381,-4.03554 -8.03299,-0.0381 0.0254,-3.98477 -7.97454,0.0542 v -4.00215 l -4.00216,-0.009 0.018,-4.01113 -8.0043,-0.009 v -4.02907 l -4.03805,-0.0269 V 342.875 h -20.79145 l -0.15669,4.02855 -19.06091,0.0508 0.0508,-4.03554 -3.98477,0.0508 0.0254,-4.03553 h -4.06092 v -8.04568 l -3.98477,0.0508 0.0508,-4.03554 -4.08629,0.0761 0.0508,-4.0863 -4.0863,0.0254 0.0254,-4.03553 h -3.9594 l 0.0761,-4.01015 -4.13706,0.0254 0.0508,-7.94416 -3.98477,0.0508 0.10152,-4.03554 -4.13705,0.0254 v -4.11167 l -4.01015,0.0508 0.0254,-3.07106 h 4.06091 l -0.0761,-7.96955 4.11167,0.0761 -0.0761,-4.11167 h 4.03553 l -0.0761,-8.04569 4.0863,0.0761 -0.0254,-4.06092 4.06091,0.0508 -0.0761,-7.96954 4.11167,0.0508 -0.0761,-4.03553 4.06091,0.0508 -0.10152,-8.09645 4.01015,0.0508 v -4.06091 h 3.98477 l 0.0508,-8.04568 4.01015,0.0761 -0.0508,-4.01015 3.98477,0.0508 -0.0761,-8.04569 h 4.11167 v -3.98477 l 4.06092,0.0761 -0.12691,-8.09644 36.04418,0.15612 v -4.19956 l 44.00573,-0.0359 -0.0359,-3.91242 16.11629,-0.0359 -0.0718,-3.87653 16.0445,-0.0359 -0.0359,-4.09189 11.95262,-0.0359 v -3.87652 l 12.09619,-0.0359 -0.0718,-3.9842 12.0603,-0.0359 -0.0359,-3.9842 11.9822,-0.0357 -0.0508,-3.95939 12.18274,-0.0508 -0.10152,-4.01015 h 12.13198 l -0.10152,-4.01016 h 11.92893 l 0.0508,-3.95939 7.91878,-0.0508 v -3.98477 l 12.08122,0.0761 v -4.03553 l 12.00508,0.10152 -0.0254,-4.11167 h 12.05584 v -3.95939 h 11.97969 l -0.0254,-4.01016 11.92894,0.0254 v -4.01015 l 12.05583,0.0508 z"
                           id="3solongvale"
+
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 693.8261,143.91597 -0.0538,7.05312 h 4.0201 l -0.0359,7.96841 3.96626,0.018 0.0897,7.96841 3.91241,0.018 0.0539,8.0402 3.94831,-0.018 0.0359,11.95262 h 4.03805 v 12.04235 l 3.96626,-0.018 0.0359,12.02441 3.87652,-0.0359 0.0359,7.96842 4.09188,0.0179 v 12.02441 l 3.98421,0.0179 0.0179,11.97057 h 3.9842 l 0.018,16.00861 4.0201,-0.0538 -0.0179,15.97272 3.98421,0.0179 v 20.04666 h 3.9842 v 20.02871 l 3.94832,-0.0538 0.0359,15.97271 4.0201,0.0179 -0.0538,20.06461 4.00215,-0.0718 0.0359,20.01076 3.96625,-0.0359 0.0179,16.08039 3.98421,0.0179 0.0179,19.93898 4.0201,-0.0538 0.0359,20.02871 3.85857,-0.0538 0.10769,16.08039 4.0201,-0.0538 0.0359,16.04451 3.85858,-0.0538 0.0897,8.07609 8.02225,0.0897 -0.0359,3.85858 15.95477,0.0359 0.0538,3.9842 11.95262,0.0179 -0.018,4.00215 8.02225,0.0359 -0.0359,4.0201 8.02225,0.018 0.0359,4.00215 8.02226,-0.0359 -0.018,3.94831 8.0043,0.0179 -0.0179,3.94831 7.98636,-0.0359 0.0359,4.03804 7.96841,0.0179 v 3.98421 l 8.02225,0.0359 0.0538,4.03805 11.93467,0.0179 0.018,3.96626 8.00431,0.0359 0.0179,3.94831 11.95262,0.0179 0.018,4.00216 11.93467,-0.018 0.10768,3.96626 7.91457,0.018 0.0538,4.00215 7.10696,0.0897 -0.0538,-4.12778 8.00431,0.0359 -0.0359,-4.00216 8.05815,0.0538 -0.0359,-4.07394 4.00216,-0.0359 -0.0359,-11.95262 4.09189,0.0179 0.0449,-28.03302 h 3.87652 l 0.11666,-23.9501 3.89447,-0.0449 -0.009,-28.02405 4.01112,0.0538 -0.0269,-27.98814 4.07394,0.0179 -0.0449,-24.02189 4.02908,0.0179 0.0179,-24.01291 3.96626,0.0179 0.009,-24.03983 3.96626,0.0179 -0.018,-28.03301 4.01112,0.009 0.0538,-24.04881 3.96626,0.009 0.0359,-23.99497 3.95728,0.0179 -0.009,-23.96804 4.03804,-0.009 -0.018,-10.99246 -3.98415,0.018 0.009,-3.97523 -16.05348,-0.0718 0.0359,-3.96626 -15.92785,-0.0179 -0.0226,-3.95261 -16.04061,0.0254 v -4.0863 l -15.96447,-0.0508 v -3.93401 l -16.09137,-0.0254 0.0508,-3.95939 -20.02538,-0.0761 0.0508,-3.93401 -20,-0.0254 v -3.98477 l -16.01522,-0.0508 v -3.98478 l -20.05077,-0.0761 v -3.85787 l -16.01522,-0.0761 0.0508,-3.93401 -16.01523,-0.0254 0.0254,-4.03553 -12.03046,0.0508 v -3.95939 l -15.98984,0.0508 v -4.11168 l -12.00508,-0.1269 0.0508,-3.83249 -16.01523,-0.10152 0.0254,-3.88325 -35.98985,-0.0508 0.0254,-3.98477 z"
                           id="4tala-o"
-                        /> 
+
+                          className="cursor-pointer transition-all duration-200"
+                        />
                         <path
                           d="m 1008.8117,211.89873 -3.051,-0.0359 0.018,12.13209 -4.038,-0.0538 0.018,23.95907 h -4.00211 l 0.0179,23.97702 -4.0201,0.0359 0.0718,24.01291 -4.03804,-0.0359 v 27.97917 l -4.07394,0.0179 0.10768,23.95908 -4.07394,0.0538 0.0359,24.04881 h -4.03805 l 0.0718,23.88728 -4.10983,0.0359 0.0359,27.99712 -4.00215,0.0179 0.0897,27.96122 -4.16367,0.0538 0.10768,24.01292 -3.98421,-0.0718 -0.0359,28.01507 h -4.05599 l 0.0359,7.07107 7.14286,-0.0538 -0.0897,-4.03805 8.07609,0.0718 -0.0359,-4.07394 7.98401,0.10868 V 498.807 l 8.0203,0.0508 -0.0254,-4.01015 8.0203,0.0254 -0.0508,-4.06092 8.07101,0.12691 -0.025,-4.23858 11.9797,0.15228 -0.051,-4.08629 24.0355,0.0254 0.076,-4.01015 31.9544,0.15228 -0.1016,-4.11167 32.1574,0.1269 -0.051,-4.13706 31.929,0.0761 v -4.0863 l 32.1573,0.12691 v -4.11168 l 31.9543,0.0508 -0.025,-3.95939 31.9543,0.0254 -0.051,-4.08629 16.0914,0.0254 -0.025,-4.01015 4.0355,0.0254 0.025,-12.03046 3.9087,0.0508 0.1015,-11.95431 3.934,-0.0254 -0.076,-16.06599 4.061,-0.0254 0.1015,-15.86294 3.8832,-0.0508 -0.025,-12.00508 4.0102,0.0508 -0.1015,-8.1472 4.0863,0.15228 0.1015,-8.12183 4.0101,0.0254 -0.076,-8.04568 3.9594,0.0254 0.025,-8.04569 4.0609,0.10153 0.025,-4.03554 3.9213,0.0254 0.063,-8.03299 3.9721,0.0254 -0.025,-7.98223 4.0356,0.0381 -0.063,-4.07361 4.0736,-0.0127 0.013,-7.98223 3.9848,0.0254 0.025,-8.04568 3.9213,0.0381 0.051,-7.96955 h 3.972 l -0.013,-4.06091 3.9975,0.0254 0.013,-7.98223 h 4.0228 l 0.034,-8.05305 h 3.9393 l 0.027,-7.96841 4.0022,0.009 -0.054,-7.00825 h -12.0065 l 0.018,-3.98421 -31.9544,0.009 0.018,-4.01113 -32.0442,0.0359 v -4.04702 l -31.8915,0.0359 -0.027,-4.06497 -36.0552,0.0359 -0.01,-4.00216 -35.9655,0.009 v -4.0201 h -28.0061 l 0.01,-4.01113 -16.0086,0.0718 0.01,-4.06497 h -20.1454 l 0.054,-3.99318 -15.9368,0.0449 v -4.03805 h -15.9907 l 0.045,-3.99318 -16.0535,0.009 0.018,-4.01113 -16.0176,-0.009 -0.01,-3.99318 -15.9907,-0.018 z"
                           id="6haradabutai"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 1337.724,267.87502 0.1436,7.96841 h -4.0919 l -0.036,7.96841 -4.056,0.0359 0.036,8.07609 -4.0919,-0.0359 0.1436,8.0043 -4.056,-0.0359 0.036,3.94831 -3.8986,0.13331 0.025,7.91878 -4.0355,0.10153 0.051,8.04568 h -4.0355 l 0.051,3.93401 -4.0609,-0.0254 0.076,8.07107 -4.0356,-0.0254 -0.025,8.04568 -3.934,-0.0254 -0.051,7.96954 -3.934,0.0254 -0.051,7.96954 -4.0609,0.0508 0.1015,12.00508 -4.137,-0.0254 0.076,15.93908 -3.9594,0.0761 -0.051,16.01523 -4.0102,-0.0254 0.1269,12.03046 -4.2132,-0.0254 0.1269,12.08122 -3.9848,-0.0254 -0.076,7.96954 -3.9848,0.0508 -0.025,3.98477 h -3.9594 v 7.8934 l -4.0609,0.0254 0.025,4.13706 -3.9594,-0.0508 v 7.91878 l -3.9594,0.10152 v 7.86802 l -4.0101,0.0508 0.076,8.02031 -4.1624,0.0761 0.1015,7.86802 -4.0609,0.0761 0.076,7.91879 -4.0863,0.0508 0.025,3.93401 -4.0101,0.10152 0.051,7.86802 -4.0355,0.10152 v 8.04569 h -4.0101 l 0.051,7.91878 -3.9086,0.0761 0.025,7.96955 h -4.1878 l 0.1015,8.0203 -4.0356,-0.0254 -0.025,3.83249 -4.0863,0.1269 0.051,8.0203 -3.9847,0.0508 0.025,7.86802 -3.9086,0.0508 0.025,8.0203 -4.1117,0.0254 0.1269,7.96955 h -4.0863 l 0.025,7.1066 3.934,-0.10153 v 4.03554 l 24.0356,-0.0508 v 4.01016 l 24.0101,0.15228 v 3.90863 h 24.0609 l -0.1015,4.11167 h 23.9086 l 0.051,4.01016 35.1269,-0.0508 -0.051,-4.11168 28.9848,0.15228 0.051,3.9594 11.8781,-0.0508 0.051,3.90863 7.9188,0.0508 0.1015,4.11168 12.0305,-0.0508 -0.051,4.06091 8.0711,0.0508 v 4.06092 l 11.8274,-0.30457 v 4.11167 l 12.0304,-0.10152 0.051,3.95939 8.0711,0.0508 -0.051,4.11168 h 8.0203 l 0.1523,12.79188 h -4.1625 l 0.051,24.01015 h -4.0609 v 24.01015 l -4.1624,-0.10152 0.051,24.2132 -3.9086,-0.0508 0.1015,20.05076 -4.1117,-0.0508 -0.051,24.11167 -4.0609,-0.10152 0.203,24.11167 -4.1117,-0.0508 0.2538,24.01015 -4.3654,0.10153 0.051,23.85786 -3.8071,0.0508 -0.1015,6.95431 7.2589,0.10152 v -4.26396 l 19.9492,0.25381 -0.203,-4.11167 20.1523,0.0508 -0.051,-4.11168 20.1523,0.10153 -0.051,-4.01016 15.9899,0.10153 -0.1523,-4.31472 15.9898,0.2538 0.051,-4.11167 11.9289,0.0508 v -3.85787 l 16.1422,-0.0508 -0.051,-4.06091 16.2436,0.20304 -0.1522,-3.14721 h -4.061 l -0.1015,-4.06091 -3.8578,-0.20305 -0.1016,-7.76649 -3.7563,-0.10153 -0.2031,-16.04061 -3.9593,0.0508 v -8.02031 l -4.061,-0.0508 0.1016,-7.96954 -4.0102,-0.0508 0.019,-12.69685 h 4.0918 l -0.1435,-24.1206 h 4.0919 l -0.1406,-12.04041 4.0609,-0.0254 -0.1269,-8.04569 4.0863,0.0508 -0.051,-3.93401 4.0356,0.0508 -0.051,-4.06091 4.0609,0.0254 -0.025,-4.08629 4.0356,0.0254 v -4.03554 l 3.9847,0.0508 -0.025,-4.03554 8.0203,0.0254 v -4.06091 l 4.0101,0.0761 v -4.01015 l 4.0356,0.0254 -0.1016,-8.04569 4.0609,-0.0508 -0.051,-7.86802 4.1624,0.0254 0.025,-6.97969 -4.1117,-0.0508 -0.051,-37.05584 4.0101,0.0508 0.025,-8.12183 4.0355,0.0761 -0.025,-4.03554 3.9594,0.0508 0.025,-4.11167 4.0356,0.0254 0.025,-3.95939 7.9696,0.0508 0.051,-7.99492 3.934,0.0254 v -4.01016 l 5.0508,-0.0508 -0.025,4.11168 7.8173,-0.0254 -0.025,3.95939 h 4.0863 l 0.025,4.03553 7.9441,0.0254 0.051,3.90863 11.9797,0.0508 -0.025,4.03554 3.1726,-0.0508 0.025,-4.06091 h 15.8883 l 0.051,-4.01015 11.9543,0.0254 -0.025,-8.02031 4.0863,0.0254 v -4.03554 l 20.0423,0.0751 -0.072,-3.94831 h 4.5226 l 0.2872,8.0402 4.0918,-0.0718 v 4.23547 l 3.8048,-0.14358 0.1436,4.0201 4.038,-0.10768 0.036,4.00215 c 0,0 7.9864,-0.23331 8.0222,-0.0718 0.036,0.16153 -0.036,4.03805 -0.036,4.03805 h 4.0201 v 8.0402 l 3.9483,-0.0359 0.054,3.9842 7.0352,0.0538 0.018,-4.16367 3.9842,0.0718 v -11.01938 l -4.0201,0.0179 -0.018,-8.0043 -3.9483,0.0718 0.09,-4.03804 h -4.1278 l 0.018,-4.0201 -4.0381,-0.018 0.054,-3.96626 -3.9842,-0.0179 -0.054,-4.0201 -3.9124,0.0359 -0.09,-4.03805 -3.9483,0.018 0.018,-3.9842 -4.0021,-0.0179 0.018,-4.03805 -4.0739,0.0897 -0.018,-8.00431 -3.9842,-0.0718 v -11.97056 l -3.9663,-0.0359 -0.054,-7.96842 h -3.8945 l -0.036,-19.97486 h -4.038 l -0.018,-8.00431 -3.9125,-0.0179 -0.072,-7.98636 -4.038,0.0179 0.054,-17.06747 3.9125,0.0359 0.018,-4.09189 12.0065,0.16152 v -4.12778 l 4.038,0.14358 v -4.16368 l 4.0022,0.10769 v -78.98419 l -4.0201,-0.0179 0.036,-41.0445 3.9662,0.0359 v -58.99137 l -3.9842,-0.0179 -0.018,-12.00646 -15.9369,0.0718 0.018,-4.0201 -32.0531,-0.0359 -0.018,-4.056 -31.9993,-0.0179 0.054,-3.93037 -111.9526,0.0538 v -4.07394 l -24.0129,0.0359 -0.036,-4.07394 h -24.0129 l 0.054,-3.96626 h -36.0911 l 0.054,-4.03805 -40.1113,0.0359 0.054,-4.0201 z"
                           id="9palili"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 1685.7868,458.88325 0.2031,-47.91878 -4.3655,-0.0254 0.203,-39.0863 4.1371,0.0508 -0.051,-60.9137 -4.137,-0.0254 0.051,-11.09137 14.9746,0.0254 v 4.01015 l 36.066,0.0508 -0.025,3.90863 h 31.929 l 0.025,4.0863 28.0456,-0.0254 -0.025,3.88325 31.9543,-0.0254 0.1015,4.03554 20,0.0254 v 2.99492 l -3.9594,0.0508 -0.1269,7.99493 -19.1074,0.0879 0.072,-4.056 -11.9168,-0.0359 0.036,-3.94831 -9.0093,-0.10768 -0.072,4.19956 -3.8765,-0.14357 -0.036,4.09189 -23.977,-0.10769 -0.1077,4.09189 -19.921,-0.14357 v 4.16367 l -3.9484,-0.0718 -0.072,8.0402 h -3.1587 l 0.1077,-8.0043 -12.8141,-0.0718 -0.1077,4.0201 -3.9124,-0.0718 -0.1436,16.04451 h -4.0201 l -0.036,4.05599 -3.8407,-0.0718 -0.036,4.12778 -3.9483,-0.10768 0.036,8.07609 -4.1996,-0.10768 0.1077,12.16798 -3.9842,-0.0718 0.1436,19.95693 -4.1278,0.0359 -0.036,3.94831 h -4.0919 l -0.036,5.13281 h 4.0201 v 3.94831 l 4.0201,-0.0718 c 0,0 -0.072,4.0201 0.072,3.98421 0.1436,-0.0359 3.9124,0.0718 3.9124,0.0718 l 0.2154,26.99209 -8.1479,-0.0359 -0.036,4.05599 -7.9684,-0.0359 -0.036,3.94831 z"
                           id="5balasinon"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 121.78748,351.90228 8.05814,-0.0359 -0.0106,-3.98568 15.95177,0.0381 0.0127,-4.03553 20.06345,0.0127 -0.0508,-3.98477 16.02792,0.0254 -0.0761,-4.01015 20.08883,0.0254 -0.0508,-4.04823 15.92943,-0.10177 v -3.94831 h 16.15218 v -4.09189 l 19.81335,0.0718 v -4.0201 h 16.0804 l -0.0718,-4.0201 20.1005,0.0718 v -4.0201 h 15.93682 v -4.09189 h 20.1005 l -0.0718,-4.0201 15.93683,0.0718 v -3.94831 l 11.07322,-0.16152 0.0179,4.23546 h 4.0201 v 3.93036 l 4.00216,0.0179 -0.0897,8.00431 4.16368,-0.0359 -0.018,4.0201 3.96626,0.0179 0.0538,4.00215 3.94831,-0.0179 0.0538,3.93037 3.94831,0.0538 0.0359,4.00215 3.87652,0.0179 0.0179,7.89662 4.05599,0.0538 -0.0359,3.98421 4.00821,0.0496 -0.0508,4.08629 4.11167,-0.0254 0.0249,195.01001 h -4.056 l 0.14358,47.98994 -3.19455,0.0718 -0.0359,-4.23546 -4.09189,0.21536 0.0423,-4.07702 -3.92132,0.0254 -0.0381,-4.01015 h -3.93401 l -0.0635,-8.00761 -3.99747,0.0127 v -3.98477 h -20.88832 l -0.0634,3.98477 -23.02031,-0.0127 0.0508,-4.03554 -12.05583,0.0508 0.0508,-4.03554 -32.04315,0.0761 0.0254,-4.04822 -32.91878,0.0761 0.0508,3.70559 -12.03046,0.2538 -0.0508,4.01016 -7.91878,-0.10153 -0.15228,4.26396 -11.87818,-0.15228 -0.0508,3.95939 -11.92893,-0.0508 -0.10152,4.01015 -8.03488,0.0111 v 3.96625 l -11.98851,0.0359 -0.0359,4.00215 -11.95261,0.0538 v 3.96626 l -8.05815,-0.0179 0.0538,3.98421 -11.98851,0.0538 0.0359,3.98421 -12.04235,-0.0359 v 4.05599 l -7.95046,-0.0897 0.0538,4.05599 -7.14286,-0.0179 0.0179,-8.02226 -4.03805,0.0359 0.0538,-8.02225 h -4.09188 l 0.0538,-4.00216 -3.96626,0.018 -0.0179,-8.05815 -4.07394,0.0359 0.10768,-7.98636 -4.10983,-0.018 0.14358,-8.0043 -4.18163,0.0359 0.0179,-3.96626 -3.948311,-0.0179 -0.03589,-7.98636 H 93.73601 l 0.08973,-8.05815 -4.055993,0.018 0.07179,-8.00431 -4.091887,0.0179 0.05384,-7.96841 -4.091887,-0.018 0.08974,-8.05814 h -4.07394 l 0.05384,-7.93252 -4.038046,-0.0359 v -7.98635 h -4.0201 v -15.07538 l 4.145728,0.0718 -0.07179,-8.0402 4.091887,0.0718 -0.107681,-8.0402 4.002153,-0.0359 -0.03589,-8.00431 4.055993,-0.0179 v -3.94831 l 4.07394,-0.0179 -0.08973,-3.96626 h 4.038046 l -0.05384,-8.00431 4.055993,-0.0179 -0.07179,-3.96625 4.127784,0.0359 -0.0718,-4.0201 4.03805,-0.0538 -0.0539,-47.97199 h 4.03805 l -0.0897,-12.02441 4.09188,0.0538 -0.10768,-12.0244 4.14573,-0.0179 -0.16152,-11.97056 4.12778,-0.0538 z"
                           id="7roxas"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 397.84264,351.87817 -0.17584,178.99032 8.09404,0.018 0.0359,4.07394 h 11.05527 l 0.0179,-4.09189 11.95262,0.10769 0.0179,-4.12779 17.03158,-0.0538 -0.0897,4.14573 20.02871,-0.0538 0.0359,4.05599 19.92103,-0.0718 0.0718,4.07394 19.90308,-0.10768 0.0359,4.05599 h 11.98851 v 4.03804 l 3.96626,-0.0718 0.0179,4.09188 3.96626,-0.0179 0.0718,4.00215 3.96626,-0.0538 0.0538,4.00215 10.98348,0.0538 0.0539,-4.09188 23.95907,0.0538 -0.0179,-4.056 16.97774,-0.0179 0.0359,4.05599 7.95046,0.0359 0.0359,3.98421 12.00645,-0.0359 0.0359,4.12778 19.93897,-0.0897 -0.0179,3.93037 h 16.0445 v 4.09188 l 20.02871,-0.0538 0.0359,4.0201 19.90309,-0.16152 0.0718,4.18162 h 11.88083 l 0.0179,11.95262 h 4.03805 l -0.0179,4.07394 3.08686,-0.018 0.0538,-3.96626 3.96626,-0.0179 -0.0179,-3.98421 4.05599,-0.0179 -0.018,-8.04019 3.94831,-0.0179 -0.0359,-3.98421 4.03805,0.0538 -0.018,-4.0201 3.96626,-0.0179 -0.018,-4.03805 4.05599,0.018 -0.0718,-3.96626 4.12778,-0.0718 -0.0718,-3.91242 4.09189,-0.0359 -0.0718,-4.0201 h 4.05599 l -0.0359,-3.94831 h 3.9842 l -0.0718,-4.056 4.12778,0.14358 -0.0718,-8.07609 4.16367,0.0359 -0.0718,-4.16367 3.9842,0.0718 v -3.9842 l 3.98421,0.0359 -0.0359,-4.05599 3.91242,0.0718 0.0359,-12.0962 4.05599,0.0718 -0.0718,-16.0445 4.0201,0.0359 0.0718,-16.0804 4.05599,0.0359 -0.0359,-15.93683 4.05599,0.0718 -0.0359,-11.16295 H 744.795 l 0.0718,-3.94832 -64.10623,0.0359 0.0359,-4.0201 -35.96553,-0.0359 v -4.05599 l -15.90093,0.0359 -0.0359,-3.9842 -12.16798,-0.0359 0.0359,-3.94832 h -15.86504 v -4.0201 l -12.0603,-0.0718 -0.0359,-3.84063 H 576.7046 v -4.09189 l -15.97272,0.0359 -0.0359,-4.0201 h -7.82484 l 0.0359,-3.94831 -8.0402,-0.10768 -0.0718,-4.0201 -8.00431,0.0359 v -3.94831 l -7.89662,-0.10768 0.0359,-3.9842 -7.93252,0.0718 -0.10768,-4.09188 h -3.9842 l -0.0359,-3.94832 -7.93251,0.0718 -0.10769,-4.05599 -7.96841,-0.0359 v -3.91241 l -8.12993,-0.0179 0.0718,-4.03805 -8.00431,0.0538 0.0538,-4.00215 -4.07394,-0.0538 0.0538,-3.91242 -8.11198,-0.0359 0.0538,-4.0201 -7.93252,-0.0359 -0.0179,-3.89448 -8.0043,-0.0718 0.0179,-3.91242 -8.02225,-0.10768 -0.0179,-3.96626 h -3.96626 v -3.98421 l -7.98636,-0.0359 0.0359,-3.98421 -4.16367,-0.0718 0.0718,-3.93037 -19.00573,0.0359 v 4.00216 z"
                           id="8newcebu"
+                          className="cursor-pointer transition-all duration-200"
                         />
 
                         <path
                           d="m 773.79736,467.89292 0.12563,15.91887 -4.19957,0.018 0.14358,16.0445 -4.10984,0.0359 0.12563,15.97272 -4.19957,0.0179 0.17947,11.91673 -4.12778,0.0538 0.12563,4.03804 -4.05599,-0.0179 0.0533,4.14914 -4.11168,-0.0508 0.0508,3.95939 -4.14975,-0.0254 0.15229,8.00761 -4.05525,-0.0673 0.0359,3.99318 -4.0201,0.0718 0.0396,4.00041 -4.07691,0.011 0.11049,3.92223 -4.08796,0.0331 0.0221,4.02167 -4.04376,-0.0221 0.0773,3.96643 -4.04377,-0.0221 0.0663,4.03272 -4.02167,0.0221 0.0221,3.99957 -4.05482,0.0111 0.011,3.97747 h -4.05481 l 0.0773,8.02125 -4.04377,-0.0221 0.0221,4.03272 -4.03272,-0.0331 0.0552,3.96643 -4.02167,0.0111 0.0332,3.04939 80.05774,-0.011 -0.011,4.01062 11.92138,-0.0331 0.011,4.06587 12.00977,-0.0442 0.009,3.99413 11.96875,-0.0469 v 4 l 15.96875,0.0156 -0.0156,3.98438 24.01563,0.0781 0.0625,3.9375 19.96875,0.0312 0.0156,4.01563 24.03125,-0.0312 -0.0469,4 15.03125,0.0156 -0.0312,-4.04687 12.01562,0.0156 v -4.01562 l 16.01563,0.0312 v -4.03125 l 12.01562,0.0312 0.0312,-4.03125 11.95313,0.0625 -0.0156,-4.10938 16.04688,0.0469 -0.0469,-3.98438 4.03125,-0.0156 -0.0156,-6.90625 -4.0625,-0.0156 0.0469,-13.14062 44.98431,0.15625 -0.062,4 79.9688,-0.125 0.031,4.0625 h 48.0313 v 4.0625 l 8.0312,-0.0625 v 4.03125 h 7.125 l -0.094,-8.09375 4.0312,0.0937 -0.023,-8.04688 4.0313,0.0391 v -8.01563 l 3.9453,0.008 0.023,-8.00781 3.9922,0.0469 0.016,-8.03907 3.9688,0.0156 0.016,-4.03125 4.0234,0.0234 -0.013,-8.00701 3.972,0.0387 0.066,-8.05992 3.9333,0.0276 -0.013,-8.03843 h 4.0782 l -0.016,-7.96875 3.9844,0.0469 -0.016,-8.04688 4.0312,-0.0156 -0.016,-3.96875 4,-0.0156 v -7.96875 l 3.9844,0.0156 -0.062,-8.0625 4.1562,0.0312 -0.1562,-8 4.0625,-0.0312 -0.062,-8 4.125,0.0937 -0.125,-8.0625 4.0937,-0.0625 0.062,-3.9375 h 3.875 l -0.031,-8 4.1562,0.0625 -0.094,-3.09375 -11.0625,-0.0625 v 4.0625 l -32,-0.0312 0.062,3.9375 -32.0938,0.0312 0.094,4.03125 -32.0625,0.0625 0.062,3.9375 h -32.1563 l 0.094,4.0625 -32,-0.0625 0.031,3.96875 -32.0625,0.0937 0.094,3.9375 h -24.0313 l 0.031,4 -12,-0.0312 v 4.03125 l -8.03123,-0.0312 0.0625,4.0625 H 989.75 l 0.0625,4 h -8.15625 l 0.0312,4 h -8.0625 l 0.061,4.07031 -7.95496,-0.13258 0.0442,4.11005 h -8.13173 l 0.13258,4.11006 -8.04176,-0.0328 -0.0156,3.90625 h -8.03125 l 0.0937,3.9375 -8.0625,0.0312 0.0625,4.03125 -8.96875,0.0312 -0.0312,-4.09375 -7.96875,0.0312 v -4.03125 l -12,0.0312 -0.0625,-3.9375 -11.90625,-0.0625 -0.0625,-3.96875 h -7.96875 l 0.0312,-4.03125 -12,-0.0312 -0.0312,-3.96875 -7.99881,0.004 v -3.93328 h -8.02124 l 0.0442,-4.02167 -8.13173,-0.0884 0.0442,-3.88909 -7.99915,0.0442 0.0221,-4.08796 -8.02124,-0.0221 0.0442,-3.99957 -8.02124,-0.0221 0.0663,-4.02167 h -8.06544 l 0.0221,-3.91118 -12.02082,-0.15468 0.0442,-3.88909 -16.06458,-0.0221 0.0221,-3.93329 -7.95495,-0.0442 v -3.99957 z"
                           id="10talas"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 1169.8125,607.84375 7.0625,-0.0312 -0.031,4.15625 23.9688,-0.0937 0.062,4.15625 23.9062,-0.1875 0.062,4.125 23.9375,-0.0312 0.031,3.9375 23.9687,-0.0312 0.031,4 h 37.0312 l -0.062,-3.9375 27.0625,-0.0312 0.062,4 11.9063,-0.0625 0.062,4.125 7.9687,-0.0312 0.031,3.90625 11.9375,0.0625 0.094,3.96875 7.9063,-0.0312 0.062,4.03125 h 11.9375 l 0.062,4 11.9375,0.0312 0.031,3.875 8.0625,0.125 0.031,4 h 3.9375 l 0.062,7 -4.0625,0.0937 -0.031,23.96875 -4.0625,0.0312 0.094,23.96875 h -4.0938 l 0.062,23.96875 h -4.0937 l 0.094,19.9375 -4.0312,0.0312 v 24 l -4.0938,0.0937 0.094,23.90625 -4.125,0.0625 0.094,23.90625 -3.875,0.0312 v 24.03125 l -4.0625,0.0937 0.062,7.96875 h -7 v -4.15625 l -24.1562,0.21875 -0.062,-4.21875 -19.9375,0.21875 0.062,-4.28125 -24,0.25 -0.031,-4.15625 -116,0.0312 0.094,-8.0625 -4.125,0.0625 0.094,-24.0625 -4.0937,0.0312 0.094,-24 -4.0625,0.0312 v -79.0625 l 4.125,0.125 -0.125,-12.09375 4.125,0.0625 -0.094,-16.0625 4.0937,0.0625 -0.125,-12 h 4.0938 L 1189.75,654.875 h -3.9688 v -12.03125 l -4.0937,0.0937 0.125,-8.0625 h -4.125 l 0.062,-12.03125 h -3.9375 l -0.094,-11.9375 h -3.9375 z"
                           id="19poblacion"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 985.92782,591.93676 h 38.84668 l 0.044,4.06587 79.9473,-0.0884 0.044,4.06586 47.9507,-0.0884 0.088,4.02167 7.955,-0.0884 0.088,4.15425 3.889,-0.0442 v 3.93329 h 4.0217 l 0.044,12.02081 h 3.8891 l 0.044,12.06501 h 3.9775 l 0.044,7.91076 3.9774,0.0442 0.088,11.97662 3.9775,0.0884 0.044,10.96016 -4.1985,0.0442 0.221,11.97662 -4.11,0.0442 0.1767,15.9099 -4.1984,-0.0442 0.088,12.06501 -3.9333,-0.0442 -0.1326,55.99402 h -19.1361 l 0.044,-3.97748 -43.9732,0.0884 0.088,-4.15425 -48.0832,0.13258 0.088,-4.06586 -44.2383,0.0442 0.1326,-4.11006 -44.10583,0.13258 0.13258,-4.19844 -84.05731,0.17677 0.0442,-8.04333 h -4.02167 l 0.0884,-7.91076 -3.93328,0.0884 -0.13259,-8.13173 -4.06586,-0.0442 0.0442,-8.08753 -4.02166,0.0442 0.13258,-7.99914 -4.11006,0.0442 0.0884,-8.13172 -4.02167,0.0884 0.13258,-7.99914 -4.15425,0.0884 0.0884,-4.06587 -4.11006,0.0442 0.0884,-8.08754 -4.02167,0.0442 0.0884,-7.99915 h -4.19845 l 0.0884,-7.95495 -4.06587,0.0884 0.0884,-8.13173 h -4.11006 l 0.13259,-7.95495 -4.02167,0.0884 0.0442,-8.26431 -4.15425,0.0884 v -7.86657 l -3.88909,-0.0442 v -7.02687 h 3.0052 l -0.005,3.99457 24.00247,0.0271 -0.0442,4.02167 20.04172,-0.0175 v 3.96875 l 24,-0.0312 v 4.09375 l 17.0625,-0.0625 -0.0312,-4.0625 12,0.0937 -0.0625,-4.03125 16.09375,0.0312 -0.0937,-4.0625 12.0625,-0.0312 -0.0312,-3.90625 12.03125,-0.0312 -0.0625,-4 16.03125,-0.0625 v -3.9375 l 7.96875,-0.0312 v -13 h -4 z"
                           id="14kiblagon"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 1168.6707,767.91796 0.1768,20.06416 4.1543,-0.17678 -0.088,24.21841 3.8891,-0.0884 -0.088,23.77647 3.9774,0.0884 0.1768,7.07107 -108.0105,0.17678 v 3.88909 l -216.02116,-0.17678 v 4.24264 l -95.05539,-0.0968 v -3 l 4.15625,-0.0312 -0.125,-3.96875 h 3.96875 l -0.0312,-4.0625 h 8.125 l -0.0625,-3.90625 4,-0.0312 -0.0625,-4.0625 4.125,0.0625 -0.0625,-3.90625 8,-0.0937 -0.0312,-4.03125 4,0.0312 -0.0625,-3.96875 4.125,-0.0312 -0.0312,-4 7.96875,-0.0625 -0.0312,-3.90625 h 4 l -0.0312,-4.0625 4.0625,0.0625 v -4.0625 l 8.0625,-0.0625 -0.0312,-3.9375 4.0625,-0.0312 -0.0312,-3.96875 4.0625,0.0312 -0.0312,-4.03125 7.96875,0.0625 -0.0625,-4.03125 h 4.0625 l -0.0625,-4.03125 4.03125,0.0312 -0.0312,-4.03125 h 7.9675 v -4.03125 l 4.15625,0.0625 -0.0625,-4.03125 4,0.0312 -0.125,-8 4.125,0.0625 -0.0625,-4.0625 4.03125,0.0625 -0.0625,-4.09375 4,0.0937 -0.0312,-4.09375 8.125,0.0625 v -4.0625 l 82.84375,0.0625 0.0625,3.9375 44.03115,-0.0312 v 4.09375 l 43.9376,-0.0625 0.062,4.03125 h 48 l 0.094,4.03125 43.9375,-0.0625 0.031,4.0625 z"
                           id="25waterfall"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 693.75,603.875 h 83 l 0.125,4 11.875,-0.0625 0.0625,4.1875 12.0625,-0.1875 V 616 l 11.9375,-0.1875 V 620 l 8.25,-0.0625 0.0625,8.125 h 3.75 l 0.0625,7.8125 3.875,0.0625 v 7.75 l 3.9375,0.1875 0.125,8.0625 3.9375,-0.125 V 660 h 3.875 l 0.25,7.875 3.875,0.125 0.125,7.875 3.8125,0.0625 0.0469,7.95312 3.95313,0.0469 0.0937,4.01562 3.95312,-0.0156 v 8.01562 l 4.01563,-0.0156 0.0156,7.90625 3.96875,0.0312 0.0312,8.01562 h 3.9375 l 0.0781,7.98438 3.9375,0.0312 v 7.96875 l 4,0.0156 0.0469,8.03125 3.95313,-0.0156 0.10937,7.92187 3.90625,0.0625 0.0781,3.01563 -8.01563,-0.0625 -0.0625,4.04687 h -4 l -0.0156,4.01563 -10.96875,-0.0156 -0.0469,-3.98437 -23.96875,0.0156 v -4.03125 l -20.04687,0.0312 0.0312,-4.03125 -23.98438,0.0156 -0.0312,-4 -72.9375,-0.0469 -0.0156,4.09375 -7.95313,-0.10937 -0.0312,4.04687 -7.95312,0.0312 -0.0312,3.98438 -8,-0.0312 -0.0312,4.0625 -8,-0.0625 v 4.03125 l -7.95313,-0.0156 v 4 l -3.0625,0.0156 -0.0469,-31.04688 4.09375,0.0469 -0.16406,-60 4.14062,0.0156 -0.0781,-40.01562 4.04047,-0.018 -0.13258,-20.06416 4.19845,0.0442 z"
                           id="15laperas"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="M 665.6875,842.8125 665.625,831.875 h 4.1875 l -0.0625,-27.9375 4.0625,-0.0625 -0.0625,-24.0625 h 4.1875 l -0.125,-11.9375 4.125,0.0625 -0.125,-4.1875 8.125,0.1875 -0.125,-4 8.0625,0.0625 -0.0625,-4.1875 8.125,0.1875 -0.125,-4.1875 8,0.0156 -0.0469,-3.90625 8.0625,-0.0469 -0.0625,-3.98438 71.05576,-0.0143 0.0442,4.08796 23.93115,-0.0884 0.0442,4.06586 19.93158,-0.17678 0.0663,4.13216 23.90905,-0.0663 0.13258,4.13215 3.86699,-0.13258 0.0663,3.0273 -3.99957,0.0663 -0.0221,7.97705 -3.97748,0.0442 0.0442,3.97748 -8.10963,0.11049 0.0442,3.84489 -3.95538,0.0442 0.0442,3.97748 -3.97748,-0.0221 -0.0442,4.04377 -7.99915,-0.0663 -0.0663,4.02167 -3.99957,0.0442 0.0221,4.06586 -3.97747,0.0221 -0.0442,3.95538 -7.95495,-0.0663 -0.0663,4.02167 -3.88908,0.0221 -0.0221,3.97747 -4.04377,0.0442 -0.0663,3.91118 -7.88866,0.0442 -0.0221,4.04377 -3.99957,-0.0442 -0.0442,4.04376 -3.99958,-0.0442 0.0221,3.97748 -7.91076,0.0221 -0.0884,3.99958 -3.97848,0.0516 0.0625,3.90625 -4.125,0.0312 v 3.96875 l -7.875,0.0312 -0.125,4 -3.9375,-0.0312 -0.0312,4.125 -4,-0.0937 0.0312,4 -8.03125,-0.0312 v 3.96875 l -23,0.125 0.0312,-4.125 -44.09375,0.0625 0.0312,-4.0625 z"
                           id="21lapla"
+                          className="cursor-pointer transition-all duration-200"
                         />
                         <path
                           d="m 533.625,567 v -3.125 h 8.3125 l -0.125,-4 L 566,560 l -0.125,-4.1875 14.75,0.0625 0.0625,4.3125 8.125,-0.1875 0.125,4.125 11.6875,-0.1875 0.0625,4.3125 19.9375,-0.1875 0.0625,4.0625 16,-0.1875 0.0625,4.125 20,-0.125 0.0625,4.1875 20,-0.0625 v 3.875 h 8.125 l -0.25,8.0625 4.25,-0.0625 -0.0387,19.00276 -4.11006,0.0442 0.0442,19.97577 -4.02167,-0.0442 0.0884,39.99573 -3.97747,0.0442 0.0442,27.88652 -11.31371,0.17678 0.0884,-4.15426 -27.97491,0.13259 v -4.15426 l -31.95239,0.0884 0.0442,-4.19844 -32.12917,0.30936 0.0884,-4.28684 -32.12916,0.22097 0.0884,-4.19845 -12.02082,0.17678 -0.17678,-11.04854 4.33103,-0.0442 -0.13258,-31.95238 4.15425,-0.0442 -0.22097,-31.99658 h 4.24264 l -0.0442,-21.08062 -4.11006,0.0884 0.0884,-15.9541 z"
@@ -1495,9 +1963,10 @@ export default function SIGLADashboard() {
                         <path
                           d="m 268.82812,759.89062 -0.0625,28.01563 4.0625,-0.0156 -0.0469,40 4,0.0195 0.0234,16 3.97747,-0.0335 0.0111,3.01625 -51.99634,0.0133 -0.0156,3.98437 -59.01563,0.004 v -4.00781 l -15.98437,0.0117 -0.0312,-3.99219 -15.97656,-0.008 -0.0156,-3.98438 -4.02072,-0.0202 0.006,-7.9881 -4.00825,0.0474 0.0312,-24.01562 h -3.96875 l -0.0156,-20.01563 -4.03125,0.0312 v -12.04687 l -3.96875,0.0469 0.0781,-16.0625 -4.10937,0.0937 v -12.07812 l -4,0.0781 0.0156,-3.07812 19.19298,-0.0299 v 4.15425 l 39.86314,-0.0884 v 4.24264 l 39.95154,-0.26517 0.0884,4.06587 39.86315,-0.17678 0.0884,4.33103 z"
                           id="22litos"
+                          className="cursor-pointer transition-all duration-200"
                         />
-                        </g>
-                        </svg>
+                      </g>
+                    </svg>
                   </div>
 
 
@@ -1508,30 +1977,62 @@ export default function SIGLADashboard() {
             {/* Details Cards Row */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Card: Hover Details */}
-              <Card className="bg-card border-border shadow-sm h-56">
+              <Card className="bg-card border-border shadow-sm h-56 transition-all duration-200">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold text-text-primary">Baranggay Details</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-text-primary flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      Barangay Details
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${hoveredTerritoryId ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                      <span className="text-xs text-text-muted">
+                        {hoveredTerritoryId ? 'Active' : 'Idle'}
+                      </span>
+                    </div>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="overflow-y-auto max-h-40">
                   {hoveredTerritoryId ? (
-                    <div className="space-y-2">
-                      <p className="text-base font-semibold text-text-primary">
-                        {getTerritoryDisplayName(hoveredTerritoryId)}
-                      </p>
-                      <p className="text-sm text-text-secondary">
-                        Population: {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.population?.toLocaleString() || 'N/A'}
-                      </p>
-                      <p className="text-xs text-text-muted mt-1">
-                        Hovering. Click on the map to view more details.
-                      </p>
-                      {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.description && (
-                        <p className="text-xs text-text-secondary mt-2">
-                          {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.description}
+                    <div className="space-y-3 animate-in fade-in-50 duration-200">
+                      <div className="border-l-4 border-primary pl-3">
+                        <p className="text-lg font-bold text-text-primary">
+                          {getTerritoryDisplayName(hoveredTerritoryId)}
                         </p>
+                        <p className="text-sm text-text-secondary">
+                          Population: {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.population?.toLocaleString() || 'N/A'}
+                        </p>
+                      </div>
+                      
+                      {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.description && (
+                        <div className="bg-primary-light p-2 rounded-md">
+                          <p className="text-sm text-text-secondary">
+                            {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.description}
+                          </p>
+                        </div>
                       )}
+                      
+                      {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.coordinates && (
+                        <div className="text-xs text-text-muted">
+                          📍 {territoryMap[hoveredTerritoryId as keyof typeof territoryMap]?.coordinates}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-primary bg-primary-light px-2 py-1 rounded">
+                        <Info className="h-3 w-3" />
+                        Click on the map to view detailed satisfaction data
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-text-muted text-sm">Hover over a territory to see details here.</div>
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-2">
+                      <MapPin className="h-8 w-8 text-text-muted opacity-50" />
+                      <div className="text-text-muted text-sm">
+                        Hover over a barangay on the map to see details here
+                      </div>
+                      <div className="text-xs text-text-muted opacity-75">
+                        Move your mouse over the colored regions
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1782,7 +2283,7 @@ export default function SIGLADashboard() {
                       selectedServiceArea ? (
                         <div className="flex flex-col gap-4">
                           <button onClick={() => setSelectedServiceArea(null)} className="text-sm text-primary font-medium flex items-center gap-1 mb-2 hover:underline">
-                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                             Back to Service Areas
                           </button>
                           <div className="rounded-lg border p-4 flex flex-col items-center bg-background">

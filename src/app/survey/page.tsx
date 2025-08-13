@@ -1,7 +1,9 @@
 "use client"
 import Link from "next/link"
 import { User, Settings, LogOut, ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
 
 const barangays = [
   { id: 1, name: "Barangay 1", progress: 20, status: "Not Started" },
@@ -17,6 +19,28 @@ const barangays = [
 export default function Dashboard() {
   // Add this state at the top of the Dashboard component
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const router = useRouter()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Logout handler function
+  const handleLogout = () => {
+    Cookies.remove("sigla_token", { path: "/" })
+    router.push("/")
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#f9fafb]">
@@ -32,7 +56,7 @@ export default function Dashboard() {
             </h1>
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <div
                 className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -40,17 +64,24 @@ export default function Dashboard() {
                 <div className="w-8 h-8 bg-[#3b82f6] rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
                 </div>
-                <ChevronDown className="w-4 h-4 text-[#6b7280]" />
+                <ChevronDown className={`w-4 h-4 text-[#6b7280] transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
               </div>
 
               {/* Dropdown Menu */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <button className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in-0 zoom-in-95 duration-100">
+                  <button 
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                  >
                     <Settings className="w-4 h-4" />
                     <span>Settings</span>
                   </button>
-                  <button className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2">
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                  >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </button>

@@ -21,7 +21,7 @@ async function verifyAdminRole(request: NextRequest) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check if user is admin
   const isAdmin = await verifyAdminRole(request);
@@ -30,7 +30,8 @@ export async function PATCH(
   }
 
   const { role } = await request.json();
-  const userId = parseInt(params.id);
+  const resolvedParams = await params;
+  const userId = parseInt(resolvedParams.id);
 
   if (!role || !['admin', 'interviewer', 'viewer'].includes(role)) {
     return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
@@ -59,7 +60,7 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check if user is admin
   const isAdmin = await verifyAdminRole(request);
@@ -67,7 +68,8 @@ export async function GET(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
-  const userId = parseInt(params.id);
+  const resolvedParams = await params;
+  const userId = parseInt(resolvedParams.id);
 
   try {
     const user = await prisma.user.findUnique({
