@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { setAuthToken } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -109,33 +110,42 @@ export default function SiglaLogin() {
     setLoginStatus("idle")
     setRedirectMessage("") // Clear any redirect messages
 
-    // Simulate API call
+    // Simulate API call - replace with actual authentication
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // Mock authentication - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+      
+      // For demo purposes, accept any email/password combination
+      // In production, replace this with actual authentication logic
+      if (formData.email && formData.password) {
+        setLoginStatus("success");
+        
+        // Generate a mock token (in production, this comes from your API)
+        const mockToken = btoa(JSON.stringify({
           email: formData.email,
-          password: formData.password,
-        }),
-        credentials: "include",
-      })
-      if (res.ok) {
-        setLoginStatus("success")
-        // Get user role and redirect accordingly
-        const userData = await res.json();
-        if (userData.role === 'interviewer') {
+          exp: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+          role: formData.email.includes('interviewer') ? 'interviewer' : 'admin'
+        }));
+        
+        // Set the auth token
+        setAuthToken(mockToken);
+        
+        // Get redirect URL from search params
+        const redirectUrl = searchParams.get('redirect') || '/dashboard';
+        
+        // Redirect based on role or redirect parameter
+        if (formData.email.includes('interviewer')) {
           router.push("/survey/");
         } else {
-          router.push("/dashboard");
+          router.push(redirectUrl);
         }
       } else {
-        setLoginStatus("error")
+        setLoginStatus("error");
       }
     } catch (error) {
-      setLoginStatus("error")
+      setLoginStatus("error");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

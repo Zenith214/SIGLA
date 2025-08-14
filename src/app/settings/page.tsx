@@ -34,6 +34,8 @@ const sectionTitles = {
   backup: "Backup",
 }
 
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+
 export default function AdminSettingsPanel() {
   const [activeSection, setActiveSection] = useState("survey-cycles")
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -99,52 +101,54 @@ export default function AdminSettingsPanel() {
   }
 
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SidebarInset>
-        {/* Header */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4 sticky top-0 z-10">
-        <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="h-8 w-8 p-0 text-white hover:bg-white/10"
-          >
-            {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            <span className="sr-only">Toggle Sidebar</span>
-          </Button>
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#" className="text-white">
-                  SIGLA Admin
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-white">
-                  {sectionTitles[activeSection as keyof typeof sectionTitles]}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="ml-auto flex items-center gap-4">
-            <span className="text-white text-xs md:text-sm font-mono bg-black/20 rounded px-2 py-1">{dateTime}</span>
-            <Link
-              href="/dashboard"
-              className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition"
+    <ProtectedRoute>
+      <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        <SidebarInset>
+          {/* Header */}
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4 sticky top-0 z-10">
+          <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8 p-0 text-white hover:bg-white/10"
             >
-              Back to Dashboard
-            </Link>
-          </div>
-        </header>
+              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              <span className="sr-only">Toggle Sidebar</span>
+            </Button>
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="#" className="text-white">
+                    SIGLA Admin
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="font-medium text-white">
+                    {sectionTitles[activeSection as keyof typeof sectionTitles]}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <div className="ml-auto flex items-center gap-4">
+              <span className="text-white text-xs md:text-sm font-mono bg-black/20 rounded px-2 py-1">{dateTime}</span>
+              <Link
+                href="/dashboard"
+                className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          </header>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto bg-blue-50">
-          <div className="container mx-auto p-6 max-w-7xl">{renderSection()}</div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto bg-blue-50">
+            <div className="container mx-auto p-6 max-w-7xl">{renderSection()}</div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </ProtectedRoute>
   )
 }

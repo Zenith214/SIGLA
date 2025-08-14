@@ -1,0 +1,85 @@
+/* Print styles for Report Card */
+@media print {
+  /* Hide elements that shouldn't appear in print */
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Ensure proper page breaks */
+  .print\\:break-before {
+    page-break-before: always;
+  }
+
+  .print\\:break-after {
+    page-break-after: always;
+  }
+
+  .print\\:break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Optimize colors for print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 0.5in;
+    size: A4;
+  }
+
+  /* Ensure proper sizing */
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  /* Make sure charts and images print properly */
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Ensure table borders print */
+  table, th, td {
+    border-collapse: collapse !important;
+  }
+
+  /* Optimize spacing for print */
+  .print\\:text-sm {
+    font-size: 10pt !important;
+  }
+
+  .print\\:text-xs {
+    font-size: 9pt !important;
+  }
+
+  /* Ensure backgrounds print */
+  .bg-gray-50,
+  .bg-gray-100,
+  .bg-blue-50,
+  .bg-green-50,
+  .bg-red-50,
+  .bg-yellow-50 {
+    background-color: #f9fafb !important;
+  }
+
+  .bg-blue-100 {
+    background-color: #dbeafe !important;
+  }
+
+  .bg-green-100 {
+    background-color: #dcfce7 !important;
+  }
+
+  .bg-red-100 {
+    background-color: #fee2e2 !important;
+  }
+
+  .bg-yellow-100 {
+    background-color: #fef3c7 !important;
+  }
+}
