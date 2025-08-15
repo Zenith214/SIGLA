@@ -151,16 +151,7 @@ export default function SiglaLogin() {
 
   if (pageLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
-        {/* Background Emblem */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
-          <img
-            src="/globe.svg"
-            alt="SIGLA Government Emblem"
-            className="max-w-md max-h-md object-contain"
-          />
-        </div>
-
+      <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
         {/* Main Content */}
         <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
           <div className="w-full max-w-md">
@@ -175,21 +166,49 @@ export default function SiglaLogin() {
             </Card>
           </div>
         </main>
+
+        {/* Logos Section Below Login Form */}
+        <div className="flex flex-col items-center mt-8 mb-8">
+          {/* Logos Row */}
+          <div className="flex items-center justify-center gap-8 mb-4">
+            {/* DILG Logo - Circular */}
+            <div className="flex flex-col items-center">
+              <img
+                src="/dilg.png"
+                alt="DILG Logo"
+                className="w-16 h-16 object-contain"
+              />
+            </div>
+
+            {/* MLGRC Logo - Rectangular */}
+            <div className="flex flex-col items-center">
+              <img
+                src="/mlgrc.png"
+                alt="MLGRC Logo"
+                className="w-16 h-16 object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Text Below Logos */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600 font-medium">
+              Department of the Interior and Local Government
+            </p>
+            <p className="text-sm text-gray-600">
+              (Partnership)
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              © 2024 SIGLA System. All rights reserved.
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
-      {/* Background Emblem */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
-        <img
-          src="/globe.svg"
-          alt="SIGLA Government Emblem"
-          className="max-w-md max-h-md object-contain"
-        />
-      </div>
-
+    <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
       {/* Main Content */}
       <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
         <div className="w-full max-w-md">
@@ -321,6 +340,43 @@ export default function SiglaLogin() {
           </Card>
         </div>
       </main>
+
+      {/* Logos Section Below Login Form */}
+      <div className="flex flex-col items-center mt-8 mb-8">
+        {/* Logos Row */}
+        <div className="flex items-center justify-center gap-8 mb-4">
+          {/* DILG Logo - Circular */}
+          <div className="flex flex-col items-center">
+            <img
+              src="/dilg.png"
+              alt="DILG Logo"
+              className="w-16 h-16 object-contain"
+            />
+          </div>
+
+          {/* MLGRC Logo - Rectangular */}
+          <div className="flex flex-col items-center">
+            <img
+              src="/mlgrc.png"
+              alt="MLGRC Logo"
+              className="w-16 h-16 object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Text Below Logos */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600 font-medium">
+            Department of the Interior and Local Government
+          </p>
+          <p className="text-sm text-gray-600">
+            (Partnership)
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            © 2024 SIGLA System. All rights reserved.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

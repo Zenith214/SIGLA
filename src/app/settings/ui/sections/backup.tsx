@@ -37,28 +37,36 @@ export function Backup() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button className="h-16 bg-green-600 hover:bg-green-700 text-white flex-col">
-              <Download className="w-5 h-5 mb-1" />
-              <span>Export All Survey Data</span>
-              <span className="text-xs opacity-80">CSV Format</span>
+            <Button className="h-20 bg-green-600 hover:bg-green-700 text-white flex-col justify-center items-center p-4">
+              <Download className="w-5 h-5 mb-2" />
+              <div className="text-center">
+                <div className="text-sm font-medium">Export All Survey Data</div>
+                <div className="text-xs opacity-80">CSV Format</div>
+              </div>
             </Button>
-            <Button variant="outline" className="h-16 flex-col bg-transparent hover:bg-gray-50">
-              <Download className="w-5 h-5 mb-1" />
-              <span>Export User Data</span>
-              <span className="text-xs opacity-60">CSV Format</span>
+            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+              <Download className="w-5 h-5 mb-2" />
+              <div className="text-center">
+                <div className="text-sm font-medium">Export User Data</div>
+                <div className="text-xs opacity-60">CSV Format</div>
+              </div>
             </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant="outline" className="h-16 flex-col bg-transparent hover:bg-gray-50">
-              <Download className="w-5 h-5 mb-1" />
-              <span>Export Barangay Data</span>
-              <span className="text-xs opacity-60">CSV Format</span>
+            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+              <Download className="w-5 h-5 mb-2" />
+              <div className="text-center">
+                <div className="text-sm font-medium">Export Barangay Data</div>
+                <div className="text-xs opacity-60">CSV Format</div>
+              </div>
             </Button>
-            <Button variant="outline" className="h-16 flex-col bg-transparent hover:bg-gray-50">
-              <Download className="w-5 h-5 mb-1" />
-              <span>Export Reports</span>
-              <span className="text-xs opacity-60">PDF Format</span>
+            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+              <Download className="w-5 h-5 mb-2" />
+              <div className="text-center">
+                <div className="text-sm font-medium">Export Reports</div>
+                <div className="text-xs opacity-60">PDF Format</div>
+              </div>
             </Button>
           </div>
         </CardContent>
@@ -83,14 +91,14 @@ export function Backup() {
             <Switch id="auto-backup" checked={autoBackup} onCheckedChange={setAutoBackup} />
           </div>
 
-          <div className="flex space-x-4">
-            <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white">
-              <Database className="w-4 h-4 mr-2" />
-              Create Backup Now
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+            <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-12 px-4">
+              <Database className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Create Backup Now</span>
             </Button>
-            <Button variant="outline" className="flex-1 bg-transparent hover:bg-gray-50">
-              <Download className="w-4 h-4 mr-2" />
-              Download Latest Backup
+            <Button variant="outline" className="flex-1 bg-transparent hover:bg-gray-50 h-12 px-4">
+              <Download className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Download Latest Backup</span>
             </Button>
           </div>
 

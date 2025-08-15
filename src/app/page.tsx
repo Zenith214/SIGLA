@@ -18,9 +18,9 @@ import {
 
 export default function LandingPage() {
   const dashboardImages = [
-    "https://via.placeholder.com/1200x675/4299E1/FFFFFF?text=Dashboard+Overview",
-    "https://via.placeholder.com/1200x675/38A169/FFFFFF?text=Analytics+Report",
-    "https://via.placeholder.com/1200x675/63B3ED/FFFFFF?text=Data+Management",
+    "/carousel1.png",
+    "/sdashboard.gif",
+    "/spotmap.gif",
   ];
 
   return (
