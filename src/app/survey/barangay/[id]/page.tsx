@@ -12,8 +12,9 @@ const barangayData = {
   8: { name: "Barangay 8", progress: 70, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
 }
 
-export default function BarangayDetail({ params }: { params: { id: string } }) {
-  const barangayId = Number.parseInt(params.id)
+export default async function BarangayDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const barangayId = Number.parseInt(id)
   const barangay = barangayData[barangayId as keyof typeof barangayData]
 
   if (!barangay) {

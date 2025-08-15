@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 28, 2025 at 03:40 PM
+-- Generation Time: Aug 15, 2025 at 08:38 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -28,7 +28,7 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `create_survey_response` (IN `p_survey_number` VARCHAR(50), IN `p_barangay_id` INT, IN `p_interviewer_id` INT, IN `p_location_lat` DECIMAL(10,8), IN `p_location_lng` DECIMAL(11,8), IN `p_location_address` TEXT)   BEGIN
   DECLARE new_response_id INT;
   
-  -- Insert new survey response
+  
   INSERT INTO survey_response (
     survey_number, 
     barangay_id, 
@@ -49,7 +49,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `create_survey_response` (IN `p_surv
   
   SET new_response_id = LAST_INSERT_ID();
   
-  -- Create survey sections for this response
+  
   INSERT INTO survey_section (response_id, section_name, section_key, status)
   VALUES 
     (new_response_id, 'Survey Initialization', 'initialization', 'pending'),
@@ -388,17 +388,17 @@ CREATE TRIGGER `update_survey_progress` AFTER UPDATE ON `survey_section` FOR EAC
   DECLARE total_sections INT;
   DECLARE completed_sections INT;
   
-  -- Count total sections for this response
+  
   SELECT COUNT(*) INTO total_sections 
   FROM survey_section 
   WHERE response_id = NEW.response_id;
   
-  -- Count completed sections for this response
+  
   SELECT COUNT(*) INTO completed_sections 
   FROM survey_section 
   WHERE response_id = NEW.response_id AND status = 'completed';
   
-  -- Update progress percentage
+  
   UPDATE survey_response 
   SET progress = ROUND((completed_sections / total_sections) * 100)
   WHERE response_id = NEW.response_id;
@@ -489,11 +489,13 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`id`, `email`, `password`, `createdAt`, `firstName`, `jobTitle`, `lastName`, `organization`, `phone`, `role`, `status`, `lastLogin`) VALUES
-(1, 'admin@sigla.gov', '$2b$10$TrZnU1reblUJtU5QUC.nN.UGk3rBOwIp/xbeWZ3q3qfQ1cTtSAUZa', '2025-07-10 15:44:52.753', 'Admin', 'System Administrator', 'User', 'SIGLA', '09120969545', 'Admin', 'Active', NULL),
-(2, 'maria@sigla.gov', 'dummyhash', '2025-07-20 16:23:28.000', 'Maria', 'Interviewer', 'Santos', 'SIGLA', '09123456789', 'Interviewer', 'Active', '2024-01-15 00:00:00'),
-(3, 'juan@sigla.gov', 'dummyhash', '2025-07-20 16:23:28.000', 'Juan', 'Interviewer', 'Dela Cruz', 'SIGLA', '09187654321', 'Interviewer', 'Active', '2024-01-14 00:00:00'),
-(4, 'ana@sigla.gov', 'dummyhash', '2025-07-20 16:23:28.000', 'Ana', 'Interviewer', 'Rodriguez', 'SIGLA', '09111222333', 'Interviewer', 'Active', '2024-01-13 00:00:00'),
-(5, 'carlos@sigla.gov', 'dummyhash', '2025-07-20 16:23:28.000', 'Carlos', 'Interviewer', 'Mendoza', 'SIGLA', '09144555666', 'Interviewer', 'Active', '2024-01-15 00:00:00');
+(1, 'admin@sigla.gov', '$2b$10$mBXEP.I5G7rDra1HKxjuC.fKAg5e4s8yh9jbAZub6u2JpOJqMwuxK', '2025-07-10 15:44:52.753', 'Admin', 'System Administrator', 'User', 'SIGLA', '09120969545', 'admin', 'Active', '2025-08-15 06:30:24'),
+(2, 'maria@sigla.gov', '$2b$10$XQNmbxNen4EHXBEyTOBEZOuXvjW/WVFbPCLZuLMqj7ouVHEXWipM.', '2025-07-20 16:23:28.000', 'Maria', 'Interviewer', 'Santos', 'SIGLA', '09123456789', 'Interviewer', 'Active', '2024-01-15 00:00:00'),
+(3, 'juan@sigla.gov', '$2b$10$qnQFkeDiZS136.ZZKYaf1Ov5De0q7tLOuX3uvpdehKc27dYn9NwgC', '2025-07-20 16:23:28.000', 'Juan', 'Interviewer', 'Dela Cruz', 'SIGLA', '09187654321', 'Interviewer', 'Active', '2024-01-14 00:00:00'),
+(4, 'ana@sigla.gov', '$2b$10$503TiLr/TdI.QuRvhCY9qeCFgLnaR/3gXwLXn8JAVXIO6Z2A9vRx6', '2025-07-20 16:23:28.000', 'Ana', 'Interviewer', 'Rodriguez', 'SIGLA', '09111222333', 'Interviewer', 'Active', '2024-01-13 00:00:00'),
+(5, 'carlos@sigla.gov', '$2b$10$e6BRHyubiHuczQRu70HWAurfgOmiv2OwTQEKl.hZW4gvYpxTU/epi', '2025-07-20 16:23:28.000', 'Carlos', 'Interviewer', 'Mendoza', 'SIGLA', '09144555666', 'Interviewer', 'Active', '2024-01-15 00:00:00'),
+(6, 'interviewer@test.com', '$2b$10$iiNxXzSD3EzI8uYfRAQUv.dcfn.f7dGoVTwyLU02rhKl25EZh7ChO', '2025-08-15 04:45:11.375', 'interviewer', NULL, 'test', NULL, NULL, 'interviewer', 'Active', '2025-08-15 06:29:15'),
+(7, 'viewer1@gmail.com', '$2b$10$lIL9HT0mo4ipbRoHth2C/.0d/29/eQ7E27xmM3iyElKJ.XX6FcdDW', '2025-08-15 06:31:07.392', 'viewer', NULL, 'test', NULL, NULL, 'viewer', 'Active', '2025-08-15 06:32:31');
 
 -- --------------------------------------------------------
 
@@ -770,7 +772,7 @@ ALTER TABLE `survey_validation`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables

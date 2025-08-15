@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Shield, Lock } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Lock } from "lucide-react"
 
 export default function SiglaLogin() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,13 +21,13 @@ export default function SiglaLogin() {
     email: "",
     password: "",
   })
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
   const [pageLoading, setPageLoading] = useState(true)
   const [redirectMessage, setRedirectMessage] = useState("")
-  const router = useRouter()
+
   const searchParams = useSearchParams()
-  const { login, user, isAuthenticated } = useAuth()
+  const { login, user, isAuthenticated, isLoading: authLoading } = useAuth()
 
   // Add page loading effect
   useEffect(() => {
@@ -37,22 +37,15 @@ export default function SiglaLogin() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user && !pageLoading) {
-      if (user.role === 'interviewer') {
-        router.replace("/survey/");
-      } else {
-        router.replace("/dashboard");
-      }
-    }
-  }, [isAuthenticated, user, router, pageLoading]);
+
+
+
 
   // Check for redirect messages
   useEffect(() => {
     const redirected = searchParams.get('redirected');
     const reason = searchParams.get('reason');
-    
+
     if (redirected === '1') {
       let message = "";
       switch (reason) {
@@ -118,7 +111,7 @@ export default function SiglaLogin() {
       return
     }
 
-    setIsLoading(true)
+    setIsSubmitting(true)
     setLoginStatus("idle")
     setRedirectMessage("") // Clear any redirect messages
 
@@ -131,19 +124,19 @@ export default function SiglaLogin() {
 
       if (result.success) {
         setLoginStatus("success");
-        
-        // Wait for AuthProvider to update user state
-        setTimeout(() => {
-          // Get redirect URL from search params
-          const redirectUrl = searchParams.get('redirect') || '/dashboard';
-          
-          // Redirect based on role
-          if (result.role === 'interviewer') {
-            router.replace("/survey/");
-          } else {
-            router.replace(redirectUrl);
-          }
-        }, 1000);
+
+        // Force refresh the auth state immediately
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for cookie to be set
+
+        // Get redirect URL from search params
+        const redirectUrl = searchParams.get('redirect') || '/dashboard';
+
+        // Redirect based on role immediately
+        if (result.role === 'interviewer') {
+          window.location.href = "/survey/";
+        } else {
+          window.location.href = redirectUrl;
+        }
       } else {
         setLoginStatus("error");
         setErrors(prev => ({ ...prev, password: result.error || 'Login failed' }));
@@ -152,7 +145,7 @@ export default function SiglaLogin() {
       setLoginStatus("error");
       setErrors(prev => ({ ...prev, password: 'Network error occurred' }));
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -245,19 +238,18 @@ export default function SiglaLogin() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`transition-colors ${
-                      errors.email ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
-                    }`}
+                    className={`transition-colors ${errors.email ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
+                      }`}
                     style={{
                       borderColor: errors.email ? "#C8102E" : "#CCCCCC",
                       ...(errors.email
                         ? {}
                         : ({
-                            "--tw-ring-color": "#0072CE",
-                          } as React.CSSProperties)),
+                          "--tw-ring-color": "#0072CE",
+                        } as React.CSSProperties)),
                     }}
                     placeholder="Enter your email address"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                   {errors.email && (
                     <p className="text-sm text-red-600">{errors.email}</p>
@@ -275,25 +267,24 @@ export default function SiglaLogin() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
-                      className={`transition-colors pr-10 ${
-                        errors.password ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
-                      }`}
+                      className={`transition-colors pr-10 ${errors.password ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"
+                        }`}
                       style={{
                         borderColor: errors.password ? "#C8102E" : "#CCCCCC",
                         ...(errors.password
                           ? {}
                           : ({
-                              "--tw-ring-color": "#0072CE",
-                            } as React.CSSProperties)),
+                            "--tw-ring-color": "#0072CE",
+                          } as React.CSSProperties)),
                       }}
                       placeholder="Enter your password"
-                      disabled={isLoading}
+                      disabled={isSubmitting}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      disabled={isLoading}
+                      disabled={isSubmitting}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-gray-400" />
@@ -320,9 +311,9 @@ export default function SiglaLogin() {
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0, 114, 206, 0.2), 0 2px 4px -1px rgba(0, 114, 206, 0.1)",
                   }}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? "Signing In..." : "Sign In"}
+                  {isSubmitting ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
 

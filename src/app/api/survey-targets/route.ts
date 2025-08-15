@@ -5,7 +5,7 @@ const prisma = new Prisma.PrismaClient();
 
 export async function GET() {
   try {
-    const targets = await prisma.surveyTarget.findMany();
+    const targets = await prisma.SurveyTarget.findMany();
     return NextResponse.json(targets);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const target = await prisma.surveyTarget.create({ data });
+    const target = await prisma.SurveyTarget.create({ data });
     return NextResponse.json(target);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest) {
   try {
     const data = await req.json();
     const { target_id, ...updateData } = data;
-    const target = await prisma.surveyTarget.update({
+    const target = await prisma.SurveyTarget.update({
       where: { target_id },
       data: updateData,
     });
@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { target_id } = await req.json();
-    await prisma.surveyTarget.delete({ where: { target_id } });
+    await prisma.SurveyTarget.delete({ where: { target_id } });
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

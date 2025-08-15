@@ -46,8 +46,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const handleLogin = async (credentials: LoginCredentials) => {
     const result = await login(credentials);
     if (result.success) {
-      // Refresh user data after successful login
-      await refreshUser();
+      console.log('AuthProvider: Login successful, refreshing user data');
+      // Refresh user data after successful login with retry logic
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          await refreshUser();
+          if (user) {
+            console.log('AuthProvider: User data refreshed successfully');
+            break; // Successfully got user data
+          }
+        } catch (error) {
+          console.warn('Retry getting user data:', error);
+        }
+        retries--;
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // Wait 200ms before retry
+        }
+      }
     }
     return result;
   };
@@ -63,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         setIsLoading(true);
         const currentUser = await getCurrentUser();
+        console.log('AuthProvider: Initial auth check result:', currentUser ? `${currentUser.email} (${currentUser.role})` : 'No user');
         setUser(currentUser);
       } catch (error) {
         console.error('Auth check failed:', error);

@@ -49,10 +49,13 @@ export default function UserDropdown() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuItem onClick={() => handleMenuClick("settings")}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
+        {/* Hide Settings for viewer role */}
+        {user?.role !== 'viewer' && (
+          <DropdownMenuItem onClick={() => handleMenuClick("settings")}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => handleMenuClick("survey-dashboard")}>
           <BarChart3 className="mr-2 h-4 w-4" />
           <span>Survey Dashboard</span>

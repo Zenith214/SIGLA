@@ -40,10 +40,18 @@ export async function POST(req: NextRequest) {
       { expiresIn: '7d' }
     );
     // Set JWT as HttpOnly cookie
-                  const response = NextResponse.json({ 
-                message: 'Login successful',
-                role: (user.role || 'viewer').toLowerCase()
-              }, { status: 200 });
+    const response = NextResponse.json({ 
+      message: 'Login successful',
+      role: (user.role || 'viewer').toLowerCase(),
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: (user.role || 'viewer').toLowerCase()
+      }
+    }, { status: 200 });
+    
     response.cookies.set('sigla_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -51,6 +59,7 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
+    
     return response;
   } catch (error) {
     return NextResponse.json({ message: 'Login failed', error: error instanceof Error ? error.message : error }, { status: 500 });

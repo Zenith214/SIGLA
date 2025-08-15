@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import Cookies from "js-cookie"
+import { useAuth } from "@/components/auth/AuthProvider"
 
 interface HeaderProps {
   user: {
@@ -30,6 +30,7 @@ export function Header({ user, currentSection }: HeaderProps) {
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState<string>('')
   const router = useRouter()
+  const { logout } = useAuth()
 
   // Get current location
   const getCurrentLocation = () => {
@@ -138,10 +139,9 @@ export function Header({ user, currentSection }: HeaderProps) {
     }
   }
 
-  const handleSignOut = () => {
-    Cookies.remove("sigla_token", { path: "/" });
-    router.push("/");
-  };
+  const handleSignOut = async () => {
+    await logout()
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">

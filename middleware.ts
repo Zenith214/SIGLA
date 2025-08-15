@@ -109,9 +109,9 @@ export function middleware(request: NextRequest) {
   console.log('🍪 MIDDLEWARE - Token present:', !!token?.value);
   
   if (!token || !token.value) {
-    // Don't redirect if already on login page
-    if (pathname === '/login') {
-      console.log('📍 MIDDLEWARE - Already on login page, allowing through');
+    // Don't redirect if already on login page or register page
+    if (pathname === '/login' || pathname === '/register') {
+      console.log('📍 MIDDLEWARE - Already on auth page, allowing through');
       return NextResponse.next();
     }
     console.log('❌ MIDDLEWARE - No token, redirecting to login');
@@ -120,6 +120,10 @@ export function middleware(request: NextRequest) {
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('redirected', '1');
     loginUrl.searchParams.set('reason', 'no_token');
+    // Store the original URL for redirect after login
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
@@ -128,9 +132,9 @@ export function middleware(request: NextRequest) {
   console.log('🔐 MIDDLEWARE - Token valid:', tokenValidation.valid);
   
   if (!tokenValidation.valid) {
-    // Don't redirect if already on login page
-    if (pathname === '/login') {
-      console.log('📍 MIDDLEWARE - Invalid token but on login page, allowing through');
+    // Don't redirect if already on login page or register page
+    if (pathname === '/login' || pathname === '/register') {
+      console.log('📍 MIDDLEWARE - Invalid token but on auth page, allowing through');
       return NextResponse.next();
     }
     console.log('❌ MIDDLEWARE - Invalid token, redirecting to login');
@@ -139,6 +143,10 @@ export function middleware(request: NextRequest) {
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('redirected', '1');
     loginUrl.searchParams.set('reason', 'invalid_token');
+    // Store the original URL for redirect after login
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 

@@ -35,6 +35,8 @@ export async function login(credentials: LoginCredentials): Promise<{ success: b
     const data = await response.json();
 
     if (response.ok) {
+      // Wait a moment for the cookie to be properly set
+      await new Promise(resolve => setTimeout(resolve, 100));
       return { success: true, role: data.role };
     } else {
       return { success: false, error: data.message || 'Login failed' };

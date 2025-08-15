@@ -3,7 +3,7 @@ import Link from "next/link"
 import { User, Settings, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import Cookies from "js-cookie"
+import { useAuth } from "@/components/auth/AuthProvider"
 
 const barangays = [
   { id: 1, name: "Barangay 1", progress: 20, status: "Not Started" },
@@ -21,11 +21,11 @@ export default function Dashboard() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const { logout } = useAuth()
 
   // Logout handler function
-  const handleLogout = () => {
-    Cookies.remove("sigla_token", { path: "/" })
-    router.push("/")
+  const handleLogout = async () => {
+    await logout()
   }
 
   // Close dropdown when clicking outside
