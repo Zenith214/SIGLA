@@ -1,5 +1,10 @@
+"use client"
+
+import React from "react"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Users, Calendar } from "lucide-react"
+import { useAuth } from "@/components/auth/AuthProvider"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
 const barangayData = {
   1: { name: "Barangay 1", progress: 20, status: "Not Started", maxRespondents: 150, lastUpdated: "2025-01-15" },
@@ -10,16 +15,34 @@ const barangayData = {
   6: { name: "Barangay 6", progress: 30, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
   7: { name: "Barangay 7", progress: 10, status: "Not Started", maxRespondents: 150, lastUpdated: "2025-01-14" },
   8: { name: "Barangay 8", progress: 70, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  9: { name: "Barangay 9", progress: 25, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
+  10: { name: "Barangay 10", progress: 5, status: "Not Started", maxRespondents: 150, lastUpdated: "2025-01-14" },
+  11: { name: "Barangay 11", progress: 90, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  12: { name: "Barangay 12", progress: 55, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  13: { name: "Barangay 13", progress: 100, status: "Completed", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  14: { name: "Barangay 14", progress: 15, status: "Not Started", maxRespondents: 150, lastUpdated: "2025-01-14" },
+  15: { name: "Barangay 15", progress: 45, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
+  16: { name: "Barangay 16", progress: 85, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  17: { name: "Barangay 17", progress: 35, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
+  18: { name: "Barangay 18", progress: 100, status: "Completed", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  19: { name: "Barangay 19", progress: 65, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  20: { name: "Barangay 20", progress: 12, status: "Not Started", maxRespondents: 150, lastUpdated: "2025-01-14" },
+  21: { name: "Barangay 21", progress: 88, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  22: { name: "Barangay 22", progress: 42, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
+  23: { name: "Barangay 23", progress: 100, status: "Completed", maxRespondents: 150, lastUpdated: "2025-01-16" },
+  24: { name: "Barangay 24", progress: 28, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-15" },
+  25: { name: "Barangay 25", progress: 75, status: "In Progress", maxRespondents: 150, lastUpdated: "2025-01-16" },
 }
 
-export default async function BarangayDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+function BarangayDetailContent({ params }: { params: { id: string } }) {
+  const { id } = params
   const barangayId = Number.parseInt(id)
   const barangay = barangayData[barangayId as keyof typeof barangayData]
+  const { user } = useAuth()
 
   if (!barangay) {
     return (
-      <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#111827] mb-4">Barangay Not Found</h1>
           <Link href="/" className="text-[#3b82f6] hover:text-blue-700 font-medium">
@@ -31,14 +54,14 @@ export default async function BarangayDetail({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="min-h-screen bg-[#f9fafb]">
+    <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+      <header className="bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
             <Link
               href="/survey"
-              className="flex items-center space-x-2 text-[#6b7280] hover:text-[#111827] transition-colors"
+              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
@@ -71,13 +94,12 @@ export default async function BarangayDetail({ params }: { params: Promise<{ id:
                 </div>
               </div>
               <span
-                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${
-                  barangay.status === "Completed"
+                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${barangay.status === "Completed"
                     ? "bg-green-100 text-green-800"
                     : barangay.status === "In Progress"
                       ? "bg-blue-100 text-blue-800"
                       : "bg-gray-100 text-gray-800"
-                }`}
+                  }`}
               >
                 {barangay.status}
               </span>
@@ -102,9 +124,14 @@ export default async function BarangayDetail({ params }: { params: Promise<{ id:
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-[#111827] mb-4">Survey Actions</h2>
             <div className="space-y-3 sm:space-y-4">
-              <button className="w-full bg-[#16a34a] hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
-                Continue Survey
-              </button>
+              {/* Continue Survey button - only show for non-admin users */}
+              {user?.role?.toLowerCase() !== 'admin' && (
+                <Link href="/survey/forms" className="block w-full">
+                  <button className="w-full bg-[#16a34a] hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
+                    Continue Survey
+                  </button>
+                </Link>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <button className="bg-[#3b82f6] hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
                   View Responses
@@ -152,5 +179,29 @@ export default async function BarangayDetail({ params }: { params: Promise<{ id:
         </div>
       </main>
     </div>
+  )
+}
+
+export default function BarangayDetail({ params }: { params: Promise<{ id: string }> }) {
+  const [resolvedParams, setResolvedParams] = React.useState<{ id: string } | null>(null)
+
+  React.useEffect(() => {
+    params.then(setResolvedParams)
+  }, [params])
+
+  if (!resolvedParams) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
+        <div className="text-center">
+          <div className="text-lg text-gray-600">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ProtectedRoute>
+      <BarangayDetailContent params={resolvedParams} />
+    </ProtectedRoute>
   )
 }

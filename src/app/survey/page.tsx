@@ -15,11 +15,29 @@ const barangays = [
   { id: 6, name: "Barangay 6", progress: 30, status: "In Progress" },
   { id: 7, name: "Barangay 7", progress: 10, status: "Not Started" },
   { id: 8, name: "Barangay 8", progress: 70, status: "In Progress" },
+  { id: 9, name: "Barangay 9", progress: 25, status: "In Progress" },
+  { id: 10, name: "Barangay 10", progress: 5, status: "Not Started" },
+  { id: 11, name: "Barangay 11", progress: 90, status: "In Progress" },
+  { id: 12, name: "Barangay 12", progress: 55, status: "In Progress" },
+  { id: 13, name: "Barangay 13", progress: 100, status: "Completed" },
+  { id: 14, name: "Barangay 14", progress: 15, status: "Not Started" },
+  { id: 15, name: "Barangay 15", progress: 45, status: "In Progress" },
+  { id: 16, name: "Barangay 16", progress: 85, status: "In Progress" },
+  { id: 17, name: "Barangay 17", progress: 35, status: "In Progress" },
+  { id: 18, name: "Barangay 18", progress: 100, status: "Completed" },
+  { id: 19, name: "Barangay 19", progress: 65, status: "In Progress" },
+  { id: 20, name: "Barangay 20", progress: 12, status: "Not Started" },
+  { id: 21, name: "Barangay 21", progress: 88, status: "In Progress" },
+  { id: 22, name: "Barangay 22", progress: 42, status: "In Progress" },
+  { id: 23, name: "Barangay 23", progress: 100, status: "Completed" },
+  { id: 24, name: "Barangay 24", progress: 28, status: "In Progress" },
+  { id: 25, name: "Barangay 25", progress: 75, status: "In Progress" },
 ]
 
 function SurveyDashboardContent() {
   // Add this state at the top of the Dashboard component
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState<string>("")
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { logout, user } = useAuth()
@@ -56,6 +74,25 @@ function SurveyDashboardContent() {
     }
   }
 
+  // Update time display
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      // Convert to Philippine time (UTC+8)
+      const philippineTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const timeString = philippineTime.toISOString().slice(0, 19).replace('T', ' ');
+      setCurrentTime(timeString);
+    };
+
+    // Update immediately
+    updateTime();
+
+    // Update every second
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -71,50 +108,61 @@ function SurveyDashboardContent() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#f9fafb]">
+    <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+      <header className="bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-sm sm:text-lg md:text-xl font-semibold text-[#111827] truncate pr-4">
+            <h1 className="text-sm sm:text-lg md:text-xl font-semibold text-white truncate pr-4">
               <span className="hidden sm:inline">
                 SIGLA: Satisfaction Index for Governance and Local Administration
               </span>
               <span className="sm:hidden">SIGLA Survey</span>
             </h1>
 
-            {/* User Menu */}
-            <div className="relative" ref={dropdownRef}>
-              <div
-                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              >
-                <div className="w-8 h-8 bg-[#3b82f6] rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <ChevronDown className={`w-4 h-4 text-[#6b7280] transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+            {/* Right side - Time and User Menu */}
+            <div className="flex items-center gap-4">
+              {/* Philippine Date and Time */}
+              <div className="text-white text-sm font-mono hidden sm:block">
+                {currentTime}
               </div>
 
-              {/* Dropdown Menu */}
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in-0 zoom-in-95 duration-100">
-                  <button 
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2 transition-colors"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                  </button>
-                  <div className="border-t border-gray-100 my-1"></div>
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
-                  </button>
+              {/* Separator */}
+              <div className="text-gray-400 hidden sm:block">|</div>
+
+              {/* User Menu */}
+              <div className="relative" ref={dropdownRef}>
+                <div
+                  className="flex items-center space-x-2 cursor-pointer hover:bg-slate-700 rounded-lg p-2 transition-colors"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                >
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-300 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </div>
-              )}
+
+                {/* Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in-0 zoom-in-95 duration-100">
+                    <button
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -161,13 +209,12 @@ function SurveyDashboardContent() {
                     <div className="flex justify-between items-start">
                       <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
                       <span
-                        className={`px-2 py-1 text-xs rounded-full font-medium ${
-                          barangay.status === "Completed"
-                            ? "bg-green-100 text-green-800"
-                            : barangay.status === "In Progress"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                        }`}
+                        className={`px-2 py-1 text-xs rounded-full font-medium ${barangay.status === "Completed"
+                          ? "bg-green-100 text-green-800"
+                          : barangay.status === "In Progress"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                          }`}
                       >
                         {barangay.status}
                       </span>

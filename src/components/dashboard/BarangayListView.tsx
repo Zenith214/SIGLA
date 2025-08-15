@@ -36,10 +36,28 @@ export default function BarangayListView() {
   };
 
   if (selectedBarangay) {
+    // Mock satisfaction percentage - you can replace this with actual data
+    const satisfactionPercentage = 65; // Example value
+    const isHighSatisfaction = satisfactionPercentage >= 58;
+
+    const handleViewReportCard = () => {
+      // Navigate to report card page with barangay data
+      const params = new URLSearchParams({
+        barangay: selectedBarangay.name,
+        population: selectedBarangay.population.toString(),
+        households: selectedBarangay.households.toString(),
+        area: selectedBarangay.area.toString(),
+        surveyStatus: selectedBarangay.surveyStatus,
+        satisfaction: satisfactionPercentage.toString()
+      });
+      
+      window.location.href = `/reportcard?${params.toString()}`;
+    };
+
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-white">
         {/* Header with back button */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4">
+        <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-4">
           <button
             onClick={() => setSelectedBarangay(null)}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium mb-3"
@@ -64,10 +82,131 @@ export default function BarangayListView() {
           </div>
         </div>
         
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          <BarangayDetailsCard selectedBarangay={selectedBarangay} />
-          <SGLGBHistoryCard selectedBarangay={selectedBarangay} />
+        {/* Content - Satisfaction Index */}
+        <div className="flex-1 overflow-auto p-4">
+          <div className="space-y-4">
+            {/* Overall Satisfaction */}
+            <div className="border border-gray-200 rounded-full px-6 py-3 text-center bg-white shadow-sm">
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-gray-700 font-medium text-base">Overall Satisfaction:</span>
+                <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
+                  {satisfactionPercentage}%
+                </span>
+              </div>
+            </div>
+
+            {/* BLGU Logo */}
+            <div className="border-2 border-gray-200 rounded-xl p-6 h-32 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
+              <span className="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+            </div>
+
+            {/* View Report Card Button */}
+            <button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
+              onClick={handleViewReportCard}
+            >
+              View Report Card
+            </button>
+
+            {/* Action Grid */}
+            <div className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-bold text-gray-800 mb-1">Action Grid</h2>
+              </div>
+
+              {/* 2x2 Grid */}
+              <div className="grid grid-cols-2 gap-3 h-64">
+                {/* Top Left - Maintain */}
+                <div className="bg-green-100 border-2 border-green-300 rounded-xl p-3 flex flex-col">
+                  <div className="text-center mb-2">
+                    <h3 className="text-green-800 font-bold text-sm mb-1">MAINTAIN</h3>
+                    <span className="text-green-600 font-medium text-xs">High Satisfaction, Low Need for Action</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-green-800">
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Safety, Peace & Order</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Business Friendliness</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Right - Opportunities */}
+                <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-3 flex flex-col">
+                  <div className="text-center mb-2">
+                    <h3 className="text-blue-800 font-bold text-sm mb-1">OPPORTUNITIES</h3>
+                    <span className="text-blue-600 font-medium text-xs">High Satisfaction, High Need for Action</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-blue-800">
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Disaster Preparedness</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Social Protection</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Left - Monitor */}
+                <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-3 flex flex-col">
+                  <div className="text-center mb-2">
+                    <h3 className="text-yellow-800 font-bold text-sm mb-1">MONITOR</h3>
+                    <span className="text-yellow-600 font-medium text-xs">Low Satisfaction, Low Need for Action</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-yellow-800">
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Environmental Management</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Right - Fix Now */}
+                <div className="bg-red-100 border-2 border-red-300 rounded-xl p-3 flex flex-col">
+                  <div className="text-center mb-2">
+                    <h3 className="text-red-800 font-bold text-sm mb-1">FIX NOW</h3>
+                    <span className="text-red-600 font-medium text-xs">Low Satisfaction, High Need for Action</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-red-800">
+                    <div className="flex items-center">
+                      <span className="mr-2">★</span>
+                      <span>Finance Administration</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* How to Use Section */}
+            <div className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm">
+              <h3 className="text-gray-800 font-semibold mb-3 text-base">How to Read This Report</h3>
+
+              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
+                {/* Overall Satisfaction */}
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Overall Satisfaction</h4>
+                  <p>Shows the barangay's overall performance score. Green (58% or higher) indicates good performance, while red (below 58%) suggests areas needing improvement.</p>
+                </div>
+
+                {/* Action Grid */}
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-1">Action Grid</h4>
+                  <p>Categorizes services based on satisfaction levels and action priority:</p>
+                  <ul className="mt-1 ml-2 space-y-1">
+                    <li><span className="text-green-700 font-medium">• MAINTAIN:</span> Keep up good work</li>
+                    <li><span className="text-blue-700 font-medium">• OPPORTUNITIES:</span> Build on strengths</li>
+                    <li><span className="text-yellow-700 font-medium">• MONITOR:</span> Watch for changes</li>
+                    <li><span className="text-red-700 font-medium">• FIX NOW:</span> Immediate attention needed</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -103,7 +242,7 @@ export default function BarangayListView() {
               <button
                 key={barangay.id}
                 onClick={() => setSelectedBarangay(barangay)}
-                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 hover:shadow-sm"
+                className="w-full text-left p-4 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">

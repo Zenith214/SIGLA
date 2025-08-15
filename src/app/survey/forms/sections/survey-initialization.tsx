@@ -213,7 +213,7 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
               value={surveyNumber}
               onChange={(e) => setSurveyNumber(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Enter survey number (e.g., SIGLA-2024-001)"
+              placeholder="Enter survey number (1-150)"
               required
             />
           </div>
@@ -245,7 +245,7 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
             value={surveyNumber}
             onChange={(e) => setSurveyNumber(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="Enter survey number (e.g., SIGLA-2024-001)"
+            placeholder="Enter survey number (1-150)"
             required
           />
         </div>

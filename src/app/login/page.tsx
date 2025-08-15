@@ -242,7 +242,7 @@ export default function SiglaLogin() {
               {loginStatus === "error" && (
                 <Alert className="mb-4 border-0" style={{ backgroundColor: "#C8102E", color: "white" }}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>Invalid credentials. Please check your email and password.</AlertDescription>
+                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>Invalid credentials. Please check your email and password.</AlertDescription>
                 </Alert>
               )}
 
