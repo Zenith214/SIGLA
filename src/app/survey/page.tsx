@@ -22,11 +22,38 @@ function SurveyDashboardContent() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
 
   // Logout handler function
   const handleLogout = async () => {
     await logout()
+  }
+
+  // Get role-specific welcome message
+  const getRoleDisplayName = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'Administrator'
+      case 'interviewer':
+        return 'Field Interviewer'
+      case 'viewer':
+        return 'Data Viewer'
+      default:
+        return 'User'
+    }
+  }
+
+  const getRoleDescription = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'Manage surveys, monitor progress, and oversee all survey operations across barangays.'
+      case 'interviewer':
+        return 'Continue your survey work and track progress across all barangays.'
+      case 'viewer':
+        return 'View survey progress and data across all barangays.'
+      default:
+        return 'Access survey information and track progress.'
+    }
   }
 
   // Close dropdown when clicking outside
@@ -98,9 +125,11 @@ function SurveyDashboardContent() {
         <div className="space-y-6">
           {/* Welcome Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#111827] mb-2">Welcome, Field Interviewer!</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#111827] mb-2">
+              Welcome, {user ? getRoleDisplayName(user.role) : 'User'}!
+            </h2>
             <p className="text-sm sm:text-base text-[#6b7280]">
-              Continue your survey work and track progress across all barangays.
+              {user ? getRoleDescription(user.role) : 'Access survey information and track progress.'}
             </p>
           </div>
 
