@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { useAuth } from "@/components/auth/AuthProvider"
 import { Header } from "./sections/header"
 import { SectionCard } from "./sections/section-card"
 import { FloatingProgressButton } from "./sections/floating-progress-button"
@@ -55,59 +57,34 @@ export interface Question {
   }[];
 }
 
-// Hook to get user information
-function useUserInfo() {
-  const [user, setUser] = useState({
-    name: "Loading...",
+// Helper function to format user data for the header
+function formatUserForHeader(user: any) {
+  if (!user) {
+    return {
+      name: "Unknown User",
+      role: "Survey Enumerator",
+      id: "ENU-2024-000",
+      avatar: "/placeholder.svg?height=32&width=32&text=U",
+    }
+  }
+
+  const name = user.firstName && user.lastName 
+    ? `${user.firstName} ${user.lastName}`
+    : user.firstName || "Unknown User"
+  
+  const initials = user.firstName && user.lastName
+    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
+    : user.firstName?.charAt(0) || 'U'
+
+  return {
+    name,
     role: "Survey Enumerator",
-    id: "Loading...",
-    avatar: "/placeholder.svg?height=32&width=32&text=U",
-  })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/me', { credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && data.firstName && data.lastName) {
-          setUser({
-            name: `${data.firstName} ${data.lastName}`,
-            role: "Survey Enumerator",
-            id: `ENU-${new Date().getFullYear()}-${String(data.id).padStart(3, '0')}`,
-            avatar: `/placeholder.svg?height=32&width=32&text=${data.firstName.charAt(0)}${data.lastName.charAt(0)}`,
-          })
-        } else if (data && data.firstName) {
-          setUser({
-            name: data.firstName,
-            role: "Survey Enumerator", 
-            id: `ENU-${new Date().getFullYear()}-${String(data.id).padStart(3, '0')}`,
-            avatar: `/placeholder.svg?height=32&width=32&text=${data.firstName.charAt(0)}`,
-          })
-        } else {
-          setUser({
-            name: "Unknown User",
-            role: "Survey Enumerator",
-            id: "ENU-2024-000",
-            avatar: "/placeholder.svg?height=32&width=32&text=U",
-          })
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        setUser({
-          name: "Unknown User",
-          role: "Survey Enumerator", 
-          id: "ENU-2024-000",
-          avatar: "/placeholder.svg?height=32&width=32&text=U",
-        })
-        setLoading(false)
-      })
-  }, [])
-
-  return { user, loading }
+    id: `ENU-${new Date().getFullYear()}-${String(user.id || 0).padStart(3, '0')}`,
+    avatar: `/placeholder.svg?height=32&width=32&text=${initials}`,
+  }
 }
 
-export default function SurveyApp() {
+function SurveyAppContent() {
   const [currentSection, setCurrentSection] = useState("initialization")
   const [surveyData, setSurveyData] = useState<SurveyData>({
     surveyNumber: "",
@@ -133,8 +110,9 @@ export default function SurveyApp() {
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
-  // Get real user information
-  const { user, loading } = useUserInfo()
+  // Get authenticated user information
+  const { user } = useAuth()
+  const formattedUser = formatUserForHeader(user)
 
   // Load saved data on mount
   useEffect(() => {
@@ -259,51 +237,9 @@ export default function SurveyApp() {
     return currentSectionData ? currentSectionData.name : "Survey Forms"
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="border-b bg-white">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div>
-                  <Skeleton className="h-4 w-32 mb-1" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-              </div>
-              <Skeleton className="h-8 w-24" />
-            </div>
-          </div>
-        </div>
-        <div className="p-6 pt-24">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Sidebar skeleton */}
-              <div className="lg:col-span-1 hidden lg:block">
-                <div className="space-y-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonCard key={i} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Main content skeleton */}
-              <div className="lg:col-span-3 col-span-1">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px] p-6">
-                  <SkeletonForm />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} currentSection={getCurrentSectionName()} />
+      <Header user={formattedUser} currentSection={getCurrentSectionName()} />
       <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -325,5 +261,13 @@ export default function SurveyApp() {
       {/* Floating Progress Button - Mobile Only */}
       <FloatingProgressButton sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
     </div>
+  )
+}
+
+export default function SurveyApp() {
+  return (
+    <ProtectedRoute>
+      <SurveyAppContent />
+    </ProtectedRoute>
   )
 }

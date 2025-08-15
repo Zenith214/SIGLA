@@ -4,6 +4,7 @@ import { User, Settings, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
 const barangays = [
   { id: 1, name: "Barangay 1", progress: 20, status: "Not Started" },
@@ -16,7 +17,7 @@ const barangays = [
   { id: 8, name: "Barangay 8", progress: 70, status: "In Progress" },
 ]
 
-export default function Dashboard() {
+function SurveyDashboardContent() {
   // Add this state at the top of the Dashboard component
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const router = useRouter()
@@ -163,5 +164,13 @@ export default function Dashboard() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <ProtectedRoute>
+      <SurveyDashboardContent />
+    </ProtectedRoute>
   )
 }
