@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { setAuthToken } from "@/lib/auth"
+import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,6 +27,7 @@ export default function SiglaLogin() {
   const [redirectMessage, setRedirectMessage] = useState("")
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { login, user, isAuthenticated } = useAuth()
 
   // Add page loading effect
   useEffect(() => {
@@ -35,6 +36,17 @@ export default function SiglaLogin() {
     }, 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && !pageLoading) {
+      if (user.role === 'interviewer') {
+        router.replace("/survey/");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [isAuthenticated, user, router, pageLoading]);
 
   // Check for redirect messages
   useEffect(() => {
@@ -110,40 +122,35 @@ export default function SiglaLogin() {
     setLoginStatus("idle")
     setRedirectMessage("") // Clear any redirect messages
 
-    // Simulate API call - replace with actual authentication
     try {
-      // Mock authentication - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-      
-      // For demo purposes, accept any email/password combination
-      // In production, replace this with actual authentication logic
-      if (formData.email && formData.password) {
+      // Use the auth context login function
+      const result = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result.success) {
         setLoginStatus("success");
         
-        // Generate a mock token (in production, this comes from your API)
-        const mockToken = btoa(JSON.stringify({
-          email: formData.email,
-          exp: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-          role: formData.email.includes('interviewer') ? 'interviewer' : 'admin'
-        }));
-        
-        // Set the auth token
-        setAuthToken(mockToken);
-        
-        // Get redirect URL from search params
-        const redirectUrl = searchParams.get('redirect') || '/dashboard';
-        
-        // Redirect based on role or redirect parameter
-        if (formData.email.includes('interviewer')) {
-          router.push("/survey/");
-        } else {
-          router.push(redirectUrl);
-        }
+        // Wait for AuthProvider to update user state
+        setTimeout(() => {
+          // Get redirect URL from search params
+          const redirectUrl = searchParams.get('redirect') || '/dashboard';
+          
+          // Redirect based on role
+          if (result.role === 'interviewer') {
+            router.replace("/survey/");
+          } else {
+            router.replace(redirectUrl);
+          }
+        }, 1000);
       } else {
         setLoginStatus("error");
+        setErrors(prev => ({ ...prev, password: result.error || 'Login failed' }));
       }
     } catch (error) {
       setLoginStatus("error");
+      setErrors(prev => ({ ...prev, password: 'Network error occurred' }));
     } finally {
       setIsLoading(false);
     }

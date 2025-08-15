@@ -141,6 +141,8 @@ export default function SiglaRegister() {
         }),
         credentials: "include",
       })
+      const data = await res.json();
+      
       if (res.ok) {
         setRegisterStatus("success")
         setApiError("")
@@ -150,11 +152,11 @@ export default function SiglaRegister() {
         }, 2000);
       } else {
         setRegisterStatus("error")
-        setApiError("Failed to register. Please try again.")
+        setApiError(data.message || "Failed to register. Please try again.")
       }
     } catch (error) {
       setRegisterStatus("error")
-      setApiError("Failed to register. Please try again.")
+      setApiError("Network error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }

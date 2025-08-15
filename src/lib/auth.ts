@@ -1,58 +1,115 @@
-import { cookies } from 'next/headers';
-
 export interface User {
   id: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  name: string;
   role: string;
 }
 
-export function setAuthToken(token: string) {
-  if (typeof window !== 'undefined') {
-    document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+  organization: string;
+  jobTitle: string;
+}
+
+// Login function - calls real API
+export async function login(credentials: LoginCredentials): Promise<{ success: boolean; error?: string; role?: string }> {
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return { success: true, role: data.role };
+    } else {
+      return { success: false, error: data.message || 'Login failed' };
+    }
+  } catch (error) {
+    return { success: false, error: 'Network error occurred' };
   }
 }
 
-export function removeAuthToken() {
-  if (typeof window !== 'undefined') {
-    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+// Register function - calls real API
+export async function register(userData: RegisterData): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      return { success: false, error: data.message || 'Registration failed' };
+    }
+  } catch (error) {
+    return { success: false, error: 'Network error occurred' };
   }
 }
 
-export function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    const match = document.cookie.match(/auth-token=([^;]+)/);
-    return match ? match[1] : null;
+// Get current user from API
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const response = await fetch('/api/me', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      return {
+        id: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        role: userData.role,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to get current user:', error);
+    return null;
   }
-  return null;
 }
 
-export async function getServerAuthToken(): Promise<string | null> {
-  const cookieStore = cookies();
-  const token = cookieStore.get('auth-token');
-  return token?.value || null;
+// Check if user is authenticated by trying to get current user
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return user !== null;
 }
 
-export function isAuthenticated(): boolean {
-  return getAuthToken() !== null;
-}
-
-export async function logout() {
-  removeAuthToken();
-  window.location.href = '/login';
-}
-
-// Mock user data - replace with actual API calls
-export function getCurrentUser(): User | null {
-  const token = getAuthToken();
-  if (!token) return null;
-
-  // Mock user data based on token
-  // In a real app, you'd decode the JWT or make an API call
-  return {
-    id: '1',
-    email: 'user@example.com',
-    name: 'John Doe',
-    role: 'admin'
-  };
+// Logout function - clears server-side cookie
+export async function logout(): Promise<void> {
+  try {
+    // Clear the HttpOnly cookie by making a request that will expire it
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Redirect to login regardless of API call success
+    window.location.href = '/login';
+  }
 }

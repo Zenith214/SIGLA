@@ -1,9 +1,9 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ArrowLeft } from "lucide-react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ReportHeader from "@/components/reportcard/ReportHeader";
 import MetadataRow from "@/components/reportcard/MetadataRow";
@@ -104,6 +104,7 @@ const mockData = {
 
 function ReportCardContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     // Get data from URL parameters or use mock data as fallback
     const barangayName = searchParams.get('barangay') || mockData.metadata.barangay;
@@ -136,10 +137,21 @@ function ReportCardContent() {
         window.print();
     };
 
+    const handleBackToDashboard = () => {
+        router.push('/dashboard');
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 print:min-h-0">
-            {/* Export PDF Button - Hidden when printing */}
-            <div className="fixed top-4 right-4 z-50 print:hidden">
+            {/* Action Buttons - Hidden when printing */}
+            <div className="fixed top-4 right-4 z-50 print:hidden flex flex-col gap-3">
+                <Button
+                    onClick={handleBackToDashboard}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg flex items-center gap-2"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Dashboard
+                </Button>
                 <Button
                     onClick={handleExportPDF}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg flex items-center gap-2"
