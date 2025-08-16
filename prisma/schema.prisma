@@ -57,6 +57,8 @@ model barangay {
   captain       String?
   currentStatus String?
   history       String?        @db.LongText
+  is_awardee    Boolean        @default(false)
+  area          Float?
   assignment    assignment[]
   survey        survey[]
   surveyTargets SurveyTarget[]

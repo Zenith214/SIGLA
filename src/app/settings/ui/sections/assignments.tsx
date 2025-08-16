@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { UserCheck, MapPin, Users, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { UserCheck, Users, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 
@@ -28,14 +28,33 @@ export function Assignments() {
   useEffect(() => {
     setLoading(true)
     Promise.all([
-      fetch("/api/assignments").then(r => r.json()),
-      fetch("/api/barangays").then(r => r.json()),
-      fetch("/api/users").then(r => r.json()),
+      fetch("/api/assignments", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/barangays", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/users", { credentials: 'include' }).then(r => r.json()),
     ])
       .then(([assignmentsData, barangaysData, usersData]) => {
-        setAssignments(assignmentsData)
-        setBarangays(barangaysData)
-        setInterviewers(usersData.filter((u: any) => u.role === "Interviewer"))
+        setAssignments(assignmentsData || [])
+        setBarangays(barangaysData || [])
+
+        // Handle case where usersData might be wrapped in different properties
+        let users = []
+        if (Array.isArray(usersData)) {
+          users = usersData
+        } else if (usersData?.users) {
+          users = usersData.users  // API returns { users: [...] }
+        } else if (usersData?.data) {
+          users = usersData.data   // Alternative format
+        } else {
+          users = []
+        }
+
+        // Filter for interviewers only
+        const interviewers = users.filter((user: any) => {
+          const role = (user.role || '').toLowerCase().trim()
+          return role === "interviewer"
+        })
+
+        setInterviewers(interviewers)
         setLoading(false)
       })
       .catch((err) => {
@@ -46,24 +65,62 @@ export function Assignments() {
 
   // Add Assignment
   const handleAddChange = (e: any) => {
-    setAddForm({ ...addForm, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setAddForm({ ...addForm, [name]: value })
   }
+
+  const handleAddSelectChange = (name: string, value: string) => {
+    setAddForm({ ...addForm, [name]: value })
+  }
+
+  const validateAddForm = () => {
+    if (!addForm.barangay_id) {
+      alert("Please select a barangay")
+      return false
+    }
+    if (!addForm.user_id) {
+      alert("Please select an interviewer")
+      return false
+    }
+    if (!addForm.status) {
+      alert("Please select a status")
+      return false
+    }
+    return true
+  }
+
   const handleAddSave = async () => {
+    if (!validateAddForm()) return
+
     setSaving(true)
     try {
-      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), user_id: Number(addForm.user_id), progress: Number(addForm.progress) }
+      const payload = {
+        barangay_id: Number(addForm.barangay_id),
+        user_id: Number(addForm.user_id),
+        status: addForm.status,
+        progress: Number(addForm.progress) || 0
+      }
+      console.log('Sending assignment payload:', payload)
+
       const res = await fetch("/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error("Failed to add assignment")
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || "Failed to add assignment")
+      }
+
       const created = await res.json()
       setAssignments([...assignments, created])
       setAddModal(false)
       setAddForm({ barangay_id: "", user_id: "", status: "Pending", progress: 0 })
+      alert("Assignment added successfully!")
     } catch (err: any) {
-      alert(err.message)
+      console.error('Add assignment error:', err)
+      alert(err.message || "Failed to add assignment")
     } finally {
       setSaving(false)
     }
@@ -147,37 +204,103 @@ export function Assignments() {
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div>
-                <label className="block text-sm font-medium mb-1">Barangay</label>
-                <select name="barangay_id" value={addForm.barangay_id} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
+                <Label htmlFor="barangay_id" className="text-sm font-medium">Barangay *</Label>
+                <select
+                  id="barangay_id"
+                  name="barangay_id"
+                  value={addForm.barangay_id}
+                  onChange={handleAddChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
                   <option value="">Select Barangay</option>
                   {barangays.map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>{b.barangay_name}</option>
+                    <option key={b.barangay_id} value={b.barangay_id}>
+                      {b.barangay_name}
+                    </option>
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Interviewer</label>
-                <select name="user_id" value={addForm.user_id} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
+                <Label htmlFor="user_id" className="text-sm font-medium">
+                  Interviewer *
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({interviewers.length} interviewers available)
+                  </span>
+                </Label>
+                <select
+                  id="user_id"
+                  name="user_id"
+                  value={addForm.user_id}
+                  onChange={handleAddChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
                   <option value="">Select Interviewer</option>
                   {interviewers.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName} {u.email ? `(${u.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {interviewers.length === 0 && !loading && (
+                  <p className="text-xs text-red-500 mt-1">
+                    No interviewers found. Please ensure there are users with "interviewer" role.
+                  </p>
+                )}
+
+              </div>
+
+              <div>
+                <Label htmlFor="status" className="text-sm font-medium">Status *</Label>
+                <select
+                  id="status"
+                  name="status"
+                  value={addForm.status}
+                  onChange={handleAddChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  {statusOptions.map(status => (
+                    <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <select name="status" value={addForm.status} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
-                  {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Progress</label>
-                <Input name="progress" type="number" value={addForm.progress} onChange={handleAddChange} min={0} max={100} />
+                <Label htmlFor="progress" className="text-sm font-medium">Progress (%)</Label>
+                <Input
+                  id="progress"
+                  name="progress"
+                  type="number"
+                  value={addForm.progress}
+                  onChange={handleAddChange}
+                  min={0}
+                  max={100}
+                  placeholder="0"
+                  className="focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => setAddModal(false)} disabled={saving}>Cancel</Button>
-              <Button onClick={handleAddSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAddModal(false)
+                  setAddForm({ barangay_id: "", user_id: "", status: "Pending", progress: 0 })
+                }}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddSave}
+                disabled={saving || interviewers.length === 0}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                {saving ? 'Saving...' : 'Save Assignment'}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -192,30 +315,66 @@ export function Assignments() {
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div>
-                <label className="block text-sm font-medium mb-1">Barangay</label>
-                <select name="barangay_id" value={editForm.barangay_id} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                <Label htmlFor="edit_barangay_id" className="text-sm font-medium">Barangay</Label>
+                <select
+                  id="edit_barangay_id"
+                  name="barangay_id"
+                  value={editForm?.barangay_id || ''}
+                  onChange={handleEditChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
                   {barangays.map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>{b.barangay_name}</option>
+                    <option key={b.barangay_id} value={b.barangay_id}>
+                      {b.barangay_name}
+                    </option>
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Interviewer</label>
-                <select name="user_id" value={editForm.user_id} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                <Label htmlFor="edit_user_id" className="text-sm font-medium">Interviewer</Label>
+                <select
+                  id="edit_user_id"
+                  name="user_id"
+                  value={editForm?.user_id || ''}
+                  onChange={handleEditChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
                   {interviewers.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName} {u.email ? `(${u.email})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <select name="status" value={editForm.status} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
+                <Label htmlFor="edit_status" className="text-sm font-medium">Status</Label>
+                <select
+                  id="edit_status"
+                  name="status"
+                  value={editForm?.status || ''}
+                  onChange={handleEditChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {statusOptions.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Progress</label>
-                <Input name="progress" type="number" value={editForm.progress} onChange={handleEditChange} min={0} max={100} />
+                <Label htmlFor="edit_progress" className="text-sm font-medium">Progress (%)</Label>
+                <Input
+                  id="edit_progress"
+                  name="progress"
+                  type="number"
+                  value={editForm?.progress || 0}
+                  onChange={handleEditChange}
+                  min={0}
+                  max={100}
+                  className="focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

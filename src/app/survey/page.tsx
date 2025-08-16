@@ -120,12 +120,23 @@ function SurveyDashboardContent() {
               <span className="sm:hidden">SIGLA Survey</span>
             </h1>
 
-            {/* Right side - Time and User Menu */}
+            {/* Right side - Time, Back Button, and User Menu */}
             <div className="flex items-center gap-4">
               {/* Philippine Date and Time */}
               <div className="text-white text-sm font-mono hidden sm:block">
                 {currentTime}
               </div>
+
+              {/* Separator */}
+              <div className="text-gray-400 hidden sm:block">|</div>
+
+              {/* Back to Dashboard Button */}
+              <Link
+                href="/dashboard"
+                className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition-colors"
+              >
+                Back to Dashboard
+              </Link>
 
               {/* Separator */}
               <div className="text-gray-400 hidden sm:block">|</div>
@@ -145,14 +156,20 @@ function SurveyDashboardContent() {
                 {/* Dropdown Menu */}
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in-0 zoom-in-95 duration-100">
-                    <button
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2 transition-colors"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>Settings</span>
-                    </button>
-                    <div className="border-t border-gray-100 my-1"></div>
+                    {/* Show Settings only for admin users */}
+                    {user?.role?.toLowerCase() === 'admin' && (
+                      <>
+                        <Link
+                          href="/settings"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="w-full text-left px-4 py-3 text-sm text-[#111827] hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>Settings</span>
+                        </Link>
+                        <div className="border-t border-gray-100 my-1"></div>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"

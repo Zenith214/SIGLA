@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Plus, Edit, Trash2, Award, History } from "lucide-react"
+import { MapPin, Edit, Trash2, Award, History } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 export function Barangays() {
@@ -26,6 +26,39 @@ export function Barangays() {
   const [editingBarangay, setEditingBarangay] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Handle seeding barangays with real data
+  const handleSeedBarangays = async () => {
+    if (!confirm('This will replace all existing barangay data with real data from the map. Are you sure?')) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/seed-barangays', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to seed barangays');
+      }
+
+      const result = await res.json();
+      alert(`Successfully seeded ${result.total} barangays (${result.awardees} awardees)!`);
+      
+      // Refresh the barangays list
+      const refreshRes = await fetch("/api/barangays");
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        setBarangays(data);
+      }
+    } catch (err: any) {
+      alert(`Error seeding barangays: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -85,12 +118,31 @@ export function Barangays() {
 
   return (
     <div className="space-y-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900">Barangay Management</h1>
-          <p className="text-gray-600 text-lg">Manage barangays and their SGLGB award information</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">Barangay Management</h1>
+            <p className="text-gray-600 text-lg">Manage barangays and their SGLGB award information</p>
+          </div>
+          <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
         </div>
-        <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
+        
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={handleSeedBarangays}
+            disabled={saving}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2"
+          >
+            {saving ? 'Seeding Database...' : '🌱 Seed Real Barangay Data'}
+          </Button>
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            📊 Export Data
+          </Button>
+        </div>
       </div>
 
       {/* SGLGB Statistics */}
@@ -110,9 +162,9 @@ export function Barangays() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Current Awardees</p>
+                <p className="text-sm font-medium text-gray-600">SGLGB Awardees</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {barangays.filter((b) => b.currentStatus === "Awardee").length}
+                  {barangays.filter((b) => b.is_awardee === true).length}
                 </p>
               </div>
               <Award className="w-8 h-8 text-green-500" />
@@ -125,7 +177,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Non-Awardees</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {barangays.filter((b) => b.currentStatus === "Non-Awardee").length}
+                  {barangays.filter((b) => b.is_awardee === false).length}
                 </p>
               </div>
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -138,13 +190,13 @@ export function Barangays() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {barangays.filter((b) => b.currentStatus === "Pending").length}
+                <p className="text-sm font-medium text-gray-600">Survey Status</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {barangays.filter((b) => b.currentStatus === "Completed").length} Done
                 </p>
               </div>
-              <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-yellow-600 font-bold">⏳</span>
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-bold">✓</span>
               </div>
             </div>
           </CardContent>
@@ -173,7 +225,7 @@ export function Barangays() {
                     <TableHead className="font-medium">Households</TableHead>
                     <TableHead className="font-medium">Population</TableHead>
                     <TableHead className="font-medium">Captain</TableHead>
-                    <TableHead className="font-medium">Current Awardee Status</TableHead>
+                    <TableHead className="font-medium">SGLGB Awardee</TableHead>
                     <TableHead className="font-medium">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -186,22 +238,15 @@ export function Barangays() {
                       <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            barangay.currentStatus === "Awardee"
-                              ? "default"
-                              : barangay.currentStatus === "Non-Awardee"
-                                ? "destructive"
-                                : "secondary"
-                          }
+                          variant={barangay.is_awardee ? "default" : "destructive"}
                           className={cn(
                             "text-xs",
-                            barangay.currentStatus === "Awardee" && "bg-green-100 text-green-800 hover:bg-green-200",
-                            barangay.currentStatus === "Non-Awardee" && "bg-red-100 text-red-800 hover:bg-red-200",
-                            barangay.currentStatus === "Pending" && "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+                            barangay.is_awardee && "bg-green-100 text-green-800 hover:bg-green-200",
+                            !barangay.is_awardee && "bg-red-100 text-red-800 hover:bg-red-200",
                           )}
                         >
-                          {barangay.currentStatus === "Awardee" && <Award className="w-3 h-3 mr-1" />}
-                          {barangay.currentStatus ?? "-"}
+                          {barangay.is_awardee && <Award className="w-3 h-3 mr-1" />}
+                          {barangay.is_awardee ? "Awardee" : "Non-Awardee"}
                         </Badge>
                       </TableCell>
                       <TableCell>

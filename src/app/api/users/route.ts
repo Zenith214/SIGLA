@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users });
   } catch (error) {
-    return NextResponse.json({ message: 'Failed to fetch users' }, { status: 500 });
+    return NextResponse.json({ 
+      message: 'Failed to fetch users', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
