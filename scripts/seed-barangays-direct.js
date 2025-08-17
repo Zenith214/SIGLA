@@ -1,23 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import jwt from "jsonwebtoken";
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
-
-// Helper to verify admin role
-async function verifyAdminRole(request: NextRequest) {
-  const token = request.cookies.get("sigla_token")?.value;
-  if (!token) {
-    return false;
-  }
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    return decoded.role === "admin";
-  } catch {
-    return false;
-  }
-}
 
 // Finalized barangay data from the dashboard map
 // SGLGB Awardees: Balasinon, Poblacion, Buguis, Tanwalang, Luparan, Carre, Talas, Solongvale
@@ -29,8 +12,7 @@ const barangayData = [
     area: 15.2,
     currentStatus: "Completed",
     is_awardee: false,
-    description:
-      "A progressive barangay known for its community participation and governance excellence.",
+    description: "A progressive barangay known for its community participation and governance excellence.",
   },
   {
     name: "Tanwalang",
@@ -48,8 +30,7 @@ const barangayData = [
     area: 18.5,
     currentStatus: "Completed",
     is_awardee: true, // ✅ SGLGB AWARDEE (Solongvale)
-    description:
-      "One of the largest barangays with excellent governance and community services.",
+    description: "One of the largest barangays with excellent governance and community services.",
   },
   {
     name: "Tala-o",
@@ -58,8 +39,7 @@ const barangayData = [
     area: 9.3,
     currentStatus: "Pending",
     is_awardee: false,
-    description:
-      "A smaller barangay with potential for growth and development.",
+    description: "A smaller barangay with potential for growth and development.",
   },
   {
     name: "Balasinon",
@@ -68,8 +48,7 @@ const barangayData = [
     area: 11.7,
     currentStatus: "In Progress",
     is_awardee: true, // ✅ SGLGB AWARDEE
-    description:
-      "A mid-sized barangay working towards improved governance standards.",
+    description: "A mid-sized barangay working towards improved governance standards.",
   },
   {
     name: "Haradabutai",
@@ -87,8 +66,7 @@ const barangayData = [
     area: 14.1,
     currentStatus: "Completed",
     is_awardee: false,
-    description:
-      "Named after a former president, known for its organized governance structure.",
+    description: "Named after a former president, known for its organized governance structure.",
   },
   {
     name: "New Cebu",
@@ -97,8 +75,7 @@ const barangayData = [
     area: 16.9,
     currentStatus: "In Progress",
     is_awardee: false,
-    description:
-      "A large barangay with diverse communities and ongoing development projects.",
+    description: "A large barangay with diverse communities and ongoing development projects.",
   },
   {
     name: "Palili",
@@ -116,8 +93,7 @@ const barangayData = [
     area: 12.3,
     currentStatus: "Completed",
     is_awardee: true, // ✅ SGLGB AWARDEE
-    description:
-      "A barangay with strong local leadership and community programs.",
+    description: "A barangay with strong local leadership and community programs.",
   },
   {
     name: "Carre",
@@ -126,8 +102,7 @@ const barangayData = [
     area: 9.1,
     currentStatus: "In Progress",
     is_awardee: true, // ✅ SGLGB AWARDEE
-    description:
-      "A developing barangay with focus on infrastructure improvements.",
+    description: "A developing barangay with focus on infrastructure improvements.",
   },
   {
     name: "Buguis",
@@ -145,8 +120,7 @@ const barangayData = [
     area: 10.7,
     currentStatus: "Pending",
     is_awardee: false,
-    description:
-      "A barangay named after the American president, focusing on modernization.",
+    description: "A barangay named after the American president, focusing on modernization.",
   },
   {
     name: "Kiblagon",
@@ -155,8 +129,7 @@ const barangayData = [
     area: 12.9,
     currentStatus: "In Progress",
     is_awardee: false,
-    description:
-      "A barangay with rich cultural heritage and ongoing development initiatives.",
+    description: "A barangay with rich cultural heritage and ongoing development initiatives.",
   },
   {
     name: "Laperas",
@@ -165,8 +138,7 @@ const barangayData = [
     area: 8.9,
     currentStatus: "Completed",
     is_awardee: false,
-    description:
-      "A compact barangay with efficient governance and community services.",
+    description: "A compact barangay with efficient governance and community services.",
   },
   {
     name: "Clib",
@@ -175,8 +147,7 @@ const barangayData = [
     area: 11.2,
     currentStatus: "In Progress",
     is_awardee: false,
-    description:
-      "A barangay working towards improved infrastructure and services.",
+    description: "A barangay working towards improved infrastructure and services.",
   },
   {
     name: "Osmena",
@@ -185,8 +156,7 @@ const barangayData = [
     area: 14.8,
     currentStatus: "Completed",
     is_awardee: false,
-    description:
-      "Named after a former president, known for its progressive governance.",
+    description: "Named after a former president, known for its progressive governance.",
   },
   {
     name: "Luparan",
@@ -195,8 +165,7 @@ const barangayData = [
     area: 9.8,
     currentStatus: "Pending",
     is_awardee: true, // ✅ SGLGB AWARDEE
-    description:
-      "A barangay with potential for agricultural and tourism development.",
+    description: "A barangay with potential for agricultural and tourism development.",
   },
   {
     name: "Poblacion",
@@ -205,8 +174,7 @@ const barangayData = [
     area: 20.3,
     currentStatus: "Completed",
     is_awardee: true, // ✅ SGLGB AWARDEE
-    description:
-      "The town center and largest barangay, serving as the commercial and administrative hub.",
+    description: "The town center and largest barangay, serving as the commercial and administrative hub.",
   },
   {
     name: "Tagolilong",
@@ -251,8 +219,7 @@ const barangayData = [
     area: 8.6,
     currentStatus: "Completed",
     is_awardee: false,
-    description:
-      "A small but well-organized barangay with effective local governance.",
+    description: "A small but well-organized barangay with effective local governance.",
   },
   {
     name: "Waterfall",
@@ -261,79 +228,60 @@ const barangayData = [
     area: 6.9,
     currentStatus: "Pending",
     is_awardee: false,
-    description:
-      "The smallest barangay, known for its natural beauty and eco-tourism potential.",
+    description: "The smallest barangay, known for its natural beauty and eco-tourism potential.",
   },
 ];
 
-export async function POST(request: NextRequest) {
-  // Check if user is admin
-  const isAdmin = await verifyAdminRole(request);
-  if (!isAdmin) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-  }
-
+async function seedBarangays() {
   try {
-    console.log("🗑️ Clearing existing barangay data...");
-
+    console.log('🗑️ Clearing existing barangay data...');
+    
     // Delete all existing barangays
     const deleteResult = await prisma.barangay.deleteMany({});
     console.log(`✅ Deleted ${deleteResult.count} existing barangays`);
-
-    console.log("🌱 Seeding new barangay data...");
-
+    
+    console.log('🌱 Seeding new barangay data...');
+    
     // Insert new barangay data
-    const barangayCreateData = barangayData.map(
-      (barangay) =>
-        ({
-          barangay_name: barangay.name,
-          population: barangay.population,
-          households: barangay.households,
-          area: barangay.area,
-          currentStatus: barangay.currentStatus,
-          is_awardee: barangay.is_awardee,
-          description: barangay.description,
-          is_active: true,
-          seal: barangay.is_awardee ? "yes" : "no", // Awardees have seals
-        } as any)
-    );
+    const barangayCreateData = barangayData.map(barangay => ({
+      barangay_name: barangay.name,
+      population: barangay.population,
+      households: barangay.households,
+      area: barangay.area,
+      currentStatus: barangay.currentStatus,
+      is_awardee: barangay.is_awardee,
+      description: barangay.description,
+      is_active: true,
+      seal: barangay.is_awardee ? "yes" : "no", // Awardees have seals
+    }));
 
     const createResult = await prisma.barangay.createMany({
       data: barangayCreateData,
     });
 
     console.log(`✅ Created ${createResult.count} barangays`);
-
-    // Fetch the created barangays for response
-    const createdBarangays = await prisma.barangay.findMany({
-      orderBy: { barangay_id: "desc" },
-      take: barangayData.length,
-    });
-
-    const awardeeCount = barangayData.filter((b) => b.is_awardee).length;
-
-    console.log("🎉 Barangay seeding completed!");
+    
+    const awardeeCount = barangayData.filter(b => b.is_awardee).length;
+    
+    console.log('🎉 Barangay seeding completed!');
     console.log(`📊 Total barangays: ${barangayData.length}`);
-    console.log(`🏆 Awardees: ${awardeeCount}`);
-
-    return NextResponse.json({
-      message: "Barangays seeded successfully",
-      total: barangayData.length,
-      awardees: awardeeCount,
-      barangays: createdBarangays,
+    console.log(`🏆 SGLGB Awardees: ${awardeeCount}`);
+    
+    // Show the awardees
+    console.log('\n🏆 SGLGB Awardee Barangays:');
+    barangayData.filter(b => b.is_awardee).forEach(b => {
+      console.log(`   ✅ ${b.name}`);
     });
+    
   } catch (error) {
-    console.error("💥 Error seeding barangays:", error);
-    return NextResponse.json(
-      {
-        message: "Failed to seed barangays",
-        error: error instanceof Error ? error.message : "Unknown error",
-        details: error instanceof Error ? error.stack : undefined,
-      },
-      { status: 500 }
-    );
+    console.error('💥 Error seeding barangays:', error);
+    if (error.message.includes('Environment variable not found: DATABASE_URL')) {
+      console.log('💡 Please set up your DATABASE_URL in .env file first');
+      console.log('💡 Example: DATABASE_URL="mysql://root:@localhost:3306/sigla_database"');
+    }
   } finally {
-    // Ensure Prisma client is properly disconnected
     await prisma.$disconnect();
   }
 }
+
+seedBarangays();

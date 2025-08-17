@@ -27,38 +27,7 @@ export function Barangays() {
   const [editForm, setEditForm] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Handle seeding barangays with real data
-  const handleSeedBarangays = async () => {
-    if (!confirm('This will replace all existing barangay data with real data from the map. Are you sure?')) {
-      return;
-    }
 
-    setSaving(true);
-    try {
-      const res = await fetch('/api/seed-barangays', {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to seed barangays');
-      }
-
-      const result = await res.json();
-      alert(`Successfully seeded ${result.total} barangays (${result.awardees} awardees)!`);
-      
-      // Refresh the barangays list
-      const refreshRes = await fetch("/api/barangays");
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-        setBarangays(data);
-      }
-    } catch (err: any) {
-      alert(`Error seeding barangays: ${err.message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -91,7 +60,7 @@ export function Barangays() {
   }
 
   // Handle form field change
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
 
@@ -130,13 +99,6 @@ export function Barangays() {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3">
           <Button
-            onClick={handleSeedBarangays}
-            disabled={saving}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2"
-          >
-            {saving ? 'Seeding Database...' : '🌱 Seed Real Barangay Data'}
-          </Button>
-          <Button
             variant="outline"
             className="border-blue-600 text-blue-600 hover:bg-blue-50"
           >
@@ -164,7 +126,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">SGLGB Awardees</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {barangays.filter((b) => b.is_awardee === true).length}
+                  {barangays.filter((b) => b.seal === 'yes').length}
                 </p>
               </div>
               <Award className="w-8 h-8 text-green-500" />
@@ -177,7 +139,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Non-Awardees</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {barangays.filter((b) => b.is_awardee === false).length}
+                  {barangays.filter((b) => b.seal === 'no').length}
                 </p>
               </div>
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -231,22 +193,22 @@ export function Barangays() {
                 </TableHeader>
                 <TableBody>
                   {barangays.map((barangay) => (
-                    <TableRow key={barangay.barangay_id || barangay.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{barangay.barangay_name || barangay.name}</TableCell>
+                    <TableRow key={barangay.barangay_id} className="hover:bg-gray-50">
+                      <TableCell className="font-medium">{barangay.barangay_name}</TableCell>
                       <TableCell>{barangay.households ?? "-"}</TableCell>
                       <TableCell>{barangay.population ? barangay.population.toLocaleString() : "-"}</TableCell>
                       <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
                       <TableCell>
                         <Badge
-                          variant={barangay.is_awardee ? "default" : "destructive"}
+                          variant={barangay.seal === 'yes' ? "default" : "destructive"}
                           className={cn(
                             "text-xs",
-                            barangay.is_awardee && "bg-green-100 text-green-800 hover:bg-green-200",
-                            !barangay.is_awardee && "bg-red-100 text-red-800 hover:bg-red-200",
+                            barangay.seal === 'yes' && "bg-green-100 text-green-800 hover:bg-green-200",
+                            barangay.seal === 'no' && "bg-red-100 text-red-800 hover:bg-red-200",
                           )}
                         >
-                          {barangay.is_awardee && <Award className="w-3 h-3 mr-1" />}
-                          {barangay.is_awardee ? "Awardee" : "Non-Awardee"}
+                          {barangay.seal === 'yes' && <Award className="w-3 h-3 mr-1" />}
+                          {barangay.seal === 'yes' ? "Awardee" : "Non-Awardee"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -268,7 +230,7 @@ export function Barangays() {
                                   <History className="w-5 h-5 text-blue-600" />
                                   <span>Award History</span>
                                 </DialogTitle>
-                                <DialogDescription>SGLGB award history for {selectedBarangay?.barangay_name || selectedBarangay?.name}</DialogDescription>
+                                <DialogDescription>SGLGB award history for {selectedBarangay?.barangay_name}</DialogDescription>
                               </DialogHeader>
                               <div className="space-y-3 mt-4">
                                 {(selectedBarangay?.history ?? []).map((record: any) => (
@@ -342,8 +304,11 @@ export function Barangays() {
                 <Input name="captain" value={editForm.captain ?? ""} onChange={handleEditChange} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <Input name="currentStatus" value={editForm.currentStatus ?? ""} onChange={handleEditChange} />
+                <label className="block text-sm font-medium mb-1">SGLGB Award Status</label>
+                <select name="seal" value={editForm.seal ?? "no"} onChange={handleEditChange} className="w-full border border-gray-300 rounded px-2 py-1">
+                  <option value="no">Non-Awardee</option>
+                  <option value="yes">Awardee</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

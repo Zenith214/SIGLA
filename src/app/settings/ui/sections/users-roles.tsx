@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Skeleton, SkeletonTable, SkeletonUserCard } from "@/components/ui/skeleton"
 
 const roleOptions = ["admin", "interviewer", "viewer"];
 const statusOptions = ["active", "inactive"];
@@ -159,12 +158,12 @@ export function UsersRoles() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
+            <div className="h-8 w-48 mb-2 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
           </div>
-          <Skeleton className="h-10 w-32" />
+          <div className="h-10 w-32 bg-gray-200 rounded animate-pulse" />
         </div>
-        <SkeletonTable />
+        <div className="p-8 text-center text-gray-500">Loading users...</div>
       </div>
     )
   }

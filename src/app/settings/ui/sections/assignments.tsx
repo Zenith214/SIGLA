@@ -214,7 +214,7 @@ export function Assignments() {
                   required
                 >
                   <option value="">Select Barangay</option>
-                  {barangays.map((b: any) => (
+                  {barangays.filter((b: any) => b.seal === 'yes').map((b: any) => (
                     <option key={b.barangay_id} value={b.barangay_id}>
                       {b.barangay_name}
                     </option>
@@ -240,7 +240,7 @@ export function Assignments() {
                   <option value="">Select Interviewer</option>
                   {interviewers.map((u: any) => (
                     <option key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName} {u.email ? `(${u.email})` : ''}
+                      {u.firstName} {u.lastName}
                     </option>
                   ))}
                 </select>
@@ -323,7 +323,7 @@ export function Assignments() {
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {barangays.map((b: any) => (
+                  {barangays.filter((b: any) => b.seal === 'yes').map((b: any) => (
                     <option key={b.barangay_id} value={b.barangay_id}>
                       {b.barangay_name}
                     </option>
@@ -342,7 +342,7 @@ export function Assignments() {
                 >
                   {interviewers.map((u: any) => (
                     <option key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName} {u.email ? `(${u.email})` : ''}
+                      {u.firstName} {u.lastName}
                     </option>
                   ))}
                 </select>

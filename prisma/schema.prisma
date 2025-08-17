@@ -11,95 +11,316 @@ model SurveyTarget {
   target_id   Int       @id @default(autoincrement())
   barangay_id Int
   target      Int
-  achieved    Int?
-  percentage  Int?
+  achieved    Int?      @default(0)
+  percentage  Int?      @default(0)
   created_at  DateTime  @default(now())
   updated_at  DateTime?
-  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_target_barangay_id")
 
-  @@index([barangay_id], map: "survey_target_barangay_id_fkey")
+  @@index([barangay_id], map: "fk_target_barangay_id")
   @@map("survey_target")
 }
 
 model assignment {
-  assignment_id Int       @id @default(autoincrement())
+  assignment_id Int               @id @default(autoincrement())
   barangay_id   Int
   user_id       Int
-  status        String    @default("Pending")
-  progress      Int?
-  created_at    DateTime  @default(now())
+  status        assignment_status @default(Pending)
+  progress      Int?              @default(0)
+  created_at    DateTime          @default(now())
   updated_at    DateTime?
-  barangay      barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, map: "Assignment_barangay_id_fkey")
-  user          user      @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "Assignment_user_id_fkey")
+  barangay      barangay          @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "Assignment_barangay_id_fkey")
+  user          user              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "Assignment_user_id_fkey")
 
-  @@index([barangay_id], map: "Assignment_barangay_id_fkey")
-  @@index([user_id], map: "Assignment_user_id_fkey")
+  @@index([barangay_id], map: "fk_assignment_barangay_id")
+  @@index([user_id], map: "fk_assignment_user_id")
 }
 
 model backup {
-  backup_id Int      @id @default(autoincrement())
-  date      DateTime
-  time      DateTime
-  size      String?
-  status    String   @default("Success")
+  backup_id Int           @id @default(autoincrement())
+  date      DateTime      @db.Date
+  time      DateTime      @db.Time(0)
+  size      String?       @db.VarChar(20)
+  status    backup_status @default(Success)
 }
 
 model barangay {
-  barangay_id   Int            @id @default(autoincrement())
-  barangay_name String         @unique(map: "Barangay_barangay_name_key")
-  seal          String         @default("no")
-  description   String?
-  is_active     Boolean        @default(true)
-  created_at    DateTime       @default(now())
-  updated_at    DateTime?
-  households    Int?
-  population    Int?
-  captain       String?
-  currentStatus String?
-  history       String?        @db.LongText
-  is_awardee    Boolean        @default(false)
-  area          Float?
-  assignment    assignment[]
-  survey        survey[]
-  surveyTargets SurveyTarget[]
+  barangay_id     Int               @id @default(autoincrement())
+  barangay_name   String            @unique(map: "barangay_name_unique")
+  seal            barangay_seal     @default(no)
+  description     String?           @db.Text
+  is_active       Boolean           @default(true)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime?
+  households      Int?              @default(0)
+  population      Int?              @default(0)
+  captain         String?
+  currentStatus   String?           @db.VarChar(32)
+  history         String?           @db.LongText
+  assignment      assignment[]
+  survey          survey[]
+  survey_response survey_response[]
+  surveyTargets   SurveyTarget[]
 }
 
 model survey {
-  survey_id     Int       @id @default(autoincrement())
+  survey_id     Int           @id @default(autoincrement())
   barangay_id   Int
-  status        String    @default("draft")
-  analyzed_data String?   @db.LongText
-  raw_data      String?   @db.LongText
-  created_at    DateTime  @default(now())
+  status        survey_status @default(draft)
+  analyzed_data String?       @db.LongText
+  raw_data      String?       @db.LongText
+  created_at    DateTime      @default(now())
   updated_at    DateTime?
-  barangay      barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, map: "Survey_barangay_id_fkey")
+  barangay      barangay      @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "Survey_barangay_id_fkey")
+  survey_log    survey_log[]
 
-  @@index([barangay_id], map: "Survey_barangay_id_fkey")
-}
-
-model surveycycle {
-  cycle_id   Int       @id @default(autoincrement())
-  year       String
-  status     String    @default("Active")
-  start_date DateTime
-  end_date   DateTime
-  responses  Int?
-  created_at DateTime  @default(now())
-  updated_at DateTime?
+  @@index([barangay_id], map: "fk_survey_barangay_id")
 }
 
 model user {
-  id           Int          @id @default(autoincrement())
-  email        String       @unique(map: "User_email_key")
-  password     String
-  createdAt    DateTime     @default(now())
-  firstName    String
-  jobTitle     String?
-  lastName     String
-  organization String?
-  phone        String?
-  role         String?
-  status       String?
-  lastLogin    DateTime?
-  assignment   assignment[]
+  id              Int               @id @default(autoincrement())
+  email           String            @unique(map: "User_email_key")
+  password        String
+  createdAt       DateTime          @default(now())
+  firstName       String
+  jobTitle        String?
+  lastName        String
+  organization    String?
+  phone           String?
+  role            String?           @default("Viewer") @db.VarChar(32)
+  status          String?           @default("Active") @db.VarChar(16)
+  lastLogin       DateTime?         @db.DateTime(0)
+  assignment      assignment[]
+  survey_response survey_response[]
+}
+
+model survey_answer {
+  answer_id       Int             @id @default(autoincrement())
+  question_id     Int
+  response_id     Int
+  answer_value    String?         @db.Text
+  answer_options  String?         @db.LongText
+  answer_text     String?         @db.Text
+  answer_number   Decimal?        @db.Decimal(10, 2)
+  answer_rating   Int?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime?
+  survey_question survey_question @relation(fields: [question_id], references: [question_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_answer_question_id")
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_answer_response_id")
+
+  @@unique([question_id, response_id], map: "question_response_unique")
+  @@index([response_id], map: "fk_survey_answer_response_id")
+  @@index([response_id], map: "idx_survey_answer_response")
+}
+
+model survey_attachment {
+  attachment_id   Int             @id @default(autoincrement())
+  response_id     Int
+  file_name       String          @db.VarChar(255)
+  file_path       String          @db.VarChar(500)
+  file_type       String?         @db.VarChar(100)
+  file_size       Int?
+  description     String?         @db.Text
+  uploaded_at     DateTime        @default(now())
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_attachment_response_id")
+
+  @@index([response_id], map: "fk_survey_attachment_response_id")
+}
+
+model survey_cycle {
+  cycle_id   Int                 @id @default(autoincrement())
+  year       String              @db.VarChar(10)
+  status     survey_cycle_status @default(Active)
+  start_date DateTime            @db.Date
+  end_date   DateTime            @db.Date
+  responses  Int?                @default(0)
+  created_at DateTime            @default(now())
+  updated_at DateTime?
+}
+
+model survey_log {
+  log_id     Int      @id @default(autoincrement())
+  survey_id  Int
+  action     String
+  details    String?  @db.Text
+  created_at DateTime @default(now())
+  survey     survey   @relation(fields: [survey_id], references: [survey_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_surveylog_survey_id")
+
+  @@index([survey_id], map: "fk_surveylog_survey_id")
+}
+
+model survey_metadata {
+  metadata_id     Int             @id @default(autoincrement())
+  response_id     Int
+  key_name        String          @db.VarChar(100)
+  key_value       String?         @db.Text
+  created_at      DateTime        @default(now())
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_metadata_response_id")
+
+  @@unique([response_id, key_name], map: "response_key_unique")
+  @@index([response_id], map: "fk_survey_metadata_response_id")
+}
+
+model survey_question {
+  question_id    Int                           @id @default(autoincrement())
+  section_id     Int
+  question_key   String                        @db.VarChar(100)
+  question_text  String                        @db.Text
+  question_type  survey_question_question_type
+  options        String?                       @db.LongText
+  required       Boolean                       @default(false)
+  order_index    Int                           @default(0)
+  depends_on     String?                       @db.VarChar(100)
+  depends_value  String?
+  created_at     DateTime                      @default(now())
+  survey_answer  survey_answer[]
+  survey_section survey_section                @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_question_section_id")
+
+  @@index([section_id], map: "fk_survey_question_section_id")
+  @@index([question_key], map: "idx_survey_question_key")
+}
+
+model survey_response {
+  response_id           Int                                @id @default(autoincrement())
+  survey_number         String                             @unique(map: "survey_number_unique") @db.VarChar(50)
+  barangay_id           Int
+  interviewer_id        Int
+  respondent_name       String?
+  respondent_age        Int?
+  respondent_gender     survey_response_respondent_gender?
+  location_lat          Decimal                            @db.Decimal(10, 8)
+  location_lng          Decimal                            @db.Decimal(11, 8)
+  location_address      String?                            @db.Text
+  location_accuracy     Decimal?                           @db.Decimal(8, 2)
+  location_timestamp    DateTime?
+  location_barangay     String?
+  location_municipality String?
+  location_province     String?
+  status                survey_response_status             @default(draft)
+  progress              Int?                               @default(0)
+  started_at            DateTime                           @default(now())
+  completed_at          DateTime?
+  submitted_at          DateTime?
+  created_at            DateTime                           @default(now())
+  updated_at            DateTime?
+  survey_answer         survey_answer[]
+  survey_attachment     survey_attachment[]
+  survey_metadata       survey_metadata[]
+  barangay              barangay                           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_response_barangay_id")
+  user                  user                               @relation(fields: [interviewer_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_response_interviewer_id")
+  survey_section        survey_section[]
+  survey_validation     survey_validation[]
+
+  @@index([barangay_id], map: "fk_survey_response_barangay_id")
+  @@index([interviewer_id], map: "fk_survey_response_interviewer_id")
+  @@index([barangay_id], map: "idx_survey_response_barangay")
+  @@index([completed_at], map: "idx_survey_response_completed_at")
+  @@index([created_at], map: "idx_survey_response_created_at")
+  @@index([interviewer_id], map: "idx_survey_response_interviewer")
+  @@index([status], map: "idx_survey_response_status")
+}
+
+model survey_section {
+  section_id      Int                   @id @default(autoincrement())
+  response_id     Int
+  section_name    String                @db.VarChar(100)
+  section_key     String                @db.VarChar(50)
+  status          survey_section_status @default(pending)
+  data            String?               @db.LongText
+  started_at      DateTime?
+  completed_at    DateTime?
+  created_at      DateTime              @default(now())
+  updated_at      DateTime?
+  survey_question survey_question[]
+  survey_response survey_response       @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_section_response_id")
+
+  @@unique([response_id, section_key], map: "response_section_unique")
+  @@index([response_id], map: "fk_survey_section_response_id")
+  @@index([section_key], map: "idx_survey_section_key")
+  @@index([status], map: "idx_survey_section_status")
+}
+
+model survey_validation {
+  validation_id      Int                                 @id @default(autoincrement())
+  response_id        Int
+  validation_type    survey_validation_validation_type
+  validation_status  survey_validation_validation_status
+  validation_message String?                             @db.Text
+  validation_data    String?                             @db.LongText
+  created_at         DateTime                            @default(now())
+  survey_response    survey_response                     @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_validation_response_id")
+
+  @@index([response_id], map: "fk_survey_validation_response_id")
+  @@index([validation_status], map: "idx_survey_validation_status")
+  @@index([validation_type], map: "idx_survey_validation_type")
+}
+
+enum barangay_seal {
+  yes
+  no
+}
+
+enum survey_status {
+  draft
+  ongoing
+  completed
+  archived
+}
+
+enum survey_cycle_status {
+  Active
+  Completed
+  Archived
+}
+
+enum survey_validation_validation_type {
+  location
+  completeness
+  consistency
+  quality
+}
+
+enum assignment_status {
+  Active
+  Pending
+  Completed
+}
+
+enum survey_validation_validation_status {
+  passed
+  failed
+  warning
+}
+
+enum backup_status {
+  Success
+  Failed
+}
+
+enum survey_question_question_type {
+  radio
+  checkbox
+  text
+  textarea
+  number
+  rating
+}
+
+enum survey_section_status {
+  pending
+  in_progress
+  completed
+}
+
+enum survey_response_respondent_gender {
+  Male
+  Female
+  Other
+}
+
+enum survey_response_status {
+  draft
+  in_progress
+  completed
+  submitted
 }
