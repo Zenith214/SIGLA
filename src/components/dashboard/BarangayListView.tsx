@@ -1,12 +1,88 @@
 "use client";
 
 import { useState } from "react";
+import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, Award, MapPin } from "lucide-react";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
 import { barangayData, BarangayData } from "@/data/barangayData";
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+
+// Type for our barangay data
+type Barangay = {
+  barangay_id: number;
+  barangay_name: string;
+  currentStatus: string | null;
+  description: string | null;
+  seal: 'yes' | 'no';
+};
+
+// Function to fetch barangays
+async function getBarangays() {
+  const barangays = await prisma.barangay.findMany({
+    select: {
+      barangay_id: true,
+      barangay_name: true,
+      currentStatus: true,
+      description: true,
+      seal: true,
+    },
+    orderBy: {
+      barangay_name: 'asc'
+    }
+  });
+  return barangays;
+}
+
+// Helper function to convert status to progress value
+function getProgressValue(status: string | null) {
+  switch(status) {
+    case 'Completed': return 100;
+    case 'In Progress': return 50;
+    case 'Pending': return 0;
+    default: return 0;
+  }
+}
+
+// Get status badge color
+const getStatusColor = (status: string | null) => {
+  switch (status) {
+    case 'Completed':
+      return 'bg-green-500';
+    case 'In Progress':
+      return 'bg-blue-500';
+    case 'Pending':
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+// First row (20%, 40%, 60%, 80%)
+const firstRowBarangays = [
+  { name: "Katipunan", progress: 20, status: "Not Started" },
+  { name: "Tanwalang", progress: 40, status: "In Progress" },
+  { name: "Solong Vale", progress: 60, status: "In Progress" },
+  { name: "Tala-o", progress: 80, status: "In Progress" },
+];
+
+// Second row (100%, 30%, 10%, 70%)
+const secondRowBarangays = [
+  { name: "Balasinon", progress: 100, status: "Completed" },
+  { name: "Haradabutai", progress: 30, status: "In Progress" },
+  { name: "Roxas", progress: 10, status: "Not Started" },
+  { name: "New Cebu", progress: 70, status: "In Progress" },
+];
+
+// Third row (25%, 5%, 90%, 55%)
+const thirdRowBarangays = [
+  { name: "Palili", progress: 25, status: "In Progress" },
+  { name: "Talas", progress: 5, status: "Not Started" },
+  { name: "Carre", progress: 90, status: "In Progress" },
+  { name: "Buguis", progress: 55, status: "In Progress" },
+];
 
 export default function BarangayListView() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -282,6 +358,98 @@ export default function BarangayListView() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Overall Progress - New Section */}
+      <div className="bg-white rounded-lg p-6 shadow-sm mt-4">
+        <h2 className="text-2xl font-bold mb-4">SIGLA Survey 2025 - Overall Progress</h2>
+        <div className="space-y-2">
+          <p className="text-gray-600">Progress</p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className="bg-green-500 h-2.5 rounded-full"
+              style={{ width: '45%' }}
+            />
+          </div>
+          <div className="text-right">45%</div>
+        </div>
+      </div>
+
+      {/* First Row - New Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        {firstRowBarangays.map((barangay, index) => (
+          <Card key={index} className="p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">{barangay.name}</h3>
+              <Badge variant={barangay.status === "Not Started" ? "secondary" : "primary"}>
+                {barangay.status}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <p className="text-gray-600">Progress</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-green-500 h-2.5 rounded-full"
+                  style={{ width: `${barangay.progress}%` }}
+                />
+              </div>
+              <div className="text-right">{barangay.progress}%</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Second Row - New Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        {secondRowBarangays.map((barangay, index) => (
+          <Card key={index} className="p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">{barangay.name}</h3>
+              <Badge variant={
+                barangay.status === "Completed" ? "success" : 
+                barangay.status === "Not Started" ? "secondary" : "primary"
+              }>
+                {barangay.status}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <p className="text-gray-600">Progress</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-green-500 h-2.5 rounded-full"
+                  style={{ width: `${barangay.progress}%` }}
+                />
+              </div>
+              <div className="text-right">{barangay.progress}%</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Third Row - New Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        {thirdRowBarangays.map((barangay, index) => (
+          <Card key={index} className="p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">{barangay.name}</h3>
+              <Badge variant={
+                barangay.status === "Not Started" ? "secondary" : "primary"
+              }>
+                {barangay.status}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <p className="text-gray-600">Progress</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-green-500 h-2.5 rounded-full"
+                  style={{ width: `${barangay.progress}%` }}
+                />
+              </div>
+              <div className="text-right">{barangay.progress}%</div>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );

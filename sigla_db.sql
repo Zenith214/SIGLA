@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 15, 2025 at 08:38 AM
+-- Generation Time: Aug 21, 2025 at 08:17 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -21,78 +21,6 @@ SET time_zone = "+00:00";
 -- Database: `sigla_db`
 --
 
-DELIMITER $$
---
--- Procedures
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `create_survey_response` (IN `p_survey_number` VARCHAR(50), IN `p_barangay_id` INT, IN `p_interviewer_id` INT, IN `p_location_lat` DECIMAL(10,8), IN `p_location_lng` DECIMAL(11,8), IN `p_location_address` TEXT)   BEGIN
-  DECLARE new_response_id INT;
-  
-  
-  INSERT INTO survey_response (
-    survey_number, 
-    barangay_id, 
-    interviewer_id, 
-    location_lat, 
-    location_lng, 
-    location_address,
-    status
-  ) VALUES (
-    p_survey_number,
-    p_barangay_id,
-    p_interviewer_id,
-    p_location_lat,
-    p_location_lng,
-    p_location_address,
-    'draft'
-  );
-  
-  SET new_response_id = LAST_INSERT_ID();
-  
-  
-  INSERT INTO survey_section (response_id, section_name, section_key, status)
-  VALUES 
-    (new_response_id, 'Survey Initialization', 'initialization', 'pending'),
-    (new_response_id, 'Respondent Selection', 'kish-grid', 'pending'),
-    (new_response_id, 'Financial Administration', 'financial', 'pending'),
-    (new_response_id, 'Disaster Preparedness', 'disaster', 'pending'),
-    (new_response_id, 'Safety & Peace Order', 'safety', 'pending'),
-    (new_response_id, 'Social Protection', 'social', 'pending'),
-    (new_response_id, 'Business Friendliness', 'business', 'pending'),
-    (new_response_id, 'Environmental Management', 'environmental', 'pending'),
-    (new_response_id, 'Summary & Review', 'summary', 'pending');
-  
-  SELECT new_response_id as response_id;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_survey_progress` (IN `p_response_id` INT)   BEGIN
-  SELECT 
-    sr.*,
-    b.barangay_name,
-    CONCAT(u.firstName, ' ', u.lastName) as interviewer_name,
-    COUNT(ss.section_id) as total_sections,
-    COUNT(CASE WHEN ss.status = 'completed' THEN 1 END) as completed_sections
-  FROM survey_response sr
-  LEFT JOIN barangay b ON sr.barangay_id = b.barangay_id
-  LEFT JOIN user u ON sr.interviewer_id = u.id
-  LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
-  WHERE sr.response_id = p_response_id
-  GROUP BY sr.response_id;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_survey_section` (IN `p_response_id` INT, IN `p_section_key` VARCHAR(50), IN `p_status` ENUM('pending','in_progress','completed'), IN `p_data` JSON)   BEGIN
-  UPDATE survey_section 
-  SET 
-    status = p_status,
-    data = p_data,
-    started_at = CASE WHEN p_status = 'in_progress' AND started_at IS NULL THEN NOW() ELSE started_at END,
-    completed_at = CASE WHEN p_status = 'completed' THEN NOW() ELSE completed_at END,
-    updated_at = NOW()
-  WHERE response_id = p_response_id AND section_key = p_section_key;
-END$$
-
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -106,17 +34,8 @@ CREATE TABLE `assignment` (
   `status` enum('Active','Pending','Completed') NOT NULL DEFAULT 'Pending',
   `progress` int(11) DEFAULT 0,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `assignment`
---
-
-INSERT INTO `assignment` (`assignment_id`, `barangay_id`, `user_id`, `status`, `progress`, `created_at`, `updated_at`) VALUES
-(1, 1, 2, 'Active', 75, '2025-07-20 17:36:53.085', NULL),
-(2, 2, 3, 'Pending', 25, '2025-07-20 17:38:17.852', NULL),
-(3, 3, 4, 'Completed', 100, '2025-07-20 17:38:17.852', NULL);
 
 -- --------------------------------------------------------
 
@@ -145,54 +64,62 @@ CREATE TABLE `barangay` (
   `description` text DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3),
+  `updated_at` datetime(3) DEFAULT NULL,
   `households` int(11) DEFAULT 0,
   `population` int(11) DEFAULT 0,
+  `area` decimal(8,2) DEFAULT NULL,
   `captain` varchar(191) DEFAULT NULL,
   `currentStatus` varchar(32) DEFAULT NULL,
-  `history` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`history`))
+  `history` longtext DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `barangay`
 --
 
-INSERT INTO `barangay` (`barangay_id`, `barangay_name`, `seal`, `description`, `is_active`, `created_at`, `updated_at`, `households`, `population`, `captain`, `currentStatus`, `history`) VALUES
-(1, 'Barangay San Jose', 'yes', 'A progressive barangay.', 1, '2025-07-20 15:09:10.000', '2025-07-20 15:09:10.000', 245, 1230, 'Deris ED', 'Awardee', '[{\"year\":\"2024\",\"status\":\"Awardee\"},{\"year\":\"2023\",\"status\":\"Awardee\"},{\"year\":\"2022\",\"status\":\"Non-Awardee\"},{\"year\":\"2021\",\"status\":\"Awardee\"}]'),
-(2, 'Barangay Santa Maria', 'no', 'A peaceful barangay.', 1, '2025-07-20 15:09:10.000', '2025-07-20 15:09:10.000', 189, 945, 'Juan Dela Cruz', 'Non-Awardee', '[{\"year\":\"2024\",\"status\":\"Non-Awardee\"},{\"year\":\"2023\",\"status\":\"Non-Awardee\"},{\"year\":\"2022\",\"status\":\"Awardee\"},{\"year\":\"2021\",\"status\":\"Awardee\"}]'),
-(3, 'Barangay San Pedro', 'yes', 'A vibrant barangay.', 1, '2025-07-20 15:09:10.000', '2025-07-20 15:09:10.000', 312, 1560, 'Ana Rodriguez', 'Awardee', '[{\"year\":\"2024\",\"status\":\"Awardee\"},{\"year\":\"2023\",\"status\":\"Awardee\"},{\"year\":\"2022\",\"status\":\"Awardee\"},{\"year\":\"2021\",\"status\":\"Non-Awardee\"}]'),
-(4, 'Barangay Nueva Vida', 'no', 'A growing barangay.', 1, '2025-07-20 15:09:10.000', '2025-07-20 15:09:10.000', 156, 780, 'Pedro Martinez', 'Pending', '[{\"year\":\"2024\",\"status\":\"Pending\"},{\"year\":\"2023\",\"status\":\"Non-Awardee\"},{\"year\":\"2022\",\"status\":\"Non-Awardee\"},{\"year\":\"2021\",\"status\":\"Non-Awardee\"}]'),
-(5, 'Barangay Maligaya', 'yes', 'A happy barangay.', 1, '2025-07-20 15:09:10.000', '2025-07-20 15:09:10.000', 203, 1015, 'Lisa Garcia', 'Awardee', '[{\"year\":\"2024\",\"status\":\"Awardee\"},{\"year\":\"2023\",\"status\":\"Awardee\"},{\"year\":\"2022\",\"status\":\"Pending\"},{\"year\":\"2021\",\"status\":\"Non-Awardee\"}]');
+INSERT INTO `barangay` (`barangay_id`, `barangay_name`, `seal`, `description`, `is_active`, `created_at`, `updated_at`, `households`, `population`, `area`, `captain`, `currentStatus`, `history`) VALUES
+(26, 'Katipunan', 'no', 'A progressive barangay known for its community participation and governance excellence.', 1, '2025-08-17 08:52:47.308', NULL, 3120, 12450, 15.20, NULL, 'Completed', NULL),
+(27, 'Tanwalang', 'yes', 'A developing barangay with ongoing improvement initiatives.', 1, '2025-08-17 08:52:47.313', NULL, 2180, 8750, 12.80, NULL, 'In Progress', NULL),
+(28, 'Solong Vale', 'yes', 'One of the largest barangays with excellent governance and community services.', 1, '2025-08-17 08:52:47.318', NULL, 3800, 15200, 18.50, NULL, 'Completed', NULL),
+(29, 'Tala-o', 'no', 'A smaller barangay with potential for growth and development.', 1, '2025-08-17 08:52:47.322', NULL, 1720, 6890, 9.30, NULL, 'Pending', NULL),
+(30, 'Balasinon', 'yes', 'A mid-sized barangay working towards improved governance standards.', 1, '2025-08-17 08:52:47.326', NULL, 2335, 9340, 11.70, NULL, 'In Progress', NULL),
+(31, 'Haradabutai', 'no', 'A well-managed barangay with strong community engagement.', 1, '2025-08-17 08:52:47.330', NULL, 1912, 7650, 10.40, NULL, 'Completed', NULL),
+(32, 'Roxas', 'no', 'Named after a former president, known for its organized governance structure.', 1, '2025-08-17 08:52:47.335', NULL, 2800, 11200, 14.10, NULL, 'Completed', NULL),
+(33, 'New Cebu', 'no', 'A large barangay with diverse communities and ongoing development projects.', 1, '2025-08-17 08:52:47.340', NULL, 3450, 13800, 16.90, NULL, 'In Progress', NULL),
+(34, 'Palili', 'no', 'A small rural barangay with agricultural focus.', 1, '2025-08-17 08:52:47.344', NULL, 1355, 5420, 7.80, NULL, 'Pending', NULL),
+(35, 'Talas', 'yes', 'A barangay with strong local leadership and community programs.', 1, '2025-08-17 08:52:47.347', NULL, 2240, 8960, 12.30, NULL, 'Completed', NULL),
+(36, 'Carre', 'yes', 'A developing barangay with focus on infrastructure improvements.', 1, '2025-08-17 08:52:47.351', NULL, 1695, 6780, 9.10, NULL, 'In Progress', NULL),
+(37, 'Buguis', 'yes', 'A well-established barangay with excellent public services.', 1, '2025-08-17 08:52:47.355', NULL, 2575, 10300, 13.60, NULL, 'Completed', NULL),
+(38, 'McKinley', 'no', 'A barangay named after the American president, focusing on modernization.', 1, '2025-08-17 08:52:47.359', NULL, 1972, 7890, 10.70, NULL, 'Pending', NULL),
+(39, 'Kiblagon', 'no', 'A barangay with rich cultural heritage and ongoing development initiatives.', 1, '2025-08-17 08:52:47.363', NULL, 2467, 9870, 12.90, NULL, 'In Progress', NULL),
+(40, 'Laperas', 'no', 'A compact barangay with efficient governance and community services.', 1, '2025-08-17 08:52:47.367', NULL, 1635, 6540, 8.90, NULL, 'Completed', NULL),
+(41, 'Clib', 'no', 'A barangay working towards improved infrastructure and services.', 1, '2025-08-17 08:52:47.371', NULL, 2030, 8120, 11.20, NULL, 'In Progress', NULL),
+(42, 'Osmena', 'no', 'Named after a former president, known for its progressive governance.', 1, '2025-08-17 08:52:47.375', NULL, 2912, 11650, 14.80, NULL, 'Completed', NULL),
+(43, 'Luparan', 'yes', 'A barangay with potential for agricultural and tourism development.', 1, '2025-08-17 08:52:47.378', NULL, 1830, 7320, 9.80, NULL, 'Pending', NULL),
+(44, 'Poblacion', 'yes', 'The town center and largest barangay, serving as the commercial and administrative hub.', 1, '2025-08-17 08:52:47.382', NULL, 4200, 16800, 20.30, NULL, 'Completed', NULL),
+(45, 'Tagolilong', 'no', 'A small barangay with focus on sustainable development.', 1, '2025-08-17 08:52:47.385', NULL, 1472, 5890, 8.10, NULL, 'In Progress', NULL),
+(46, 'Lapla', 'no', 'A well-managed barangay with strong community participation.', 1, '2025-08-17 08:52:47.389', NULL, 2362, 9450, 12.60, NULL, 'Completed', NULL),
+(47, 'Litos', 'no', 'A barangay with opportunities for growth and development.', 1, '2025-08-17 08:52:47.392', NULL, 1785, 7140, 9.50, NULL, 'Pending', NULL),
+(48, 'Parame', 'no', 'A developing barangay with focus on community empowerment.', 1, '2025-08-17 08:52:47.395', NULL, 2167, 8670, 11.40, NULL, 'In Progress', NULL),
+(49, 'Labon', 'no', 'A small but well-organized barangay with effective local governance.', 1, '2025-08-17 08:52:47.399', NULL, 1557, 6230, 8.60, NULL, 'Completed', NULL),
+(50, 'Waterfall', 'no', 'The smallest barangay, known for its natural beauty and eco-tourism potential.', 1, '2025-08-17 08:52:47.403', NULL, 1222, 4890, 6.90, NULL, 'Pending', NULL);
 
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `barangay_survey_status_view`
--- (See below for the actual view)
+-- Table structure for table `barangay_history`
 --
-CREATE TABLE `barangay_survey_status_view` (
-`barangay_id` int(11)
-,`barangay_name` varchar(191)
-,`total_surveys` bigint(21)
-,`completed_surveys` bigint(21)
-,`average_progress` decimal(14,4)
-,`last_survey_date` datetime(3)
-);
 
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `interviewer_performance_view`
--- (See below for the actual view)
---
-CREATE TABLE `interviewer_performance_view` (
-`id` int(11)
-,`interviewer_name` varchar(383)
-,`total_surveys` bigint(21)
-,`completed_surveys` bigint(21)
-,`average_progress` decimal(14,4)
-,`last_survey_date` datetime(3)
-);
+CREATE TABLE `barangay_history` (
+  `history_id` int(11) NOT NULL,
+  `barangay_id` int(11) NOT NULL,
+  `year` varchar(4) NOT NULL,
+  `status` varchar(32) NOT NULL,
+  `score` varchar(10) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updated_at` datetime(3) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -204,10 +131,10 @@ CREATE TABLE `survey` (
   `survey_id` int(11) NOT NULL,
   `barangay_id` int(11) NOT NULL,
   `status` enum('draft','ongoing','completed','archived') NOT NULL DEFAULT 'draft',
-  `analyzed_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`analyzed_data`)),
-  `raw_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`raw_data`)),
+  `analyzed_data` longtext DEFAULT NULL,
+  `raw_data` longtext DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -221,12 +148,12 @@ CREATE TABLE `survey_answer` (
   `question_id` int(11) NOT NULL,
   `response_id` int(11) NOT NULL,
   `answer_value` text DEFAULT NULL,
-  `answer_options` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`answer_options`)),
+  `answer_options` longtext DEFAULT NULL,
   `answer_text` text DEFAULT NULL,
   `answer_number` decimal(10,2) DEFAULT NULL,
   `answer_rating` int(11) DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -260,7 +187,7 @@ CREATE TABLE `survey_cycle` (
   `end_date` date NOT NULL,
   `responses` int(11) DEFAULT 0,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -294,25 +221,6 @@ CREATE TABLE `survey_metadata` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `survey_progress_view`
--- (See below for the actual view)
---
-CREATE TABLE `survey_progress_view` (
-`response_id` int(11)
-,`survey_number` varchar(50)
-,`barangay_name` varchar(191)
-,`interviewer_name` varchar(383)
-,`status` enum('draft','in_progress','completed','submitted')
-,`progress` int(11)
-,`started_at` datetime(3)
-,`completed_at` datetime(3)
-,`total_sections` bigint(21)
-,`completed_sections` bigint(21)
-);
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `survey_question`
 --
 
@@ -322,7 +230,7 @@ CREATE TABLE `survey_question` (
   `question_key` varchar(100) NOT NULL,
   `question_text` text NOT NULL,
   `question_type` enum('radio','checkbox','text','textarea','number','rating') NOT NULL,
-  `options` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`options`)),
+  `options` longtext DEFAULT NULL,
   `required` tinyint(1) NOT NULL DEFAULT 0,
   `order_index` int(11) NOT NULL DEFAULT 0,
   `depends_on` varchar(100) DEFAULT NULL,
@@ -358,7 +266,7 @@ CREATE TABLE `survey_response` (
   `completed_at` datetime(3) DEFAULT NULL,
   `submitted_at` datetime(3) DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -373,54 +281,12 @@ CREATE TABLE `survey_section` (
   `section_name` varchar(100) NOT NULL,
   `section_key` varchar(50) NOT NULL,
   `status` enum('pending','in_progress','completed') NOT NULL DEFAULT 'pending',
-  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`data`)),
+  `data` longtext DEFAULT NULL,
   `started_at` datetime(3) DEFAULT NULL,
   `completed_at` datetime(3) DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Triggers `survey_section`
---
-DELIMITER $$
-CREATE TRIGGER `update_survey_progress` AFTER UPDATE ON `survey_section` FOR EACH ROW BEGIN
-  DECLARE total_sections INT;
-  DECLARE completed_sections INT;
-  
-  
-  SELECT COUNT(*) INTO total_sections 
-  FROM survey_section 
-  WHERE response_id = NEW.response_id;
-  
-  
-  SELECT COUNT(*) INTO completed_sections 
-  FROM survey_section 
-  WHERE response_id = NEW.response_id AND status = 'completed';
-  
-  
-  UPDATE survey_response 
-  SET progress = ROUND((completed_sections / total_sections) * 100)
-  WHERE response_id = NEW.response_id;
-END
-$$
-DELIMITER ;
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `survey_statistics_view`
--- (See below for the actual view)
---
-CREATE TABLE `survey_statistics_view` (
-`total_surveys` bigint(21)
-,`completed_surveys` bigint(21)
-,`in_progress_surveys` bigint(21)
-,`draft_surveys` bigint(21)
-,`average_progress` decimal(14,4)
-,`active_interviewers` bigint(21)
-,`barangays_surveyed` bigint(21)
-);
 
 -- --------------------------------------------------------
 
@@ -435,17 +301,8 @@ CREATE TABLE `survey_target` (
   `achieved` int(11) DEFAULT 0,
   `percentage` int(11) DEFAULT 0,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updated_at` datetime(3) DEFAULT NULL ON UPDATE current_timestamp(3)
+  `updated_at` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `survey_target`
---
-
-INSERT INTO `survey_target` (`target_id`, `barangay_id`, `target`, `achieved`, `percentage`, `created_at`, `updated_at`) VALUES
-(1, 1, 250, 0, 0, '2025-07-23 15:24:21.910', NULL),
-(2, 2, 200, 0, 0, '2025-07-23 15:24:21.910', NULL),
-(3, 3, 300, 0, 0, '2025-07-23 15:24:21.910', NULL);
 
 -- --------------------------------------------------------
 
@@ -459,7 +316,7 @@ CREATE TABLE `survey_validation` (
   `validation_type` enum('location','completeness','consistency','quality') NOT NULL,
   `validation_status` enum('passed','failed','warning') NOT NULL,
   `validation_message` text DEFAULT NULL,
-  `validation_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`validation_data`)),
+  `validation_data` longtext DEFAULT NULL,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -479,23 +336,19 @@ CREATE TABLE `user` (
   `lastName` varchar(191) NOT NULL,
   `organization` varchar(191) DEFAULT NULL,
   `phone` varchar(191) DEFAULT NULL,
+  `lastLogin` datetime DEFAULT NULL,
   `role` varchar(32) DEFAULT 'Viewer',
-  `status` varchar(16) DEFAULT 'Active',
-  `lastLogin` datetime DEFAULT NULL
+  `status` varchar(16) DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`id`, `email`, `password`, `createdAt`, `firstName`, `jobTitle`, `lastName`, `organization`, `phone`, `role`, `status`, `lastLogin`) VALUES
-(1, 'admin@sigla.gov', '$2b$10$mBXEP.I5G7rDra1HKxjuC.fKAg5e4s8yh9jbAZub6u2JpOJqMwuxK', '2025-07-10 15:44:52.753', 'Admin', 'System Administrator', 'User', 'SIGLA', '09120969545', 'admin', 'Active', '2025-08-15 06:30:24'),
-(2, 'maria@sigla.gov', '$2b$10$XQNmbxNen4EHXBEyTOBEZOuXvjW/WVFbPCLZuLMqj7ouVHEXWipM.', '2025-07-20 16:23:28.000', 'Maria', 'Interviewer', 'Santos', 'SIGLA', '09123456789', 'Interviewer', 'Active', '2024-01-15 00:00:00'),
-(3, 'juan@sigla.gov', '$2b$10$qnQFkeDiZS136.ZZKYaf1Ov5De0q7tLOuX3uvpdehKc27dYn9NwgC', '2025-07-20 16:23:28.000', 'Juan', 'Interviewer', 'Dela Cruz', 'SIGLA', '09187654321', 'Interviewer', 'Active', '2024-01-14 00:00:00'),
-(4, 'ana@sigla.gov', '$2b$10$503TiLr/TdI.QuRvhCY9qeCFgLnaR/3gXwLXn8JAVXIO6Z2A9vRx6', '2025-07-20 16:23:28.000', 'Ana', 'Interviewer', 'Rodriguez', 'SIGLA', '09111222333', 'Interviewer', 'Active', '2024-01-13 00:00:00'),
-(5, 'carlos@sigla.gov', '$2b$10$e6BRHyubiHuczQRu70HWAurfgOmiv2OwTQEKl.hZW4gvYpxTU/epi', '2025-07-20 16:23:28.000', 'Carlos', 'Interviewer', 'Mendoza', 'SIGLA', '09144555666', 'Interviewer', 'Active', '2024-01-15 00:00:00'),
-(6, 'interviewer@test.com', '$2b$10$iiNxXzSD3EzI8uYfRAQUv.dcfn.f7dGoVTwyLU02rhKl25EZh7ChO', '2025-08-15 04:45:11.375', 'interviewer', NULL, 'test', NULL, NULL, 'interviewer', 'Active', '2025-08-15 06:29:15'),
-(7, 'viewer1@gmail.com', '$2b$10$lIL9HT0mo4ipbRoHth2C/.0d/29/eQ7E27xmM3iyElKJ.XX6FcdDW', '2025-08-15 06:31:07.392', 'viewer', NULL, 'test', NULL, NULL, 'viewer', 'Active', '2025-08-15 06:32:31');
+INSERT INTO `user` (`id`, `email`, `password`, `createdAt`, `firstName`, `jobTitle`, `lastName`, `organization`, `phone`, `lastLogin`, `role`, `status`) VALUES
+(1, 'admin@sigla.com', '$2b$10$krugSCCTkRFiXiZcykIJtOZWlXmhSAEAoLRtetp6itd6z2pmL9raC', '2025-08-17 08:44:03.445', 'Admin', 'System Administrator', 'User', 'SIGLA System', '+639123456789', '2025-08-21 05:45:31', 'admin', 'Active'),
+(2, 'viewer@sigla.com', '$2b$10$tibj85SkmyjATrB/yAnD7.CG61devwPXojnVza/DBYuV6Di7YxNQ2', '2025-08-17 08:44:03.515', 'Test', 'Data Viewer', 'Viewer', 'Test Organization', '+639987654321', NULL, 'viewer', 'Active'),
+(3, 'interviewer@sigla.com', '$2b$10$r/yMJh504/fP84f7wnpL1OregEa.f3amWKypu847UbyCq2R05AqV6', '2025-08-17 08:54:34.843', 'Survey', 'Field Interviewer', 'Interviewer', 'SIGLA Survey Team', '+639111222333', '2025-08-17 08:57:20', 'interviewer', 'Active');
 
 -- --------------------------------------------------------
 
@@ -514,41 +367,14 @@ CREATE TABLE `_prisma_migrations` (
   `applied_steps_count` int(10) UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
-
 --
--- Structure for view `barangay_survey_status_view`
+-- Dumping data for table `_prisma_migrations`
 --
-DROP TABLE IF EXISTS `barangay_survey_status_view`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `barangay_survey_status_view`  AS SELECT `b`.`barangay_id` AS `barangay_id`, `b`.`barangay_name` AS `barangay_name`, count(`sr`.`response_id`) AS `total_surveys`, count(case when `sr`.`status` = 'completed' then 1 end) AS `completed_surveys`, avg(`sr`.`progress`) AS `average_progress`, max(`sr`.`created_at`) AS `last_survey_date` FROM (`barangay` `b` left join `survey_response` `sr` on(`b`.`barangay_id` = `sr`.`barangay_id`)) GROUP BY `b`.`barangay_id` ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `interviewer_performance_view`
---
-DROP TABLE IF EXISTS `interviewer_performance_view`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `interviewer_performance_view`  AS SELECT `u`.`id` AS `id`, concat(`u`.`firstName`,' ',`u`.`lastName`) AS `interviewer_name`, count(`sr`.`response_id`) AS `total_surveys`, count(case when `sr`.`status` = 'completed' then 1 end) AS `completed_surveys`, avg(`sr`.`progress`) AS `average_progress`, max(`sr`.`created_at`) AS `last_survey_date` FROM (`user` `u` left join `survey_response` `sr` on(`u`.`id` = `sr`.`interviewer_id`)) WHERE `u`.`role` = 'Interviewer' GROUP BY `u`.`id` ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `survey_progress_view`
---
-DROP TABLE IF EXISTS `survey_progress_view`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `survey_progress_view`  AS SELECT `sr`.`response_id` AS `response_id`, `sr`.`survey_number` AS `survey_number`, `b`.`barangay_name` AS `barangay_name`, concat(`u`.`firstName`,' ',`u`.`lastName`) AS `interviewer_name`, `sr`.`status` AS `status`, `sr`.`progress` AS `progress`, `sr`.`started_at` AS `started_at`, `sr`.`completed_at` AS `completed_at`, count(`ss`.`section_id`) AS `total_sections`, count(case when `ss`.`status` = 'completed' then 1 end) AS `completed_sections` FROM (((`survey_response` `sr` left join `barangay` `b` on(`sr`.`barangay_id` = `b`.`barangay_id`)) left join `user` `u` on(`sr`.`interviewer_id` = `u`.`id`)) left join `survey_section` `ss` on(`sr`.`response_id` = `ss`.`response_id`)) GROUP BY `sr`.`response_id` ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `survey_statistics_view`
---
-DROP TABLE IF EXISTS `survey_statistics_view`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `survey_statistics_view`  AS SELECT count(0) AS `total_surveys`, count(case when `survey_response`.`status` = 'completed' then 1 end) AS `completed_surveys`, count(case when `survey_response`.`status` = 'in_progress' then 1 end) AS `in_progress_surveys`, count(case when `survey_response`.`status` = 'draft' then 1 end) AS `draft_surveys`, avg(`survey_response`.`progress`) AS `average_progress`, count(distinct `survey_response`.`interviewer_id`) AS `active_interviewers`, count(distinct `survey_response`.`barangay_id`) AS `barangays_surveyed` FROM `survey_response` ;
+INSERT INTO `_prisma_migrations` (`id`, `checksum`, `finished_at`, `migration_name`, `logs`, `rolled_back_at`, `started_at`, `applied_steps_count`) VALUES
+('1cd89375-9abf-4724-b643-393d06434eea', '72db6dc801d3874e71f5cc0cabca203796c51ea2fab4ee3285e57786f17ccd6a', '2025-08-17 08:38:37.344', '20250710134657_init', NULL, NULL, '2025-08-17 08:38:37.305', 1),
+('35fa7552-c54b-48ab-86c8-47adb96d1f7f', '1e280b6578020628e78da0fbb9f2af26267c3a9b19a1eeafbef4524b9123b135', '2025-08-17 08:38:46.315', '20250817083845_add_area_field_and_barangay_history', NULL, NULL, '2025-08-17 08:38:45.390', 1),
+('71d23763-7aa7-472e-94e3-5edf31eb8774', 'a4604cac5b395b4d316336ecc1a9a87587856bf5014e63c6301aa7cb550c229e', '2025-08-17 08:38:37.363', '20250710154327_add_user_fields', NULL, NULL, '2025-08-17 08:38:37.346', 1);
 
 --
 -- Indexes for dumped tables
@@ -574,6 +400,14 @@ ALTER TABLE `backup`
 ALTER TABLE `barangay`
   ADD PRIMARY KEY (`barangay_id`),
   ADD UNIQUE KEY `barangay_name_unique` (`barangay_name`);
+
+--
+-- Indexes for table `barangay_history`
+--
+ALTER TABLE `barangay_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `fk_history_barangay_id` (`barangay_id`),
+  ADD KEY `idx_barangay_history_year` (`year`);
 
 --
 -- Indexes for table `survey`
@@ -635,11 +469,11 @@ ALTER TABLE `survey_response`
   ADD UNIQUE KEY `survey_number_unique` (`survey_number`),
   ADD KEY `fk_survey_response_barangay_id` (`barangay_id`),
   ADD KEY `fk_survey_response_interviewer_id` (`interviewer_id`),
-  ADD KEY `idx_survey_response_status` (`status`),
-  ADD KEY `idx_survey_response_interviewer` (`interviewer_id`),
   ADD KEY `idx_survey_response_barangay` (`barangay_id`),
+  ADD KEY `idx_survey_response_completed_at` (`completed_at`),
   ADD KEY `idx_survey_response_created_at` (`created_at`),
-  ADD KEY `idx_survey_response_completed_at` (`completed_at`);
+  ADD KEY `idx_survey_response_interviewer` (`interviewer_id`),
+  ADD KEY `idx_survey_response_status` (`status`);
 
 --
 -- Indexes for table `survey_section`
@@ -648,8 +482,8 @@ ALTER TABLE `survey_section`
   ADD PRIMARY KEY (`section_id`),
   ADD UNIQUE KEY `response_section_unique` (`response_id`,`section_key`),
   ADD KEY `fk_survey_section_response_id` (`response_id`),
-  ADD KEY `idx_survey_section_status` (`status`),
-  ADD KEY `idx_survey_section_key` (`section_key`);
+  ADD KEY `idx_survey_section_key` (`section_key`),
+  ADD KEY `idx_survey_section_status` (`status`);
 
 --
 -- Indexes for table `survey_target`
@@ -664,8 +498,8 @@ ALTER TABLE `survey_target`
 ALTER TABLE `survey_validation`
   ADD PRIMARY KEY (`validation_id`),
   ADD KEY `fk_survey_validation_response_id` (`response_id`),
-  ADD KEY `idx_survey_validation_type` (`validation_type`),
-  ADD KEY `idx_survey_validation_status` (`validation_status`);
+  ADD KEY `idx_survey_validation_status` (`validation_status`),
+  ADD KEY `idx_survey_validation_type` (`validation_type`);
 
 --
 -- Indexes for table `user`
@@ -688,7 +522,7 @@ ALTER TABLE `_prisma_migrations`
 -- AUTO_INCREMENT for table `assignment`
 --
 ALTER TABLE `assignment`
-  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `assignment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `backup`
@@ -700,7 +534,13 @@ ALTER TABLE `backup`
 -- AUTO_INCREMENT for table `barangay`
 --
 ALTER TABLE `barangay`
-  MODIFY `barangay_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `barangay_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+
+--
+-- AUTO_INCREMENT for table `barangay_history`
+--
+ALTER TABLE `barangay_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `survey`
@@ -760,7 +600,7 @@ ALTER TABLE `survey_section`
 -- AUTO_INCREMENT for table `survey_target`
 --
 ALTER TABLE `survey_target`
-  MODIFY `target_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `target_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `survey_validation`
@@ -772,7 +612,7 @@ ALTER TABLE `survey_validation`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -782,14 +622,20 @@ ALTER TABLE `user`
 -- Constraints for table `assignment`
 --
 ALTER TABLE `assignment`
-  ADD CONSTRAINT `fk_assignment_barangay_id` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_assignment_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `Assignment_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `Assignment_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `barangay_history`
+--
+ALTER TABLE `barangay_history`
+  ADD CONSTRAINT `fk_history_barangay_id` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `survey`
 --
 ALTER TABLE `survey`
-  ADD CONSTRAINT `fk_survey_barangay_id` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `Survey_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `survey_answer`

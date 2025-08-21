@@ -6,41 +6,41 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
+// Update barangays array to match database
 const barangays = [
-  { id: 1, name: "Barangay 1", progress: 20, status: "Not Started" },
-  { id: 2, name: "Barangay 2", progress: 40, status: "In Progress" },
-  { id: 3, name: "Barangay 3", progress: 60, status: "In Progress" },
-  { id: 4, name: "Barangay 4", progress: 80, status: "In Progress" },
-  { id: 5, name: "Barangay 5", progress: 100, status: "Completed" },
-  { id: 6, name: "Barangay 6", progress: 30, status: "In Progress" },
-  { id: 7, name: "Barangay 7", progress: 10, status: "Not Started" },
-  { id: 8, name: "Barangay 8", progress: 70, status: "In Progress" },
-  { id: 9, name: "Barangay 9", progress: 25, status: "In Progress" },
-  { id: 10, name: "Barangay 10", progress: 5, status: "Not Started" },
-  { id: 11, name: "Barangay 11", progress: 90, status: "In Progress" },
-  { id: 12, name: "Barangay 12", progress: 55, status: "In Progress" },
-  { id: 13, name: "Barangay 13", progress: 100, status: "Completed" },
-  { id: 14, name: "Barangay 14", progress: 15, status: "Not Started" },
-  { id: 15, name: "Barangay 15", progress: 45, status: "In Progress" },
-  { id: 16, name: "Barangay 16", progress: 85, status: "In Progress" },
-  { id: 17, name: "Barangay 17", progress: 35, status: "In Progress" },
-  { id: 18, name: "Barangay 18", progress: 100, status: "Completed" },
-  { id: 19, name: "Barangay 19", progress: 65, status: "In Progress" },
-  { id: 20, name: "Barangay 20", progress: 12, status: "Not Started" },
-  { id: 21, name: "Barangay 21", progress: 88, status: "In Progress" },
-  { id: 22, name: "Barangay 22", progress: 42, status: "In Progress" },
-  { id: 23, name: "Barangay 23", progress: 100, status: "Completed" },
-  { id: 24, name: "Barangay 24", progress: 28, status: "In Progress" },
-  { id: 25, name: "Barangay 25", progress: 75, status: "In Progress" },
+  { id: 26, name: "Katipunan", progress: 100, status: "Completed" },
+  { id: 27, name: "Tanwalang", progress: 45, status: "In Progress" },
+  { id: 28, name: "Solong Vale", progress: 100, status: "Completed" },
+  { id: 29, name: "Tala-o", progress: 0, status: "Pending" },
+  { id: 30, name: "Balasinon", progress: 60, status: "In Progress" },
+  { id: 31, name: "Haradabutai", progress: 100, status: "Completed" },
+  { id: 32, name: "Roxas", progress: 100, status: "Completed" },
+  { id: 33, name: "New Cebu", progress: 75, status: "In Progress" },
+  { id: 34, name: "Palili", progress: 0, status: "Pending" },
+  { id: 35, name: "Talas", progress: 100, status: "Completed" },
+  { id: 36, name: "Carre", progress: 55, status: "In Progress" },
+  { id: 37, name: "Buguis", progress: 100, status: "Completed" },
+  { id: 38, name: "McKinley", progress: 0, status: "Pending" },
+  { id: 39, name: "Kiblagon", progress: 40, status: "In Progress" },
+  { id: 40, name: "Laperas", progress: 100, status: "Completed" },
+  { id: 41, name: "Clib", progress: 65, status: "In Progress" },
+  { id: 42, name: "Osmena", progress: 100, status: "Completed" },
+  { id: 43, name: "Luparan", progress: 0, status: "Pending" },
+  { id: 44, name: "Poblacion", progress: 100, status: "Completed" },
+  { id: 45, name: "Tagolilong", progress: 50, status: "In Progress" },
+  { id: 46, name: "Lapla", progress: 100, status: "Completed" },
+  { id: 47, name: "Litos", progress: 0, status: "Pending" },
+  { id: 48, name: "Parame", progress: 35, status: "In Progress" },
+  { id: 49, name: "Labon", progress: 100, status: "Completed" },
+  { id: 50, name: "Waterfall", progress: 0, status: "Pending" }
 ]
 
 function SurveyDashboardContent() {
-  // Add this state at the top of the Dashboard component
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [currentTime, setCurrentTime] = useState<string>("")
+  const { user, logout } = useAuth() // Add logout from useAuth
   const router = useRouter()
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { logout, user } = useAuth()
+  const [currentTime, setCurrentTime] = useState<string>('')
 
   // Logout handler function
   const handleLogout = async () => {
