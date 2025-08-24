@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed-barangays": "node scripts/seed-barangays.js",
+    "seed-static": "node scripts/seed-static-barangays.js",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:update": "node scripts/update-database.js"

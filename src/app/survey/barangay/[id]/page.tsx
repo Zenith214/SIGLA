@@ -63,7 +63,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
   const maxRespondents = barangay.surveyTargets?.[0]?.target || 150
   const completedSurveys = barangay.surveyTargets?.[0]?.achieved || 0
   const progress = barangay.surveyTargets?.[0]?.percentage || 0
-  const lastUpdated = barangay.survey_response?.[0]?.completed_at 
+  const lastUpdated = barangay.survey_response?.[0]?.completed_at
     ? new Date(barangay.survey_response[0].completed_at).toLocaleDateString()
     : "Not started"
 
@@ -73,13 +73,16 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
       <header className="bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            <Link
-              href="/survey"
-              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
-            </Link>
+            {/* Hide Back to Dashboard for interviewers */}
+            {user?.role?.toLowerCase() !== 'interviewer' && (
+              <Link
+                href="/survey"
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -109,13 +112,12 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                 </div>
               </div>
               <span
-                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${
-                  barangay.currentStatus === "Completed"
-                    ? "bg-green-100 text-green-800"
-                    : barangay.currentStatus === "In Progress"
+                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${barangay.currentStatus === "Completed"
+                  ? "bg-green-100 text-green-800"
+                  : barangay.currentStatus === "In Progress"
                     ? "bg-blue-100 text-blue-800"
                     : "bg-gray-100 text-gray-800"
-                }`}
+                  }`}
               >
                 {barangay.currentStatus || "Not Started"}
               </span>

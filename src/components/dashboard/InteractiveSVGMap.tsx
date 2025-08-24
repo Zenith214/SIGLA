@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { barangayData, BarangayData } from "@/data/barangayData";
+import { useState, useRef, useEffect } from "react";
+import { transformBarangayData, isBarangayAwardee, getBarangaySurveyStatus, getBarangayHistory, type ApiBarangayData } from "@/utils/barangayUtils";
 import SmallCalloutModal from "./SmallCalloutModal";
 import BarangaySatisfactionIndex from "./BarangaySatisfactionIndex";
 
+
+
 interface InteractiveSVGMapProps {
-  onBarangaySelect?: (barangay: BarangayData) => void;
+  onBarangaySelect?: (barangay: ApiBarangayData) => void;
 }
 
 export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMapProps) {
@@ -14,7 +16,56 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [calloutPosition, setCalloutPosition] = useState<{ x: number; y: number } | null>(null);
   const [showLargeModal, setShowLargeModal] = useState(false);
+  const [barangays, setBarangays] = useState<{ [key: string]: ApiBarangayData }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
   const mapRef = useRef<SVGSVGElement>(null);
+
+  // Fetch barangay data from database
+  useEffect(() => {
+    const fetchBarangayData = async () => {
+      try {
+        console.log('🚀 Starting to fetch barangay data...');
+        setIsLoading(true);
+        const response = await fetch('/api/barangays');
+        console.log('📡 Response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📊 Fetched barangay data:', data);
+          console.log('📊 Data length:', data.length);
+          console.log('📊 Sample barangay:', data[0]);
+
+          const transformedData = transformBarangayData(data);
+          console.log('🔄 Transformed barangay data:', transformedData);
+          console.log('🔄 Transformed data keys:', Object.keys(transformedData));
+
+          setBarangays(transformedData);
+          console.log('✅ Barangays state updated successfully');
+        } else {
+          console.error('❌ Failed to fetch barangay data, status:', response.status);
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching barangay data:', error);
+      } finally {
+        console.log('🏁 Setting loading to false');
+        setIsLoading(false);
+      }
+    };
+
+    fetchBarangayData();
+  }, []);
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log('🔄 Component state changed:', {
+      isLoading,
+      barangaysCount: Object.keys(barangays).length,
+      barangayIds: Object.keys(barangays).slice(0, 5)
+    });
+  }, [isLoading, barangays]);
 
   const handlePathHover = (barangayId: string) => {
     setHoveredBarangay(barangayId);
@@ -25,7 +76,7 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
   };
 
   const handlePathClick = (barangayId: string, event: React.MouseEvent) => {
-    const barangay = barangayData[barangayId];
+    const barangay = barangays[barangayId];
     if (!barangay) return;
 
     setSelectedBarangay(barangayId);
@@ -61,37 +112,40 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
   };
 
   const getPathFill = (barangayId: string) => {
-    const barangay = barangayData[barangayId];
-    if (!barangay) return "#e5e7eb"; // Default gray
+    const barangay = barangays[barangayId];
+    if (!barangay || isLoading) {
+      console.log(`${barangayId}: No barangay data or loading (gray)`);
+      return "#e5e7eb"; // Default gray
+    }
 
     if (selectedBarangay === barangayId) return "#FFC857"; // Yellow highlight for selected
     if (hoveredBarangay === barangayId) return "#FFC857"; // Yellow highlight color
 
-    // Determine award status based on most recent completed survey
-    const currentYear = new Date().getFullYear();
-    const recentHistory = barangay.history.filter(entry => {
-      const entryYear = parseInt(entry.year);
-      return entryYear < currentYear && entry.status === "Completed";
-    });
+    // Check if barangay is an awardee using the helper function
+    const isAwardee = isBarangayAwardee(barangay);
+    const surveyStatus = getBarangaySurveyStatus(barangay);
 
-    if (recentHistory.length > 0) {
-      // Get the most recent completed entry
-      const mostRecent = recentHistory.sort((a, b) => parseInt(b.year) - parseInt(a.year))[0];
-      const score = parseInt(mostRecent.score.replace('%', ''));
-      const isAwardee = score >= 75;
+    console.log(`${barangayId}: isAwardee=${isAwardee}, surveyStatus=${surveyStatus}, seal=${barangay.seal}, currentStatus=${barangay.currentStatus}`);
 
-      return isAwardee ? "#64D9B7" : "#6A7280"; // Teal for awardee, gray for none
+    if (isAwardee) {
+      console.log(`${barangayId}: Awardee - returning teal`);
+      return "#64D9B7"; // Teal for awardee
     }
 
-    // Fallback to survey status if no history
-    switch (barangay.surveyStatus) {
+    // Fallback to survey status if not an awardee
+    switch (surveyStatus) {
       case "Completed":
-        return "#64D9B7"; // Teal
+        // For completed surveys that didn't achieve awardee status
+        console.log(`${barangayId}: Completed but not awardee - returning gray`);
+        return "#6A7280"; // Gray for non-awardee completed
       case "In Progress":
+        console.log(`${barangayId}: In Progress - returning orange`);
         return "#f59e0b"; // Orange/Yellow
       case "Pending":
+        console.log(`${barangayId}: Pending - returning gray`);
         return "#6A7280"; // Gray
       default:
+        console.log(`${barangayId}: Unknown status - returning default gray`);
         return "#e5e7eb"; // Default gray
     }
   };
@@ -148,7 +202,7 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     ));
   };
 
-  const selectedBarangayData = selectedBarangay ? barangayData[selectedBarangay] : null;
+  const selectedBarangayData = selectedBarangay ? barangays[selectedBarangay] : null;
 
   return (
     <div className="relative w-full h-full">

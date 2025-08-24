@@ -204,10 +204,13 @@ export function Header({ user, currentSection }: HeaderProps) {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/survey')} className="cursor-pointer">
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  <span>Back to Dashboard</span>
-                </DropdownMenuItem>
+                {/* Hide Back to Dashboard for interviewers */}
+                {user.role?.toLowerCase() !== 'field interviewer' && (
+                  <DropdownMenuItem onClick={() => router.push('/survey')} className="cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Back to Dashboard</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>

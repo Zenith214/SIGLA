@@ -1,41 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { prisma } from '@/lib/prisma';
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, Award, MapPin } from "lucide-react";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
-import { barangayData, BarangayData } from "@/data/barangayData";
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
-// Type for our barangay data
-type Barangay = {
-  barangay_id: number;
-  barangay_name: string;
-  currentStatus: string | null;
-  description: string | null;
-  seal: 'yes' | 'no';
-};
-
-// Function to fetch barangays
-async function getBarangays() {
-  const barangays = await prisma.barangay.findMany({
-    select: {
-      barangay_id: true,
-      barangay_name: true,
-      currentStatus: true,
-      description: true,
-      seal: true,
-    },
-    orderBy: {
-      barangay_name: 'asc'
-    }
-  });
-  return barangays;
-}
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 // Helper function to convert status to progress value
 function getProgressValue(status: string | null) {
@@ -60,43 +34,49 @@ const getStatusColor = (status: string | null) => {
   }
 };
 
-// First row (20%, 40%, 60%, 80%)
-const firstRowBarangays = [
-  { name: "Katipunan", progress: 20, status: "Not Started" },
-  { name: "Tanwalang", progress: 40, status: "In Progress" },
-  { name: "Solong Vale", progress: 60, status: "In Progress" },
-  { name: "Tala-o", progress: 80, status: "In Progress" },
-];
-
-// Second row (100%, 30%, 10%, 70%)
-const secondRowBarangays = [
-  { name: "Balasinon", progress: 100, status: "Completed" },
-  { name: "Haradabutai", progress: 30, status: "In Progress" },
-  { name: "Roxas", progress: 10, status: "Not Started" },
-  { name: "New Cebu", progress: 70, status: "In Progress" },
-];
-
-// Third row (25%, 5%, 90%, 55%)
-const thirdRowBarangays = [
-  { name: "Palili", progress: 25, status: "In Progress" },
-  { name: "Talas", progress: 5, status: "Not Started" },
-  { name: "Carre", progress: 90, status: "In Progress" },
-  { name: "Buguis", progress: 55, status: "In Progress" },
-];
-
 export default function BarangayListView() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBarangay, setSelectedBarangay] = useState<BarangayData | null>(null);
+  const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
+  const [barangays, setBarangays] = useState<ApiBarangayData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Convert barangayData to array for filtering
-  const barangays = Object.values(barangayData);
+  // Fetch barangays from API
+  useEffect(() => {
+    const fetchBarangays = async () => {
+      try {
+        const response = await fetch('/api/barangays');
+        if (response.ok) {
+          const data = await response.json();
+          // Add mock history data for each barangay
+          const barangaysWithHistory = data.map((barangay: any) => ({
+            ...barangay,
+            history: [
+              { year: "2024", status: barangay.status, score: `${barangay.progress}%` },
+              { year: "2023", status: "Completed", score: "75%" },
+              { year: "2022", status: "Completed", score: "70%" },
+              { year: "2021", status: "Completed", score: "65%" },
+            ]
+          }));
+          setBarangays(barangaysWithHistory);
+        }
+      } catch (error) {
+        console.error('Error fetching barangays:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBarangays();
+  }, []);
   
   const filteredBarangays = barangays.filter((barangay) =>
     barangay.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Helper function to determine award status
-  const getAwardStatus = (barangay: BarangayData) => {
+  const getAwardStatus = (barangay: ApiBarangayData) => {
+    if (!barangay.history) return false;
+    
     const currentYear = new Date().getFullYear();
     const recentHistory = barangay.history.filter(entry => {
       const entryYear = parseInt(entry.year);
@@ -122,8 +102,8 @@ export default function BarangayListView() {
         barangay: selectedBarangay.name,
         population: selectedBarangay.population.toString(),
         households: selectedBarangay.households.toString(),
-        area: selectedBarangay.area.toString(),
-        surveyStatus: selectedBarangay.surveyStatus,
+        area: (selectedBarangay.area || 0).toString(),
+        surveyStatus: selectedBarangay.status,
         satisfaction: satisfactionPercentage.toString()
       });
       
@@ -339,10 +319,10 @@ export default function BarangayListView() {
                     </div>
                     <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
                       <span className={`w-2 h-2 rounded-full ${
-                        barangay.surveyStatus === 'Completed' ? 'bg-green-500' :
-                        barangay.surveyStatus === 'In Progress' ? 'bg-yellow-500' : 'bg-gray-400'
+                        barangay.status === 'Completed' ? 'bg-green-500' :
+                        barangay.status === 'In Progress' ? 'bg-yellow-500' : 'bg-gray-400'
                       }`}></span>
-                      <span>{barangay.surveyStatus}</span>
+                      <span>{barangay.status}</span>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400" />
@@ -350,7 +330,12 @@ export default function BarangayListView() {
               </button>
             );
           })}
-          {filteredBarangays.length === 0 && (
+          {loading && (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg font-medium mb-2">Loading barangays...</p>
+            </div>
+          )}
+          {!loading && filteredBarangays.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-lg font-medium mb-2">No barangays found</p>
@@ -360,97 +345,51 @@ export default function BarangayListView() {
         </div>
       </div>
 
-      {/* Overall Progress - New Section */}
-      <div className="bg-white rounded-lg p-6 shadow-sm mt-4">
-        <h2 className="text-2xl font-bold mb-4">SIGLA Survey 2025 - Overall Progress</h2>
-        <div className="space-y-2">
-          <p className="text-gray-600">Progress</p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-green-500 h-2.5 rounded-full"
-              style={{ width: '45%' }}
-            />
+      {/* Overall Progress - Dynamic Section */}
+      {!loading && barangays.length > 0 && (
+        <div className="bg-white rounded-lg p-6 shadow-sm mt-4">
+          <h2 className="text-2xl font-bold mb-4">SIGLA Survey 2025 - Overall Progress</h2>
+          <div className="space-y-2">
+            <p className="text-gray-600">Progress</p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div
+                className="bg-green-500 h-2.5 rounded-full"
+                style={{ width: `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%` }}
+              />
+            </div>
+            <div className="text-right">{Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%</div>
           </div>
-          <div className="text-right">45%</div>
         </div>
-      </div>
+      )}
 
-      {/* First Row - New Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        {firstRowBarangays.map((barangay, index) => (
-          <Card key={index} className="p-4 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold">{barangay.name}</h3>
-              <Badge variant={barangay.status === "Not Started" ? "secondary" : "primary"}>
-                {barangay.status}
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              <p className="text-gray-600">Progress</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-green-500 h-2.5 rounded-full"
-                  style={{ width: `${barangay.progress}%` }}
-                />
+      {/* Dynamic Barangay Grid */}
+      {!loading && barangays.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          {barangays.slice(0, 12).map((barangay, index) => (
+            <Card key={barangay.id} className="p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-sm">{barangay.name}</h3>
+                <Badge variant={
+                  barangay.status === "Completed" ? "default" : 
+                  barangay.status === "Pending" ? "secondary" : "default"
+                }>
+                  {barangay.status}
+                </Badge>
               </div>
-              <div className="text-right">{barangay.progress}%</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Second Row - New Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        {secondRowBarangays.map((barangay, index) => (
-          <Card key={index} className="p-4 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold">{barangay.name}</h3>
-              <Badge variant={
-                barangay.status === "Completed" ? "success" : 
-                barangay.status === "Not Started" ? "secondary" : "primary"
-              }>
-                {barangay.status}
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              <p className="text-gray-600">Progress</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-green-500 h-2.5 rounded-full"
-                  style={{ width: `${barangay.progress}%` }}
-                />
+              <div className="space-y-2">
+                <p className="text-gray-600 text-sm">Progress</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-green-500 h-2.5 rounded-full"
+                    style={{ width: `${barangay.progress}%` }}
+                  />
+                </div>
+                <div className="text-right text-sm">{barangay.progress}%</div>
               </div>
-              <div className="text-right">{barangay.progress}%</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Third Row - New Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        {thirdRowBarangays.map((barangay, index) => (
-          <Card key={index} className="p-4 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold">{barangay.name}</h3>
-              <Badge variant={
-                barangay.status === "Not Started" ? "secondary" : "primary"
-              }>
-                {barangay.status}
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              <p className="text-gray-600">Progress</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-green-500 h-2.5 rounded-full"
-                  style={{ width: `${barangay.progress}%` }}
-                />
-              </div>
-              <div className="text-right">{barangay.progress}%</div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

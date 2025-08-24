@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BarangayData } from "@/data/barangayData";
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface BarangaySatisfactionIndexProps {
-  barangay: BarangayData;
+  barangay: ApiBarangayData;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -47,8 +47,8 @@ export default function BarangaySatisfactionIndex({
       barangay: barangay.name,
       population: barangay.population.toString(),
       households: barangay.households.toString(),
-      area: barangay.area.toString(),
-      surveyStatus: barangay.surveyStatus,
+      area: (barangay.area || 0).toString(),
+      surveyStatus: barangay.status,
       satisfaction: satisfactionPercentage.toString()
     });
     

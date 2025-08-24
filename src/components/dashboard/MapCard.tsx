@@ -3,10 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Dropdown from "./Dropdown";
 import InteractiveSVGMap from "./InteractiveSVGMap";
-import { BarangayData } from "@/data/barangayData";
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface MapCardProps {
-  onBarangaySelect?: (barangay: BarangayData) => void;
+  onBarangaySelect?: (barangay: ApiBarangayData) => void;
 }
 
 export default function MapCard({ onBarangaySelect }: MapCardProps) {

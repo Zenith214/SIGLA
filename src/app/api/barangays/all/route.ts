@@ -88,10 +88,11 @@ export async function GET() {
       await seedStaticData();
     }
 
+    // Fetch ALL barangays (including those without seals) for settings management
     const barangays = await prisma.barangay.findMany({
       where: {
-        is_active: true,
-        seal: 'yes' // Only fetch barangays with seal
+        is_active: true
+        // No seal filter - show all barangays
       },
       include: {
         surveyTargets: {
@@ -117,35 +118,29 @@ export async function GET() {
       }
     });
 
-    // Transform the data to match the expected format
-    const transformedBarangays = barangays.map(barangay => {
-      const surveyTarget = barangay.surveyTargets[0];
-      const progress = surveyTarget?.percentage || 0;
-      
-      let status = "Pending";
-      if (progress === 100) {
-        status = "Completed";
-      } else if (progress > 0) {
-        status = "In Progress";
-      }
+    // Return raw barangay data for settings (no transformation needed)
+    return NextResponse.json(barangays);
 
-      return {
-        id: barangay.barangay_id,
-        name: barangay.barangay_name,
-        progress: progress,
-        status: status,
-        population: barangay.population || 0,
-        households: barangay.households || 0,
-        captain: barangay.captain,
-        description: barangay.description,
-        currentStatus: barangay.currentStatus || status,
-        seal: barangay.seal
-      };
+  } catch (error: any) {
+    console.error("Error fetching all barangays:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PUT method for updating barangays
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json();
+    const { barangay_id, ...updateData } = data;
+
+    const updatedBarangay = await prisma.barangay.update({
+      where: { barangay_id: parseInt(barangay_id) },
+      data: updateData
     });
 
-    return NextResponse.json(transformedBarangays);
+    return NextResponse.json(updatedBarangay);
   } catch (error: any) {
-    console.error("Error fetching barangays:", error);
+    console.error("Error updating barangay:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

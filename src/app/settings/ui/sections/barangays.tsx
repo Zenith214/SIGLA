@@ -38,7 +38,7 @@ export function Barangays() {
 
   useEffect(() => {
     setLoading(true)
-    fetch("/api/barangays")
+    fetch("/api/barangays/all")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch barangays")
         return res.json()
@@ -68,7 +68,7 @@ export function Barangays() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch("/api/barangays", {
+      const res = await fetch("/api/barangays/all", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),

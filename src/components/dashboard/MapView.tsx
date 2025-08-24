@@ -6,12 +6,12 @@ import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
 import BarangayListView from "./BarangayListView";
 import FloatingHelpButton from "./FloatingHelpButton";
-import { BarangayData } from "@/data/barangayData";
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 export default function MapView() {
-  const [selectedBarangay, setSelectedBarangay] = useState<BarangayData | null>(null);
+  const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
 
-  const handleBarangaySelect = (barangay: BarangayData) => {
+  const handleBarangaySelect = (barangay: ApiBarangayData) => {
     setSelectedBarangay(barangay);
   };
 

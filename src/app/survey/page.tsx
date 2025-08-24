@@ -6,34 +6,18 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 
-// Update barangays array to match database
-const barangays = [
-  { id: 26, name: "Katipunan", progress: 100, status: "Completed" },
-  { id: 27, name: "Tanwalang", progress: 45, status: "In Progress" },
-  { id: 28, name: "Solong Vale", progress: 100, status: "Completed" },
-  { id: 29, name: "Tala-o", progress: 0, status: "Pending" },
-  { id: 30, name: "Balasinon", progress: 60, status: "In Progress" },
-  { id: 31, name: "Haradabutai", progress: 100, status: "Completed" },
-  { id: 32, name: "Roxas", progress: 100, status: "Completed" },
-  { id: 33, name: "New Cebu", progress: 75, status: "In Progress" },
-  { id: 34, name: "Palili", progress: 0, status: "Pending" },
-  { id: 35, name: "Talas", progress: 100, status: "Completed" },
-  { id: 36, name: "Carre", progress: 55, status: "In Progress" },
-  { id: 37, name: "Buguis", progress: 100, status: "Completed" },
-  { id: 38, name: "McKinley", progress: 0, status: "Pending" },
-  { id: 39, name: "Kiblagon", progress: 40, status: "In Progress" },
-  { id: 40, name: "Laperas", progress: 100, status: "Completed" },
-  { id: 41, name: "Clib", progress: 65, status: "In Progress" },
-  { id: 42, name: "Osmena", progress: 100, status: "Completed" },
-  { id: 43, name: "Luparan", progress: 0, status: "Pending" },
-  { id: 44, name: "Poblacion", progress: 100, status: "Completed" },
-  { id: 45, name: "Tagolilong", progress: 50, status: "In Progress" },
-  { id: 46, name: "Lapla", progress: 100, status: "Completed" },
-  { id: 47, name: "Litos", progress: 0, status: "Pending" },
-  { id: 48, name: "Parame", progress: 35, status: "In Progress" },
-  { id: 49, name: "Labon", progress: 100, status: "Completed" },
-  { id: 50, name: "Waterfall", progress: 0, status: "Pending" }
-]
+interface Barangay {
+  id: number;
+  name: string;
+  progress: number;
+  status: string;
+  population?: number;
+  households?: number;
+  captain?: string;
+  description?: string;
+  currentStatus?: string;
+  seal?: string;
+}
 
 function SurveyDashboardContent() {
   const { user, logout } = useAuth() // Add logout from useAuth
@@ -41,6 +25,8 @@ function SurveyDashboardContent() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState<string>('')
+  const [barangays, setBarangays] = useState<Barangay[]>([])
+  const [loading, setLoading] = useState(true)
 
   // Logout handler function
   const handleLogout = async () => {
@@ -73,6 +59,28 @@ function SurveyDashboardContent() {
         return 'Access survey information and track progress.'
     }
   }
+
+  // Fetch barangays from database
+  useEffect(() => {
+    const fetchBarangays = async () => {
+      try {
+        const response = await fetch('/api/barangays');
+        if (!response.ok) {
+          throw new Error('Failed to fetch barangays');
+        }
+        const data = await response.json();
+        setBarangays(data);
+      } catch (error) {
+        console.error('Error fetching barangays:', error);
+        // Fallback to empty array if fetch fails
+        setBarangays([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBarangays();
+  }, []);
 
   // Update time display
   useEffect(() => {
@@ -130,16 +138,20 @@ function SurveyDashboardContent() {
               {/* Separator */}
               <div className="text-gray-400 hidden sm:block">|</div>
 
-              {/* Back to Dashboard Button */}
-              <Link
-                href="/dashboard"
-                className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition-colors"
-              >
-                Back to Dashboard
-              </Link>
+              {/* Back to Dashboard Button - Hidden for interviewers */}
+              {user?.role?.toLowerCase() !== 'interviewer' && (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition-colors"
+                  >
+                    Back to Dashboard
+                  </Link>
 
-              {/* Separator */}
-              <div className="text-gray-400 hidden sm:block">|</div>
+                  {/* Separator */}
+                  <div className="text-gray-400 hidden sm:block">|</div>
+                </>
+              )}
 
               {/* User Menu */}
               <div className="relative" ref={dropdownRef}>
@@ -206,12 +218,16 @@ function SurveyDashboardContent() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-[#6b7280]">Progress</span>
-                <span className="text-[#111827] font-medium">45%</span>
+                <span className="text-[#111827] font-medium">
+                  {loading ? "Loading..." : `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / Math.max(barangays.length, 1))}%`}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
                   className="bg-[#16a34a] h-3 rounded-full transition-all duration-300"
-                  style={{ width: "45%" }}
+                  style={{ 
+                    width: loading ? "0%" : `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / Math.max(barangays.length, 1))}%` 
+                  }}
                 ></div>
               </div>
             </div>
@@ -219,40 +235,65 @@ function SurveyDashboardContent() {
 
           {/* Barangay Progress Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {barangays.map((barangay) => (
-              <Link key={barangay.id} href={`/survey/barangay/${barangay.id}`} className="block">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer">
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex justify-between items-start">
-                      <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full font-medium ${barangay.status === "Completed"
-                          ? "bg-green-100 text-green-800"
-                          : barangay.status === "In Progress"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                          }`}
-                      >
-                        {barangay.status}
-                      </span>
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                      <div className="h-6 bg-gray-200 rounded-full w-16 animate-pulse"></div>
                     </div>
-
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-[#6b7280]">Progress</span>
-                        <span className="text-[#111827] font-medium">{barangay.progress}%</span>
+                        <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
+                        <div className="h-3 bg-gray-200 rounded w-8 animate-pulse"></div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-[#16a34a] h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${barangay.progress}%` }}
-                        ></div>
-                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 animate-pulse"></div>
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))
+            ) : barangays.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <p className="text-gray-500">No barangays found. Please check your database connection.</p>
+              </div>
+            ) : (
+              barangays.map((barangay) => (
+                <Link key={barangay.id} href={`/survey/barangay/${barangay.id}`} className="block">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer">
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full font-medium ${barangay.status === "Completed"
+                            ? "bg-green-100 text-green-800"
+                            : barangay.status === "In Progress"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                            }`}
+                        >
+                          {barangay.status}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <span className="text-[#6b7280]">Progress</span>
+                          <span className="text-[#111827] font-medium">{barangay.progress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-[#16a34a] h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${barangay.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </main>

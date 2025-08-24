@@ -1,16 +1,16 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarangayData } from "@/data/barangayData";
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface SGLGBHistoryCardProps {
-  selectedBarangay?: BarangayData | null;
+  selectedBarangay?: ApiBarangayData | null;
 }
 
 export default function SGLGBHistoryCard({ selectedBarangay }: SGLGBHistoryCardProps) {
   // Get current year and filter history to show only 2 years before current year
   const currentYear = new Date().getFullYear();
-  const filteredHistory = selectedBarangay?.history.filter(entry => {
+  const filteredHistory = selectedBarangay?.history?.filter(entry => {
     const entryYear = parseInt(entry.year);
     return entryYear < currentYear && entryYear >= currentYear - 2;
   }) || [];

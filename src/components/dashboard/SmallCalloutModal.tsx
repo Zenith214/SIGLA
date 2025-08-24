@@ -1,9 +1,9 @@
 "use client";
 
-import { BarangayData } from "@/data/barangayData";
+import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface SmallCalloutModalProps {
-  barangay: BarangayData;
+  barangay: ApiBarangayData;
   position: { x: number; y: number };
   onViewDetails: () => void;
   onClose: () => void;
