@@ -6,7 +6,7 @@ import type { SurveyData } from "../page"
 
 interface HouseholdMember {
   name: string
-  age: number
+  age: number | string
 }
 
 interface KishGridSelectionProps {
@@ -48,7 +48,23 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
 
   const handleMemberChange = (index: number, field: "name" | "age", value: string | number) => {
     const updatedMembers = [...householdMembers]
-    updatedMembers[index] = { ...updatedMembers[index], [field]: value }
+    
+    if (field === "age") {
+      // Handle age input more carefully
+      const ageValue = typeof value === "string" ? value : String(value)
+      const numericAge = Number.parseInt(ageValue)
+      
+      // Allow empty string for editing, but ensure valid number when not empty
+      if (ageValue === "" || ageValue === "0") {
+        updatedMembers[index] = { ...updatedMembers[index], [field]: "" as any }
+      } else if (!isNaN(numericAge) && numericAge > 0) {
+        updatedMembers[index] = { ...updatedMembers[index], [field]: numericAge }
+      }
+      // If invalid input, don't update (keeps current value)
+    } else {
+      updatedMembers[index] = { ...updatedMembers[index], [field]: value }
+    }
+    
     setHouseholdMembers(updatedMembers)
   }
 
@@ -59,7 +75,10 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
     }
 
     // Filter eligible members (age 18+)
-    const eligibleMembers = householdMembers.filter((member) => member.age >= 18 && member.name.trim() !== "")
+    const eligibleMembers = householdMembers.filter((member) => {
+      const age = typeof member.age === "string" ? Number.parseInt(member.age) : member.age
+      return age >= 18 && member.name.trim() !== "" && !isNaN(age)
+    })
 
     if (eligibleMembers.length === 0) {
       alert("No eligible household members found. All members must be 18 or older and have names.")
@@ -156,11 +175,19 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
                       type="number"
                       min="18"
                       max="120"
-                      value={member.age}
-                      onChange={(e) => handleMemberChange(index, "age", Number.parseInt(e.target.value) || 18)}
+                      value={member.age === "" ? "" : member.age}
+                      onChange={(e) => handleMemberChange(index, "age", e.target.value)}
+                      onBlur={(e) => {
+                        // Set default age if field is empty when user leaves the field
+                        if (e.target.value === "" || Number.parseInt(e.target.value) < 18) {
+                          handleMemberChange(index, "age", 18)
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="18"
                       required
                     />
+                    <p className="text-xs text-gray-500 mt-1">Minimum age: 18 years</p>
                   </div>
                 </div>
               </div>

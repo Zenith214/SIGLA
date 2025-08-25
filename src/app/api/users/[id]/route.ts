@@ -92,7 +92,31 @@ export async function GET(
     }
 
     return NextResponse.json({ user });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ message: 'Failed to fetch user' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Check if user is admin
+  const isAdmin = await verifyAdminRole(request);
+  if (!isAdmin) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+
+  const resolvedParams = await params;
+  const userId = parseInt(resolvedParams.id);
+
+  try {
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    return NextResponse.json({ message: 'User deleted successfully' });
+  } catch {
+    return NextResponse.json({ message: 'Failed to delete user' }, { status: 500 });
   }
 }

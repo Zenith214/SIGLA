@@ -30,31 +30,14 @@ export function Assignments() {
     Promise.all([
       fetch("/api/assignments", { credentials: 'include' }).then(r => r.json()),
       fetch("/api/barangays", { credentials: 'include' }).then(r => r.json()),
-      fetch("/api/users", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/interviewers", { credentials: 'include' }).then(r => r.json()),
     ])
-      .then(([assignmentsData, barangaysData, usersData]) => {
+      .then(([assignmentsData, barangaysData, interviewersData]) => {
         setAssignments(assignmentsData || [])
         setBarangays(barangaysData || [])
-
-        // Handle case where usersData might be wrapped in different properties
-        let users = []
-        if (Array.isArray(usersData)) {
-          users = usersData
-        } else if (usersData?.users) {
-          users = usersData.users  // API returns { users: [...] }
-        } else if (usersData?.data) {
-          users = usersData.data   // Alternative format
-        } else {
-          users = []
-        }
-
-        // Filter for interviewers only
-        const interviewers = users.filter((user: any) => {
-          const role = (user.role || '').toLowerCase().trim()
-          return role === "interviewer"
-        })
-
-        setInterviewers(interviewers)
+        
+        // The interviewers API returns the data directly (no wrapping)
+        setInterviewers(interviewersData || [])
         setLoading(false)
       })
       .catch((err) => {
@@ -69,9 +52,7 @@ export function Assignments() {
     setAddForm({ ...addForm, [name]: value })
   }
 
-  const handleAddSelectChange = (name: string, value: string) => {
-    setAddForm({ ...addForm, [name]: value })
-  }
+  // Removed unused handleAddSelectChange function
 
   const validateAddForm = () => {
     if (!addForm.barangay_id) {
@@ -214,9 +195,9 @@ export function Assignments() {
                   required
                 >
                   <option value="">Select Barangay</option>
-                  {barangays.filter((b: any) => b.seal === 'yes').map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>
-                      {b.barangay_name}
+                  {barangays.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
                     </option>
                   ))}
                 </select>
@@ -323,9 +304,9 @@ export function Assignments() {
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {barangays.filter((b: any) => b.seal === 'yes').map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>
-                      {b.barangay_name}
+                  {barangays.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
                     </option>
                   ))}
                 </select>

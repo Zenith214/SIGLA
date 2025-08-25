@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Header } from "./sections/header"
@@ -14,6 +15,7 @@ import { Skeleton, SkeletonForm, SkeletonCard } from "@/components/ui/skeleton"
 
 export interface SurveyData {
   surveyNumber: string
+  barangayId?: number
   location: { 
     lat: number; 
     lng: number; 
@@ -88,6 +90,7 @@ function SurveyAppContent() {
   const [currentSection, setCurrentSection] = useState("initialization")
   const [surveyData, setSurveyData] = useState<SurveyData>({
     surveyNumber: "",
+    barangayId: undefined,
     location: { lat: 0, lng: 0, address: "" },
     selectedMember: "",
     financialAdmin: {},
@@ -110,8 +113,9 @@ function SurveyAppContent() {
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
-  // Get authenticated user information
+  // Get authenticated user information and router
   const { user } = useAuth()
+  const router = useRouter()
   const formattedUser = formatUserForHeader(user)
 
   // Load saved data on mount
@@ -220,9 +224,72 @@ function SurveyAppContent() {
             data={surveyData}
             sections={sections}
             onBack={() => setCurrentSection("environmental")}
-            onSubmit={() => {
-              updateSectionStatus("summary", "completed")
-              alert("Survey submitted successfully!")
+            onSubmit={async () => {
+              try {
+                updateSectionStatus("summary", "completed")
+                
+                let barangayId = surveyData.barangayId
+                
+                // If no barangayId is set, try to get it from location data
+                if (!barangayId && surveyData.location.barangay) {
+                  try {
+                    const barangayResponse = await fetch(`/api/barangays/by-name?name=${encodeURIComponent(surveyData.location.barangay)}`)
+                    if (barangayResponse.ok) {
+                      const barangayData = await barangayResponse.json()
+                      barangayId = barangayData.barangay_id
+                    }
+                  } catch (error) {
+                    console.warn('Could not find barangay ID from location data:', error)
+                  }
+                }
+                
+                // Default to first available barangay if still no ID
+                if (!barangayId) {
+                  barangayId = 26 // Default to Katipunan
+                }
+                
+                // Prepare survey data for submission
+                const submissionData = {
+                  surveyNumber: surveyData.surveyNumber,
+                  location: surveyData.location,
+                  selectedMember: surveyData.selectedMember,
+                  interviewerId: user?.id,
+                  barangayId: barangayId,
+                  financialAdmin: surveyData.financialAdmin,
+                  disasterPrep: surveyData.disasterPrep,
+                  safetyPeace: surveyData.safetyPeace,
+                  businessFriendly: surveyData.businessFriendly,
+                  environmental: surveyData.environmental,
+                  socialProtection: surveyData.socialProtection
+                }
+
+                // Submit to database
+                const response = await fetch('/api/survey-responses', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(submissionData)
+                })
+
+                if (response.ok) {
+                  const result = await response.json()
+                  alert(`Survey submitted successfully! Response ID: ${result.responseId}`)
+                  
+                  // Clear local storage after successful submission
+                  localStorage.removeItem("barangay-survey-data")
+                  localStorage.removeItem("barangay-survey-sections")
+                  
+                  // Optionally redirect to survey dashboard
+                  // router.push('/survey')
+                } else {
+                  const error = await response.json()
+                  alert(`Failed to submit survey: ${error.error}`)
+                }
+              } catch (error) {
+                console.error('Error submitting survey:', error)
+                alert('Failed to submit survey. Please try again.')
+              }
             }}
           />
         )

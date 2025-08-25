@@ -139,7 +139,7 @@ export function SurveyTargets() {
                 <select name="barangay_id" value={addForm.barangay_id} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
                   <option value="">Select Barangay</option>
                   {barangays.map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>{b.barangay_name}</option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
@@ -176,7 +176,7 @@ export function SurveyTargets() {
                 <label className="block text-sm font-medium mb-1">Barangay</label>
                 <select name="barangay_id" value={editForm.barangay_id} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
                   {barangays.map((b: any) => (
-                    <option key={b.barangay_id} value={b.barangay_id}>{b.barangay_name}</option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
@@ -240,12 +240,12 @@ export function SurveyTargets() {
           ) : Array.isArray(targets) && targets.length > 0 ? (
             <div className="space-y-6">
               {targets.map((target) => {
-                const barangay = barangays.find((b: any) => b.barangay_id === target.barangay_id)
+                const barangay = barangays.find((b: any) => b.id === target.barangay_id)
                 return (
                   <div key={target.target_id} className="space-y-3 p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium text-gray-900 text-lg">{barangay ? barangay.barangay_name : ""}</h3>
+                        <h3 className="font-medium text-gray-900 text-lg">{barangay ? barangay.name : ""}</h3>
                         <p className="text-sm text-gray-600">
                           {target.achieved} of {target.target} responses ({target.percentage}%)
                         </p>

@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react';
-import type { Question } from '../../page'; // Assuming Question interface is exported from page.tsx
+import type { Question } from '../page'; // Import Question interface from forms page
 
 interface QuestionProgressBarProps {
   questions: Question[];
@@ -57,9 +57,8 @@ export function QuestionProgressBar({
           return (
             <div
               key={index}
-              className={`h-2 flex-1 rounded-full transition-colors duration-300 ${
-                index <= currentQuestionIndex ? (isAnswered ? "bg-green-500" : "bg-blue-300") : "bg-gray-300"
-              }`}
+              className={`h-2 flex-1 rounded-full transition-colors duration-300 ${index <= currentQuestionIndex ? (isAnswered ? "bg-green-500" : "bg-blue-300") : "bg-gray-300"
+                }`}
             />
           );
         })}

@@ -75,7 +75,7 @@ export function Barangays() {
       })
       if (!res.ok) throw new Error("Failed to update barangay")
       const updated = await res.json()
-      setBarangays(barangays.map(b => (b.barangay_id === updated.barangay_id ? updated : b)))
+      setBarangays(barangays.map(b => (b.id === updated.id ? updated : b)))
       setEditingBarangay(null)
       setEditForm(null)
     } catch (err: any) {
@@ -193,8 +193,8 @@ export function Barangays() {
                 </TableHeader>
                 <TableBody>
                   {barangays.map((barangay) => (
-                    <TableRow key={barangay.barangay_id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{barangay.barangay_name}</TableCell>
+                    <TableRow key={barangay.id} className="hover:bg-gray-50">
+                      <TableCell className="font-medium">{barangay.name}</TableCell>
                       <TableCell>{barangay.households ?? "-"}</TableCell>
                       <TableCell>{barangay.population ? barangay.population.toLocaleString() : "-"}</TableCell>
                       <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
@@ -230,7 +230,7 @@ export function Barangays() {
                                   <History className="w-5 h-5 text-blue-600" />
                                   <span>Award History</span>
                                 </DialogTitle>
-                                <DialogDescription>SGLGB award history for {selectedBarangay?.barangay_name}</DialogDescription>
+                                <DialogDescription>SGLGB award history for {selectedBarangay?.name}</DialogDescription>
                               </DialogHeader>
                               <div className="space-y-3 mt-4">
                                 {(selectedBarangay?.history ?? []).map((record: any) => (
@@ -289,7 +289,7 @@ export function Barangays() {
             <div className="space-y-4 mt-2">
               <div>
                 <label className="block text-sm font-medium mb-1">Name</label>
-                <Input name="barangay_name" value={editForm.barangay_name} readOnly disabled />
+                <Input name="name" value={editForm.name} readOnly disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Households</label>

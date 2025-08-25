@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -59,41 +60,7 @@ export default function SiglaRegister() {
     }
   }
 
-  const validateStep1 = () => {
-    const newErrors = {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      phone: "",
-      organization: "",
-      jobTitle: "",
-    }
-    if (!formData.firstName) newErrors.firstName = "First name is required"
-    if (!formData.lastName) newErrors.lastName = "Last name is required"
-    if (!formData.email) newErrors.email = "Email address is required"
-    else if (!validateEmail(formData.email)) newErrors.email = "Please enter a valid email address"
-    if (!formData.password) newErrors.password = "Password is required"
-    else if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters"
-    if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm your password"
-    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match"
-    setErrors(newErrors)
-    return !Object.values(newErrors).some((err) => err)
-  }
-
-  const validateStep2 = () => {
-    const newErrors = {
-      phone: "",
-      organization: "",
-      jobTitle: "",
-    }
-    if (!formData.phone) newErrors.phone = "Phone number is required"
-    if (!formData.organization) newErrors.organization = "Organization/Company Name is required"
-    if (!formData.jobTitle) newErrors.jobTitle = "Job Title/Role is required"
-    setErrors((prev) => ({ ...prev, ...newErrors }))
-    return !Object.values(newErrors).some((err) => err)
-  }
+  // Removed unused validation functions
 
   const validateAll = () => {
     const newErrors = {
@@ -154,7 +121,7 @@ export default function SiglaRegister() {
         setRegisterStatus("error")
         setApiError(data.message || "Failed to register. Please try again.")
       }
-    } catch (error) {
+    } catch {
       setRegisterStatus("error")
       setApiError("Network error occurred. Please try again.")
     } finally {
@@ -540,13 +507,13 @@ export default function SiglaRegister() {
               {/* Login Link */}
               <div className="mt-4 text-center">
                 <span className="text-sm" style={{ color: "#333333" }}>Already have an account?</span>
-                <a
+                <Link
                   href="/"
                   className="ml-2 text-sm font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
                   style={{ color: "#0072CE", "--tw-ring-color": "#0072CE" } as React.CSSProperties}
                 >
                   Login
-                </a>
+                </Link>
               </div>
             </CardContent>
           </Card>
