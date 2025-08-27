@@ -12,9 +12,10 @@ interface TabbedSummaryProps {
 }
 
 export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummaryProps) {
-  const [activeTab, setActiveTab] = useState("financial")
+  const [activeTab, setActiveTab] = useState("demographics")
 
   const surveyTabs = [
+    { id: "demographics", name: "Demographics", dataKey: "respondentDemographics" as keyof SurveyData },
     { id: "financial", name: "Financial Admin", dataKey: "financialAdmin" as keyof SurveyData },
     { id: "disaster", name: "Disaster Prep", dataKey: "disasterPrep" as keyof SurveyData },
     { id: "safety", name: "Peace & Order", dataKey: "safetyPeace" as keyof SurveyData },
@@ -43,6 +44,10 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
   }
 
   const getSectionStatus = (sectionId: string) => {
+    // Demographics is part of kish-grid section
+    if (sectionId === "demographics") {
+      return sections.find((s) => s.id === "kish-grid")?.status || "pending"
+    }
     return sections.find((s) => s.id === sectionId)?.status || "pending"
   }
 

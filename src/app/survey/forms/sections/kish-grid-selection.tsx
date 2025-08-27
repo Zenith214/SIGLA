@@ -1,28 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Users, ArrowLeft, ArrowRight, X } from "lucide-react"
 import type { SurveyData } from "../page"
 
 interface HouseholdMember {
   name: string
   age: number | string
+  gender: string
 }
 
 interface KishGridSelectionProps {
   surveyNumber: string
   selectedMember: string
+  data: SurveyData
   onUpdate: (section: keyof SurveyData, data: any) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNext, onBack }: KishGridSelectionProps) {
+export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate, onNext, onBack }: KishGridSelectionProps) {
   const [numberOfMembers, setNumberOfMembers] = useState<number>(1)
-  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", age: 18 }])
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", age: 18, gender: "" }])
   const [showModal, setShowModal] = useState(false)
-  const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string } | null>(null)
+  const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string; age: number | string; gender: string } | null>(null)
   const [inputError, setInputError] = useState<string>("")
+  const [showDemographics, setShowDemographics] = useState(false)
+  const [demographics, setDemographics] = useState({
+    age: 0,
+    gender: "",
+    educationalAttainment: "",
+    householdIncome: ""
+  })
+
+  // Load existing demographics data
+  useEffect(() => {
+    if (data.respondentDemographics) {
+      setDemographics(data.respondentDemographics)
+    }
+  }, [data.respondentDemographics])
+
+  // Show demographics section if member is already selected but demographics not complete
+  useEffect(() => {
+    if (selectedMember && (!data.respondentDemographics?.educationalAttainment || !data.respondentDemographics?.householdIncome)) {
+      setShowDemographics(true)
+    }
+  }, [selectedMember, data.respondentDemographics])
 
   const handleNumberChange = (value: string) => {
     const num = Number.parseInt(value) || 1
@@ -42,11 +65,12 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
     const newMembers = Array.from({ length: num }, (_, index) => ({
       name: householdMembers[index]?.name || "",
       age: householdMembers[index]?.age || 18,
+      gender: householdMembers[index]?.gender || "",
     }))
     setHouseholdMembers(newMembers)
   }
 
-  const handleMemberChange = (index: number, field: "name" | "age", value: string | number) => {
+  const handleMemberChange = (index: number, field: "name" | "age" | "gender", value: string | number) => {
     const updatedMembers = [...householdMembers]
     
     if (field === "age") {
@@ -77,11 +101,11 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
     // Filter eligible members (age 18+)
     const eligibleMembers = householdMembers.filter((member) => {
       const age = typeof member.age === "string" ? Number.parseInt(member.age) : member.age
-      return age >= 18 && member.name.trim() !== "" && !isNaN(age)
+      return age >= 18 && member.name.trim() !== "" && member.gender.trim() !== "" && !isNaN(age)
     })
 
     if (eligibleMembers.length === 0) {
-      alert("No eligible household members found. All members must be 18 or older and have names.")
+      alert("No eligible household members found. All members must be 18 or older, have names, and gender specified.")
       return
     }
 
@@ -96,6 +120,8 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
     setSelectedRespondent({
       number: originalIndex + 1,
       name: selected.name,
+      age: selected.age,
+      gender: selected.gender,
     })
     setShowModal(true)
   }
@@ -103,9 +129,30 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
   const handleConfirmSelection = () => {
     if (selectedRespondent) {
       onUpdate("selectedMember", selectedRespondent.name)
+      
+      // Pre-populate demographics with selected respondent's basic info
+      const selectedAge = typeof selectedRespondent.age === "string" ? Number.parseInt(selectedRespondent.age) : selectedRespondent.age
+      setDemographics(prev => ({
+        ...prev,
+        age: selectedAge,
+        gender: selectedRespondent.gender
+      }))
+      
       setShowModal(false)
-      onNext()
+      setShowDemographics(true)
     }
+  }
+
+  const handleDemographicsSubmit = () => {
+    // Validate demographics
+    if (!demographics.educationalAttainment || !demographics.householdIncome) {
+      alert("Please complete all demographic information.")
+      return
+    }
+
+    // Update survey data with demographics
+    onUpdate("respondentDemographics", demographics)
+    onNext()
   }
 
   return (
@@ -157,7 +204,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
                 className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Member {index + 1}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                     <input
@@ -189,6 +236,19 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
                     />
                     <p className="text-xs text-gray-500 mt-1">Minimum age: 18 years</p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                    <select
+                      value={member.gender}
+                      onChange={(e) => handleMemberChange(index, "gender", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      required
+                    >
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             ))}
@@ -208,6 +268,97 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
           </button>
         </div>
 
+        {/* Demographics Section */}
+        {showDemographics && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Respondent Demographics</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Please provide additional information about the selected respondent for our analysis.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                <input
+                  type="number"
+                  min="18"
+                  max="120"
+                  value={demographics.age}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, age: Number.parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
+                  disabled
+                />
+                <p className="text-xs text-gray-500 mt-1">Auto-filled from household member data</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                <select
+                  value={demographics.gender}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, gender: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
+                  disabled
+                >
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Auto-filled from household member data</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Educational Attainment *</label>
+                <select
+                  value={demographics.educationalAttainment}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, educationalAttainment: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                >
+                  <option value="">Select educational level</option>
+                  <option value="No formal education">No formal education</option>
+                  <option value="Elementary (1-6)">Elementary (1-6)</option>
+                  <option value="Elementary graduate">Elementary graduate</option>
+                  <option value="High school (1-4)">High school (1-4)</option>
+                  <option value="High school graduate">High school graduate</option>
+                  <option value="Vocational/Technical">Vocational/Technical</option>
+                  <option value="College (1-4)">College (1-4)</option>
+                  <option value="College graduate">College graduate</option>
+                  <option value="Post-graduate">Post-graduate</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Household Income *</label>
+                <select
+                  value={demographics.householdIncome}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, householdIncome: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                >
+                  <option value="">Select income range</option>
+                  <option value="Below ₱10,000">Below ₱10,000</option>
+                  <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
+                  <option value="₱20,001 - ₱30,000">₱20,001 - ₱30,000</option>
+                  <option value="₱30,001 - ₱50,000">₱30,001 - ₱50,000</option>
+                  <option value="₱50,001 - ₱75,000">₱50,001 - ₱75,000</option>
+                  <option value="₱75,001 - ₱100,000">₱75,001 - ₱100,000</option>
+                  <option value="Above ₱100,000">Above ₱100,000</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleDemographicsSubmit}
+                className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Continue to Survey →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <div className="flex justify-between mt-8">
           <button
@@ -217,7 +368,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          {selectedMember && (
+          {selectedMember && !showDemographics && (
             <button
               onClick={onNext}
               className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
@@ -249,7 +400,11 @@ export function KishGridSelection({ surveyNumber, selectedMember, onUpdate, onNe
                   <Users className="w-8 h-8 text-green-600" />
                 </div>
                 <h4 className="text-xl font-semibold text-gray-900 mb-2">Member #{selectedRespondent.number}</h4>
-                <p className="text-lg text-gray-700 mb-4">{selectedRespondent.name}</p>
+                <p className="text-lg text-gray-700 mb-2">{selectedRespondent.name}</p>
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>Age: {selectedRespondent.age} years old</p>
+                  <p>Gender: {selectedRespondent.gender}</p>
+                </div>
                 <p className="text-sm text-gray-500">
                   This respondent was selected using Kish Grid methodology based on your survey number.
                 </p>

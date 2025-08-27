@@ -27,6 +27,12 @@ export interface SurveyData {
     province?: string;
   }
   selectedMember: string
+  respondentDemographics: {
+    age: number
+    gender: string
+    educationalAttainment: string
+    householdIncome: string
+  }
   financialAdmin: Record<string, any>
   disasterPrep: Record<string, any>
   safetyPeace: Record<string, any>
@@ -93,6 +99,12 @@ function SurveyAppContent() {
     barangayId: undefined,
     location: { lat: 0, lng: 0, address: "" },
     selectedMember: "",
+    respondentDemographics: {
+      age: 0,
+      gender: "",
+      educationalAttainment: "",
+      householdIncome: ""
+    },
     financialAdmin: {},
     disasterPrep: {},
     safetyPeace: {},
@@ -172,6 +184,7 @@ function SurveyAppContent() {
           <KishGridSelection
             surveyNumber={surveyData.surveyNumber}
             selectedMember={surveyData.selectedMember}
+            data={surveyData}
             onUpdate={updateSurveyData}
             onNext={() => handleSectionComplete("kish-grid", "financial")}
             onBack={() => setCurrentSection("initialization")}
@@ -253,6 +266,7 @@ function SurveyAppContent() {
                   surveyNumber: surveyData.surveyNumber,
                   location: surveyData.location,
                   selectedMember: surveyData.selectedMember,
+                  respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
                   financialAdmin: surveyData.financialAdmin,
@@ -305,7 +319,7 @@ function SurveyAppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
       <Header user={formattedUser} currentSection={getCurrentSectionName()} />
       <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">

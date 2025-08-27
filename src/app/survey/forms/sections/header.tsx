@@ -110,28 +110,28 @@ export function Header({ user, currentSection }: HeaderProps) {
     switch (locationStatus) {
       case 'requesting':
         return (
-          <div className="flex items-center space-x-2 text-sm text-yellow-600">
+          <div className="flex items-center space-x-2 text-sm text-yellow-300">
             <Navigation className="w-4 h-4 animate-spin" />
             <span>Getting Location...</span>
           </div>
         )
       case 'success':
         return (
-          <div className="flex items-center space-x-2 text-sm text-green-600">
+          <div className="flex items-center space-x-2 text-sm text-green-300">
             <MapPin className="w-4 h-4" />
             <span>Location Active</span>
           </div>
         )
       case 'error':
         return (
-          <div className="flex items-center space-x-2 text-sm text-red-600">
+          <div className="flex items-center space-x-2 text-sm text-red-300">
             <AlertCircle className="w-4 h-4" />
             <span>Location Error</span>
           </div>
         )
       default:
         return (
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <div className="flex items-center space-x-2 text-sm text-gray-300">
             <MapPin className="w-4 h-4" />
             <span>Location Inactive</span>
           </div>
@@ -144,7 +144,7 @@ export function Header({ user, currentSection }: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-slate-800 shadow-sm">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -152,10 +152,10 @@ export function Header({ user, currentSection }: HeaderProps) {
               <FileText className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Satisfaction Index for Governance and Local Administration
+              <h1 className="text-xl font-bold text-white">
+                SIGLA Survey Forms
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-300">
                 {currentSection ? `${currentSection} • Community Assessment Survey Tool` : "Community Assessment Survey Tool"}
               </p>
             </div>
@@ -163,26 +163,29 @@ export function Header({ user, currentSection }: HeaderProps) {
 
           <div className="flex items-center space-x-4">
             {/* Location Status (visible outside dropdown for quick glance) */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-2 text-white">
               {getLocationStatusDisplay()}
             </div>
+
+            {/* Separator */}
+            <div className="text-gray-400">|</div>
 
             {/* User Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+                <Button variant="ghost" className="flex items-center space-x-3 px-3 py-2 bg-slate-600 rounded-lg hover:bg-slate-700 text-white">
                   <img
                     src={user.avatar || "/placeholder.svg"}
                     alt={user.name}
                     className="w-8 h-8 rounded-full bg-blue-100"
                   />
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-sm font-medium text-white">{user.name}</p>
+                    <p className="text-xs text-gray-300">
                       {user.role} • {user.id}
                     </p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 text-gray-300" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 bg-card border-border shadow-lg">

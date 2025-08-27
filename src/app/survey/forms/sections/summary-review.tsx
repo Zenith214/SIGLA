@@ -24,6 +24,15 @@ export function SummaryReview({ data, onBack, onSubmit }: SummaryReviewProps) {
       ],
     },
     {
+      title: "Respondent Demographics",
+      data: [
+        { label: "Age", value: data.respondentDemographics?.age ? `${data.respondentDemographics.age} years old` : "Not provided" },
+        { label: "Gender", value: data.respondentDemographics?.gender || "Not provided" },
+        { label: "Educational Attainment", value: data.respondentDemographics?.educationalAttainment || "Not provided" },
+        { label: "Monthly Household Income", value: data.respondentDemographics?.householdIncome || "Not provided" },
+      ],
+    },
+    {
       title: "Financial Administration",
       data: [
         { label: "Budget Transparency", value: data.financialAdmin?.budgetTransparency || "Not answered" },

@@ -45,22 +45,24 @@ model backup {
 }
 
 model barangay {
-  barangay_id     Int               @id @default(autoincrement())
-  barangay_name   String            @unique(map: "barangay_name_unique")
-  seal            barangay_seal     @default(no)
-  description     String?           @db.Text
-  is_active       Boolean           @default(true)
-  created_at      DateTime          @default(now())
-  updated_at      DateTime?
-  households      Int?              @default(0)
-  population      Int?              @default(0)
-  captain         String?
-  currentStatus   String?           @db.VarChar(32)
-  history         String?           @db.LongText
-  assignment      assignment[]
-  survey          survey[]
-  survey_response survey_response[]
-  surveyTargets   SurveyTarget[]
+  barangay_id      Int                @id @default(autoincrement())
+  barangay_name    String             @unique(map: "barangay_name_unique")
+  seal             barangay_seal      @default(no)
+  description      String?            @db.Text
+  is_active        Boolean            @default(true)
+  created_at       DateTime           @default(now())
+  updated_at       DateTime?
+  households       Int?               @default(0)
+  population       Int?               @default(0)
+  area             Decimal?           @db.Decimal(8, 2)
+  captain          String?
+  currentStatus    String?            @db.VarChar(32)
+  history          String?            @db.LongText
+  assignment       assignment[]
+  barangay_history barangay_history[]
+  survey           survey[]
+  survey_response  survey_response[]
+  surveyTargets    SurveyTarget[]
 }
 
 model survey {
@@ -87,9 +89,9 @@ model user {
   lastName        String
   organization    String?
   phone           String?
+  lastLogin       DateTime?         @db.DateTime(0)
   role            String?           @default("Viewer") @db.VarChar(32)
   status          String?           @default("Active") @db.VarChar(16)
-  lastLogin       DateTime?         @db.DateTime(0)
   assignment      assignment[]
   survey_response survey_response[]
 }
@@ -253,6 +255,21 @@ model survey_validation {
   @@index([response_id], map: "fk_survey_validation_response_id")
   @@index([validation_status], map: "idx_survey_validation_status")
   @@index([validation_type], map: "idx_survey_validation_type")
+}
+
+model barangay_history {
+  history_id  Int       @id @default(autoincrement())
+  barangay_id Int
+  year        String    @db.VarChar(4)
+  status      String    @db.VarChar(32)
+  score       String?   @db.VarChar(10)
+  notes       String?   @db.Text
+  created_at  DateTime  @default(now())
+  updated_at  DateTime?
+  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_history_barangay_id")
+
+  @@index([barangay_id], map: "fk_history_barangay_id")
+  @@index([year], map: "idx_barangay_history_year")
 }
 
 enum barangay_seal {

@@ -15,6 +15,7 @@ interface SurveyInitializationProps {
 
 export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializationProps) {
   const [surveyNumber, setSurveyNumber] = useState(data.surveyNumber || "")
+  const [surveyNumberError, setSurveyNumberError] = useState('')
   const [location, setLocation] = useState(data.location || { lat: 0, lng: 0, address: "" })
   const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState('')
@@ -143,9 +144,48 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
     setShowMap(false) // Close the modal after selection
   }
 
+  const validateSurveyNumber = (value: string) => {
+    setSurveyNumberError('')
+    
+    if (!value.trim()) {
+      setSurveyNumberError('Survey number is required')
+      return false
+    }
+    
+    if (!/^\d+$/.test(value)) {
+      setSurveyNumberError('Survey number must contain only numbers')
+      return false
+    }
+    
+    const num = parseInt(value)
+    if (num < 1 || num > 150) {
+      setSurveyNumberError('Survey number must be between 1 and 150')
+      return false
+    }
+    
+    return true
+  }
+
+  const handleSurveyNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    
+    // Clear error when user starts typing
+    if (surveyNumberError) {
+      setSurveyNumberError('')
+    }
+    
+    // Only allow positive integers
+    if (value === '' || (/^\d+$/.test(value) && parseInt(value) > 0)) {
+      setSurveyNumber(value)
+    } else {
+      // Show error for invalid input
+      setSurveyNumberError('Only whole numbers are allowed')
+    }
+  }
+
   const handleNext = () => {
-    if (!surveyNumber.trim()) {
-      alert("Please enter a survey number.")
+    // Validate survey number
+    if (!validateSurveyNumber(surveyNumber)) {
       return
     }
 
@@ -240,14 +280,45 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
             Survey Questionnaire Number *
           </label>
           <input
-            type="text"
+            type="number"
             id="surveyNumber"
+            min="1"
+            max="150"
+            step="1"
             value={surveyNumber}
-            onChange={(e) => setSurveyNumber(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            onChange={handleSurveyNumberChange}
+            onBlur={() => validateSurveyNumber(surveyNumber)}
+            onKeyDown={(e) => {
+              // Prevent decimal point, minus sign, and 'e' (scientific notation)
+              if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                e.preventDefault();
+              }
+            }}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-colors ${
+              surveyNumberError 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+            }`}
             placeholder="Enter survey number (1-150)"
             required
           />
+          
+          {/* Error Message */}
+          {surveyNumberError && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center space-x-2 text-sm text-red-600">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{surveyNumberError}</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Help Text */}
+          {!surveyNumberError && (
+            <p className="mt-1 text-xs text-gray-500">
+              Enter a whole number between 1 and 150. No decimals or letters allowed.
+            </p>
+          )}
         </div>
 
         {/* Location Capture */}
@@ -354,7 +425,7 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
       <div className="flex justify-end mt-8">
         <button
           onClick={handleNext}
-          disabled={!surveyNumber.trim() || !location.address.trim() || (location.lat === 0 && location.lng === 0)}
+          disabled={!surveyNumber.trim() || !!surveyNumberError || !location.address.trim() || (location.lat === 0 && location.lng === 0)}
           className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue to Survey →
