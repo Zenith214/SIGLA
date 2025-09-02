@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const name = searchParams.get('name')
-
+    
     if (!name) {
       return NextResponse.json(
         { error: "Barangay name is required" },
@@ -15,16 +15,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Search for barangay by name (exact match, case-insensitive)
     const barangay = await prisma.barangay.findFirst({
       where: {
-        barangay_name: {
-          contains: name,
-          mode: 'insensitive'
-        }
-      },
-      select: {
-        barangay_id: true,
-        barangay_name: true
+        barangay_name: name,
+        is_active: true
       }
     })
 
@@ -36,11 +31,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(barangay)
-
   } catch (error) {
-    console.error("Error finding barangay:", error)
+    console.error("Error fetching barangay by name:", error)
     return NextResponse.json(
-      { error: "Failed to find barangay" },
+      { error: "Failed to fetch barangay" },
       { status: 500 }
     )
   } finally {

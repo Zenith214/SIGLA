@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as Prisma from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const prisma = new Prisma.PrismaClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 export async function POST(req: NextRequest) {
@@ -14,19 +18,28 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    // Find user using Supabase
+    const { data: users, error: findError } = await supabase
+      .from('user')
+      .select('*')
+      .eq('email', email)
+      .limit(1);
+
+    if (findError || !users || users.length === 0) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
+
+    const user = users[0];
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
-    // Update lastLogin
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
+
+    // Update lastLogin using Supabase
+    await supabase
+      .from('user')
+      .update({ lastLogin: new Date().toISOString() })
+      .eq('id', user.id);
     // Generate JWT with user info including role
     const token = jwt.sign(
       {

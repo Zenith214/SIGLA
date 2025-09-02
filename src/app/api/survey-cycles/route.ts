@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { createClient } from '@supabase/supabase-js';
 
-const prisma = new PrismaClient()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
   try {
-    const cycles = await prisma.survey_cycle.findMany({
-      orderBy: { created_at: 'desc' }
-    })
+    const { data: cycles, error } = await supabase
+      .from('survey_cycle')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
     
     return NextResponse.json(cycles)
   } catch (error) {
@@ -16,8 +24,6 @@ export async function GET() {
       { error: "Failed to fetch survey cycles" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -26,15 +32,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { year, status, start_date, end_date, responses } = body
 
-    const cycle = await prisma.survey_cycle.create({
-      data: {
+    const { data: cycle, error } = await supabase
+      .from('survey_cycle')
+      .insert({
         year,
         status,
-        start_date: new Date(start_date),
-        end_date: new Date(end_date),
+        start_date: new Date(start_date).toISOString(),
+        end_date: new Date(end_date).toISOString(),
         responses: responses || 0
-      }
-    })
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(cycle)
   } catch (error) {
@@ -43,8 +55,6 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create survey cycle" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -53,17 +63,23 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { cycle_id, year, status, start_date, end_date, responses } = body
 
-    const cycle = await prisma.survey_cycle.update({
-      where: { cycle_id },
-      data: {
+    const { data: cycle, error } = await supabase
+      .from('survey_cycle')
+      .update({
         year,
         status,
-        start_date: new Date(start_date),
-        end_date: new Date(end_date),
+        start_date: new Date(start_date).toISOString(),
+        end_date: new Date(end_date).toISOString(),
         responses: responses || 0,
-        updated_at: new Date()
-      }
-    })
+        updated_at: new Date().toISOString()
+      })
+      .eq('cycle_id', cycle_id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(cycle)
   } catch (error) {
@@ -72,8 +88,6 @@ export async function PUT(request: NextRequest) {
       { error: "Failed to update survey cycle" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -82,9 +96,14 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json()
     const { cycle_id } = body
 
-    await prisma.survey_cycle.delete({
-      where: { cycle_id }
-    })
+    const { error } = await supabase
+      .from('survey_cycle')
+      .delete()
+      .eq('cycle_id', cycle_id);
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -93,7 +112,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete survey cycle" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

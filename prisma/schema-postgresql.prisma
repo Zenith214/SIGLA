@@ -15,8 +15,9 @@ model SurveyTarget {
   percentage  Int?      @default(0)
   created_at  DateTime  @default(now())
   updated_at  DateTime?
-  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id])
+  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_target_barangay_id")
 
+  @@index([barangay_id], map: "fk_target_barangay_id")
   @@map("survey_target")
 }
 
@@ -28,8 +29,11 @@ model assignment {
   progress      Int?              @default(0)
   created_at    DateTime          @default(now())
   updated_at    DateTime?
-  barangay      barangay          @relation(fields: [barangay_id], references: [barangay_id])
-  user          user              @relation(fields: [user_id], references: [id])
+  barangay      barangay          @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "Assignment_barangay_id_fkey")
+  user          user              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "Assignment_user_id_fkey")
+
+  @@index([barangay_id], map: "fk_assignment_barangay_id")
+  @@index([user_id], map: "fk_assignment_user_id")
 }
 
 model backup {
@@ -42,7 +46,7 @@ model backup {
 
 model barangay {
   barangay_id      Int                @id @default(autoincrement())
-  barangay_name    String             @unique
+  barangay_name    String             @unique(map: "barangay_name_unique")
   seal             barangay_seal      @default(no)
   description      String?
   is_active        Boolean            @default(true)
@@ -69,13 +73,15 @@ model survey {
   raw_data      String?
   created_at    DateTime      @default(now())
   updated_at    DateTime?
-  barangay      barangay      @relation(fields: [barangay_id], references: [barangay_id])
+  barangay      barangay      @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "Survey_barangay_id_fkey")
   survey_log    survey_log[]
+
+  @@index([barangay_id], map: "fk_survey_barangay_id")
 }
 
 model user {
   id              Int               @id @default(autoincrement())
-  email           String            @unique
+  email           String            @unique(map: "User_email_key")
   password        String
   createdAt       DateTime          @default(now())
   firstName       String
@@ -101,10 +107,12 @@ model survey_answer {
   answer_rating   Int?
   created_at      DateTime        @default(now())
   updated_at      DateTime?
-  survey_question survey_question @relation(fields: [question_id], references: [question_id])
-  survey_response survey_response @relation(fields: [response_id], references: [response_id])
+  survey_question survey_question @relation(fields: [question_id], references: [question_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_answer_question_id")
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_answer_response_id")
 
-  @@unique([question_id, response_id])
+  @@unique([question_id, response_id], map: "question_response_unique")
+  @@index([response_id], map: "fk_survey_answer_response_id")
+  @@index([response_id], map: "idx_survey_answer_response")
 }
 
 model survey_attachment {
@@ -116,7 +124,9 @@ model survey_attachment {
   file_size       Int?
   description     String?
   uploaded_at     DateTime        @default(now())
-  survey_response survey_response @relation(fields: [response_id], references: [response_id])
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_attachment_response_id")
+
+  @@index([response_id], map: "fk_survey_attachment_response_id")
 }
 
 model survey_cycle {
@@ -136,7 +146,9 @@ model survey_log {
   action     String
   details    String?
   created_at DateTime @default(now())
-  survey     survey   @relation(fields: [survey_id], references: [survey_id])
+  survey     survey   @relation(fields: [survey_id], references: [survey_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_surveylog_survey_id")
+
+  @@index([survey_id], map: "fk_surveylog_survey_id")
 }
 
 model survey_metadata {
@@ -145,9 +157,10 @@ model survey_metadata {
   key_name        String
   key_value       String?
   created_at      DateTime        @default(now())
-  survey_response survey_response @relation(fields: [response_id], references: [response_id])
+  survey_response survey_response @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_metadata_response_id")
 
-  @@unique([response_id, key_name])
+  @@unique([response_id, key_name], map: "response_key_unique")
+  @@index([response_id], map: "fk_survey_metadata_response_id")
 }
 
 model survey_question {
@@ -163,12 +176,15 @@ model survey_question {
   depends_value  String?
   created_at     DateTime                      @default(now())
   survey_answer  survey_answer[]
-  survey_section survey_section                @relation(fields: [section_id], references: [section_id])
+  survey_section survey_section                @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_question_section_id")
+
+  @@index([section_id], map: "fk_survey_question_section_id")
+  @@index([question_key], map: "idx_survey_question_key")
 }
 
 model survey_response {
   response_id           Int                                @id @default(autoincrement())
-  survey_number         String                             @unique
+  survey_number         String                             @unique(map: "survey_number_unique")
   barangay_id           Int
   interviewer_id        Int
   respondent_name       String?
@@ -192,10 +208,18 @@ model survey_response {
   survey_answer         survey_answer[]
   survey_attachment     survey_attachment[]
   survey_metadata       survey_metadata[]
-  barangay              barangay                           @relation(fields: [barangay_id], references: [barangay_id])
-  user                  user                               @relation(fields: [interviewer_id], references: [id])
+  barangay              barangay                           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_response_barangay_id")
+  user                  user                               @relation(fields: [interviewer_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_response_interviewer_id")
   survey_section        survey_section[]
   survey_validation     survey_validation[]
+
+  @@index([barangay_id], map: "fk_survey_response_barangay_id")
+  @@index([interviewer_id], map: "fk_survey_response_interviewer_id")
+  @@index([barangay_id], map: "idx_survey_response_barangay")
+  @@index([completed_at], map: "idx_survey_response_completed_at")
+  @@index([created_at], map: "idx_survey_response_created_at")
+  @@index([interviewer_id], map: "idx_survey_response_interviewer")
+  @@index([status], map: "idx_survey_response_status")
 }
 
 model survey_section {
@@ -210,9 +234,12 @@ model survey_section {
   created_at      DateTime              @default(now())
   updated_at      DateTime?
   survey_question survey_question[]
-  survey_response survey_response       @relation(fields: [response_id], references: [response_id])
+  survey_response survey_response       @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_section_response_id")
 
-  @@unique([response_id, section_key])
+  @@unique([response_id, section_key], map: "response_section_unique")
+  @@index([response_id], map: "fk_survey_section_response_id")
+  @@index([section_key], map: "idx_survey_section_key")
+  @@index([status], map: "idx_survey_section_status")
 }
 
 model survey_validation {
@@ -223,7 +250,11 @@ model survey_validation {
   validation_message String?
   validation_data    String?
   created_at         DateTime                            @default(now())
-  survey_response    survey_response                     @relation(fields: [response_id], references: [response_id])
+  survey_response    survey_response                     @relation(fields: [response_id], references: [response_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_survey_validation_response_id")
+
+  @@index([response_id], map: "fk_survey_validation_response_id")
+  @@index([validation_status], map: "idx_survey_validation_status")
+  @@index([validation_type], map: "idx_survey_validation_type")
 }
 
 model barangay_history {
@@ -235,7 +266,10 @@ model barangay_history {
   notes       String?
   created_at  DateTime  @default(now())
   updated_at  DateTime?
-  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id])
+  barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: Restrict, map: "fk_history_barangay_id")
+
+  @@index([barangay_id], map: "fk_history_barangay_id")
+  @@index([year], map: "idx_barangay_history_year")
 }
 
 enum barangay_seal {

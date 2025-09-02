@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as Prisma from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const prisma = new Prisma.PrismaClient();
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
@@ -28,23 +31,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        status: true,
-        organization: true,
-        jobTitle: true,
-        createdAt: true,
-        lastLogin: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const { data: users, error } = await supabase
+      .from('user')
+      .select('id, firstName, lastName, email, role, status, organization, jobTitle, createdAt, lastLogin')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({ users });
   } catch (error) {
@@ -71,21 +65,15 @@ export async function POST(req: NextRequest) {
       data.password = await bcrypt.hash(data.password, saltRounds);
     }
     
-    const user = await prisma.user.create({ 
-      data,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        status: true,
-        organization: true,
-        jobTitle: true,
-        createdAt: true,
-        lastLogin: true,
-      }
-    });
+    const { data: user, error } = await supabase
+      .from('user')
+      .insert(data)
+      .select('id, firstName, lastName, email, role, status, organization, jobTitle, createdAt, lastLogin')
+      .single();
+
+    if (error) {
+      throw error;
+    }
     
     return NextResponse.json({ 
       message: 'User created successfully',
@@ -99,15 +87,32 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const data = await req.json();
   const { id, ...updateData } = data;
-  const user = await prisma.user.update({
-    where: { id },
-    data: updateData,
-  });
+  
+  const { data: user, error } = await supabase
+    .from('user')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ message: 'Failed to update user', error: error.message }, { status: 500 });
+  }
+
   return NextResponse.json(user);
 }
 
 export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
-  await prisma.user.delete({ where: { id } });
+  
+  const { error } = await supabase
+    .from('user')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ message: 'Failed to delete user', error: error.message }, { status: 500 });
+  }
+
   return NextResponse.json({ success: true });
 }

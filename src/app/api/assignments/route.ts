@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { createClient } from '@supabase/supabase-js';
 
-const prisma = new PrismaClient()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
   try {
-    const assignments = await prisma.assignment.findMany({
-      include: {
-        barangay: {
-          select: {
-            barangay_name: true
-          }
-        },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' }
-    })
+    const { data: assignments, error } = await supabase
+      .from('assignment')
+      .select(`
+        *,
+        barangay (
+          barangay_name
+        ),
+        user (
+          firstName,
+          lastName,
+          email
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
     
     return NextResponse.json(assignments)
   } catch (error) {
@@ -30,8 +34,6 @@ export async function GET() {
       { error: "Failed to fetch assignments" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -40,28 +42,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { barangay_id, user_id, status, progress } = body
 
-    const assignment = await prisma.assignment.create({
-      data: {
+    const { data: assignment, error } = await supabase
+      .from('assignment')
+      .insert({
         barangay_id: parseInt(barangay_id),
         user_id: parseInt(user_id),
         status: status || 'Pending',
         progress: parseInt(progress) || 0
-      },
-      include: {
-        barangay: {
-          select: {
-            barangay_name: true
-          }
-        },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
-    })
+      })
+      .select(`
+        *,
+        barangay (
+          barangay_name
+        ),
+        user (
+          firstName,
+          lastName,
+          email
+        )
+      `)
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(assignment)
   } catch (error) {
@@ -70,8 +74,6 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create assignment" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -80,30 +82,32 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { assignment_id, barangay_id, user_id, status, progress } = body
 
-    const assignment = await prisma.assignment.update({
-      where: { assignment_id },
-      data: {
+    const { data: assignment, error } = await supabase
+      .from('assignment')
+      .update({
         barangay_id: parseInt(barangay_id),
         user_id: parseInt(user_id),
         status,
         progress: parseInt(progress) || 0,
-        updated_at: new Date()
-      },
-      include: {
-        barangay: {
-          select: {
-            barangay_name: true
-          }
-        },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
-    })
+        updated_at: new Date().toISOString()
+      })
+      .eq('assignment_id', assignment_id)
+      .select(`
+        *,
+        barangay (
+          barangay_name
+        ),
+        user (
+          firstName,
+          lastName,
+          email
+        )
+      `)
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(assignment)
   } catch (error) {
@@ -112,8 +116,6 @@ export async function PUT(request: NextRequest) {
       { error: "Failed to update assignment" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -122,9 +124,14 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json()
     const { assignment_id } = body
 
-    await prisma.assignment.delete({
-      where: { assignment_id }
-    })
+    const { error } = await supabase
+      .from('assignment')
+      .delete()
+      .eq('assignment_id', assignment_id);
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -133,7 +140,5 @@ export async function DELETE(request: NextRequest) {
       { error: "Failed to delete assignment" },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

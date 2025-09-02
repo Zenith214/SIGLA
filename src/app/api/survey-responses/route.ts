@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
         barangay_id: parseInt(barangayId),
         interviewer_id: parseInt(interviewerId),
         respondent_name: selectedMember,
+        respondent_age: respondentDemographics?.age || null,
+        respondent_gender: respondentDemographics?.gender as any || null,
         location_lat: parseFloat(location.lat),
         location_lng: parseFloat(location.lng),
         location_address: location.address,
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Create survey sections with their data
     const sections = [
+      { key: 'demographics', name: 'Respondent Demographics', data: respondentDemographics },
       { key: 'financial', name: 'Financial Administration', data: financialAdmin },
       { key: 'disaster', name: 'Disaster Preparedness', data: disasterPrep },
       { key: 'safety', name: 'Safety & Peace Order', data: safetyPeace },

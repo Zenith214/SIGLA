@@ -23,6 +23,7 @@ import { UsersRoles } from "./ui/sections/users-roles"
 import { Assignments } from "./ui/sections/assignments"
 import { Backup } from "./ui/sections/backup"
 import { Menu, X } from "lucide-react"
+import { ToastProvider } from "@/components/ui/toast"
 
 const sectionTitles = {
   "survey-cycles": "Survey Cycles",
@@ -102,9 +103,10 @@ export default function AdminSettingsPanel() {
 
   return (
     <ProtectedRoute>
-      <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-        <SidebarInset>
+      <ToastProvider>
+        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+          <SidebarInset>
           {/* Header */}
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4 sticky top-0 z-10">
           <Button
@@ -148,7 +150,8 @@ export default function AdminSettingsPanel() {
             <div className="container mx-auto p-6 max-w-7xl">{renderSection()}</div>
           </main>
         </SidebarInset>
-      </SidebarProvider>
+        </SidebarProvider>
+      </ToastProvider>
     </ProtectedRoute>
   )
 }

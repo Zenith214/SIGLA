@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { MapPin, Edit, Trash2, Award, History } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/toast"
 
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])
@@ -26,6 +27,7 @@ export function Barangays() {
   const [editingBarangay, setEditingBarangay] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
+  const { addToast } = useToast()
 
 
 
@@ -68,18 +70,50 @@ export function Barangays() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
+      // Include the barangayId that the API expects
+      const updatePayload = {
+        barangayId: editForm.barangay_id || editForm.id, // Use barangay_id or fallback to id
+        ...editForm
+      };
+
+      console.log('Sending update payload:', updatePayload);
+
       const res = await fetch("/api/barangays/all", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(updatePayload),
       })
-      if (!res.ok) throw new Error("Failed to update barangay")
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update barangay");
+      }
+      
       const updated = await res.json()
-      setBarangays(barangays.map(b => (b.id === updated.id ? updated : b)))
+      console.log('Update response:', updated);
+      
+      // Update the local state with the updated barangay
+      setBarangays(barangays.map(b => (b.id === updated.id ? { ...b, ...updated } : b)))
       setEditingBarangay(null)
       setEditForm(null)
+      
+      // Show beautiful success toast
+      addToast({
+        type: "success",
+        title: "Barangay Updated Successfully!",
+        description: `${editForm.name} has been updated with the latest information.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      console.error('Update error:', err);
+      
+      // Show beautiful error toast
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the barangay.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
