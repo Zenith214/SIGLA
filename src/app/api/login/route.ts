@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Pool } from 'pg';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
@@ -17,29 +26,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
   }
 
+  let client;
   try {
-    // Find user using Supabase
-    const { data: users, error: findError } = await supabase
-      .from('user')
-      .select('*')
-      .eq('email', email)
-      .limit(1);
-
-    if (findError || !users || users.length === 0) {
+    console.log('Login attempt for:', email);
+    
+    // Get a client from the pool
+    client = await pool.connect();
+    
+    // Find user by email using direct PostgreSQL query
+    const userResult = await client.query('SELECT * FROM "user" WHERE email = $1', [email]);
+    
+    if (userResult.rows.length === 0) {
+      console.log('User not found');
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
+    
+    const user = userResult.rows[0];
+    console.log('User found:', user ? 'Yes' : 'No');
 
-    const user = users[0];
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isPasswordValid);
+    
     if (!isPasswordValid) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Update lastLogin using Supabase
-    await supabase
-      .from('user')
-      .update({ lastLogin: new Date().toISOString() })
-      .eq('id', user.id);
+    // Update lastLogin in database
+    await client.query('UPDATE "user" SET "lastLogin" = $1 WHERE id = $2', [new Date().toISOString(), user.id]);
+    console.log('Updated lastLogin for user:', user.id);
     // Generate JWT with user info including role
     const token = jwt.sign(
       {
@@ -75,6 +89,12 @@ export async function POST(req: NextRequest) {
     
     return response;
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json({ message: 'Login failed', error: error instanceof Error ? error.message : error }, { status: 500 });
+  } finally {
+    // Release the client back to the pool
+    if (client) {
+      client.release();
+    }
   }
 }

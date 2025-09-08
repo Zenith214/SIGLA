@@ -66,7 +66,14 @@ function isPublic(path: string) {
     return true;
   }
   
-  return PUBLIC_PATHS.includes(path);
+  // Check if the path is in the public paths list
+  for (const publicPath of PUBLIC_PATHS) {
+    if (path === publicPath || path === `${publicPath}/`) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 // Helper to check if the path requires authentication
@@ -103,17 +110,36 @@ export function middleware(request: NextRequest) {
     // Allow non-protected routes to pass through
     return NextResponse.next();
   }
+  
+  // Special handling for API routes
+  const isApiRoute = pathname.startsWith('/api/');
+  const isAuthApiRoute = pathname === '/api/login' || pathname === '/api/register' || pathname === '/api/logout';
+  
+  // Allow auth API routes to pass through
+  if (isApiRoute && isAuthApiRoute) {
+    return NextResponse.next();
+  }
 
   // Check for the sigla_token cookie
   const token = request.cookies.get('sigla_token');
   console.log('🍪 MIDDLEWARE - Token present:', !!token?.value);
   
   if (!token || !token.value) {
+    // For API routes, return a 401 Unauthorized response
+    if (pathname.startsWith('/api/')) {
+      console.log('❌ MIDDLEWARE - No token for API route, returning 401');
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     // Don't redirect if already on login page or register page
     if (pathname === '/login' || pathname === '/register') {
       console.log('📍 MIDDLEWARE - Already on auth page, allowing through');
       return NextResponse.next();
     }
+    
     console.log('❌ MIDDLEWARE - No token, redirecting to login');
     // No token found, redirect to login
     const loginUrl = request.nextUrl.clone();
@@ -132,11 +158,21 @@ export function middleware(request: NextRequest) {
   console.log('🔐 MIDDLEWARE - Token valid:', tokenValidation.valid);
   
   if (!tokenValidation.valid) {
+    // For API routes, return a 401 Unauthorized response
+    if (pathname.startsWith('/api/')) {
+      console.log('❌ MIDDLEWARE - Invalid token for API route, returning 401');
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Invalid or expired authentication token' },
+        { status: 401 }
+      );
+    }
+    
     // Don't redirect if already on login page or register page
     if (pathname === '/login' || pathname === '/register') {
       console.log('📍 MIDDLEWARE - Invalid token but on auth page, allowing through');
       return NextResponse.next();
     }
+    
     console.log('❌ MIDDLEWARE - Invalid token, redirecting to login');
     // Invalid token, redirect to login
     const loginUrl = request.nextUrl.clone();
@@ -163,10 +199,20 @@ export function middleware(request: NextRequest) {
   // Check admin routes
   if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
     if (userRole !== 'admin') {
+      // For API routes, return a 403 Forbidden response
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'You need admin privileges to access this resource' },
+          { status: 403 }
+        );
+      }
+      
       // Redirect to dashboard for non-admin users
       const dashboardUrl = request.nextUrl.clone();
       dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.searchParams.set('redirected', '1');
       dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
+      dashboardUrl.searchParams.set('attempted_path', pathname);
       return NextResponse.redirect(dashboardUrl);
     }
   }
@@ -174,10 +220,20 @@ export function middleware(request: NextRequest) {
   // Check interviewer routes
   if (INTERVIEWER_ROUTES.some(route => pathname.startsWith(route))) {
     if (userRole !== 'interviewer' && userRole !== 'admin') {
+      // For API routes, return a 403 Forbidden response
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'You need interviewer privileges to access this resource' },
+          { status: 403 }
+        );
+      }
+      
       // Redirect to dashboard for non-interviewer users
       const dashboardUrl = request.nextUrl.clone();
       dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.searchParams.set('redirected', '1');
       dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
+      dashboardUrl.searchParams.set('attempted_path', pathname);
       return NextResponse.redirect(dashboardUrl);
     }
   }
@@ -197,4 +253,4 @@ export const config = {
     // Match all routes except static files and Next.js internals
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|css|js|ico|woff|woff2|ttf)$).*)',
   ],
-}; 
+};

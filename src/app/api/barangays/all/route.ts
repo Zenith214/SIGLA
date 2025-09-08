@@ -1,35 +1,26 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
+import { PrismaClient } from '@prisma/client';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Fetch ALL barangays using Supabase
-    const { data: barangays, error } = await supabase
-      .from('barangay')
-      .select(`
-        *,
-        survey_target (
-          target,
-          achieved,
-          percentage,
-          created_at
-        )
-      `)
-      .eq('is_active', true)
-      .order('barangay_name', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
+    // Fetch ALL barangays using Prisma
+    const barangays = await prisma.barangay.findMany({
+      where: {
+        is_active: true
+      },
+      include: {
+        surveyTargets: true
+      },
+      orderBy: {
+        barangay_name: 'asc'
+      }
+    });
 
     // Transform the data to match frontend expectations
     const transformedBarangays = barangays.map(barangay => {
-      const surveyTarget = barangay.survey_target?.[0];
+      const surveyTarget = barangay.surveyTargets?.[0];
       const progress = surveyTarget?.percentage || 0;
       
       let status = "Pending";
@@ -49,7 +40,7 @@ export async function GET() {
         households: barangay.households || 0,
         captain: barangay.captain,
         description: barangay.description,
-        currentStatus: barangay.currentstatus || status,
+        currentStatus: barangay.currentStatus || status,
         seal: barangay.seal,
         history: [] // Add empty history for now
       };
@@ -62,6 +53,8 @@ export async function GET() {
       { message: 'Failed to fetch barangays', error: error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -88,20 +81,20 @@ export async function PUT(req: Request) {
     if (updates.population !== undefined) updateData.population = updates.population;
     if (updates.households !== undefined) updateData.households = updates.households;
     if (updates.captain !== undefined) updateData.captain = updates.captain;
-    if (updates.currentStatus !== undefined) updateData.currentstatus = updates.currentStatus;
+    if (updates.currentStatus !== undefined) updateData.currentStatus = updates.currentStatus;
     if (updates.is_active !== undefined) updateData.is_active = updates.is_active;
 
     console.log('Mapped update data:', updateData);
 
-    const { data: updatedBarangay, error } = await supabase
-      .from('barangay')
-      .update(updateData)
-      .eq('barangay_id', parseInt(barangayId))
-      .select()
-      .single();
+    const updatedBarangay = await prisma.barangay.update({
+      where: {
+        barangay_id: parseInt(barangayId)
+      },
+      data: updateData
+    });
 
-    if (error) {
-      throw error;
+    if (!updatedBarangay) {
+      throw new Error('Failed to update barangay');
     }
 
     // Transform response to match frontend expectations
@@ -114,7 +107,7 @@ export async function PUT(req: Request) {
       population: updatedBarangay.population,
       households: updatedBarangay.households,
       captain: updatedBarangay.captain,
-      currentStatus: updatedBarangay.currentstatus,
+      currentStatus: updatedBarangay.currentStatus,
       is_active: updatedBarangay.is_active
     };
 
@@ -126,5 +119,7 @@ export async function PUT(req: Request) {
       { message: 'Failed to update barangay', error: error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

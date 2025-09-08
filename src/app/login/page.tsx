@@ -29,13 +29,16 @@ export default function SiglaLogin() {
   const searchParams = useSearchParams()
   const { login, user, isAuthenticated, isLoading: authLoading } = useAuth()
 
-  // Add page loading effect
+  // Add page loading effect and check if user is already authenticated
   useEffect(() => {
     const timer = setTimeout(() => {
       setPageLoading(false);
     }, 800);
+    
+    // Removed the already authenticated user detection as requested
+    
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
 
 
@@ -45,6 +48,7 @@ export default function SiglaLogin() {
   useEffect(() => {
     const redirected = searchParams.get('redirected');
     const reason = searchParams.get('reason');
+    const attemptedPath = searchParams.get('attempted_path');
 
     if (redirected === '1') {
       let message = "";
@@ -56,7 +60,14 @@ export default function SiglaLogin() {
           message = "Your session has expired. Please log in again.";
           break;
         case 'insufficient_permissions':
-          message = "You don't have permission to access that page. Please log in with appropriate credentials.";
+          if (attemptedPath) {
+            message = `You don't have permission to access ${attemptedPath}. Please log in with appropriate credentials.`;
+          } else {
+            message = "You don't have permission to access that page. Please log in with appropriate credentials.";
+          }
+          break;
+        case 'logout':
+          message = "You have been successfully logged out.";
           break;
         default:
           message = "Please log in to continue.";
@@ -131,11 +142,17 @@ export default function SiglaLogin() {
         // Get redirect URL from search params
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
 
+        // Validate the redirect URL to prevent open redirect vulnerabilities
+        const isValidRedirect = redirectUrl.startsWith('/') && 
+                               !redirectUrl.startsWith('//') && 
+                               !redirectUrl.includes(':');
+
         // Redirect based on role immediately
         if (result.role === 'interviewer') {
-          window.location.href = "/survey/";
+          window.location.href = "/survey";
         } else {
-          window.location.href = redirectUrl;
+          // Use the redirect URL if valid, otherwise default to dashboard
+          window.location.href = isValidRedirect ? redirectUrl : '/dashboard';
         }
       } else {
         setLoginStatus("error");
@@ -224,12 +241,19 @@ export default function SiglaLogin() {
 
             <CardContent>
               {/* Redirect Messages */}
-              {redirectMessage && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#0072CE", color: "white" }}>
-                  <Lock className="h-4 w-4" />
-                  <AlertDescription>{redirectMessage}</AlertDescription>
-                </Alert>
-              )}
+                {redirectMessage && (
+                  <Alert className={`mb-4 border-0 ${redirectMessage.includes('successfully') ? 'bg-green-50 text-green-800 border-green-200' : ''}`} 
+                         style={{ backgroundColor: redirectMessage.includes('successfully') ? "#228B22" : "#0072CE", color: "white" }}>
+                    {redirectMessage.includes('successfully') ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    <AlertDescription>
+                      {redirectMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
               {/* Status Messages */}
               {loginStatus === "success" && (

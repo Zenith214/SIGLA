@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
@@ -41,15 +38,22 @@ export async function PATCH(
   }
 
   try {
-    const { data: updatedUser, error } = await supabase
-      .from('user')
-      .update({ role })
-      .eq('id', userId)
-      .select('id, firstName, lastName, email, role')
-      .single();
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: { role },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true
+      }
+    });
 
-    if (error) {
-      throw error;
+    if (!updatedUser) {
+      throw new Error('Failed to update user role');
     }
 
     return NextResponse.json({ 
@@ -58,6 +62,8 @@ export async function PATCH(
     });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to update user role' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -75,19 +81,21 @@ export async function GET(
   const userId = parseInt(resolvedParams.id);
 
   try {
-    const { data: user, error } = await supabase
-      .from('user')
-      .select('id, firstName, lastName, email, role, organization, jobTitle, createdAt, lastLogin')
-      .eq('id', userId)
-      .single();
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId
+      }
+    });
 
-    if (error || !user) {
+    if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({ user });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch user' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -105,17 +113,18 @@ export async function DELETE(
   const userId = parseInt(resolvedParams.id);
 
   try {
-    const { error } = await supabase
-      .from('user')
-      .delete()
-      .eq('id', userId);
+    await prisma.user.delete({
+      where: {
+        id: userId
+      }
+    });
 
-    if (error) {
-      throw error;
-    }
+
 
     return NextResponse.json({ message: 'User deleted successfully' });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ message: 'Failed to delete user' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }

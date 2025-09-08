@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
+import { PrismaClient } from '@prisma/client';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const { data: targets, error } = await supabase
-      .from('survey_target')
-      .select('*');
-
-    if (error) {
-      throw error;
-    }
+    const targets = await prisma.surveyTarget.findMany();
 
     return NextResponse.json(targets);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -26,14 +19,12 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
     
-    const { data: target, error } = await supabase
-      .from('survey_target')
-      .insert(data)
-      .select()
-      .single();
+    const target = await prisma.surveyTarget.create({
+      data: data
+    });
 
-    if (error) {
-      throw error;
+    if (!target) {
+      throw new Error('Failed to create survey target');
     }
 
     return NextResponse.json(target);
@@ -47,15 +38,15 @@ export async function PUT(req: NextRequest) {
     const data = await req.json();
     const { target_id, ...updateData } = data;
     
-    const { data: target, error } = await supabase
-      .from('survey_target')
-      .update(updateData)
-      .eq('target_id', target_id)
-      .select()
-      .single();
+    const target = await prisma.surveyTarget.update({
+      where: {
+        target_id: target_id
+      },
+      data: updateData
+    });
 
-    if (error) {
-      throw error;
+    if (!target) {
+      throw new Error('Failed to update survey target');
     }
 
     return NextResponse.json(target);
@@ -68,14 +59,13 @@ export async function DELETE(req: NextRequest) {
   try {
     const { target_id } = await req.json();
     
-    const { error } = await supabase
-      .from('survey_target')
-      .delete()
-      .eq('target_id', target_id);
+    await prisma.surveyTarget.delete({
+      where: {
+        target_id: target_id
+      }
+    });
 
-    if (error) {
-      throw error;
-    }
+
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

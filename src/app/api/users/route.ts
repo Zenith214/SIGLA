@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
@@ -31,14 +28,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { data: users, error } = await supabase
-      .from('user')
-      .select('id, firstName, lastName, email, role, status, organization, jobTitle, createdAt, lastLogin')
-      .order('createdAt', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
+    const users = await prisma.user.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     return NextResponse.json({ users });
   } catch (error) {
@@ -46,6 +40,8 @@ export async function GET(request: NextRequest) {
       message: 'Failed to fetch users', 
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -65,14 +61,24 @@ export async function POST(req: NextRequest) {
       data.password = await bcrypt.hash(data.password, saltRounds);
     }
     
-    const { data: user, error } = await supabase
-      .from('user')
-      .insert(data)
-      .select('id, firstName, lastName, email, role, status, organization, jobTitle, createdAt, lastLogin')
-      .single();
+    const user = await prisma.user.create({
+      data: data,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        status: true,
+        organization: true,
+        jobTitle: true,
+        createdAt: true,
+        lastLogin: true
+      }
+    });
 
-    if (error) {
-      throw error;
+    if (!user) {
+      throw new Error('Failed to create user');
     }
     
     return NextResponse.json({ 
@@ -81,38 +87,55 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create user' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function PUT(req: NextRequest) {
-  const data = await req.json();
-  const { id, ...updateData } = data;
-  
-  const { data: user, error } = await supabase
-    .from('user')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
+  try {
+    const data = await req.json();
+    const { id, ...updateData } = data;
+    
+    const user = await prisma.user.update({
+      where: {
+        id: id
+      },
+      data: updateData
+    });
 
-  if (error) {
-    return NextResponse.json({ message: 'Failed to update user', error: error.message }, { status: 500 });
+    if (!user) {
+      throw new Error('Failed to update user');
+    }
+
+    return NextResponse.json(user);
+  } catch (error) {
+    return NextResponse.json({ 
+      message: 'Failed to update user', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
-
-  return NextResponse.json(user);
 }
 
 export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  
-  const { error } = await supabase
-    .from('user')
-    .delete()
-    .eq('id', id);
+  try {
+    const { id } = await req.json();
+    
+    await prisma.user.delete({
+      where: {
+        id: id
+      }
+    });
 
-  if (error) {
-    return NextResponse.json({ message: 'Failed to delete user', error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ 
+      message: 'Failed to delete user', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
-
-  return NextResponse.json({ success: true });
 }

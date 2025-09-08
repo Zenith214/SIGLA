@@ -111,7 +111,7 @@ export async function logout(): Promise<void> {
   } catch (error) {
     console.error('Logout error:', error);
   } finally {
-    // Redirect to login regardless of API call success
-    window.location.href = '/login';
+    // Redirect to login with logout message
+    window.location.href = '/login?redirected=1&reason=logout';
   }
 }
