@@ -143,7 +143,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
               {user?.role?.toLowerCase() !== 'admin' && (
                 <Link href="/survey/forms" className="block w-full">
                   <button className="w-full bg-[#16a34a] hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
-                    Continue Survey
+                    {progress === 0 ? "Start Survey" : "Continue Survey"}
                   </button>
                 </Link>
               )}
