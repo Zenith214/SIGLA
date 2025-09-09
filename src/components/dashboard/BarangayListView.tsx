@@ -345,51 +345,9 @@ export default function BarangayListView() {
         </div>
       </div>
 
-      {/* Overall Progress - Dynamic Section */}
-      {!loading && barangays.length > 0 && (
-        <div className="bg-white rounded-lg p-6 shadow-sm mt-4">
-          <h2 className="text-2xl font-bold mb-4">SIGLA Survey 2025 - Overall Progress</h2>
-          <div className="space-y-2">
-            <p className="text-gray-600">Progress</p>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-green-500 h-2.5 rounded-full"
-                style={{ width: `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%` }}
-              />
-            </div>
-            <div className="text-right">{Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%</div>
-          </div>
-        </div>
-      )}
 
-      {/* Dynamic Barangay Grid */}
-      {!loading && barangays.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-          {barangays.slice(0, 12).map((barangay, index) => (
-            <Card key={barangay.id} className="p-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-sm">{barangay.name}</h3>
-                <Badge variant={
-                  barangay.status === "Completed" ? "default" : 
-                  barangay.status === "Pending" ? "secondary" : "default"
-                }>
-                  {barangay.status}
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <p className="text-gray-600 text-sm">Progress</p>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-green-500 h-2.5 rounded-full"
-                    style={{ width: `${barangay.progress}%` }}
-                  />
-                </div>
-                <div className="text-right text-sm">{barangay.progress}%</div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+
+
     </div>
   );
 }

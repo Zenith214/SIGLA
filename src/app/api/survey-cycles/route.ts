@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET() {
+  let client;
   try {
-    const cycles = await prisma.survey_cycle.findMany({
-      orderBy: {
-        created_at: 'desc'
-      }
-    });
-    
-    return NextResponse.json(cycles)
+    client = await pool.connect();
+    const result = await client.query('SELECT * FROM survey_cycle ORDER BY created_at DESC');
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Error fetching survey cycles:", error)
     return NextResponse.json(
@@ -19,30 +28,38 @@ export async function GET() {
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function POST(request: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const body = await request.json()
     const { year, status, start_date, end_date, responses } = body
 
-    const cycle = await prisma.survey_cycle.create({
-      data: {
-        year,
-        status,
-        start_date: new Date(start_date),
-        end_date: new Date(end_date),
-        responses: responses || 0
-      }
-    });
+    const query = `
+      INSERT INTO survey_cycle (year, status, start_date, end_date, responses, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const result = await client.query(query, [
+      year,
+      status,
+      new Date(start_date),
+      new Date(end_date),
+      responses || 0
+    ]);
 
-    if (!cycle) {
+    if (result.rows.length === 0) {
       throw new Error('Failed to create survey cycle');
     }
 
-    return NextResponse.json(cycle)
+    return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error("Error creating survey cycle:", error)
     return NextResponse.json(
@@ -50,35 +67,59 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function PUT(request: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const body = await request.json()
     const { cycle_id, year, status, start_date, end_date, responses } = body
 
-    const updateData: any = {};
-    if (year !== undefined) updateData.year = year;
-    if (status !== undefined) updateData.status = status;
-    if (start_date !== undefined) updateData.start_date = new Date(start_date);
-    if (end_date !== undefined) updateData.end_date = new Date(end_date);
-    if (responses !== undefined) updateData.responses = responses;
-    updateData.updated_at = new Date();
-    
-    const cycle = await prisma.survey_cycle.update({
-      where: {
-        cycle_id: cycle_id
-      },
-      data: updateData
-    });
+    const updateFields = [];
+    const values = [cycle_id];
+    let paramIndex = 2;
 
-    if (!cycle) {
+    if (year !== undefined) {
+      updateFields.push(`year = $${paramIndex}`);
+      values.push(year);
+      paramIndex++;
+    }
+    if (status !== undefined) {
+      updateFields.push(`status = $${paramIndex}`);
+      values.push(status);
+      paramIndex++;
+    }
+    if (start_date !== undefined) {
+      updateFields.push(`start_date = $${paramIndex}`);
+      values.push(new Date(start_date));
+      paramIndex++;
+    }
+    if (end_date !== undefined) {
+      updateFields.push(`end_date = $${paramIndex}`);
+      values.push(new Date(end_date));
+      paramIndex++;
+    }
+    if (responses !== undefined) {
+      updateFields.push(`responses = $${paramIndex}`);
+      values.push(responses);
+      paramIndex++;
+    }
+    
+    updateFields.push(`updated_at = NOW()`);
+    
+    const query = `UPDATE survey_cycle SET ${updateFields.join(', ')} WHERE cycle_id = $1 RETURNING *`;
+    const result = await client.query(query, values);
+
+    if (result.rows.length === 0) {
       throw new Error('Failed to update survey cycle');
     }
 
-    return NextResponse.json(cycle)
+    return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error("Error updating survey cycle:", error)
     return NextResponse.json(
@@ -86,22 +127,20 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const body = await request.json()
     const { cycle_id } = body
 
-    await prisma.survey_cycle.delete({
-      where: {
-        cycle_id: cycle_id
-      }
-    });
-
-
+    await client.query('DELETE FROM survey_cycle WHERE cycle_id = $1', [cycle_id]);
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -111,6 +150,8 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }

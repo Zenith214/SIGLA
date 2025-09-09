@@ -245,11 +245,11 @@ export default function SiglaLogin() {
                   <Alert className={`mb-4 border-0 ${redirectMessage.includes('successfully') ? 'bg-green-50 text-green-800 border-green-200' : ''}`} 
                          style={{ backgroundColor: redirectMessage.includes('successfully') ? "#228B22" : "#0072CE", color: "white" }}>
                     {redirectMessage.includes('successfully') ? (
-                      <CheckCircle2 className="h-4 w-4" />
+                      <CheckCircle2 className="h-4 w-4" style={{ color: "white" }} />
                     ) : (
-                      <Lock className="h-4 w-4" />
+                      <Lock className="h-4 w-4" style={{ color: "white" }} />
                     )}
-                    <AlertDescription>
+                    <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
                       {redirectMessage}
                     </AlertDescription>
                   </Alert>

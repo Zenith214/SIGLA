@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
@@ -27,21 +40,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
+  let client;
   try {
-    const users = await prisma.user.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    return NextResponse.json({ users });
+    client = await pool.connect();
+    const result = await client.query('SELECT * FROM "user" ORDER BY "createdAt" DESC');
+    return NextResponse.json({ users: result.rows });
   } catch (error) {
     return NextResponse.json({ 
       message: 'Failed to fetch users', 
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -52,7 +64,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
+  let client;
   try {
+    client = await pool.connect();
     const data = await req.json();
     
     // Hash the password if provided
@@ -61,73 +75,72 @@ export async function POST(req: NextRequest) {
       data.password = await bcrypt.hash(data.password, saltRounds);
     }
     
-    const user = await prisma.user.create({
-      data: data,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        status: true,
-        organization: true,
-        jobTitle: true,
-        createdAt: true,
-        lastLogin: true
-      }
-    });
+    const columns = Object.keys(data).map(key => `"${key}"`).join(', ');
+    const values = Object.values(data);
+    const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+    
+    const query = `
+      INSERT INTO "user" (${columns}, "createdAt") 
+      VALUES (${placeholders}, NOW()) 
+      RETURNING id, "firstName", "lastName", email, role, status, organization, "jobTitle", "createdAt", "lastLogin"
+    `;
+    
+    const result = await client.query(query, values);
 
-    if (!user) {
+    if (result.rows.length === 0) {
       throw new Error('Failed to create user');
     }
     
     return NextResponse.json({ 
       message: 'User created successfully',
-      user 
+      user: result.rows[0]
     });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create user' }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function PUT(req: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const data = await req.json();
     const { id, ...updateData } = data;
     
-    const user = await prisma.user.update({
-      where: {
-        id: id
-      },
-      data: updateData
-    });
+    const setClause = Object.keys(updateData).map((key, index) => `"${key}" = $${index + 2}`).join(', ');
+    const values = [id, ...Object.values(updateData)];
+    
+    const query = `UPDATE "user" SET ${setClause} WHERE id = $1 RETURNING *`;
+    const result = await client.query(query, values);
 
-    if (!user) {
+    if (result.rows.length === 0) {
       throw new Error('Failed to update user');
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(result.rows[0]);
   } catch (error) {
     return NextResponse.json({ 
       message: 'Failed to update user', 
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const { id } = await req.json();
     
-    await prisma.user.delete({
-      where: {
-        id: id
-      }
-    });
+    await client.query('DELETE FROM "user" WHERE id = $1', [id]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -136,6 +149,8 @@ export async function DELETE(req: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }

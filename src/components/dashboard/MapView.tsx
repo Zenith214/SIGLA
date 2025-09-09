@@ -36,10 +36,8 @@ export default function MapView() {
         <BarangayListView />
       </div>
       
-      {/* Floating Help Button - Desktop only */}
-      <div className="hidden md:block">
-        <FloatingHelpButton />
-      </div>
+      {/* Floating Help Button - All devices */}
+      <FloatingHelpButton />
     </div>
   );
 }

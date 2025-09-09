@@ -1,29 +1,50 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET() {
+  let client;
   try {
+    client = await pool.connect();
+
     // Fetch barangays with seals (awardees) for dashboard display
-    const barangays = await prisma.barangay.findMany({
-      where: {
-        is_active: true,
-        seal: 'yes' // Only show awardees on dashboard
-      },
-      include: {
-        surveyTargets: true
-      },
-      orderBy: {
-        barangay_name: 'asc'
-      }
-    });
+    const barangaysQuery = `
+      SELECT 
+        b.barangay_id,
+        b.barangay_name,
+        b.population,
+        b.households,
+        b.captain,
+        b.description,
+        b."currentStatus",
+        b.seal,
+        st.percentage
+      FROM barangay b
+      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+      WHERE b.is_active = true AND b.seal = 'yes'
+      ORDER BY b.barangay_name ASC
+    `;
+
+    const result = await client.query(barangaysQuery);
+    const barangays = result.rows;
 
     // Transform the data to match frontend expectations
-    const transformedBarangays = barangays.map(barangay => {
-      const surveyTarget = barangay.surveyTargets?.[0];
-      const progress = surveyTarget?.percentage || 0;
-      
+    const transformedBarangays = barangays.map((barangay: any) => {
+      const progress = barangay.percentage || 0;
+
       let status = "Pending";
       if (progress === 100) {
         status = "Completed";
@@ -55,6 +76,8 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }

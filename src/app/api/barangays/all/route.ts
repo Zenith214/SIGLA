@@ -1,27 +1,49 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET() {
+  let client;
   try {
-    // Fetch ALL barangays using Prisma
-    const barangays = await prisma.barangay.findMany({
-      where: {
-        is_active: true
-      },
-      include: {
-        surveyTargets: true
-      },
-      orderBy: {
-        barangay_name: 'asc'
-      }
-    });
+    client = await pool.connect();
+    
+    // Fetch ALL barangays with survey targets
+    const barangaysQuery = `
+      SELECT 
+        b.barangay_id,
+        b.barangay_name,
+        b.population,
+        b.households,
+        b.captain,
+        b.description,
+        b."currentStatus",
+        b.seal,
+        st.percentage
+      FROM barangay b
+      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+      WHERE b.is_active = true
+      ORDER BY b.barangay_name ASC
+    `;
+    
+    const result = await client.query(barangaysQuery);
+    const barangays = result.rows;
 
     // Transform the data to match frontend expectations
-    const transformedBarangays = barangays.map(barangay => {
-      const surveyTarget = barangay.surveyTargets?.[0];
-      const progress = surveyTarget?.percentage || 0;
+    const transformedBarangays = barangays.map((barangay: any) => {
+      const progress = barangay.percentage || 0;
       
       let status = "Pending";
       if (progress === 100) {
@@ -54,12 +76,16 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
 export async function PUT(req: Request) {
+  let client;
   try {
+    client = await pool.connect();
     const body = await req.json();
     const { barangayId, ...updates } = body;
 
@@ -73,29 +99,61 @@ export async function PUT(req: Request) {
     }
 
     // Map frontend field names to database field names
-    const updateData: any = {};
+    const updateFields = [];
+    const values = [parseInt(barangayId)];
+    let paramIndex = 2;
     
-    if (updates.name !== undefined) updateData.barangay_name = updates.name;
-    if (updates.seal !== undefined) updateData.seal = updates.seal;
-    if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.population !== undefined) updateData.population = updates.population;
-    if (updates.households !== undefined) updateData.households = updates.households;
-    if (updates.captain !== undefined) updateData.captain = updates.captain;
-    if (updates.currentStatus !== undefined) updateData.currentStatus = updates.currentStatus;
-    if (updates.is_active !== undefined) updateData.is_active = updates.is_active;
+    if (updates.name !== undefined) {
+      updateFields.push(`barangay_name = $${paramIndex}`);
+      values.push(updates.name);
+      paramIndex++;
+    }
+    if (updates.seal !== undefined) {
+      updateFields.push(`seal = $${paramIndex}`);
+      values.push(updates.seal);
+      paramIndex++;
+    }
+    if (updates.description !== undefined) {
+      updateFields.push(`description = $${paramIndex}`);
+      values.push(updates.description);
+      paramIndex++;
+    }
+    if (updates.population !== undefined) {
+      updateFields.push(`population = $${paramIndex}`);
+      values.push(updates.population);
+      paramIndex++;
+    }
+    if (updates.households !== undefined) {
+      updateFields.push(`households = $${paramIndex}`);
+      values.push(updates.households);
+      paramIndex++;
+    }
+    if (updates.captain !== undefined) {
+      updateFields.push(`captain = $${paramIndex}`);
+      values.push(updates.captain);
+      paramIndex++;
+    }
+    if (updates.currentStatus !== undefined) {
+      updateFields.push(`"currentStatus" = $${paramIndex}`);
+      values.push(updates.currentStatus);
+      paramIndex++;
+    }
+    if (updates.is_active !== undefined) {
+      updateFields.push(`is_active = $${paramIndex}`);
+      values.push(updates.is_active);
+      paramIndex++;
+    }
 
-    console.log('Mapped update data:', updateData);
+    console.log('Mapped update data:', updateFields, values);
 
-    const updatedBarangay = await prisma.barangay.update({
-      where: {
-        barangay_id: parseInt(barangayId)
-      },
-      data: updateData
-    });
+    const query = `UPDATE barangay SET ${updateFields.join(', ')} WHERE barangay_id = $1 RETURNING *`;
+    const result = await client.query(query, values);
 
-    if (!updatedBarangay) {
+    if (result.rows.length === 0) {
       throw new Error('Failed to update barangay');
     }
+
+    const updatedBarangay = result.rows[0];
 
     // Transform response to match frontend expectations
     const transformedResponse = {
@@ -120,6 +178,8 @@ export async function PUT(req: Request) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
