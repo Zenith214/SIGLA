@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, BarChart3, LogOut } from "lucide-react";
+import { Settings, BarChart3, LogOut, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -24,6 +24,9 @@ export default function UserDropdown() {
         break;
       case "survey-dashboard":
         router.push("/survey");
+        break;
+      case "dev-tools":
+        router.push("/admin/dev-tools");
         break;
       case "logout":
         await logout();
@@ -61,6 +64,13 @@ export default function UserDropdown() {
           <DropdownMenuItem onClick={() => handleMenuClick("survey-dashboard")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             <span>Survey Dashboard</span>
+          </DropdownMenuItem>
+        )}
+        {/* Show Dev Tools for admin role only */}
+        {user?.role === 'admin' && (
+          <DropdownMenuItem onClick={() => handleMenuClick("dev-tools")}>
+            <Wrench className="mr-2 h-4 w-4" />
+            <span>Dev Tools</span>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={() => handleMenuClick("logout")}>
