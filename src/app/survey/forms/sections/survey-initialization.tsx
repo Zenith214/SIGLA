@@ -6,6 +6,7 @@ import type { SurveyData } from "../page"
 import { useGeotagging } from "../utils/useGeotagging"
 import { geotaggingService } from "../utils/geotagging"
 import { InteractiveMap } from "./interactive-map"
+import { getAssignmentDescription, getAssignedSections } from "../utils/sectionAssignment"
 
 interface SurveyInitializationProps {
   data: SurveyData
@@ -318,6 +319,17 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
             <p className="mt-1 text-xs text-gray-500">
               Enter a whole number between 1 and 150. No decimals or letters allowed.
             </p>
+          )}
+          
+          {/* Section Assignment Display */}
+          {surveyNumber && !surveyNumberError && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Your Assigned Sections</h4>
+              <p className="text-sm text-blue-800">{getAssignmentDescription(surveyNumber)}</p>
+              <div className="mt-2 text-xs text-blue-700">
+                <strong>Note:</strong> You will complete 3 out of 6 sections to reduce survey time while maintaining data quality.
+              </div>
+            </div>
           )}
         </div>
 

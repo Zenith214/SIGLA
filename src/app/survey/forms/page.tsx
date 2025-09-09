@@ -12,9 +12,18 @@ import { KishGridSelection } from "./sections/kish-grid-selection"
 import { QuestionFlow } from "./sections/question-flow"
 import { TabbedSummary } from "./sections/tabbed-summary"
 import { Skeleton, SkeletonForm, SkeletonCard } from "@/components/ui/skeleton"
+import { 
+  getAssignedSections, 
+  getAssignmentDescription, 
+  isSectionAssigned,
+  getNextAssignedSection,
+  getPreviousAssignedSection,
+  calculateAssignedProgress
+} from "./utils/sectionAssignment"
 
 export interface SurveyData {
   surveyNumber: string
+  assignedSections?: string[] // New field for tracking assigned sections
   barangayId?: number
   location: { 
     lat: number; 
@@ -113,15 +122,10 @@ function SurveyAppContent() {
     socialProtection: {}, // Added missing property
   })
 
+  // Initialize with base sections - assigned sections will be added dynamically
   const [sections, setSections] = useState<SectionStatus[]>([
     { id: "initialization", name: "Survey Initialization", status: "in-progress" },
     { id: "kish-grid", name: "Respondent Selection", status: "pending" },
-    { id: "financial", name: "Financial Administration", status: "pending" },
-    { id: "disaster", name: "Disaster Preparedness", status: "pending" },
-    { id: "safety", name: "Safety & Peace Order", status: "pending" },
-    { id: "social", name: "Social Protection", status: "pending" },
-    { id: "business", name: "Business Friendliness", status: "pending" },
-    { id: "environmental", name: "Environmental Management", status: "pending" },
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
@@ -142,6 +146,32 @@ function SurveyAppContent() {
     }
   }, [])
 
+  // Update assigned sections when survey number changes
+  useEffect(() => {
+    if (surveyData.surveyNumber && surveyData.surveyNumber.trim()) {
+      const assignedSections = getAssignedSections(surveyData.surveyNumber);
+      const assignedSectionIds = assignedSections.map(s => s.id);
+      
+      // Update survey data with assigned sections
+      if (JSON.stringify(surveyData.assignedSections) !== JSON.stringify(assignedSectionIds)) {
+        setSurveyData(prev => ({ ...prev, assignedSections: assignedSectionIds }));
+      }
+      
+      // Rebuild sections array with assigned sections
+      const newSections: SectionStatus[] = [
+        { id: "initialization", name: "Survey Initialization", status: "completed" },
+        { id: "kish-grid", name: "Respondent Selection", status: currentSection === "kish-grid" ? "in-progress" : "pending" },
+        ...assignedSections.map(section => ({
+          ...section,
+          status: currentSection === section.id ? "in-progress" as const : "pending" as const
+        })),
+        { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
+      ];
+      
+      setSections(newSections);
+    }
+  }, [surveyData.surveyNumber, currentSection]);
+
   // Save data whenever it changes
   useEffect(() => {
     localStorage.setItem("barangay-survey-data", JSON.stringify(surveyData))
@@ -159,14 +189,24 @@ function SurveyAppContent() {
     setSurveyData((prev) => ({ ...prev, [section]: data }))
   }
 
-  const handleSectionComplete = (sectionId: string, nextSectionId: string) => {
+  const handleSectionComplete = (sectionId: string, nextSectionId?: string) => {
     updateSectionStatus(sectionId, "completed")
-    if (nextSectionId !== "summary") {
-      updateSectionStatus(nextSectionId, "in-progress")
-    } else {
+    
+    // Determine next section based on assignment logic
+    let actualNextSection = nextSectionId;
+    if (!actualNextSection && surveyData.surveyNumber) {
+      actualNextSection = getNextAssignedSection(surveyData.surveyNumber, sectionId);
+    }
+    
+    if (actualNextSection && actualNextSection !== "summary") {
+      updateSectionStatus(actualNextSection, "in-progress")
+    } else if (actualNextSection === "summary") {
       updateSectionStatus("summary", "in-progress")
     }
-    setCurrentSection(nextSectionId)
+    
+    if (actualNextSection) {
+      setCurrentSection(actualNextSection)
+    }
   }
 
   const renderCurrentSection = () => {
@@ -196,39 +236,38 @@ function SurveyAppContent() {
       case "social":
       case "business":
       case "environmental":
+        // Only render if section is assigned
+        if (!surveyData.surveyNumber || !isSectionAssigned(surveyData.surveyNumber, currentSection)) {
+          return (
+            <div className="p-6 text-center">
+              <p className="text-gray-600">This section is not assigned for your survey number.</p>
+              <button 
+                onClick={() => setCurrentSection("summary")}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+              >
+                Go to Summary
+              </button>
+            </div>
+          );
+        }
+        
         return (
           <QuestionFlow
             sectionId={currentSection}
             data={surveyData}
             onUpdate={updateSurveyData}
-            onComplete={(nextSection) => {
-              const nextSectionMap: Record<string, string> = {
-                financial: "disaster",
-                disaster: "safety",
-                safety: "social",
-                social: "business", // Ensure social leads to business
-                business: "environmental",
-                environmental: "summary",
-              };
-              handleSectionComplete(currentSection, nextSectionMap[currentSection] || "summary");
+            onComplete={() => {
+              handleSectionComplete(currentSection);
             }}
             onBack={() => {
-              const sectionOrder = [
-                "initialization",
-                "kish-grid",
-                "financial",
-                "disaster",
-                "safety",
-                "social",
-                "business",
-                "environmental",
-              ]
-              const currentIndex = sectionOrder.indexOf(currentSection)
-              if (currentIndex > 0) {
-                setCurrentSection(sectionOrder[currentIndex - 1])
+              if (surveyData.surveyNumber) {
+                const prevSection = getPreviousAssignedSection(surveyData.surveyNumber, currentSection);
+                if (prevSection) {
+                  setCurrentSection(prevSection);
+                }
               }
             }}
-            onResetSectionStatus={updateSectionStatus} // Pass the function down
+            onResetSectionStatus={updateSectionStatus}
           />
         )
       case "summary":
@@ -236,7 +275,16 @@ function SurveyAppContent() {
           <TabbedSummary
             data={surveyData}
             sections={sections}
-            onBack={() => setCurrentSection("environmental")}
+            onBack={() => {
+              if (surveyData.surveyNumber) {
+                // Go back to the last assigned section
+                const assignedSections = getAssignedSections(surveyData.surveyNumber);
+                const lastSection = assignedSections[assignedSections.length - 1];
+                if (lastSection) {
+                  setCurrentSection(lastSection.id);
+                }
+              }
+            }}
             onSubmit={async () => {
               try {
                 updateSectionStatus("summary", "completed")
@@ -323,24 +371,36 @@ function SurveyAppContent() {
       <Header user={formattedUser} currentSection={getCurrentSectionName()} />
       <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Desktop Sections Card - Hidden on Mobile */}
-            <div className="lg:col-span-1 hidden lg:block">
-              <SectionCard sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
-            </div>
+          {/* Show sidebar only after initialization when sections are assigned */}
+          {surveyData.surveyNumber && currentSection !== "initialization" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Desktop Sections Card - Hidden on Mobile */}
+              <div className="lg:col-span-1 hidden lg:block">
+                <SectionCard sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
+              </div>
 
-            {/* Main Content Card */}
-            <div className="lg:col-span-3 col-span-1">
+              {/* Main Content Card */}
+              <div className="lg:col-span-3 col-span-1">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
+                  {renderCurrentSection()}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Full width during initialization */
+            <div className="max-w-4xl mx-auto">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
                 {renderCurrentSection()}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Floating Progress Button - Mobile Only */}
-      <FloatingProgressButton sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
+      {/* Floating Progress Button - Mobile Only - Show only after initialization */}
+      {surveyData.surveyNumber && currentSection !== "initialization" && (
+        <FloatingProgressButton sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
+      )}
     </div>
   )
 }
