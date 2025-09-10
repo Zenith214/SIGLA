@@ -14,9 +14,10 @@ model SurveyTarget {
   achieved    Int?      @default(0)
   percentage  Int?      @default(0)
   created_at  DateTime  @default(now())
-  updated_at  DateTime?
+  updated_at  DateTime? @updatedAt
   barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id])
 
+  @@index([barangay_id])
   @@map("survey_target")
 }
 
@@ -27,9 +28,13 @@ model assignment {
   status        assignment_status @default(Pending)
   progress      Int?              @default(0)
   created_at    DateTime          @default(now())
-  updated_at    DateTime?
+  updated_at    DateTime?         @updatedAt
   barangay      barangay          @relation(fields: [barangay_id], references: [barangay_id])
   user          user              @relation(fields: [user_id], references: [id])
+  
+  @@index([barangay_id])
+  @@index([user_id])
+  @@index([status])
 }
 
 model backup {
@@ -41,36 +46,46 @@ model backup {
 }
 
 model barangay {
-  barangay_id      Int                @id @default(autoincrement())
-  barangay_name    String             @unique
-  seal             barangay_seal      @default(no)
-  description      String?
-  is_active        Boolean            @default(true)
-  created_at       DateTime           @default(now())
-  updated_at       DateTime?
-  households       Int?               @default(0)
-  population       Int?               @default(0)
-  area             Decimal?
-  captain          String?
-  currentStatus    String?
-  history          String?
-  assignment       assignment[]
-  barangay_history barangay_history[]
-  survey           survey[]
-  survey_response  survey_response[]
-  surveyTargets    SurveyTarget[]
+  barangay_id                Int                       @id @default(autoincrement())
+  barangay_name              String                    @unique
+  seal                       barangay_seal             @default(no)
+  description                String?
+  is_active                  Boolean                   @default(true)
+  created_at                 DateTime                  @default(now())
+  updated_at                 DateTime?                 @updatedAt
+  households                 Int?                      @default(0)
+  population                 Int?                      @default(0)
+  area                       Decimal?
+  captain                    String?
+  currentStatus              String?
+  history                    String?
+  assignment                 assignment[]
+  barangay_history           barangay_history[]
+  survey                     survey[]
+  survey_response            survey_response[]
+  surveyTargets              SurveyTarget[]
+  ml_prediction              ml_prediction[]
+  action_grid_classification action_grid_classification[]
+  ai_insight                 ai_insight[]
+  ai_recommendation          ai_recommendation[]
+  
+  @@index([is_active])
+  @@index([seal])
 }
 
 model survey {
   survey_id     Int           @id @default(autoincrement())
   barangay_id   Int
   status        survey_status @default(draft)
-  analyzed_data String?
-  raw_data      String?
+  analyzed_data String?       @db.Text
+  raw_data      String?       @db.Text
   created_at    DateTime      @default(now())
-  updated_at    DateTime?
+  updated_at    DateTime?     @updatedAt
   barangay      barangay      @relation(fields: [barangay_id], references: [barangay_id])
   survey_log    survey_log[]
+  
+  @@index([barangay_id])
+  @@index([status])
 }
 
 model user {
@@ -88,35 +103,44 @@ model user {
   status          String?           @default("Active")
   assignment      assignment[]
   survey_response survey_response[]
+  
+  @@index([role])
+  @@index([status])
+  @@index([lastName, firstName])
 }
 
 model survey_answer {
   answer_id       Int             @id @default(autoincrement())
   question_id     Int
   response_id     Int
-  answer_value    String?
-  answer_options  String?
-  answer_text     String?
+  answer_value    String?         @db.VarChar(255)
+  answer_options  String?         @db.Text
+  answer_text     String?         @db.Text
   answer_number   Decimal?
   answer_rating   Int?
   created_at      DateTime        @default(now())
-  updated_at      DateTime?
+  updated_at      DateTime?       @updatedAt
   survey_question survey_question @relation(fields: [question_id], references: [question_id])
   survey_response survey_response @relation(fields: [response_id], references: [response_id])
 
+  @@index([question_id])
+  @@index([response_id])
   @@unique([question_id, response_id])
 }
 
 model survey_attachment {
   attachment_id   Int             @id @default(autoincrement())
   response_id     Int
-  file_name       String
-  file_path       String
-  file_type       String?
+  file_name       String          @db.VarChar(255)
+  file_path       String          @db.VarChar(500)
+  file_type       String?         @db.VarChar(50)
   file_size       Int?
-  description     String?
+  description     String?         @db.Text
   uploaded_at     DateTime        @default(now())
   survey_response survey_response @relation(fields: [response_id], references: [response_id])
+  
+  @@index([response_id])
+  @@index([file_type])
 }
 
 model survey_cycle {
@@ -133,37 +157,46 @@ model survey_cycle {
 model survey_log {
   log_id     Int      @id @default(autoincrement())
   survey_id  Int
-  action     String
-  details    String?
+  action     String   @db.VarChar(100)
+  details    String?  @db.Text
   created_at DateTime @default(now())
   survey     survey   @relation(fields: [survey_id], references: [survey_id])
+  
+  @@index([survey_id])
+  @@index([created_at])
 }
 
 model survey_metadata {
   metadata_id     Int             @id @default(autoincrement())
   response_id     Int
-  key_name        String
-  key_value       String?
+  key_name        String          @db.VarChar(100)
+  key_value       String?         @db.Text
   created_at      DateTime        @default(now())
   survey_response survey_response @relation(fields: [response_id], references: [response_id])
 
+  @@index([response_id])
+  @@index([key_name])
   @@unique([response_id, key_name])
 }
 
 model survey_question {
   question_id    Int                           @id @default(autoincrement())
   section_id     Int
-  question_key   String
-  question_text  String
+  question_key   String                        @db.VarChar(100)
+  question_text  String                        @db.Text
   question_type  survey_question_question_type
-  options        String?
+  options        String?                       @db.Text
   required       Boolean                       @default(false)
   order_index    Int                           @default(0)
-  depends_on     String?
-  depends_value  String?
+  depends_on     String?                       @db.VarChar(100)
+  depends_value  String?                       @db.VarChar(100)
   created_at     DateTime                      @default(now())
   survey_answer  survey_answer[]
   survey_section survey_section                @relation(fields: [section_id], references: [section_id])
+  
+  @@index([section_id])
+  @@index([question_key])
+  @@index([question_type])
 }
 
 model survey_response {
@@ -171,24 +204,24 @@ model survey_response {
   survey_number         String                             @unique
   barangay_id           Int
   interviewer_id        Int
-  respondent_name       String?
+  respondent_name       String?                           @db.VarChar(255)
   respondent_age        Int?
   respondent_gender     survey_response_respondent_gender?
-  location_lat          Decimal
-  location_lng          Decimal
-  location_address      String?
-  location_accuracy     Decimal?
+  location_lat          Decimal                           @db.Decimal(10, 6)
+  location_lng          Decimal                           @db.Decimal(10, 6)
+  location_address      String?                           @db.Text
+  location_accuracy     Decimal?                          @db.Decimal(10, 2)
   location_timestamp    DateTime?
-  location_barangay     String?
-  location_municipality String?
-  location_province     String?
+  location_barangay     String?                           @db.VarChar(100)
+  location_municipality String?                           @db.VarChar(100)
+  location_province     String?                           @db.VarChar(100)
   status                survey_response_status             @default(draft)
   progress              Int?                               @default(0)
   started_at            DateTime                           @default(now())
   completed_at          DateTime?
   submitted_at          DateTime?
   created_at            DateTime                           @default(now())
-  updated_at            DateTime?
+  updated_at            DateTime?                          @updatedAt
   survey_answer         survey_answer[]
   survey_attachment     survey_attachment[]
   survey_metadata       survey_metadata[]
@@ -196,22 +229,29 @@ model survey_response {
   user                  user                               @relation(fields: [interviewer_id], references: [id])
   survey_section        survey_section[]
   survey_validation     survey_validation[]
+  
+  @@index([barangay_id])
+  @@index([interviewer_id])
+  @@index([status])
+  @@index([created_at])
 }
 
 model survey_section {
   section_id      Int                   @id @default(autoincrement())
   response_id     Int
-  section_name    String
-  section_key     String
+  section_name    String                @db.VarChar(100)
+  section_key     String                @db.VarChar(50)
   status          survey_section_status @default(pending)
-  data            String?
+  data            String?               @db.Text
   started_at      DateTime?
   completed_at    DateTime?
   created_at      DateTime              @default(now())
-  updated_at      DateTime?
+  updated_at      DateTime?             @updatedAt
   survey_question survey_question[]
   survey_response survey_response       @relation(fields: [response_id], references: [response_id])
 
+  @@index([response_id])
+  @@index([status])
   @@unique([response_id, section_key])
 }
 
@@ -220,22 +260,29 @@ model survey_validation {
   response_id        Int
   validation_type    survey_validation_validation_type
   validation_status  survey_validation_validation_status
-  validation_message String?
-  validation_data    String?
+  validation_message String?                             @db.Text
+  validation_data    String?                             @db.Text
   created_at         DateTime                            @default(now())
   survey_response    survey_response                     @relation(fields: [response_id], references: [response_id])
+  
+  @@index([response_id])
+  @@index([validation_type, validation_status])
 }
 
 model barangay_history {
   history_id  Int       @id @default(autoincrement())
   barangay_id Int
-  year        String
-  status      String
-  score       String?
-  notes       String?
+  year        String    @db.VarChar(4)
+  status      String    @db.VarChar(50)
+  score       String?   @db.VarChar(20)
+  notes       String?   @db.Text
   created_at  DateTime  @default(now())
-  updated_at  DateTime?
+  updated_at  DateTime? @updatedAt
   barangay    barangay  @relation(fields: [barangay_id], references: [barangay_id])
+  
+  @@index([barangay_id])
+  @@index([year])
+  @@index([status])
 }
 
 enum barangay_seal {
@@ -306,4 +353,89 @@ enum survey_response_status {
   in_progress
   completed
   submitted
+}
+
+model ml_model {
+  model_id            Int             @id @default(autoincrement())
+  model_name          String
+  model_type          String          @default("classifier") // classifier or regressor
+  algorithm           String          @default("random_forest")
+  version             String
+  model_data          Bytes
+  feature_names       String          // JSON array of feature names
+  performance_metrics String?         // JSON object with metrics
+  created_at          DateTime        @default(now())
+  updated_at          DateTime?       @updatedAt
+  ml_prediction       ml_prediction[]
+
+  @@index([model_name, version])
+}
+
+model ml_prediction {
+  prediction_id       Int       @id @default(autoincrement())
+  model_id            Int
+  barangay_id         Int
+  prediction_type     String    // e.g., 'satisfaction', 'actionGrid', 'awardee'
+  predicted_value     Decimal?  @db.Decimal(5, 2)
+  predicted_class     String?
+  confidence_score    Decimal?  @db.Decimal(5, 4)
+  feature_importance  String?   // JSON object with feature importance
+  created_at          DateTime  @default(now())
+  model               ml_model  @relation(fields: [model_id], references: [model_id])
+  barangay            barangay  @relation(fields: [barangay_id], references: [barangay_id])
+  ai_insight          ai_insight[]
+
+  @@index([barangay_id, prediction_type])
+}
+
+model action_grid_classification {
+  classification_id     Int      @id @default(autoincrement())
+  barangay_id           Int
+  section_name          String
+  satisfaction_score    Decimal  @db.Decimal(5, 2)
+  need_for_action_score Decimal  @db.Decimal(5, 2)
+  quadrant              String   // MAINTAIN, OPPORTUNITIES, MONITOR, FIX_NOW
+  recommendations       String?  // JSON array of recommendations
+  created_at            DateTime @default(now())
+  barangay              barangay @relation(fields: [barangay_id], references: [barangay_id])
+
+  @@index([barangay_id, section_name])
+}
+
+model ai_insight {
+  insight_id        Int                @id @default(autoincrement())
+  barangay_id       Int
+  insight_type      String             // performance_summary, bottleneck_analysis, etc.
+  title             String             @db.VarChar(200)
+  content           String             @db.Text
+  key_findings      String?            // JSON array of findings
+  recommendations   String?            // JSON array of recommendations
+  confidence_score  Decimal?           @db.Decimal(5, 4)
+  ml_prediction_id  Int?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime?          @updatedAt
+  barangay          barangay           @relation(fields: [barangay_id], references: [barangay_id])
+  ml_prediction     ml_prediction?     @relation(fields: [ml_prediction_id], references: [prediction_id])
+  ai_recommendation ai_recommendation[]
+
+  @@index([barangay_id, insight_type])
+}
+
+model ai_recommendation {
+  recommendation_id       Int        @id @default(autoincrement())
+  insight_id              Int
+  barangay_id             Int
+  recommendation_type     String     // immediate, medium_term, long_term
+  priority_level          String     // high, medium, low
+  title                   String     @db.VarChar(200)
+  description             String     @db.Text
+  expected_impact         String?    @db.VarChar(500)
+  resource_requirements   String?    // JSON object
+  implementation_timeline String?    @db.VarChar(100)
+  success_metrics         String?    // JSON array
+  created_at              DateTime   @default(now())
+  ai_insight              ai_insight @relation(fields: [insight_id], references: [insight_id])
+  barangay                barangay   @relation(fields: [barangay_id], references: [barangay_id])
+
+  @@index([barangay_id, priority_level])
 }
