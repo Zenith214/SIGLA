@@ -31,6 +31,7 @@ export async function GET() {
         b.description,
         b."currentStatus",
         b.seal,
+        b.seal_expiration_date,
         st.percentage
       FROM barangay b
       LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
@@ -64,6 +65,7 @@ export async function GET() {
         description: barangay.description,
         currentStatus: barangay.currentStatus || status,
         seal: barangay.seal,
+        seal_expiration_date: barangay.seal_expiration_date,
         history: [] // Add empty history for now
       };
     });
@@ -111,6 +113,13 @@ export async function PUT(req: Request) {
     if (updates.seal !== undefined) {
       updateFields.push(`seal = $${paramIndex}`);
       values.push(updates.seal);
+      paramIndex++;
+    }
+    if (updates.seal_expiration_date !== undefined) {
+      updateFields.push(`seal_expiration_date = $${paramIndex}`);
+      // Handle empty string dates by converting to null
+      const dateValue = updates.seal_expiration_date === '' ? null : updates.seal_expiration_date;
+      values.push(dateValue);
       paramIndex++;
     }
     if (updates.description !== undefined) {
@@ -161,6 +170,7 @@ export async function PUT(req: Request) {
       barangay_id: updatedBarangay.barangay_id,
       name: updatedBarangay.barangay_name,
       seal: updatedBarangay.seal,
+      seal_expiration_date: updatedBarangay.seal_expiration_date,
       description: updatedBarangay.description,
       population: updatedBarangay.population,
       households: updatedBarangay.households,
@@ -175,6 +185,59 @@ export async function PUT(req: Request) {
     console.error('Error updating barangay:', error);
     return NextResponse.json(
       { message: 'Failed to update barangay', error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+}
+
+export async function DELETE(req: Request) {
+  let client;
+  try {
+    client = await pool.connect();
+    const { searchParams } = new URL(req.url);
+    const barangayId = searchParams.get('id');
+
+    console.log('Received delete request for barangay ID:', barangayId);
+
+    if (!barangayId) {
+      return NextResponse.json(
+        { message: 'Barangay ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // First check if barangay exists
+    const checkQuery = 'SELECT barangay_id, barangay_name FROM barangay WHERE barangay_id = $1';
+    const checkResult = await client.query(checkQuery, [parseInt(barangayId)]);
+    
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json(
+        { message: 'Barangay not found' },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete by setting is_active to false
+    const deleteQuery = 'UPDATE barangay SET is_active = false WHERE barangay_id = $1 RETURNING barangay_id, barangay_name';
+    const result = await client.query(deleteQuery, [parseInt(barangayId)]);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to delete barangay');
+    }
+
+    console.log('Delete successful for barangay:', result.rows[0].barangay_name);
+    return NextResponse.json({ 
+      message: 'Barangay deleted successfully',
+      deletedBarangay: result.rows[0]
+    });
+  } catch (error: any) {
+    console.error('Error deleting barangay:', error);
+    return NextResponse.json(
+      { message: 'Failed to delete barangay', error: error.message },
       { status: 500 }
     );
   } finally {

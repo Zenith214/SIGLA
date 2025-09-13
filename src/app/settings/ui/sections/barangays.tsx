@@ -14,9 +14,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Edit, Trash2, Award, History } from "lucide-react"
+import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/toast"
+import { useToast } from "@/hooks/use-toast.tsx"
 
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])
@@ -27,7 +27,27 @@ export function Barangays() {
   const [editingBarangay, setEditingBarangay] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
+  const [deletingBarangay, setDeletingBarangay] = useState<any | null>(null)
   const { addToast } = useToast()
+  
+  // Function to check if seal is expired or expiring soon
+  const getSealStatus = (barangay: any) => {
+    if (barangay.seal !== 'yes') return { status: 'non-awardee' };
+    
+    if (!barangay.seal_expiration_date) return { status: 'valid' };
+    
+    const expirationDate = new Date(barangay.seal_expiration_date);
+    const now = new Date();
+    const daysUntilExpiration = Math.floor((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilExpiration < 0) {
+      return { status: 'expired', daysUntilExpiration };
+    } else if (daysUntilExpiration <= 30) {
+      return { status: 'expiring-soon', daysUntilExpiration };
+    } else {
+      return { status: 'valid', daysUntilExpiration };
+    }
+  };
 
 
 
@@ -58,18 +78,41 @@ export function Barangays() {
   // Handle edit button click
   const handleEditClick = (barangay: any) => {
     setEditingBarangay(barangay)
-    setEditForm({ ...barangay })
+    setEditForm({ 
+      ...barangay,
+      seal_expiration_date: barangay.seal_expiration_date ? new Date(barangay.seal_expiration_date).toISOString().split('T')[0] : ''
+    })
+  }
+  
+  // Handle delete button click
+  const handleDeleteClick = (barangay: any) => {
+    setDeletingBarangay(barangay)
   }
 
   // Handle form field change
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
+    const { name, value } = e.target;
+    
+    // If changing seal status to 'yes', automatically set expiration date to one year from now
+    if (name === 'seal' && value === 'yes') {
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      
+      setEditForm({ 
+        ...editForm, 
+        [name]: value,
+        seal_expiration_date: oneYearFromNow.toISOString().split('T')[0]
+      });
+    } else {
+      setEditForm({ ...editForm, [name]: value });
+    }
   }
 
   // Handle save
   const handleEditSave = async () => {
     setSaving(true)
     try {
+      
       // Include the barangayId that the API expects
       const updatePayload = {
         barangayId: editForm.barangay_id || editForm.id, // Use barangay_id or fallback to id
@@ -85,8 +128,15 @@ export function Barangays() {
       })
       
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to update barangay");
+        let errorMessage = "Failed to update barangay";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON (e.g., HTML error page), use status text
+          errorMessage = `Server error: ${res.status} ${res.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       const updated = await res.json()
@@ -116,6 +166,54 @@ export function Barangays() {
       });
     } finally {
       setSaving(false)
+    }
+  }
+  
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!deletingBarangay) return;
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/barangays/all?id=${deletingBarangay.id || deletingBarangay.barangay_id}`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        let errorMessage = "Failed to delete barangay";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON (e.g., HTML error page), use status text
+          errorMessage = `Server error: ${res.status} ${res.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Update the local state by removing the deleted barangay
+      setBarangays(barangays.filter(b => b.id !== deletingBarangay.id && b.barangay_id !== deletingBarangay.barangay_id));
+      setDeletingBarangay(null);
+      
+      // Show success toast
+      addToast({
+        type: "success",
+        title: "Barangay Deleted",
+        description: `${deletingBarangay.name} has been successfully removed.`,
+        duration: 4000
+      });
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      
+      // Show error toast
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the barangay.",
+        duration: 6000
+      });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -222,6 +320,7 @@ export function Barangays() {
                     <TableHead className="font-medium">Population</TableHead>
                     <TableHead className="font-medium">Captain</TableHead>
                     <TableHead className="font-medium">SGLGB Awardee</TableHead>
+                    <TableHead className="font-medium">Seal Expiration</TableHead>
                     <TableHead className="font-medium">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -233,17 +332,50 @@ export function Barangays() {
                       <TableCell>{barangay.population ? barangay.population.toLocaleString() : "-"}</TableCell>
                       <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={barangay.seal === 'yes' ? "default" : "destructive"}
-                          className={cn(
+                        {(() => {
+                          const sealStatus = getSealStatus(barangay);
+                          return (
+                            <Badge
+                              variant={barangay.seal === 'yes' ? "default" : "destructive"}
+                              className={cn(
+                                "text-xs",
+                                barangay.seal === 'yes' && sealStatus.status === 'valid' && "bg-green-100 text-green-800 hover:bg-green-200",
+                                barangay.seal === 'yes' && sealStatus.status === 'expiring-soon' && "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+                                barangay.seal === 'yes' && sealStatus.status === 'expired' && "bg-orange-100 text-orange-800 hover:bg-orange-200",
+                                barangay.seal === 'no' && "bg-red-100 text-red-800 hover:bg-red-200",
+                              )}
+                            >
+                              {barangay.seal === 'yes' && (
+                                sealStatus.status === 'expired' ? 
+                                <AlertTriangle className="w-3 h-3 mr-1" /> : 
+                                sealStatus.status === 'expiring-soon' ? 
+                                <Calendar className="w-3 h-3 mr-1" /> :
+                                <Award className="w-3 h-3 mr-1" />
+                              )}
+                              {barangay.seal === 'yes' ? 
+                                (sealStatus.status === 'expired' ? "Expired" : 
+                                 sealStatus.status === 'expiring-soon' ? "Renew Soon" : 
+                                 "Awardee") : 
+                                "Non-Awardee"}
+                            </Badge>
+                          );
+                        })()} 
+                      </TableCell>
+                      <TableCell>
+                        {barangay.seal === 'yes' && barangay.seal_expiration_date ? (
+                          <span className={cn(
                             "text-xs",
-                            barangay.seal === 'yes' && "bg-green-100 text-green-800 hover:bg-green-200",
-                            barangay.seal === 'no' && "bg-red-100 text-red-800 hover:bg-red-200",
-                          )}
-                        >
-                          {barangay.seal === 'yes' && <Award className="w-3 h-3 mr-1" />}
-                          {barangay.seal === 'yes' ? "Awardee" : "Non-Awardee"}
-                        </Badge>
+                            getSealStatus(barangay).status === 'expired' && "text-red-600 font-semibold",
+                            getSealStatus(barangay).status === 'expiring-soon' && "text-yellow-600 font-semibold",
+                            getSealStatus(barangay).status === 'valid' && "text-green-600",
+                          )}>
+                            {new Date(barangay.seal_expiration_date).toLocaleDateString()}
+                            {getSealStatus(barangay).status === 'expired' && " (Expired)"}
+                            {getSealStatus(barangay).status === 'expiring-soon' && ` (${getSealStatus(barangay).daysUntilExpiration} days left)`}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -299,7 +431,12 @@ export function Barangays() {
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-200" onClick={() => handleEditClick(barangay)}>
                             <Edit className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteClick(barangay)}
+                          >
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
@@ -344,11 +481,49 @@ export function Barangays() {
                   <option value="yes">Awardee</option>
                 </select>
               </div>
+              
+              {editForm?.seal === 'yes' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Seal Expiration Date
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded px-3 py-2 bg-gray-50">
+                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{editForm.seal_expiration_date}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Annual renewal automatically set to one year from today.</p>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => setEditingBarangay(null)} disabled={saving}>Cancel</Button>
               <Button onClick={handleEditSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {deletingBarangay && (
+        <Dialog open={!!deletingBarangay} onOpenChange={open => { if (!open) setDeletingBarangay(null) }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Barangay</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center gap-2 mt-4 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-semibold">Warning:</span>
+            </div>
+            <div className="mt-2 text-red-600">
+              Are you sure you want to delete {deletingBarangay.name}? <br />
+              <span className="font-semibold">This action cannot be undone.</span>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setDeletingBarangay(null)} disabled={saving}>Cancel</Button>
+              <Button onClick={handleDeleteConfirm} disabled={saving} className="bg-red-600 text-white">
+                {saving ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
           </DialogContent>

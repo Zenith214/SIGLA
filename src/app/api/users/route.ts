@@ -43,7 +43,22 @@ export async function GET(request: NextRequest) {
   let client;
   try {
     client = await pool.connect();
-    const result = await client.query('SELECT * FROM "user" ORDER BY "createdAt" DESC');
+    
+    // Get role parameter from URL
+    const { searchParams } = new URL(request.url);
+    const role = searchParams.get('role');
+    
+    let query = 'SELECT * FROM "user"';
+    let queryParams: any[] = [];
+    
+    if (role) {
+      query += ' WHERE role = $1';
+      queryParams.push(role);
+    }
+    
+    query += ' ORDER BY "createdAt" DESC';
+    
+    const result = await client.query(query, queryParams);
     return NextResponse.json({ users: result.rows });
   } catch (error) {
     return NextResponse.json({ 

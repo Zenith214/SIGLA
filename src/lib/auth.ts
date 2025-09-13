@@ -32,7 +32,12 @@ export async function login(credentials: LoginCredentials): Promise<{ success: b
       body: JSON.stringify(credentials),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      return { success: false, error: 'Invalid response from server' };
+    }
 
     if (response.ok) {
       // Wait a moment for the cookie to be properly set
@@ -57,7 +62,12 @@ export async function register(userData: RegisterData): Promise<{ success: boole
       body: JSON.stringify(userData),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      return { success: false, error: 'Invalid response from server' };
+    }
 
     if (response.ok) {
       return { success: true };
@@ -78,14 +88,19 @@ export async function getCurrentUser(): Promise<User | null> {
     });
 
     if (response.ok) {
-      const userData = await response.json();
-      return {
-        id: userData.id,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        role: userData.role,
-      };
+      try {
+        const userData = await response.json();
+        return {
+          id: userData.id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role,
+        };
+      } catch (jsonError) {
+        console.error('Failed to parse user data:', jsonError);
+        return null;
+      }
     }
     return null;
   } catch (error) {

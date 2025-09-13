@@ -29,13 +29,13 @@ export function Assignments() {
     setLoading(true)
     Promise.all([
       fetch("/api/assignments", { credentials: 'include' }).then(r => r.json()),
-      fetch("/api/barangays", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/barangays/all", { credentials: 'include' }).then(r => r.json()),
       fetch("/api/interviewers", { credentials: 'include' }).then(r => r.json()),
     ])
       .then(([assignmentsData, barangaysData, interviewersData]) => {
         setAssignments(assignmentsData || [])
         setBarangays(barangaysData || [])
-        
+
         // The interviewers API returns the data directly (no wrapping)
         setInterviewers(interviewersData || [])
         setLoading(false)
@@ -141,17 +141,58 @@ export function Assignments() {
   const handleDeleteConfirm = async () => {
     if (!deletingAssignment) return
     setSaving(true)
+
     try {
-      const res = await fetch("/api/assignments", {
+      console.log(`Attempting to delete assignment ${deletingAssignment.assignment_id}`)
+
+      const res = await fetch(`/api/assignments/${deletingAssignment.assignment_id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignment_id: deletingAssignment.assignment_id }),
       })
-      if (!res.ok) throw new Error("Failed to delete assignment")
+
+      console.log(`Delete response status: ${res.status}`)
+      console.log(`Delete response ok: ${res.ok}`)
+
+      if (!res.ok) {
+        let errorMessage = `Failed to delete assignment (HTTP ${res.status})`
+
+        // Try to get response text first
+        const responseText = await res.text()
+        console.log(`Error response text: "${responseText}"`)
+
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText)
+            errorMessage = errorData.error || errorData.message || errorMessage
+          } catch (jsonError) {
+            // If response is not JSON, use the text directly
+            errorMessage = responseText || errorMessage
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Handle successful response
+      const responseText = await res.text()
+      console.log(`Success response text: "${responseText}"`)
+
+      if (responseText) {
+        try {
+          const result = JSON.parse(responseText)
+          console.log('Delete result:', result)
+        } catch (jsonError) {
+          console.warn('Delete response was not JSON, but status was OK:', responseText)
+        }
+      }
+
+      // Update UI regardless of response format if status was OK
       setAssignments(assignments.filter(a => a.assignment_id !== deletingAssignment.assignment_id))
       setDeletingAssignment(null)
+      alert("Assignment deleted successfully!")
+
     } catch (err: any) {
-      alert(err.message)
+      console.error('Delete assignment error:', err)
+      alert(err.message || "Failed to delete assignment")
     } finally {
       setSaving(false)
     }
@@ -415,12 +456,12 @@ export function Assignments() {
               </TableHeader>
               <TableBody>
                 {assignments.map((assignment) => {
-                  const barangay = barangays.find((b: any) => b.barangay_id === assignment.barangay_id)
+                  const barangay = barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id)
                   const interviewer = interviewers.find((u: any) => u.id === assignment.user_id)
                   return (
                     <TableRow key={assignment.assignment_id}>
-                      <TableCell className="font-medium">{barangay ? barangay.barangay_name : ""}</TableCell>
-                      <TableCell className="text-gray-600">{interviewer ? interviewer.firstName + " " + interviewer.lastName : ""}</TableCell>
+                      <TableCell className="font-medium">{barangay ? (barangay.name || barangay.barangay_name) : assignment.barangay_name || "Unknown"}</TableCell>
+                      <TableCell className="text-gray-600">{interviewer ? `${interviewer.firstName} ${interviewer.lastName}` : `${assignment.firstName || ''} ${assignment.lastName || ''}`.trim() || "Unknown"}</TableCell>
                       <TableCell>
                         <Badge variant={assignment.status === "Active" ? "default" : "secondary"} className="text-xs">
                           {assignment.status}

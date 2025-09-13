@@ -49,16 +49,17 @@ model barangay {
   barangay_id                Int                       @id @default(autoincrement())
   barangay_name              String                    @unique
   seal                       barangay_seal             @default(no)
-  description                String?
+  seal_expiration_date       DateTime?                
+  description                String?                   
   is_active                  Boolean                   @default(true)
   created_at                 DateTime                  @default(now())
   updated_at                 DateTime?                 @updatedAt
   households                 Int?                      @default(0)
   population                 Int?                      @default(0)
-  area                       Decimal?
-  captain                    String?
-  currentStatus              String?
-  history                    String?
+  area                       Decimal?                  
+  captain                    String?                   
+  currentStatus              String?                   
+  history                    String?                   
   assignment                 assignment[]
   barangay_history           barangay_history[]
   survey                     survey[]
