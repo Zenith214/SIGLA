@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface BarangaySatisfactionIndexProps {
@@ -17,6 +18,96 @@ export default function BarangaySatisfactionIndex({
   onClose,
 }: BarangaySatisfactionIndexProps) {
   const router = useRouter();
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [satisfactionData, setSatisfactionData] = useState({
+    overall: 65,
+    categories: {
+      governance: { satisfaction: 72, needForAction: 45, category: 'maintain' },
+      infrastructure: { satisfaction: 58, needForAction: 78, category: 'opportunities' },
+      social_services: { satisfaction: 45, needForAction: 35, category: 'monitor' },
+      economic: { satisfaction: 38, needForAction: 85, category: 'fix_now' }
+    }
+  });
+
+  // Fetch analytics data for this barangay
+  useEffect(() => {
+    if (isOpen && barangay) {
+      fetchBarangayAnalytics();
+    }
+  }, [isOpen, barangay]);
+
+  const fetchBarangayAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/survey-analytics?format=aggregated&barangayId=${barangay.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnalyticsData(data.aggregated);
+
+        // Calculate satisfaction scores from real data
+        if (data.aggregated?.questions) {
+          const calculatedSatisfaction = calculateSatisfactionScores(data.aggregated.questions);
+          setSatisfactionData(calculatedSatisfaction);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch barangay analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateSatisfactionScores = (questions: any) => {
+    const categories = {
+      governance: [],
+      infrastructure: [],
+      social_services: [],
+      economic: []
+    };
+
+    // Group questions by category
+    Object.entries(questions).forEach(([key, question]: [string, any]) => {
+      if (key.includes('governance')) categories.governance.push(question);
+      else if (key.includes('infrastructure')) categories.infrastructure.push(question);
+      else if (key.includes('social_services')) categories.social_services.push(question);
+      else if (key.includes('economic')) categories.economic.push(question);
+    });
+
+    // Calculate average satisfaction for each category
+    const categoryScores = {};
+    Object.entries(categories).forEach(([category, questionList]) => {
+      if (questionList.length > 0) {
+        const avgSatisfaction = questionList.reduce((sum: number, q: any) => {
+          return sum + (q.statistics?.mean || 3); // Default to 3 if no data
+        }, 0) / questionList.length;
+
+        const satisfaction = Math.round((avgSatisfaction / 5) * 100); // Convert 1-5 scale to percentage
+        const needForAction = Math.random() * 100; // Mock need for action score
+
+        let categoryType = 'monitor';
+        if (satisfaction >= 58 && needForAction < 50) categoryType = 'maintain';
+        else if (satisfaction >= 58 && needForAction >= 50) categoryType = 'opportunities';
+        else if (satisfaction < 58 && needForAction >= 50) categoryType = 'fix_now';
+
+        categoryScores[category] = {
+          satisfaction,
+          needForAction: Math.round(needForAction),
+          category: categoryType
+        };
+      }
+    });
+
+    // Calculate overall satisfaction
+    const overallSatisfaction = Object.values(categoryScores).length > 0
+      ? Math.round(Object.values(categoryScores).reduce((sum: number, cat: any) => sum + cat.satisfaction, 0) / Object.values(categoryScores).length)
+      : 65;
+
+    return {
+      overall: overallSatisfaction,
+      categories: categoryScores
+    };
+  };
 
   // Handle ESC key press
   useEffect(() => {
@@ -37,21 +128,27 @@ export default function BarangaySatisfactionIndex({
     };
   }, [isOpen, onClose]);
 
-  // Mock satisfaction percentage - you can replace this with actual data
-  const satisfactionPercentage = 65; // Example value
-  const isHighSatisfaction = satisfactionPercentage >= 58;
+  const isHighSatisfaction = satisfactionData.overall >= 58;
 
   const handleViewReportCard = () => {
-    // Navigate to report card page with barangay data
+    // Navigate to report card page with comprehensive barangay data
     const params = new URLSearchParams({
       barangay: barangay.name,
+      barangayId: barangay.id.toString(),
       population: barangay.population.toString(),
       households: barangay.households.toString(),
       area: (barangay.area || 0).toString(),
       surveyStatus: barangay.status,
-      satisfaction: satisfactionPercentage.toString()
+      satisfaction: satisfactionData.overall.toString(),
+      // Add category scores
+      governance: satisfactionData.categories.governance?.satisfaction?.toString() || '0',
+      infrastructure: satisfactionData.categories.infrastructure?.satisfaction?.toString() || '0',
+      social_services: satisfactionData.categories.social_services?.satisfaction?.toString() || '0',
+      economic: satisfactionData.categories.economic?.satisfaction?.toString() || '0',
+      // Add survey response count
+      responses: analyticsData?.totalResponses?.toString() || '0'
     });
-    
+
     router.push(`/reportcard?${params.toString()}`);
   };
 
@@ -132,10 +229,32 @@ export default function BarangaySatisfactionIndex({
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-gray-700 font-medium text-base">Overall Satisfaction:</span>
                   <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                    {satisfactionPercentage}%
+                    {satisfactionData.overall}%
                   </span>
+                  {loading && <span className="text-sm text-gray-500">(Loading...)</span>}
                 </div>
               </div>
+
+              {/* Analytics Summary */}
+              {analyticsData && (
+                <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                  <h3 className="font-semibold text-gray-800 mb-2">Survey Data Summary</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600">Total Responses:</span>
+                      <span className="font-medium ml-1">{analyticsData.totalResponses || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Sections:</span>
+                      <span className="font-medium ml-1">{Object.keys(analyticsData.sections || {}).length}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-gray-600">Questions Analyzed:</span>
+                      <span className="font-medium ml-1">{Object.keys(analyticsData.questions || {}).length}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Grid */}
               <div className="border border-gray-200 rounded-xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm mb-4">
@@ -152,15 +271,23 @@ export default function BarangaySatisfactionIndex({
                         <h3 className="text-green-800 font-bold text-base mb-1">MAINTAIN</h3>
                         <span className="text-green-600 font-medium text-xs">High Satisfaction, Low Need for Action</span>
                       </div>
-                      <div className="space-y-1 text-xs text-green-800">
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Safety, Peace & Order</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Business Friendliness</span>
-                        </div>
+                      <div className="space-y-2 text-xs text-green-800">
+                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
+                          data.category === 'maintain' && (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="mr-2">★</span>
+                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs bg-green-50">
+                                {data.satisfaction}%
+                              </Badge>
+                            </div>
+                          )
+                        )}
+                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'maintain') && (
+                          <div className="text-center text-green-600 italic">No services in this category</div>
+                        )}
                       </div>
                     </div>
 
@@ -170,15 +297,23 @@ export default function BarangaySatisfactionIndex({
                         <h3 className="text-blue-800 font-bold text-base mb-1">OPPORTUNITIES</h3>
                         <span className="text-blue-600 font-medium text-xs">High Satisfaction, High Need for Action</span>
                       </div>
-                      <div className="space-y-1 text-xs text-blue-800">
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Disaster Preparedness</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Social Protection</span>
-                        </div>
+                      <div className="space-y-2 text-xs text-blue-800">
+                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
+                          data.category === 'opportunities' && (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="mr-2">★</span>
+                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs bg-blue-50">
+                                {data.satisfaction}%
+                              </Badge>
+                            </div>
+                          )
+                        )}
+                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'opportunities') && (
+                          <div className="text-center text-blue-600 italic">No services in this category</div>
+                        )}
                       </div>
                     </div>
 
@@ -188,11 +323,23 @@ export default function BarangaySatisfactionIndex({
                         <h3 className="text-yellow-800 font-bold text-base mb-1">MONITOR</h3>
                         <span className="text-yellow-600 font-medium text-xs">Low Satisfaction, Low Need for Action</span>
                       </div>
-                      <div className="space-y-1 text-xs text-yellow-800">
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Environmental Management</span>
-                        </div>
+                      <div className="space-y-2 text-xs text-yellow-800">
+                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
+                          data.category === 'monitor' && (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="mr-2">★</span>
+                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs bg-yellow-50">
+                                {data.satisfaction}%
+                              </Badge>
+                            </div>
+                          )
+                        )}
+                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'monitor') && (
+                          <div className="text-center text-yellow-600 italic">No services in this category</div>
+                        )}
                       </div>
                     </div>
 
@@ -202,11 +349,23 @@ export default function BarangaySatisfactionIndex({
                         <h3 className="text-red-800 font-bold text-base mb-1">FIX NOW</h3>
                         <span className="text-red-600 font-medium text-xs">Low Satisfaction, High Need for Action</span>
                       </div>
-                      <div className="space-y-1 text-xs text-red-800">
-                        <div className="flex items-center">
-                          <span className="mr-2">★</span>
-                          <span>Finance Administration</span>
-                        </div>
+                      <div className="space-y-2 text-xs text-red-800">
+                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
+                          data.category === 'fix_now' && (
+                            <div key={key} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <span className="mr-2">★</span>
+                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                              </div>
+                              <Badge variant="outline" className="text-xs bg-red-50">
+                                {data.satisfaction}%
+                              </Badge>
+                            </div>
+                          )
+                        )}
+                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'fix_now') && (
+                          <div className="text-center text-red-600 italic">No services in this category</div>
+                        )}
                       </div>
                     </div>
                   </div>

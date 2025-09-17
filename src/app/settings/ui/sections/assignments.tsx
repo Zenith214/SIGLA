@@ -19,7 +19,7 @@ export function Assignments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [addModal, setAddModal] = useState(false)
-  const [addForm, setAddForm] = useState<any>({ barangay_id: "", user_id: "", status: "Pending", progress: 0 })
+  const [addForm, setAddForm] = useState<any>({ barangay_id: "", user_id: "", status: "Pending" })
   const [saving, setSaving] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
@@ -29,7 +29,7 @@ export function Assignments() {
     setLoading(true)
     Promise.all([
       fetch("/api/assignments", { credentials: 'include' }).then(r => r.json()),
-      fetch("/api/barangays/all", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/barangays-with-seals", { credentials: 'include' }).then(r => r.json()),
       fetch("/api/interviewers", { credentials: 'include' }).then(r => r.json()),
     ])
       .then(([assignmentsData, barangaysData, interviewersData]) => {
@@ -79,7 +79,7 @@ export function Assignments() {
         barangay_id: Number(addForm.barangay_id),
         user_id: Number(addForm.user_id),
         status: addForm.status,
-        progress: Number(addForm.progress) || 0
+        progress: 0 // Always start with 0 progress
       }
       console.log('Sending assignment payload:', payload)
 
@@ -97,7 +97,7 @@ export function Assignments() {
       const created = await res.json()
       setAssignments([...assignments, created])
       setAddModal(false)
-      setAddForm({ barangay_id: "", user_id: "", status: "Pending", progress: 0 })
+      setAddForm({ barangay_id: "", user_id: "", status: "Pending" })
       alert("Assignment added successfully!")
     } catch (err: any) {
       console.error('Add assignment error:', err)
@@ -226,7 +226,12 @@ export function Assignments() {
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div>
-                <Label htmlFor="barangay_id" className="text-sm font-medium">Barangay *</Label>
+                <Label htmlFor="barangay_id" className="text-sm font-medium">
+                  Barangay *
+                  <span className="text-xs text-gray-500 ml-1">
+                    (Only awardee barangays with seals)
+                  </span>
+                </Label>
                 <select
                   id="barangay_id"
                   name="barangay_id"
@@ -235,13 +240,18 @@ export function Assignments() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  <option value="">Select Barangay</option>
+                  <option value="">Select Barangay (Awardees Only)</option>
                   {barangays.map((b: any) => (
                     <option key={b.id} value={b.id}>
-                      {b.name}
+                      {b.name} (Awardee)
                     </option>
                   ))}
                 </select>
+                {barangays.length === 0 && !loading && (
+                  <p className="text-xs text-red-500 mt-1">
+                    No awardee barangays found. Only barangays with seals can be assigned.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -290,27 +300,14 @@ export function Assignments() {
                 </select>
               </div>
 
-              <div>
-                <Label htmlFor="progress" className="text-sm font-medium">Progress (%)</Label>
-                <Input
-                  id="progress"
-                  name="progress"
-                  type="number"
-                  value={addForm.progress}
-                  onChange={handleAddChange}
-                  min={0}
-                  max={100}
-                  placeholder="0"
-                  className="focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button
                 variant="outline"
                 onClick={() => {
                   setAddModal(false)
-                  setAddForm({ barangay_id: "", user_id: "", status: "Pending", progress: 0 })
+                  setAddForm({ barangay_id: "", user_id: "", status: "Pending" })
                 }}
                 disabled={saving}
               >

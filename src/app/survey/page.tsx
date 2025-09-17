@@ -17,6 +17,18 @@ interface Barangay {
   description?: string;
   currentStatus?: string;
   seal?: string;
+  assignment?: {
+    assignment_id: number;
+    status: string;
+    progress: number;
+    created_at: string;
+    updated_at: string;
+    interviewer: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  };
 }
 
 function SurveyDashboardContent() {
@@ -50,28 +62,28 @@ function SurveyDashboardContent() {
   const getRoleDescription = (role: string) => {
     switch (role?.toLowerCase()) {
       case 'admin':
-        return 'Manage surveys, monitor progress, and oversee all survey operations across barangays.'
+        return 'Manage assignments, monitor survey progress, and oversee all survey operations across assigned barangays.'
       case 'interviewer':
-        return 'Continue your survey work and track progress across all barangays.'
+        return 'Continue your survey work and track progress across your assigned barangays.'
       case 'viewer':
-        return 'View survey progress and data across all barangays.'
+        return 'View assignment progress and survey data across all assigned barangays.'
       default:
-        return 'Access survey information and track progress.'
+        return 'Access assignment information and track survey progress.'
     }
   }
 
-  // Fetch barangays from database
+  // Fetch barangays with assignments from database
   useEffect(() => {
     const fetchBarangays = async () => {
       try {
-        const response = await fetch('/api/barangays');
+        const response = await fetch('/api/barangays-with-assignments');
         if (!response.ok) {
-          throw new Error('Failed to fetch barangays');
+          throw new Error('Failed to fetch barangays with assignments');
         }
         const data = await response.json();
         setBarangays(data);
       } catch (error) {
-        console.error('Error fetching barangays:', error);
+        console.error('Error fetching barangays with assignments:', error);
         // Fallback to empty array if fetch fails
         setBarangays([]);
       } finally {
@@ -210,14 +222,34 @@ function SurveyDashboardContent() {
             </p>
           </div>
 
-          {/* Overall Progress Section */}
+          {/* Overall Assignment Progress Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
-              SIGLA Survey 2025 - Overall Progress
+              SIGLA Survey 2025 - Assignment Progress Overview
             </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {loading ? "..." : barangays.length}
+                </div>
+                <div className="text-sm text-gray-600">Active Assignments</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {loading ? "..." : barangays.filter(b => b.status === 'Completed').length}
+                </div>
+                <div className="text-sm text-gray-600">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {loading ? "..." : barangays.filter(b => b.status === 'In Progress').length}
+                </div>
+                <div className="text-sm text-gray-600">In Progress</div>
+              </div>
+            </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-[#6b7280]">Progress</span>
+                <span className="text-[#6b7280]">Overall Progress</span>
                 <span className="text-[#111827] font-medium">
                   {loading ? "Loading..." : `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / Math.max(barangays.length, 1))}%`}
                 </span>
@@ -256,7 +288,7 @@ function SurveyDashboardContent() {
               ))
             ) : barangays.length === 0 ? (
               <div className="col-span-full text-center py-8">
-                <p className="text-gray-500">No barangays found. Please check your database connection.</p>
+                <p className="text-gray-500">No active assignments found. Please check with your administrator to get assigned to barangays.</p>
               </div>
             ) : (
               barangays.map((barangay) => (
@@ -277,17 +309,45 @@ function SurveyDashboardContent() {
                         </span>
                       </div>
 
+                      {/* Assignment Information */}
+                      {barangay.assignment && (
+                        <div className="text-xs text-gray-600">
+                          <div className="flex justify-between">
+                            <span>Interviewer:</span>
+                            <span className="font-medium">
+                              {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span>Assignment:</span>
+                            <span className="font-medium">{barangay.assignment.status}</span>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-[#6b7280]">Progress</span>
+                          <span className="text-[#6b7280]">Survey Progress</span>
                           <span className="text-[#111827] font-medium">{barangay.progress}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-[#16a34a] h-2 rounded-full transition-all duration-300"
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              barangay.progress === 100 ? 'bg-green-500' :
+                              barangay.progress >= 75 ? 'bg-blue-600' :
+                              barangay.progress >= 50 ? 'bg-blue-500' :
+                              barangay.progress >= 25 ? 'bg-blue-400' :
+                              barangay.progress > 0 ? 'bg-orange-500' : 'bg-gray-400'
+                            }`}
                             style={{ width: `${barangay.progress}%` }}
                           ></div>
                         </div>
+                      </div>
+
+                      {/* Population info */}
+                      <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <span>Pop: {barangay.population?.toLocaleString() || 'N/A'}</span>
+                        <span>HH: {barangay.households?.toLocaleString() || 'N/A'}</span>
                       </div>
                     </div>
                   </div>
