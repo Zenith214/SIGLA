@@ -16,6 +16,7 @@ const statusOptions = ["Active", "Pending", "Completed"];
 export function Assignments() {
   const [assignments, setAssignments] = useState<any[]>([])
   const [barangays, setBarangays] = useState<any[]>([])
+  const [surveyTargets, setSurveyTargets] = useState<any[]>([])
   const [interviewers, setInterviewers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,11 +32,13 @@ export function Assignments() {
     setLoading(true)
     Promise.all([
       fetch("/api/assignments", { credentials: 'include' }).then(r => r.json()),
-      fetch("/api/barangays-with-seals", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/survey-targets", { credentials: 'include' }).then(r => r.json()),
+      fetch("/api/barangays", { credentials: 'include' }).then(r => r.json()),
       fetch("/api/interviewers", { credentials: 'include' }).then(r => r.json()),
     ])
-      .then(([assignmentsData, barangaysData, interviewersData]) => {
+      .then(([assignmentsData, surveyTargetsData, barangaysData, interviewersData]) => {
         setAssignments(assignmentsData || [])
+        setSurveyTargets(surveyTargetsData || [])
         setBarangays(barangaysData || [])
 
         // The interviewers API returns the data directly (no wrapping)
@@ -57,11 +60,20 @@ export function Assignments() {
   // Removed unused handleAddSelectChange function
 
   const validateAddForm = () => {
+    if (targetBarangays.length === 0) {
+      addToast({
+        type: "warning",
+        title: "No Survey Targets",
+        description: "Please create survey targets first before assigning interviewers.",
+        duration: 4000
+      });
+      return false
+    }
     if (!addForm.barangay_id) {
       addToast({
         type: "warning",
         title: "Missing Information",
-        description: "Please select a barangay for the assignment.",
+        description: "Please select a barangay with survey targets for the assignment.",
         duration: 4000
       });
       return false
@@ -246,6 +258,44 @@ export function Assignments() {
     }
   }
 
+  // Get barangays that have survey targets
+  const targetBarangays = surveyTargets.map(target => {
+    const barangay = barangays.find(b => b.id === target.barangay_id)
+    return barangay ? { ...barangay, target } : null
+  }).filter(Boolean)
+
+  // Group assignments by barangay and calculate unified progress
+  const groupedAssignments = assignments.reduce((acc, assignment) => {
+    const barangayId = assignment.barangay_id
+    if (!acc[barangayId]) {
+      acc[barangayId] = {
+        barangay_id: barangayId,
+        assignments: [],
+        totalProgress: 0,
+        averageProgress: 0,
+        interviewers: [],
+        statuses: []
+      }
+    }
+    
+    acc[barangayId].assignments.push(assignment)
+    acc[barangayId].totalProgress += (assignment.progress || 0)
+    acc[barangayId].averageProgress = Math.round(acc[barangayId].totalProgress / acc[barangayId].assignments.length)
+    
+    const interviewer = interviewers.find(i => i.id === assignment.user_id)
+    if (interviewer && !acc[barangayId].interviewers.find(i => i.id === interviewer.id)) {
+      acc[barangayId].interviewers.push(interviewer)
+    }
+    
+    if (!acc[barangayId].statuses.includes(assignment.status)) {
+      acc[barangayId].statuses.push(assignment.status)
+    }
+    
+    return acc
+  }, {})
+
+  const unifiedAssignments = Object.values(groupedAssignments)
+
   // Statistics
   const total = assignments.length
   const active = assignments.filter(a => a.status === "Active").length
@@ -277,7 +327,7 @@ export function Assignments() {
                 <Label htmlFor="barangay_id" className="text-sm font-medium">
                   Barangay *
                   <span className="text-xs text-gray-500 ml-1">
-                    (Only awardee barangays with seals)
+                    (Only barangays with survey targets)
                   </span>
                 </Label>
                 <select
@@ -288,16 +338,16 @@ export function Assignments() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  <option value="">Select Barangay (Awardees Only)</option>
-                  {barangays.map((b: any) => (
+                  <option value="">Select Barangay (With Survey Targets)</option>
+                  {targetBarangays.map((b: any) => (
                     <option key={b.id} value={b.id}>
-                      {b.name} (Awardee)
+                      {b.name} (Target: {b.target.target} responses)
                     </option>
                   ))}
                 </select>
-                {barangays.length === 0 && !loading && (
+                {targetBarangays.length === 0 && !loading && (
                   <p className="text-xs text-red-500 mt-1">
-                    No awardee barangays found. Only barangays with seals can be assigned.
+                    No barangays with survey targets found. Please create survey targets first.
                   </p>
                 )}
               </div>
@@ -363,7 +413,7 @@ export function Assignments() {
               </Button>
               <Button
                 onClick={handleAddSave}
-                disabled={saving || interviewers.length === 0}
+                disabled={saving || interviewers.length === 0 || targetBarangays.length === 0}
                 className="bg-blue-500 hover:bg-blue-600 text-white"
               >
                 {saving ? 'Saving...' : 'Save Assignment'}
@@ -390,9 +440,9 @@ export function Assignments() {
                   onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {barangays.map((b: any) => (
+                  {targetBarangays.map((b: any) => (
                     <option key={b.id} value={b.id}>
-                      {b.name}
+                      {b.name} (Target: {b.target.target} responses)
                     </option>
                   ))}
                 </select>
@@ -475,12 +525,119 @@ export function Assignments() {
         </Dialog>
       )}
 
-      {/* Current Assignments */}
+      {/* Unified Assignments by Barangay */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="w-5 h-5 text-blue-500" />
-            <span>Current Assignments</span>
+            <span>Assignments by Barangay</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-500">{error}</div>
+          ) : unifiedAssignments.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No assignments found</div>
+          ) : (
+            <div className="space-y-4">
+              {unifiedAssignments.map((unified: any) => {
+                const barangay = barangays.find((b: any) => b.id === unified.barangay_id)
+                const target = surveyTargets.find((t: any) => t.barangay_id === unified.barangay_id)
+                const primaryStatus = unified.statuses.includes("Active") ? "Active" : 
+                                   unified.statuses.includes("Pending") ? "Pending" : "Completed"
+                
+                return (
+                  <div key={unified.barangay_id} className="p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="font-semibold text-lg text-gray-900">
+                            {barangay ? barangay.name : "Unknown Barangay"}
+                          </h3>
+                          <Badge variant={primaryStatus === "Active" ? "default" : "secondary"} className="text-xs">
+                            {primaryStatus}
+                          </Badge>
+                          {target && (
+                            <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
+                              Target: {target.target} responses
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span>{unified.assignments.length} assignment{unified.assignments.length !== 1 ? 's' : ''}</span>
+                          <span>•</span>
+                          <span>{unified.interviewers.length} interviewer{unified.interviewers.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-500 mb-1">
+                            Interviewers: {unified.interviewers.map((i: any) => `${i.firstName} ${i.lastName}`).join(', ')}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right ml-4">
+                        <div className="text-2xl font-semibold text-gray-900">{unified.averageProgress}%</div>
+                        <div className="text-sm text-gray-500">Avg Progress</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="flex-1 bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                          style={{ width: `${unified.averageProgress}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm text-gray-600 min-w-[3rem]">{unified.averageProgress}%</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="text-xs text-gray-500">
+                        Individual progress: {unified.assignments.map((a: any) => `${a.progress}%`).join(', ')}
+                      </div>
+                      <div className="flex space-x-1">
+                        {unified.assignments.map((assignment: any) => (
+                          <div key={assignment.assignment_id} className="flex space-x-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7 w-7 p-0" 
+                              onClick={() => handleEditClick(assignment)}
+                              title={`Edit assignment for ${unified.interviewers.find((i: any) => i.id === assignment.user_id)?.firstName || 'Unknown'}`}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7 w-7 p-0 text-red-600" 
+                              onClick={() => handleDeleteClick(assignment)}
+                              title={`Delete assignment for ${unified.interviewers.find((i: any) => i.id === assignment.user_id)?.firstName || 'Unknown'}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Individual Assignments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="w-5 h-5 text-gray-500" />
+            <span>Individual Assignments</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
