@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast.tsx"
+import { useToast } from "@/hooks/use-toast"
 
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])

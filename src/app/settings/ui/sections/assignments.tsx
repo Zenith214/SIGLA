@@ -9,6 +9,7 @@ import { UserCheck, Users, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 const statusOptions = ["Active", "Pending", "Completed"];
 
@@ -24,6 +25,7 @@ export function Assignments() {
   const [editingAssignment, setEditingAssignment] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingAssignment, setDeletingAssignment] = useState<any | null>(null)
+  const { addToast } = useToast()
 
   useEffect(() => {
     setLoading(true)
@@ -56,15 +58,30 @@ export function Assignments() {
 
   const validateAddForm = () => {
     if (!addForm.barangay_id) {
-      alert("Please select a barangay")
+      addToast({
+        type: "warning",
+        title: "Missing Information",
+        description: "Please select a barangay for the assignment.",
+        duration: 4000
+      });
       return false
     }
     if (!addForm.user_id) {
-      alert("Please select an interviewer")
+      addToast({
+        type: "warning",
+        title: "Missing Information",
+        description: "Please select an interviewer for the assignment.",
+        duration: 4000
+      });
       return false
     }
     if (!addForm.status) {
-      alert("Please select a status")
+      addToast({
+        type: "warning",
+        title: "Missing Information",
+        description: "Please select a status for the assignment.",
+        duration: 4000
+      });
       return false
     }
     return true
@@ -98,10 +115,20 @@ export function Assignments() {
       setAssignments([...assignments, created])
       setAddModal(false)
       setAddForm({ barangay_id: "", user_id: "", status: "Pending" })
-      alert("Assignment added successfully!")
+      addToast({
+        type: "success",
+        title: "Assignment Added Successfully!",
+        description: "New interviewer assignment has been created.",
+        duration: 4000
+      });
     } catch (err: any) {
       console.error('Add assignment error:', err)
-      alert(err.message || "Failed to add assignment")
+      addToast({
+        type: "error",
+        title: "Assignment Failed",
+        description: err.message || "An unexpected error occurred while creating the assignment.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -129,8 +156,19 @@ export function Assignments() {
       setAssignments(assignments.map(a => (a.assignment_id === updated.assignment_id ? updated : a)))
       setEditingAssignment(null)
       setEditForm(null)
+      addToast({
+        type: "success",
+        title: "Assignment Updated!",
+        description: "Assignment has been updated successfully.",
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the assignment.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -188,11 +226,21 @@ export function Assignments() {
       // Update UI regardless of response format if status was OK
       setAssignments(assignments.filter(a => a.assignment_id !== deletingAssignment.assignment_id))
       setDeletingAssignment(null)
-      alert("Assignment deleted successfully!")
+      addToast({
+        type: "success",
+        title: "Assignment Deleted",
+        description: "Assignment has been deleted successfully.",
+        duration: 4000
+      });
 
     } catch (err: any) {
       console.error('Delete assignment error:', err)
-      alert(err.message || "Failed to delete assignment")
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the assignment.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }

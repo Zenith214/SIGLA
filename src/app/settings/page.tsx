@@ -23,7 +23,7 @@ import { UsersRoles } from "./ui/sections/users-roles"
 import { Assignments } from "./ui/sections/assignments"
 import { Backup } from "./ui/sections/backup"
 import { Menu, X } from "lucide-react"
-import { ToastProvider } from "@/hooks/use-toast.tsx"
+import { ToastProvider } from "@/hooks/use-toast"
 
 const sectionTitles = {
   "survey-cycles": "Survey Cycles",

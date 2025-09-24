@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 const roleOptions = ["admin", "interviewer", "viewer"];
 const statusOptions = ["active", "inactive"];
@@ -30,6 +31,7 @@ export function UsersRoles() {
     status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
   })
+  const { addToast } = useToast()
 
   useEffect(() => {
     setLoading(true)
@@ -72,8 +74,19 @@ export function UsersRoles() {
       setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
       setEditForm(null)
+      addToast({
+        type: "success",
+        title: "User Updated Successfully!",
+        description: `${editForm.firstName} ${editForm.lastName}'s information has been updated.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the user.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -93,8 +106,19 @@ export function UsersRoles() {
       if (!res.ok) throw new Error("Failed to delete user")
       setUsers(users.filter(u => u.id !== deletingUser.id))
       setDeletingUser(null)
+      addToast({
+        type: "success",
+        title: "User Deleted",
+        description: `${deletingUser.firstName} ${deletingUser.lastName} has been removed from the system.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the user.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -139,8 +163,19 @@ export function UsersRoles() {
         status: "active",
         lastLogin: new Date().toISOString().slice(0, 10),
       })
+      addToast({
+        type: "success",
+        title: "User Added Successfully!",
+        description: `${addForm.firstName} ${addForm.lastName} has been added to the system.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Add User Failed",
+        description: err.message || "An unexpected error occurred while adding the user.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }

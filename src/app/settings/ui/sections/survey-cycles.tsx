@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Plus, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 // Data will be fetched from API
 
@@ -26,6 +27,7 @@ export function SurveyCycles() {
   const [editingCycle, setEditingCycle] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [deletingCycle, setDeletingCycle] = useState<any | null>(null)
+  const { addToast } = useToast()
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -61,7 +63,12 @@ export function SurveyCycles() {
 
   const handleCreateCycle = async () => {
     if (!startDate || !endDate) {
-      alert('Please select start and end dates')
+      addToast({
+        type: "warning",
+        title: "Missing Information",
+        description: "Please select both start and end dates for the survey cycle.",
+        duration: 4000
+      });
       return
     }
     
@@ -99,9 +106,19 @@ export function SurveyCycles() {
       fetchSurveyCycles()
       setStartDate('')
       setEndDate('')
-      alert('Survey cycle created successfully!')
+      addToast({
+        type: "success",
+        title: "Survey Cycle Created!",
+        description: `${selectedYear} survey cycle has been created successfully.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Creation Failed",
+        description: err.message || "An unexpected error occurred while creating the survey cycle.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -142,9 +159,19 @@ export function SurveyCycles() {
       fetchSurveyCycles()
       setEditingCycle(null)
       setEditForm({})
-      alert('Survey cycle updated successfully!')
+      addToast({
+        type: "success",
+        title: "Survey Cycle Updated!",
+        description: `${editForm.year} survey cycle has been updated successfully.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the survey cycle.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -169,9 +196,19 @@ export function SurveyCycles() {
       
       fetchSurveyCycles()
       setDeletingCycle(null)
-      alert('Survey cycle deleted successfully!')
+      addToast({
+        type: "success",
+        title: "Survey Cycle Deleted",
+        description: `${deletingCycle.year} survey cycle has been deleted successfully.`,
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the survey cycle.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }

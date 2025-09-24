@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Target, TrendingUp, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 export function SurveyTargets() {
   const [targets, setTargets] = useState<any[]>([])
@@ -20,6 +21,7 @@ export function SurveyTargets() {
   const [editingTarget, setEditingTarget] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<any | null>(null)
+  const { addToast } = useToast()
 
   useEffect(() => {
     setLoading(true)
@@ -56,8 +58,19 @@ export function SurveyTargets() {
       setTargets([...targets, created])
       setAddModal(false)
       setAddForm({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
+      addToast({
+        type: "success",
+        title: "Survey Target Added!",
+        description: "New survey target has been created successfully.",
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Add Target Failed",
+        description: err.message || "An unexpected error occurred while adding the survey target.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -85,8 +98,19 @@ export function SurveyTargets() {
       setTargets(targets.map(t => (t.target_id === updated.target_id ? updated : t)))
       setEditingTarget(null)
       setEditForm(null)
+      addToast({
+        type: "success",
+        title: "Survey Target Updated!",
+        description: "Survey target has been updated successfully.",
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the survey target.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }
@@ -106,8 +130,19 @@ export function SurveyTargets() {
       if (!res.ok) throw new Error("Failed to delete target")
       setTargets(targets.filter(t => t.target_id !== deletingTarget.target_id))
       setDeletingTarget(null)
+      addToast({
+        type: "success",
+        title: "Survey Target Deleted",
+        description: "Survey target has been deleted successfully.",
+        duration: 4000
+      });
     } catch (err: any) {
-      alert(err.message)
+      addToast({
+        type: "error",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the survey target.",
+        duration: 6000
+      });
     } finally {
       setSaving(false)
     }

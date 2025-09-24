@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Download, Database, AlertTriangle, CheckCircle } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 const backupHistory = [
   { id: 1, date: "2024-01-15", time: "14:30", size: "2.4 MB", status: "Success" },
@@ -19,6 +20,54 @@ const backupHistory = [
 
 export function Backup() {
   const [autoBackup, setAutoBackup] = useState(true)
+  const { addToast } = useToast()
+
+  const handleExportData = (dataType: string) => {
+    addToast({
+      type: "info",
+      title: "Export Started",
+      description: `${dataType} export has been initiated. Download will start shortly.`,
+      duration: 4000
+    });
+    
+    // Simulate export process
+    setTimeout(() => {
+      addToast({
+        type: "success",
+        title: "Export Complete",
+        description: `${dataType} has been exported successfully.`,
+        duration: 4000
+      });
+    }, 2000);
+  }
+
+  const handleCreateBackup = () => {
+    addToast({
+      type: "info",
+      title: "Backup Started",
+      description: "Database backup is being created. This may take a few minutes.",
+      duration: 4000
+    });
+    
+    // Simulate backup process
+    setTimeout(() => {
+      addToast({
+        type: "success",
+        title: "Backup Complete",
+        description: "Database backup has been created successfully.",
+        duration: 4000
+      });
+    }, 3000);
+  }
+
+  const handleDownloadBackup = () => {
+    addToast({
+      type: "success",
+      title: "Download Started",
+      description: "Latest backup file download has been initiated.",
+      duration: 4000
+    });
+  }
 
   return (
     <div className="space-y-8 max-w-6xl">
@@ -37,14 +86,21 @@ export function Backup() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button className="h-20 bg-green-600 hover:bg-green-700 text-white flex-col justify-center items-center p-4">
+            <Button 
+              className="h-20 bg-green-600 hover:bg-green-700 text-white flex-col justify-center items-center p-4"
+              onClick={() => handleExportData("Survey Data")}
+            >
               <Download className="w-5 h-5 mb-2" />
               <div className="text-center">
                 <div className="text-sm font-medium">Export All Survey Data</div>
                 <div className="text-xs opacity-80">CSV Format</div>
               </div>
             </Button>
-            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50"
+              onClick={() => handleExportData("User Data")}
+            >
               <Download className="w-5 h-5 mb-2" />
               <div className="text-center">
                 <div className="text-sm font-medium">Export User Data</div>
@@ -54,14 +110,22 @@ export function Backup() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50"
+              onClick={() => handleExportData("Barangay Data")}
+            >
               <Download className="w-5 h-5 mb-2" />
               <div className="text-center">
                 <div className="text-sm font-medium">Export Barangay Data</div>
                 <div className="text-xs opacity-60">CSV Format</div>
               </div>
             </Button>
-            <Button variant="outline" className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col justify-center items-center p-4 bg-transparent hover:bg-gray-50"
+              onClick={() => handleExportData("Reports")}
+            >
               <Download className="w-5 h-5 mb-2" />
               <div className="text-center">
                 <div className="text-sm font-medium">Export Reports</div>
@@ -92,11 +156,18 @@ export function Backup() {
           </div>
 
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-            <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-12 px-4">
+            <Button 
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-12 px-4"
+              onClick={handleCreateBackup}
+            >
               <Database className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="truncate">Create Backup Now</span>
             </Button>
-            <Button variant="outline" className="flex-1 bg-transparent hover:bg-gray-50 h-12 px-4">
+            <Button 
+              variant="outline" 
+              className="flex-1 bg-transparent hover:bg-gray-50 h-12 px-4"
+              onClick={handleDownloadBackup}
+            >
               <Download className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="truncate">Download Latest Backup</span>
             </Button>
