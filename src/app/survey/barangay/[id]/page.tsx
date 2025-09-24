@@ -183,7 +183,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
 
               <div className="border-t pt-4">
                 <p className="text-[#6b7280] text-xs sm:text-sm leading-relaxed">
-                  {barangay.description || `This barangay is part of the SIGLA Survey 2025 initiative to measure satisfaction with governance and
+                  {barangay.description || `This barangay is part of the PULSE Survey 2025 initiative to measure satisfaction with governance and
                   local administration. The survey covers various aspects including public services, infrastructure, and
                   community engagement. Each respondent interview takes approximately 15-20 minutes to complete with a
                   target of ${maxRespondents} respondents per barangay.`}

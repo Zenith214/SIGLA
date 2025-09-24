@@ -120,8 +120,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for the sigla_token cookie
-  const token = request.cookies.get('sigla_token');
+  // Check for the pulse_token cookie
+  const token = request.cookies.get('pulse_token');
   console.log('🍪 MIDDLEWARE - Token present:', !!token?.value);
   
   if (!token || !token.value) {

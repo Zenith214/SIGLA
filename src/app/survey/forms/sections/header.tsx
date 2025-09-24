@@ -153,7 +153,7 @@ export function Header({ user, currentSection }: HeaderProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">
-                SIGLA Survey Forms
+                PULSE Survey Forms
               </h1>
               <p className="text-sm text-gray-300">
                 {currentSection ? `${currentSection} • Community Assessment Survey Tool` : "Community Assessment Survey Tool"}

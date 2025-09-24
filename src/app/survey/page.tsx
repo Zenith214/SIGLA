@@ -135,9 +135,9 @@ function SurveyDashboardContent() {
           <div className="flex justify-between items-center h-16">
             <h1 className="text-sm sm:text-lg md:text-xl font-semibold text-white truncate pr-4">
               <span className="hidden sm:inline">
-                SIGLA: Satisfaction Index for Governance and Local Administration
+                PULSE: Public Understanding and Local Service Evaluation
               </span>
-              <span className="sm:hidden">SIGLA Survey</span>
+              <span className="sm:hidden">PULSE Survey</span>
             </h1>
 
             {/* Right side - Time, Back Button, and User Menu */}
@@ -225,7 +225,7 @@ function SurveyDashboardContent() {
           {/* Overall Assignment Progress Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
-              SIGLA Survey 2025 - Assignment Progress Overview
+              PULSE Survey 2025 - Assignment Progress Overview
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className="text-center">

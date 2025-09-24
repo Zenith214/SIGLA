@@ -123,7 +123,7 @@ export default function AdminSettingsPanel() {
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#" className="text-white">
-                    SIGLA Admin
+                    PULSE Admin
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />

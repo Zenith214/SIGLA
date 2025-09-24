@@ -39,7 +39,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
       <div className="flex items-center justify-between">
         {/* Left side - Project Name */}
         <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-white">SIGLA</h1>
+          <h1 className="text-xl font-semibold text-white">PULSE</h1>
         </div>
 
         {/* Right side - Date/Time, Toggle Button, User Menu */}

@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Lock } from "lucide-react"
 
-export default function SiglaLogin() {
+export default function PulseLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -216,7 +216,7 @@ export default function SiglaLogin() {
               (Partnership)
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              © 2024 SIGLA System. All rights reserved.
+              © 2024 PULSE System. All rights reserved.
             </p>
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function SiglaLogin() {
                 System Login
               </CardTitle>
               <CardDescription style={{ color: "#333333" }}>
-                Enter your credentials to access the SIGLA system
+                Enter your credentials to access the PULSE system
               </CardDescription>
             </CardHeader>
 
@@ -397,7 +397,7 @@ export default function SiglaLogin() {
             (Partnership)
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            © 2024 SIGLA System. All rights reserved.
+            © 2024 PULSE System. All rights reserved.
           </p>
         </div>
       </div>

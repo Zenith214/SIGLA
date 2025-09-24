@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       }
     }, { status: 200 });
     
-    response.cookies.set('sigla_token', token, {
+    response.cookies.set('pulse_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

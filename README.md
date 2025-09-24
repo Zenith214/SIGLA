@@ -1,10 +1,10 @@
-# SIGLA - Satisfaction Index for Good Local Governance Assessment
+# PULSE - Public Understanding and Local Service Evaluation
 
-A comprehensive web application for assessing and monitoring barangay satisfaction indices and local governance performance in the Philippines.
+A comprehensive web application for measuring citizen satisfaction with local government services and evaluating barangay-level governance performance in the Philippines.
 
 ## 🏛️ Overview
 
-SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital platform designed to help Municipal Local Governance Resource Centers (MLGRC) evaluate, track, and improve barangay-level governance performance. The system provides interactive dashboards, detailed reporting, and data-driven insights to support evidence-based decision-making in local governance.
+PULSE (Public Understanding and Local Service Evaluation) is a digital platform designed to help Municipal Local Governance Resource Centers (MLGRC) systematically collect citizen feedback, evaluate service delivery effectiveness, and improve barangay-level governance performance. The system provides interactive dashboards, detailed reporting, and data-driven insights to support evidence-based decision-making in local governance.
 
 ## ✨ Key Features
 
@@ -83,7 +83,7 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd SIGLA
+   cd PULSE
    ```
 
 2. **Install dependencies**
@@ -123,7 +123,7 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 ## 📁 Project Structure
 
 ```
-SIGLA/
+PULSE/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── dashboard/          # Main dashboard interface
@@ -170,7 +170,7 @@ SIGLA/
 
 ### Environment Variables
 ```env
-DATABASE_URL="mysql://username:password@localhost:3306/sigla"
+DATABASE_URL="mysql://username:password@localhost:3306/pulse"
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
 ```
@@ -227,7 +227,7 @@ Developed in collaboration with Municipal Local Governance Resource Centers (MLG
 
 ## 📞 Support
 
-For technical support or questions about the SIGLA system, please contact the development team or create an issue in this repository.
+For technical support or questions about the PULSE system, please contact the development team or create an issue in this repository.
 
 ---
 

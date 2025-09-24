@@ -19,7 +19,7 @@ export default function SuccessPage() {
           {type === "register"
             ? "Your account has been created. You can now log in."
             : type === "login"
-            ? "You are now logged in. Welcome to SIGLA!"
+            ? "You are now logged in. Welcome to PULSE!"
             : "Operation completed successfully."}
         </p>
         <a

@@ -5,8 +5,8 @@ export async function POST() {
     // Create response
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
     
-    // Clear the sigla_token cookie
-    response.cookies.set('sigla_token', '', {
+    // Clear the pulse_token cookie
+    response.cookies.set('pulse_token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

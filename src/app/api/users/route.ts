@@ -21,7 +21,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
 // Helper to verify admin role
 async function verifyAdminRole(request: NextRequest) {
-  const token = request.cookies.get('sigla_token')?.value;
+  const token = request.cookies.get('pulse_token')?.value;
   if (!token) {
     return false;
   }
