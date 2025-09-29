@@ -1,24 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Header } from "./sections/header"
 import { SectionCard } from "./sections/section-card"
 import { FloatingProgressButton } from "./sections/floating-progress-button"
 import { SurveyInitialization } from "./sections/survey-initialization"
-import { KishGridSelection } from "./sections/kish-grid-selection"
+import { RespondentSelection } from "./sections/respondent-selection"
+import { RespondentDemographics } from "./sections/respondent-demographics"
 import { QuestionFlow } from "./sections/question-flow"
 import { TabbedSummary } from "./sections/tabbed-summary"
-import { Skeleton, SkeletonForm, SkeletonCard } from "@/components/ui/skeleton"
+import { SubmissionModal } from "./components/submission-modal"
 import {
   getAssignedSections,
-  getAssignmentDescription,
   isSectionAssigned,
   getNextAssignedSection,
-  getPreviousAssignedSection,
-  calculateAssignedProgress
+  getPreviousAssignedSection
 } from "./utils/sectionAssignment"
 import { getQuestionsForSection } from "./utils/questions"
 
@@ -104,6 +103,15 @@ function formatUserForHeader(user: any) {
 
 function SurveyAppContent() {
   const [currentSection, setCurrentSection] = useState("initialization")
+  const [submissionModal, setSubmissionModal] = useState<{
+    isOpen: boolean
+    type: 'success' | 'duplicate' | 'error'
+    message: string
+  }>({
+    isOpen: false,
+    type: 'success',
+    message: ''
+  })
   const [surveyData, setSurveyData] = useState<SurveyData>({
     surveyNumber: "",
     barangayId: undefined,
@@ -126,14 +134,19 @@ function SurveyAppContent() {
   // Initialize with base sections - assigned sections will be added dynamically
   const [sections, setSections] = useState<SectionStatus[]>([
     { id: "initialization", name: "Survey Initialization", status: "in-progress" },
-    { id: "kish-grid", name: "Respondent Selection", status: "pending" },
+    { id: "respondent-selection", name: "Respondent Selection", status: "pending" },
+    { id: "respondent-demographics", name: "Respondent Demographics", status: "pending" },
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
   // Get authenticated user information and router
   const { user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const formattedUser = formatUserForHeader(user)
+
+  // Read URL parameters
+  const barangayIdParam = searchParams.get('barangayId')
 
   // Load saved data on mount
   useEffect(() => {
@@ -146,6 +159,17 @@ function SurveyAppContent() {
       setSections(JSON.parse(savedSections))
     }
   }, [])
+
+  // Pre-populate barangayId from URL parameter
+  useEffect(() => {
+    if (barangayIdParam && !surveyData.barangayId) {
+      const barangayId = parseInt(barangayIdParam)
+      if (!isNaN(barangayId)) {
+        console.log(`📍 Pre-populating barangayId from URL: ${barangayId}`)
+        setSurveyData(prev => ({ ...prev, barangayId }))
+      }
+    }
+  }, [barangayIdParam, surveyData.barangayId])
 
   // Update assigned sections when survey number changes
   useEffect(() => {
@@ -166,13 +190,14 @@ function SurveyAppContent() {
       setSections(prevSections => {
         // If sections array is empty or doesn't have the right sections, rebuild it
         const existingSectionIds = prevSections.map(s => s.id);
-        const expectedSectionIds = ["initialization", "kish-grid", ...assignedSectionIds, "summary"];
+        const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "summary"];
 
         if (prevSections.length === 0 || JSON.stringify(existingSectionIds) !== JSON.stringify(expectedSectionIds)) {
           console.log(`🏗️ Building initial sections array`);
           const newSections: SectionStatus[] = [
             { id: "initialization", name: "Survey Initialization", status: "completed" },
-            { id: "kish-grid", name: "Respondent Selection", status: currentSection === "kish-grid" ? "in-progress" : "pending" },
+            { id: "respondent-selection", name: "Respondent Selection", status: currentSection === "respondent-selection" ? "in-progress" : "pending" },
+            { id: "respondent-demographics", name: "Respondent Demographics", status: currentSection === "respondent-demographics" ? "in-progress" : "pending" },
             ...assignedSections.map(section => ({
               ...section,
               status: currentSection === section.id ? "in-progress" as const : "pending" as const
@@ -224,6 +249,32 @@ function SurveyAppContent() {
 
   const updateSurveyData = (section: keyof SurveyData, data: any) => {
     setSurveyData((prev) => ({ ...prev, [section]: data }))
+  }
+
+  const handleModalClose = () => {
+    setSubmissionModal(prev => ({ ...prev, isOpen: false }))
+  }
+
+  const handleModalRetry = () => {
+    setSubmissionModal(prev => ({ ...prev, isOpen: false }))
+    // The submission will be retried when user clicks submit again
+  }
+
+  const handleModalRedirect = () => {
+    // Clear local storage after successful submission
+    localStorage.removeItem("barangay-survey-data")
+    localStorage.removeItem("barangay-survey-sections")
+
+    // Close modal and redirect
+    setSubmissionModal(prev => ({ ...prev, isOpen: false }))
+
+    // Redirect back to barangay detail page if barangayId was provided
+    if (barangayIdParam) {
+      router.push(`/survey/barangay/${barangayIdParam}`)
+    } else {
+      // Fallback to survey dashboard
+      router.push('/survey')
+    }
   }
 
   // Helper function to check if a section is complete (including skipped questions)
@@ -287,14 +338,22 @@ function SurveyAppContent() {
           <SurveyInitialization
             data={surveyData}
             onUpdate={updateSurveyData}
-            onNext={() => handleSectionComplete("initialization", "kish-grid")}
+            onNext={() => handleSectionComplete("initialization", "respondent-selection")}
+            preselectedBarangayId={barangayIdParam ? parseInt(barangayIdParam) : undefined}
           />
         )
-      case "kish-grid":
+      case "respondent-selection":
         return (
-          <KishGridSelection
+          <RespondentSelection
             surveyNumber={surveyData.surveyNumber}
-            selectedMember={surveyData.selectedMember}
+            onUpdate={updateSurveyData}
+            onNext={() => handleSectionComplete("respondent-selection", "respondent-demographics")}
+            onBack={() => setCurrentSection("initialization")}
+          />
+        )
+      case "respondent-demographics":
+        return (
+          <RespondentDemographics
             data={surveyData}
             onUpdate={updateSurveyData}
             onNext={() => {
@@ -302,12 +361,12 @@ function SurveyAppContent() {
               if (surveyData.surveyNumber) {
                 const assignedSections = getAssignedSections(surveyData.surveyNumber);
                 const firstAssignedSection = assignedSections.length > 0 ? assignedSections[0].id : "summary";
-                handleSectionComplete("kish-grid", firstAssignedSection);
+                handleSectionComplete("respondent-demographics", firstAssignedSection);
               } else {
-                handleSectionComplete("kish-grid", "summary");
+                handleSectionComplete("respondent-demographics", "summary");
               }
             }}
-            onBack={() => setCurrentSection("initialization")}
+            onBack={() => setCurrentSection("respondent-selection")}
           />
         )
       case "financial":
@@ -362,7 +421,12 @@ function SurveyAppContent() {
                 const lastSection = assignedSections[assignedSections.length - 1];
                 if (lastSection) {
                   setCurrentSection(lastSection.id);
+                } else {
+                  // If no assigned sections, go back to respondent demographics
+                  setCurrentSection("respondent-demographics");
                 }
+              } else {
+                setCurrentSection("respondent-demographics");
               }
             }}
             onSubmit={async () => {
@@ -439,21 +503,39 @@ function SurveyAppContent() {
 
                 if (response.ok) {
                   const result = await response.json()
-                  alert(`Survey submitted successfully! Response ID: ${result.responseId}`)
-
-                  // Clear local storage after successful submission
-                  localStorage.removeItem("barangay-survey-data")
-                  localStorage.removeItem("barangay-survey-sections")
-
-                  // Optionally redirect to survey dashboard
-                  // router.push('/survey')
+                  setSubmissionModal({
+                    isOpen: true,
+                    type: 'success',
+                    message: `Survey submitted successfully! Response ID: ${result.responseId}`
+                  })
                 } else {
                   const error = await response.json()
-                  alert(`Failed to submit survey: ${error.error}`)
+                  const errorMessage = error.error || 'Unknown error occurred'
+
+                  // Check if it's a duplicate survey number error
+                  if (errorMessage.toLowerCase().includes('duplicate') ||
+                      errorMessage.toLowerCase().includes('already exists') ||
+                      errorMessage.toLowerCase().includes('unique constraint')) {
+                    setSubmissionModal({
+                      isOpen: true,
+                      type: 'duplicate',
+                      message: 'This survey number has already been used. Please use a different survey number.'
+                    })
+                  } else {
+                    setSubmissionModal({
+                      isOpen: true,
+                      type: 'error',
+                      message: `Failed to submit survey: ${errorMessage}`
+                    })
+                  }
                 }
               } catch (error) {
                 console.error('Error submitting survey:', error)
-                alert('Failed to submit survey. Please try again.')
+                setSubmissionModal({
+                  isOpen: true,
+                  type: 'error',
+                  message: 'Failed to submit survey. Please check your connection and try again.'
+                })
               }
             }}
           />
@@ -504,6 +586,16 @@ function SurveyAppContent() {
       {surveyData.surveyNumber && currentSection !== "initialization" && (
         <FloatingProgressButton sections={sections} currentSection={currentSection} onSectionChange={setCurrentSection} />
       )}
+
+      {/* Submission Modal */}
+      <SubmissionModal
+        isOpen={submissionModal.isOpen}
+        type={submissionModal.type}
+        message={submissionModal.message}
+        onClose={handleModalClose}
+        onRetry={handleModalRetry}
+        onRedirect={handleModalRedirect}
+      />
     </div>
   )
 }

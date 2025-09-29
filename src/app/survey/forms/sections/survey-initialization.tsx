@@ -9,12 +9,13 @@ import { InteractiveMap } from "./interactive-map"
 import { getAssignmentDescription, getAssignedSections } from "../utils/sectionAssignment"
 
 interface SurveyInitializationProps {
-  data: SurveyData
-  onUpdate: (section: keyof SurveyData, data: any) => void
-  onNext: () => void
-}
+   data: SurveyData
+   onUpdate: (section: keyof SurveyData, data: any) => void
+   onNext: () => void
+   preselectedBarangayId?: number
+ }
 
-export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializationProps) {
+export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarangayId }: SurveyInitializationProps) {
   const [surveyNumber, setSurveyNumber] = useState(data.surveyNumber || "")
   const [surveyNumberError, setSurveyNumberError] = useState('')
   const [location, setLocation] = useState(data.location || { lat: 0, lng: 0, address: "" })
@@ -23,6 +24,7 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
   const [showMap, setShowMap] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [preselectedBarangayName, setPreselectedBarangayName] = useState<string>('')
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markerRef = useRef<any>(null)
@@ -34,6 +36,24 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Fetch barangay name when preselectedBarangayId is provided
+  useEffect(() => {
+    if (preselectedBarangayId && isClient) {
+      const fetchBarangayName = async () => {
+        try {
+          const response = await fetch(`/api/barangays/${preselectedBarangayId}`)
+          if (response.ok) {
+            const barangayData = await response.json()
+            setPreselectedBarangayName(barangayData.barangay_name)
+          }
+        } catch (error) {
+          console.error('Failed to fetch barangay name:', error)
+        }
+      }
+      fetchBarangayName()
+    }
+  }, [preselectedBarangayId, isClient])
 
   // Load Leaflet when location is captured and modal is not open
   useEffect(() => {
@@ -332,6 +352,21 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
             </div>
           )}
         </div>
+
+        {/* Pre-selected Barangay Indicator */}
+        {preselectedBarangayId && preselectedBarangayName && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2 text-sm text-green-800">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                <strong>Barangay Pre-selected:</strong> {preselectedBarangayName} (ID: {preselectedBarangayId})
+              </span>
+            </div>
+            <p className="text-xs text-green-600 mt-1">
+              This survey is assigned to the selected barangay. Location capture is still required for GPS coordinates.
+            </p>
+          </div>
+        )}
 
         {/* Location Capture */}
         <div>
