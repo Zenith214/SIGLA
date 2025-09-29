@@ -12,22 +12,23 @@ import { KishGridSelection } from "./sections/kish-grid-selection"
 import { QuestionFlow } from "./sections/question-flow"
 import { TabbedSummary } from "./sections/tabbed-summary"
 import { Skeleton, SkeletonForm, SkeletonCard } from "@/components/ui/skeleton"
-import { 
-  getAssignedSections, 
-  getAssignmentDescription, 
+import {
+  getAssignedSections,
+  getAssignmentDescription,
   isSectionAssigned,
   getNextAssignedSection,
   getPreviousAssignedSection,
   calculateAssignedProgress
 } from "./utils/sectionAssignment"
+import { getQuestionsForSection } from "./utils/questions"
 
 export interface SurveyData {
   surveyNumber: string
   assignedSections?: string[] // New field for tracking assigned sections
   barangayId?: number
-  location: { 
-    lat: number; 
-    lng: number; 
+  location: {
+    lat: number;
+    lng: number;
     address: string;
     accuracy?: number;
     timestamp?: number;
@@ -85,10 +86,10 @@ function formatUserForHeader(user: any) {
     }
   }
 
-  const name = user.firstName && user.lastName 
+  const name = user.firstName && user.lastName
     ? `${user.firstName} ${user.lastName}`
     : user.firstName || "Unknown User"
-  
+
   const initials = user.firstName && user.lastName
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
     : user.firstName?.charAt(0) || 'U'
@@ -148,27 +149,52 @@ function SurveyAppContent() {
 
   // Update assigned sections when survey number changes
   useEffect(() => {
+    console.log(`🔄 Survey number or current section changed: ${surveyData.surveyNumber}, current: ${currentSection}`);
+
     if (surveyData.surveyNumber && surveyData.surveyNumber.trim()) {
       const assignedSections = getAssignedSections(surveyData.surveyNumber);
       const assignedSectionIds = assignedSections.map(s => s.id);
-      
+      console.log(`📋 Assigned sections for survey ${surveyData.surveyNumber}:`, assignedSectionIds);
+
       // Update survey data with assigned sections
       if (JSON.stringify(surveyData.assignedSections) !== JSON.stringify(assignedSectionIds)) {
+        console.log(`🔄 Updating survey data with assigned sections`);
         setSurveyData(prev => ({ ...prev, assignedSections: assignedSectionIds }));
       }
-      
-      // Rebuild sections array with assigned sections
-      const newSections: SectionStatus[] = [
-        { id: "initialization", name: "Survey Initialization", status: "completed" },
-        { id: "kish-grid", name: "Respondent Selection", status: currentSection === "kish-grid" ? "in-progress" : "pending" },
-        ...assignedSections.map(section => ({
-          ...section,
-          status: currentSection === section.id ? "in-progress" as const : "pending" as const
-        })),
-        { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
-      ];
-      
-      setSections(newSections);
+
+      // Only rebuild sections if they don't exist yet, otherwise preserve existing statuses
+      setSections(prevSections => {
+        // If sections array is empty or doesn't have the right sections, rebuild it
+        const existingSectionIds = prevSections.map(s => s.id);
+        const expectedSectionIds = ["initialization", "kish-grid", ...assignedSectionIds, "summary"];
+
+        if (prevSections.length === 0 || JSON.stringify(existingSectionIds) !== JSON.stringify(expectedSectionIds)) {
+          console.log(`🏗️ Building initial sections array`);
+          const newSections: SectionStatus[] = [
+            { id: "initialization", name: "Survey Initialization", status: "completed" },
+            { id: "kish-grid", name: "Respondent Selection", status: currentSection === "kish-grid" ? "in-progress" : "pending" },
+            ...assignedSections.map(section => ({
+              ...section,
+              status: currentSection === section.id ? "in-progress" as const : "pending" as const
+            })),
+            { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
+          ];
+          console.log(`📋 Initial sections:`, newSections.map(s => `${s.id}: ${s.status}`));
+          return newSections;
+        } else {
+          // Preserve existing statuses, only update current section to in-progress
+          console.log(`🔄 Preserving existing statuses, updating current section`);
+          const updatedSections = prevSections.map(section => {
+            if (section.id === currentSection && section.status === "pending") {
+              console.log(`▶️ Setting ${section.id} to in-progress (was ${section.status})`);
+              return { ...section, status: "in-progress" as const };
+            }
+            return section;
+          });
+          console.log(`📋 Preserved sections:`, updatedSections.map(s => `${s.id}: ${s.status}`));
+          return updatedSections;
+        }
+      });
     }
   }, [surveyData.surveyNumber, currentSection]);
 
@@ -182,29 +208,74 @@ function SurveyAppContent() {
   }, [sections])
 
   const updateSectionStatus = (sectionId: string, status: SectionStatus["status"]) => {
-    setSections((prev) => prev.map((section) => (section.id === sectionId ? { ...section, status } : section)))
+    console.log(`🔄 updateSectionStatus called: ${sectionId} -> ${status}`);
+    setSections((prev) => {
+      const updated = prev.map((section) => {
+        if (section.id === sectionId) {
+          console.log(`✅ Updated section ${sectionId}: ${section.status} -> ${status}`);
+          return { ...section, status };
+        }
+        return section;
+      });
+      console.log('📋 All sections after update:', updated.map(s => `${s.id}: ${s.status}`));
+      return updated;
+    });
   }
 
   const updateSurveyData = (section: keyof SurveyData, data: any) => {
     setSurveyData((prev) => ({ ...prev, [section]: data }))
   }
 
+  // Helper function to check if a section is complete (including skipped questions)
+  const isSectionComplete = (sectionId: string, sectionData: any): boolean => {
+    if (!sectionData || typeof sectionData !== 'object') {
+      return false;
+    }
+
+    // Get all questions for this section
+    const questions = getQuestionsForSection(sectionId);
+    if (questions.length === 0) {
+      return true; // No questions means complete
+    }
+
+    // Check if all questions are either answered or properly skipped
+    return questions.every(question => {
+      const answer = sectionData[question.id];
+      const skipReason = sectionData[`${question.id}_skipReason`];
+
+      // Question is complete if:
+      // 1. It has a real answer (not null/undefined/empty)
+      // 2. It's null but has a skip reason (was skipped due to conditional logic)
+      return (answer !== undefined && answer !== null && answer !== '') ||
+        (answer === null && skipReason);
+    });
+  }
+
   const handleSectionComplete = (sectionId: string, nextSectionId?: string) => {
+    console.log(`🎯 handleSectionComplete called for: ${sectionId}, nextSectionId: ${nextSectionId}`);
+
+    // Always mark the current section as completed when this function is called
+    console.log(`🏁 Marking section ${sectionId} as completed`);
     updateSectionStatus(sectionId, "completed")
-    
+
     // Determine next section based on assignment logic
     let actualNextSection = nextSectionId;
-    if (!actualNextSection && surveyData.surveyNumber) {
-      actualNextSection = getNextAssignedSection(surveyData.surveyNumber, sectionId);
+    if ((!actualNextSection || actualNextSection === "") && surveyData.surveyNumber) {
+      const nextSection = getNextAssignedSection(surveyData.surveyNumber, sectionId);
+      actualNextSection = nextSection || undefined;
+      console.log(`🔍 Next assigned section for survey ${surveyData.surveyNumber} after ${sectionId}: ${actualNextSection}`);
     }
-    
+
     if (actualNextSection && actualNextSection !== "summary") {
+      console.log(`▶️ Setting next section ${actualNextSection} to in-progress`);
       updateSectionStatus(actualNextSection, "in-progress")
     } else if (actualNextSection === "summary") {
+      console.log(`📝 Setting summary to in-progress`);
       updateSectionStatus("summary", "in-progress")
     }
-    
+
     if (actualNextSection) {
+      console.log(`🚀 Navigating to section: ${actualNextSection}`);
       setCurrentSection(actualNextSection)
     }
   }
@@ -226,7 +297,16 @@ function SurveyAppContent() {
             selectedMember={surveyData.selectedMember}
             data={surveyData}
             onUpdate={updateSurveyData}
-            onNext={() => handleSectionComplete("kish-grid", "financial")}
+            onNext={() => {
+              // Get the first assigned section for this survey number
+              if (surveyData.surveyNumber) {
+                const assignedSections = getAssignedSections(surveyData.surveyNumber);
+                const firstAssignedSection = assignedSections.length > 0 ? assignedSections[0].id : "summary";
+                handleSectionComplete("kish-grid", firstAssignedSection);
+              } else {
+                handleSectionComplete("kish-grid", "summary");
+              }
+            }}
             onBack={() => setCurrentSection("initialization")}
           />
         )
@@ -241,7 +321,7 @@ function SurveyAppContent() {
           return (
             <div className="p-6 text-center">
               <p className="text-gray-600">This section is not assigned for your survey number.</p>
-              <button 
+              <button
                 onClick={() => setCurrentSection("summary")}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
               >
@@ -250,7 +330,7 @@ function SurveyAppContent() {
             </div>
           );
         }
-        
+
         return (
           <QuestionFlow
             sectionId={currentSection}
@@ -288,9 +368,9 @@ function SurveyAppContent() {
             onSubmit={async () => {
               try {
                 updateSectionStatus("summary", "completed")
-                
+
                 let barangayId = surveyData.barangayId
-                
+
                 // If no barangayId is set, try to get it from location data
                 if (!barangayId && surveyData.location.barangay) {
                   try {
@@ -303,13 +383,13 @@ function SurveyAppContent() {
                     console.warn('Could not find barangay ID from location data:', error)
                   }
                 }
-                
+
                 // Default to first available barangay if still no ID
                 if (!barangayId) {
                   barangayId = 26 // Default to Katipunan
                 }
-                
-                // Prepare survey data for submission
+
+                // Prepare survey data for submission with proper NULL handling
                 const submissionData = {
                   surveyNumber: surveyData.surveyNumber,
                   location: surveyData.location,
@@ -317,12 +397,35 @@ function SurveyAppContent() {
                   respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
-                  financialAdmin: surveyData.financialAdmin,
-                  disasterPrep: surveyData.disasterPrep,
-                  safetyPeace: surveyData.safetyPeace,
-                  businessFriendly: surveyData.businessFriendly,
-                  environmental: surveyData.environmental,
-                  socialProtection: surveyData.socialProtection
+                  // Only include sections that were assigned to this survey number
+                  sections: getAssignedSections(surveyData.surveyNumber).reduce((acc, section) => {
+                    const sectionDataKey = getSectionDataKey(section.id);
+                    const sectionData = surveyData[sectionDataKey];
+
+                    // Clean the section data - only include answered questions
+                    const cleanedData: Record<string, any> = {};
+                    const skipReasons: Record<string, string> = {};
+
+                    if (sectionData && typeof sectionData === 'object') {
+                      Object.entries(sectionData).forEach(([key, value]) => {
+                        if (value !== undefined && value !== null && value !== '') {
+                          cleanedData[key] = value;
+                        } else {
+                          // Mark as skipped with reason
+                          cleanedData[key] = null;
+                          skipReasons[key] = 'not_applicable'; // Could be more specific
+                        }
+                      });
+                    }
+
+                    acc[section.id] = {
+                      data: cleanedData,
+                      skipReasons: skipReasons,
+                      completed: Object.keys(cleanedData).filter(k => cleanedData[k] !== null).length > 0
+                    };
+
+                    return acc;
+                  }, {} as Record<string, any>)
                 }
 
                 // Submit to database
@@ -337,11 +440,11 @@ function SurveyAppContent() {
                 if (response.ok) {
                   const result = await response.json()
                   alert(`Survey submitted successfully! Response ID: ${result.responseId}`)
-                  
+
                   // Clear local storage after successful submission
                   localStorage.removeItem("barangay-survey-data")
                   localStorage.removeItem("barangay-survey-sections")
-                  
+
                   // Optionally redirect to survey dashboard
                   // router.push('/survey')
                 } else {
@@ -411,4 +514,16 @@ export default function SurveyApp() {
       <SurveyAppContent />
     </ProtectedRoute>
   )
+}
+
+function getSectionDataKey(sectionId: string): keyof SurveyData {
+  const keyMap: Record<string, keyof SurveyData> = {
+    financial: "financialAdmin",
+    disaster: "disasterPrep",
+    safety: "safetyPeace",
+    social: "socialProtection",
+    business: "businessFriendly",
+    environmental: "environmental",
+  }
+  return keyMap[sectionId] || "financialAdmin";
 }

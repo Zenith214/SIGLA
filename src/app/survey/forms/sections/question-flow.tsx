@@ -14,7 +14,7 @@ interface QuestionFlowProps {
   sectionId: string;
   data: SurveyData;
   onUpdate: (section: keyof SurveyData, data: any) => void;
-  onComplete: (nextSection: string) => void;
+  onComplete: () => void;
   onBack: () => void;
   onResetSectionStatus: (sectionId: string, status: SectionStatus['status']) => void;
 }
@@ -39,6 +39,10 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     } else {
       setAnswers((data[sectionDataKey] || {}) as Record<string, any>);
     }
+    
+    // Check if section should be marked as completed
+    const currentAnswers = (data[sectionDataKey] || {}) as Record<string, any>;
+    checkSectionCompletion(currentAnswers);
   }, [sectionId, data, sectionDataKey]);
 
   const safeQuestions: Question[] =
@@ -54,6 +58,35 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
     onUpdate(sectionDataKey, newAnswers);
+    
+    // Check if section is now complete after this answer
+    checkSectionCompletion(newAnswers);
+  }
+
+  // Helper function to check if section is complete
+  const checkSectionCompletion = (currentAnswers: Record<string, any>) => {
+    const totalQuestions = questions.length;
+    const answeredOrSkipped = questions.filter(q => {
+      const answer = currentAnswers[q.id];
+      const skipReason = currentAnswers[`${q.id}_skipReason`];
+      const isEnabled = isQuestionEnabled(q);
+      
+      // Count as complete if:
+      // 1. Question is enabled and has an answer
+      // 2. Question was skipped (has null + skip reason)
+      // 3. Question is disabled due to dependencies
+      return (isEnabled && answer !== undefined && answer !== null && answer !== '') ||
+             (answer === null && skipReason) ||
+             (!isEnabled);
+    }).length;
+    
+    console.log(`Section ${sectionId}: ${answeredOrSkipped}/${totalQuestions} questions handled`);
+    
+    // If all questions are handled, mark section as completed
+    if (answeredOrSkipped === totalQuestions) {
+      console.log(`Marking section ${sectionId} as completed`);
+      onResetSectionStatus(sectionId, "completed");
+    }
   }
 
   const isQuestionEnabled = (question: Question | undefined) => {
@@ -122,48 +155,41 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
       );
 
       if (jumpCondition) {
+        // Mark skipped questions as NULL with skip reason
+        const skippedQuestions = getSkippedQuestions(currentQuestionIndex, jumpCondition.skipToId);
+        const updatedAnswers = { ...answers };
+        
+        skippedQuestions.forEach(questionId => {
+          if (!(questionId in updatedAnswers)) {
+            updatedAnswers[questionId] = null;
+            // Also track the skip reason
+            updatedAnswers[`${questionId}_skipReason`] = getSkipReason(currentQuestion.id, currentAnswerValue);
+          }
+        });
+        
+        // Update answers with skipped questions
+        setAnswers(updatedAnswers);
+        onUpdate(sectionDataKey, updatedAnswers);
+
         const targetQuestionIndex = questions.findIndex(q => q.id === jumpCondition.skipToId);
         if (targetQuestionIndex !== -1) {
           setCurrentQuestionIndex(targetQuestionIndex);
           return;
-        } else if (jumpCondition.skipToId === "endOfFinancialSection") {
-          const nextSectionMap: Record<string, string> = { financial: "disaster" };
-          onComplete(nextSectionMap[sectionId] || "summary");
-          return;
-        } else if (jumpCondition.skipToId === "endOfDisasterSection") {
-          const nextSectionMap: Record<string, string> = { disaster: "safety" };
-          onComplete(nextSectionMap[sectionId] || "summary");
-          return;
-        } else if (jumpCondition.skipToId === "endOfSafetySection") {
-          const nextSectionMap: Record<string, string> = { safety: "social" };
-          onComplete(nextSectionMap[sectionId] || "summary");
-          return;
-        } else if (jumpCondition.skipToId === "endOfSocialSection") {
-          const nextSectionMap: Record<string, string> = { social: "business" };
-          onComplete(nextSectionMap[sectionId] || "summary");
-          return;
-        } else if (jumpCondition.skipToId === "endOfBusinessSection") {
-          const nextSectionMap: Record<string, string> = { business: "environmental" };
-          onComplete(nextSectionMap[sectionId] || "summary");
-          return;
-        } else if (jumpCondition.skipToId === "endOfEnvironmentalSection") {
-          // This is the final section, so it should go to summary
-          onComplete("summary");
+        } else if (jumpCondition.skipToId.startsWith("endOf") && jumpCondition.skipToId.endsWith("Section")) {
+          // Section is complete, mark as completed and trigger completion
+          console.log(`🏁 QuestionFlow: Section ${sectionId} complete (skipped to end), marking as completed`);
+          onResetSectionStatus(sectionId, "completed");
+          onComplete();
           return;
         }
       }
     }
 
     if (isLastQuestion) {
-      const nextSectionMap: Record<string, string> = {
-        financial: "disaster",
-        disaster: "safety",
-        safety: "social",
-        social: "business",
-        business: "environmental",
-        environmental: "summary",
-      };
-      onComplete(nextSectionMap[sectionId] || "summary");
+      // Section is complete, mark as completed and trigger completion
+      console.log(`🏁 QuestionFlow: Last question in ${sectionId}, marking as completed`);
+      onResetSectionStatus(sectionId, "completed");
+      onComplete();
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
@@ -201,6 +227,39 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
       }
     }
     return ""; 
+  };
+
+  // Helper function to get questions that will be skipped
+  const getSkippedQuestions = (currentIndex: number, skipToId: string): string[] => {
+    const skippedQuestions: string[] = [];
+    
+    if (skipToId.startsWith("endOf") && skipToId.endsWith("Section")) {
+      // Skipping to end of section - mark all remaining questions as skipped
+      for (let i = currentIndex + 1; i < questions.length; i++) {
+        skippedQuestions.push(questions[i].id);
+      }
+    } else {
+      // Skipping to a specific question - mark questions in between as skipped
+      const targetIndex = questions.findIndex(q => q.id === skipToId);
+      if (targetIndex !== -1) {
+        for (let i = currentIndex + 1; i < targetIndex; i++) {
+          skippedQuestions.push(questions[i].id);
+        }
+      }
+    }
+    
+    return skippedQuestions;
+  };
+
+  // Helper function to determine skip reason based on the trigger question
+  const getSkipReason = (triggerQuestionId: string, triggerValue: string): string => {
+    if (triggerQuestionId.includes('awareness') || triggerQuestionId.includes('Awareness')) {
+      return triggerValue === 'Hindi' || triggerValue === 'No' ? 'not_aware' : 'conditional_skip';
+    } else if (triggerQuestionId.includes('availment') || triggerQuestionId.includes('experience') || triggerQuestionId.includes('benefited') || triggerQuestionId.includes('used')) {
+      return triggerValue === 'Hindi' || triggerValue === 'No' ? 'not_available_or_used' : 'conditional_skip';
+    } else {
+      return 'conditional_skip';
+    }
   };
 
   return (

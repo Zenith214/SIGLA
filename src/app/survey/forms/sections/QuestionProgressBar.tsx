@@ -21,13 +21,22 @@ export function QuestionProgressBar({
   const getAnsweredCount = () => {
     return questions.filter((q) => {
       const isCurrentlyEnabled = isQuestionEnabled(q);
+      const answer = answers[q.id];
+      
+      // Count as answered if:
+      // 1. Question is enabled and has a real answer
+      // 2. Question was skipped (has null value with skip reason)
       if (isCurrentlyEnabled) {
         if (q.type === "grouped") {
           const groupAnswer = answers[q.id];
           return groupAnswer && groupAnswer.main !== undefined && groupAnswer.main !== "";
         }
-        return answers[q.id] !== undefined && answers[q.id] !== "";
+        return answer !== undefined && answer !== "";
+      } else if (answer === null && answers[`${q.id}_skipReason`]) {
+        // Question was skipped due to conditional logic
+        return true;
       }
+      
       return false;
     }).length;
   };
@@ -43,28 +52,51 @@ export function QuestionProgressBar({
       <div className="flex space-x-1">
         {questions.map((question, index) => {
           let isAnswered = false;
+          let isSkipped = false;
           const isCurrentlyEnabled = isQuestionEnabled(question);
+          const answer = answers[question.id];
 
           if (isCurrentlyEnabled) {
             if (question.type === "grouped") {
               const groupAnswer = answers[question.id];
               isAnswered = groupAnswer && groupAnswer.main !== undefined && groupAnswer.main !== "";
             } else {
-              isAnswered = answers[question.id] !== undefined && answers[question.id] !== "";
+              isAnswered = answer !== undefined && answer !== "";
             }
+          } else if (answer === null && answers[`${question.id}_skipReason`]) {
+            // Question was skipped due to conditional logic
+            isSkipped = true;
           }
 
           return (
             <div
               key={index}
-              className={`h-2 flex-1 rounded-full transition-colors duration-300 ${index <= currentQuestionIndex ? (isAnswered ? "bg-green-500" : "bg-blue-300") : "bg-gray-300"
-                }`}
+              className={`h-2 flex-1 rounded-full transition-colors duration-300 ${
+                index <= currentQuestionIndex 
+                  ? (isAnswered ? "bg-green-500" : isSkipped ? "bg-yellow-500" : "bg-blue-300") 
+                  : "bg-gray-300"
+              }`}
+              title={isSkipped ? "Skipped due to conditional logic" : isAnswered ? "Answered" : "Current/Pending"}
             />
           );
         })}
       </div>
-      <div className="mt-2 text-xs text-gray-500">
-        {getAnsweredCount()} of {questions.length} questions answered
+      <div className="mt-2 text-xs text-gray-500 flex justify-between">
+        <span>{getAnsweredCount()} of {questions.length} questions completed</span>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>Answered</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <span>Skipped</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+            <span>Current</span>
+          </div>
+        </div>
       </div>
     </div>
   );

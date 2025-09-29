@@ -74,38 +74,70 @@ export default function BarangaySatisfactionIndex({
       else if (key.includes('economic')) categories.economic.push(question);
     });
 
-    // Calculate average satisfaction for each category
+    // Calculate average satisfaction for each category using proper NULL handling
     const categoryScores = {};
     Object.entries(categories).forEach(([category, questionList]) => {
       if (questionList.length > 0) {
-        const avgSatisfaction = questionList.reduce((sum: number, q: any) => {
-          return sum + (q.statistics?.mean || 3); // Default to 3 if no data
-        }, 0) / questionList.length;
+        // Only include questions with actual responses (not NULL/undefined)
+        const validQuestions = questionList.filter((q: any) => 
+          q.statistics?.mean !== null && 
+          q.statistics?.mean !== undefined && 
+          q.statistics?.count > 0
+        );
 
-        const satisfaction = Math.round((avgSatisfaction / 5) * 100); // Convert 1-5 scale to percentage
-        const needForAction = Math.random() * 100; // Mock need for action score
+        if (validQuestions.length > 0) {
+          // Calculate satisfaction only from users who actually used services
+          const avgSatisfaction = validQuestions.reduce((sum: number, q: any) => {
+            return sum + q.statistics.mean;
+          }, 0) / validQuestions.length;
 
-        let categoryType = 'monitor';
-        if (satisfaction >= 58 && needForAction < 50) categoryType = 'maintain';
-        else if (satisfaction >= 58 && needForAction >= 50) categoryType = 'opportunities';
-        else if (satisfaction < 58 && needForAction >= 50) categoryType = 'fix_now';
+          const satisfaction = Math.round((avgSatisfaction / 5) * 100); // Convert 1-5 scale to percentage
+          
+          // Calculate need for action from the same valid responses
+          const needForAction = validQuestions.reduce((sum: number, q: any) => {
+            // Assume higher satisfaction means lower need for action
+            return sum + (100 - ((q.statistics.mean / 5) * 100));
+          }, 0) / validQuestions.length;
 
-        categoryScores[category] = {
-          satisfaction,
-          needForAction: Math.round(needForAction),
-          category: categoryType
-        };
+          let categoryType = 'monitor';
+          if (satisfaction >= 58 && needForAction < 50) categoryType = 'maintain';
+          else if (satisfaction >= 58 && needForAction >= 50) categoryType = 'opportunities';
+          else if (satisfaction < 58 && needForAction >= 50) categoryType = 'fix_now';
+
+          categoryScores[category] = {
+            satisfaction,
+            needForAction: Math.round(needForAction),
+            category: categoryType,
+            sampleSize: validQuestions.reduce((sum: number, q: any) => sum + q.statistics.count, 0),
+            confidence: validQuestions.length >= 3 ? 'high' : validQuestions.length >= 2 ? 'medium' : 'low'
+          };
+        } else {
+          // No valid responses for this category
+          categoryScores[category] = {
+            satisfaction: null,
+            needForAction: null,
+            category: 'insufficient_data',
+            sampleSize: 0,
+            confidence: 'none'
+          };
+        }
       }
     });
 
-    // Calculate overall satisfaction
-    const overallSatisfaction = Object.values(categoryScores).length > 0
-      ? Math.round(Object.values(categoryScores).reduce((sum: number, cat: any) => sum + cat.satisfaction, 0) / Object.values(categoryScores).length)
-      : 65;
+    // Calculate overall satisfaction only from categories with data
+    const validCategories = Object.values(categoryScores).filter((cat: any) => cat.satisfaction !== null);
+    const overallSatisfaction = validCategories.length > 0
+      ? Math.round(validCategories.reduce((sum: number, cat: any) => sum + cat.satisfaction, 0) / validCategories.length)
+      : null; // No data available
 
     return {
       overall: overallSatisfaction,
-      categories: categoryScores
+      categories: categoryScores,
+      dataQuality: {
+        categoriesWithData: validCategories.length,
+        totalCategories: Object.keys(categoryScores).length,
+        confidence: validCategories.length >= 3 ? 'high' : validCategories.length >= 2 ? 'medium' : 'low'
+      }
     };
   };
 
