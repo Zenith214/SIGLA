@@ -10,10 +10,10 @@ class FeatureEngineer:
     
     def __init__(self):
         """Initialize the FeatureEngineer."""
-        # Define service sections
+        # Define service sections - updated to match actual survey sections
         self.service_sections = [
-            'health', 'education', 'infrastructure', 'social_welfare',
-            'agriculture', 'disaster', 'governance', 'tourism'
+            'financial', 'disaster', 'safety', 'social',
+            'business', 'environmental'
         ]
         
         # Define confidence level thresholds

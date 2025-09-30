@@ -32,48 +32,60 @@ export default function BarangaySatisfactionIndex({
   }>({
     overall: 65,
     categories: {
-      governance: { satisfaction: 72, needForAction: 45, category: 'maintain' },
-      infrastructure: { satisfaction: 58, needForAction: 78, category: 'opportunities' },
-      social_services: { satisfaction: 45, needForAction: 35, category: 'monitor' },
-      economic: { satisfaction: 38, needForAction: 85, category: 'fix_now' }
+      financial: { satisfaction: 72, needForAction: 45, category: 'maintain' },
+      disaster: { satisfaction: 58, needForAction: 78, category: 'opportunities' },
+      safety: { satisfaction: 45, needForAction: 35, category: 'monitor' },
+      social: { satisfaction: 38, needForAction: 85, category: 'fix_now' },
+      business: { satisfaction: 52, needForAction: 62, category: 'opportunities' },
+      environmental: { satisfaction: 48, needForAction: 55, category: 'monitor' }
     }
   });
 
-  // Fetch analytics data for this barangay
+  // Reset satisfaction data when barangay changes - start with empty categories
+  useEffect(() => {
+    if (barangay) {
+      setSatisfactionData({
+        overall: 0,
+        categories: {
+          // Start with empty categories - will be populated by API
+        }
+      });
+    }
+  }, [barangay?.id]);
+
+  // Fetch funnel analysis data for this barangay
   useEffect(() => {
     if (isOpen && barangay) {
-      // For now, just use fallback data to prevent errors
-      // TODO: Fix the survey-analytics API endpoint
-      console.log('📊 Loading satisfaction data for:', barangay.name);
-      setFallbackData();
-      
-      // Uncomment this when the API is fixed:
-      // fetchBarangayAnalytics();
+      console.log('📊 Loading funnel analysis data for:', barangay.name);
+      fetchFunnelAnalysis();
     }
   }, [isOpen, barangay?.id]);
 
-  const fetchBarangayAnalytics = async () => {
+  const fetchFunnelAnalysis = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/survey-analytics?format=aggregated&barangayId=${barangay.id}`);
+      const response = await fetch(`/api/funnel-analysis?barangayId=${barangay.id}`);
       if (response.ok) {
         const data = await response.json();
-        setAnalyticsData(data.aggregated);
 
-        // Calculate satisfaction scores from real data
-        if (data.aggregated?.questions) {
-          const calculatedSatisfaction = calculateSatisfactionScores(data.aggregated.questions);
-          setSatisfactionData(calculatedSatisfaction);
-        }
+        // Transform funnel analysis data to match component expectations
+        const transformedData = transformFunnelData(data);
+        setSatisfactionData(transformedData);
+        setAnalyticsData({
+          totalResponses: data.total_responses,
+          completionRate: data.total_responses > 0 ? 100 : 0,
+          averageRating: 3.5,
+          lastUpdated: new Date().toISOString()
+        });
       } else {
-        console.warn('Survey analytics API returned non-OK status:', response.status);
+        console.warn('Funnel analysis API returned non-OK status:', response.status);
         setError(`API returned status ${response.status}`);
         setFallbackData();
       }
     } catch (fetchError) {
-      console.error('Failed to fetch barangay analytics:', fetchError);
+      console.error('Failed to fetch funnel analysis:', fetchError);
       setError('Unable to load survey data. Showing sample data.');
       setFallbackData();
     } finally {
@@ -81,36 +93,49 @@ export default function BarangaySatisfactionIndex({
     }
   };
 
+  const transformFunnelData = (funnelData: any) => {
+    // Transform funnel analysis data to match component expectations
+    const categories: { [key: string]: any } = {};
+
+    // Map service sections to display names
+    const sectionNames: { [key: string]: string } = {
+      financial: 'Financial Administration',
+      disaster: 'Disaster Preparedness',
+      safety: 'Safety & Peace Order',
+      social: 'Social Protection',
+      business: 'Business Friendliness',
+      environmental: 'Environmental Management'
+    };
+
+    // Transform each service score
+    Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
+      const displayName = sectionNames[serviceKey] || serviceKey;
+      const quadrant = funnelData.action_grid?.[serviceKey]?.quadrant || 'insufficient_data';
+
+      categories[serviceKey] = {
+        satisfaction: scores.satisfaction_score || 0,
+        needForAction: scores.need_action_score || 0,
+        category: quadrant.toLowerCase()
+      };
+    });
+
+    return {
+      overall: funnelData.overall_satisfaction || 0,
+      categories: categories
+    };
+  };
+
   const setFallbackData = () => {
-    // Provide fallback satisfaction data when API is unavailable
+    // Provide fallback satisfaction data when API is unavailable - empty categories
     const fallbackSatisfaction = {
-      overall: 75, // Default satisfaction score
+      overall: 0,
       categories: {
-        governance: {
-          satisfaction: 72,
-          needForAction: 68,
-          category: "Governance"
-        },
-        infrastructure: {
-          satisfaction: 78,
-          needForAction: 82,
-          category: "Infrastructure"
-        },
-        social_services: {
-          satisfaction: 74,
-          needForAction: 76,
-          category: "Social Services"
-        },
-        economic: {
-          satisfaction: 76,
-          needForAction: 74,
-          category: "Economic Development"
-        }
+        // Empty categories - will show "No services in this category"
       }
     };
-    
+
     setSatisfactionData(fallbackSatisfaction);
-    
+
     // Set fallback analytics data
     setAnalyticsData({
       totalResponses: 0,
@@ -235,10 +260,12 @@ export default function BarangaySatisfactionIndex({
       surveyStatus: barangay.status,
       satisfaction: satisfactionData.overall.toString(),
       // Add category scores
-      governance: satisfactionData.categories.governance?.satisfaction?.toString() || '0',
-      infrastructure: satisfactionData.categories.infrastructure?.satisfaction?.toString() || '0',
-      social_services: satisfactionData.categories.social_services?.satisfaction?.toString() || '0',
-      economic: satisfactionData.categories.economic?.satisfaction?.toString() || '0',
+      financial: satisfactionData.categories.financial?.satisfaction?.toString() || '0',
+      disaster: satisfactionData.categories.disaster?.satisfaction?.toString() || '0',
+      safety: satisfactionData.categories.safety?.satisfaction?.toString() || '0',
+      social: satisfactionData.categories.social?.satisfaction?.toString() || '0',
+      business: satisfactionData.categories.business?.satisfaction?.toString() || '0',
+      environmental: satisfactionData.categories.environmental?.satisfaction?.toString() || '0',
       // Add survey response count
       responses: analyticsData?.totalResponses?.toString() || '0'
     });
@@ -258,7 +285,7 @@ export default function BarangaySatisfactionIndex({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-auto border border-gray-200">
+      <div className="relative bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-auto border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50">
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{barangay.name}</h1>
@@ -362,9 +389,9 @@ export default function BarangaySatisfactionIndex({
                   </div>
 
                   {/* 2x2 Grid */}
-                  <div className="grid grid-cols-2 gap-4 h-80">
+                  <div className="grid grid-cols-2 gap-4 min-h-80">
                     {/* Top Left - Maintain */}
-                    <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex flex-col">
+                    <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
                         <h3 className="text-green-800 font-bold text-base mb-1">MAINTAIN</h3>
                         <span className="text-green-600 font-medium text-xs">High Satisfaction, Low Need for Action</span>
@@ -375,7 +402,15 @@ export default function BarangaySatisfactionIndex({
                             <div key={key} className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <span className="mr-2">★</span>
-                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                <span>
+                                  {key === 'financial' ? 'Financial Administration' :
+                                   key === 'disaster' ? 'Disaster Preparedness' :
+                                   key === 'safety' ? 'Safety & Peace Order' :
+                                   key === 'social' ? 'Social Protection' :
+                                   key === 'business' ? 'Business Friendliness' :
+                                   key === 'environmental' ? 'Environmental Management' :
+                                   key.replace('_', ' ')}
+                                </span>
                               </div>
                               <Badge variant="outline" className="text-xs bg-green-50">
                                 {data.satisfaction}%
@@ -390,7 +425,7 @@ export default function BarangaySatisfactionIndex({
                     </div>
 
                     {/* Top Right - Opportunities */}
-                    <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 flex flex-col">
+                    <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
                         <h3 className="text-blue-800 font-bold text-base mb-1">OPPORTUNITIES</h3>
                         <span className="text-blue-600 font-medium text-xs">High Satisfaction, High Need for Action</span>
@@ -401,7 +436,15 @@ export default function BarangaySatisfactionIndex({
                             <div key={key} className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <span className="mr-2">★</span>
-                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                <span>
+                                  {key === 'financial' ? 'Financial Administration' :
+                                   key === 'disaster' ? 'Disaster Preparedness' :
+                                   key === 'safety' ? 'Safety & Peace Order' :
+                                   key === 'social' ? 'Social Protection' :
+                                   key === 'business' ? 'Business Friendliness' :
+                                   key === 'environmental' ? 'Environmental Management' :
+                                   key.replace('_', ' ')}
+                                </span>
                               </div>
                               <Badge variant="outline" className="text-xs bg-blue-50">
                                 {data.satisfaction}%
@@ -416,7 +459,7 @@ export default function BarangaySatisfactionIndex({
                     </div>
 
                     {/* Bottom Left - Monitor */}
-                    <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 flex flex-col">
+                    <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
                         <h3 className="text-yellow-800 font-bold text-base mb-1">MONITOR</h3>
                         <span className="text-yellow-600 font-medium text-xs">Low Satisfaction, Low Need for Action</span>
@@ -427,7 +470,15 @@ export default function BarangaySatisfactionIndex({
                             <div key={key} className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <span className="mr-2">★</span>
-                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                <span>
+                                  {key === 'financial' ? 'Financial Administration' :
+                                   key === 'disaster' ? 'Disaster Preparedness' :
+                                   key === 'safety' ? 'Safety & Peace Order' :
+                                   key === 'social' ? 'Social Protection' :
+                                   key === 'business' ? 'Business Friendliness' :
+                                   key === 'environmental' ? 'Environmental Management' :
+                                   key.replace('_', ' ')}
+                                </span>
                               </div>
                               <Badge variant="outline" className="text-xs bg-yellow-50">
                                 {data.satisfaction}%
@@ -442,7 +493,7 @@ export default function BarangaySatisfactionIndex({
                     </div>
 
                     {/* Bottom Right - Fix Now */}
-                    <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex flex-col">
+                    <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
                         <h3 className="text-red-800 font-bold text-base mb-1">FIX NOW</h3>
                         <span className="text-red-600 font-medium text-xs">Low Satisfaction, High Need for Action</span>
@@ -453,7 +504,15 @@ export default function BarangaySatisfactionIndex({
                             <div key={key} className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <span className="mr-2">★</span>
-                                <span className="capitalize">{key.replace('_', ' ')}</span>
+                                <span>
+                                  {key === 'financial' ? 'Financial Administration' :
+                                   key === 'disaster' ? 'Disaster Preparedness' :
+                                   key === 'safety' ? 'Safety & Peace Order' :
+                                   key === 'social' ? 'Social Protection' :
+                                   key === 'business' ? 'Business Friendliness' :
+                                   key === 'environmental' ? 'Environmental Management' :
+                                   key.replace('_', ' ')}
+                                </span>
                               </div>
                               <Badge variant="outline" className="text-xs bg-red-50">
                                 {data.satisfaction}%
