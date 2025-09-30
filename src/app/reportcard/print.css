@@ -1,4 +1,4 @@
-/* Print styles for Report Card */
+/* Professional Print Layout for Report Card */
 @media print {
   /* Hide elements that shouldn't appear in print */
   .print\\:hidden {
@@ -10,17 +10,199 @@
     display: none !important;
   }
 
-  /* Ensure proper page breaks */
-  .print\\:break-before {
-    page-break-before: always;
+  /* Professional page setup */
+  @page {
+    margin: 0.75in;
+    size: A4 portrait;
+    @top-center {
+      content: "Barangay Satisfaction Index Report";
+      font-size: 10pt;
+      color: #666;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5pt;
+      margin-bottom: 10pt;
+    }
+    @bottom-right {
+      content: "Page " counter(page);
+      font-size: 9pt;
+      color: #666;
+    }
+    @bottom-left {
+      content: "Generated on " date();
+      font-size: 9pt;
+      color: #666;
+    }
   }
 
-  .print\\:break-after {
-    page-break-after: always;
+  /* Document structure */
+  body {
+    background: white !important;
+    font-family: 'Times New Roman', serif !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  .print\\:break-inside-avoid {
-    page-break-inside: avoid;
+  /* Print-specific header */
+  .print\\:show {
+    display: block !important;
+  }
+
+  /* Document Header Layout */
+  .print\\:document-header {
+    margin-bottom: 32pt;
+    padding-bottom: 16pt;
+    border-bottom: 3pt solid #000;
+  }
+
+  /* Top Header Row - Logo and Satisfaction */
+  .print\\:header-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    margin-bottom: 20pt !important;
+    padding-bottom: 16pt !important;
+    border-bottom: 1pt solid #ccc !important;
+  }
+
+  /* BLGU Logo Section - Upper Left */
+  .print\\:logo-section {
+    flex: 1 !important;
+    max-width: 40% !important;
+  }
+
+  .print\\:logo-container {
+    text-align: left !important;
+  }
+
+  .print\\:logo-placeholder {
+    width: 120pt !important;
+    height: 80pt !important;
+    border: 2pt solid #000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    margin-bottom: 8pt !important;
+    background-color: #f8f9fa !important;
+  }
+
+  .print\\:logo-text {
+    font-size: 10pt !important;
+    color: #666 !important;
+    font-style: italic !important;
+  }
+
+  /* Satisfaction Score Section - Upper Right */
+  .print\\:satisfaction-section {
+    flex: 1 !important;
+    max-width: 40% !important;
+    text-align: right !important;
+  }
+
+  .print\\:satisfaction-label {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    margin-bottom: 8pt !important;
+  }
+
+  .print\\:satisfaction-score {
+    font-size: 36pt !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    line-height: 1 !important;
+    margin-bottom: 6pt !important;
+  }
+
+  .print\\:satisfaction-status {
+    font-size: 11pt !important;
+    font-weight: bold !important;
+    color: #666 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1pt !important;
+  }
+
+  /* Document Title Section */
+  .print\\:document-title {
+    text-align: center !important;
+    margin-bottom: 20pt !important;
+  }
+
+  .print\\:main-title {
+    font-size: 20pt !important;
+    font-weight: bold !important;
+    color: #000 !important;
+    margin-bottom: 8pt !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2pt !important;
+  }
+
+  .print\\:barangay-title {
+    font-size: 16pt !important;
+    font-weight: bold !important;
+    color: #333 !important;
+    margin-bottom: 6pt !important;
+  }
+
+  .print\\:generation-date {
+    font-size: 10pt !important;
+    color: #666 !important;
+    font-style: italic !important;
+  }
+
+  /* AI Insights Section */
+  .print\\:ai-insights {
+    margin-top: 20pt !important;
+    padding: 16pt !important;
+    border: 2pt solid #000 !important;
+    background-color: #f8f9fa !important;
+  }
+
+  .print\\:insights-header {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 12pt !important;
+    padding-bottom: 8pt !important;
+    border-bottom: 1pt solid #ccc !important;
+  }
+
+  .print\\:insights-icon {
+    font-size: 16pt !important;
+    margin-right: 8pt !important;
+  }
+
+  .print\\:insights-title {
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  .print\\:insights-content {
+    text-align: left !important;
+  }
+
+  .print\\:insights-text {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    margin-bottom: 12pt !important;
+    text-align: justify !important;
+  }
+
+  .print\\:insights-bullets {
+    margin-left: 0 !important;
+  }
+
+  .print\\:insight-item {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    color: #000 !important;
+    margin-bottom: 6pt !important;
+    padding-left: 0 !important;
   }
 
   /* Optimize colors for print */
@@ -29,26 +211,7 @@
     print-color-adjust: exact !important;
   }
 
-  /* Page setup for document-like appearance */
-  @page {
-    margin: 0.75in;
-    size: A4;
-    @bottom-right {
-      content: "Page " counter(page) " of " counter(pages);
-      font-size: 10pt;
-      color: #666;
-    }
-  }
-
-  /* Print layout - single column for better document flow */
-  body {
-    background: white !important;
-    font-size: 11pt !important;
-    line-height: 1.5 !important;
-    color: black !important;
-  }
-
-  /* Page break controls for document flow */
+  /* Page break controls for professional document flow */
   .print\\:page-break-before {
     page-break-before: always !important;
   }
@@ -61,164 +224,324 @@
     page-break-inside: avoid !important;
   }
 
-  /* Force single column layout for print */
-  .lg\\:grid-cols-3 {
-    grid-template-columns: 1fr !important;
+  /* Professional single-column layout for print */
+  .print\\:single-column {
+    display: block !important;
+    width: 100% !important;
   }
 
-  .lg\\:col-span-1,
-  .lg\\:col-span-2 {
-    grid-column: 1 !important;
+  .print\\:full-width {
+    width: 100% !important;
+    max-width: none !important;
   }
 
-  /* Remove colored backgrounds for print */
+  /* Barangay Information Section (for reference data) */
+  .print\\:barangay-reference {
+    margin-top: 16pt !important;
+    padding: 12pt !important;
+    border: 1pt solid #ccc !important;
+    background-color: #f9f9f9 !important;
+    font-size: 10pt !important;
+  }
+
+  .print\\:reference-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 8pt !important;
+  }
+
+  .print\\:reference-item {
+    text-align: center !important;
+  }
+
+  .print\\:reference-label {
+    font-weight: bold !important;
+    color: #666 !important;
+    font-size: 9pt !important;
+  }
+
+  .print\\:reference-value {
+    font-size: 11pt !important;
+    color: #000 !important;
+    font-weight: bold !important;
+  }
+
+  /* Clean backgrounds for print */
   [style*="background-color: '#dbeafe'"] {
     background-color: white !important;
   }
 
   .bg-blue-50, .bg-blue-100, .bg-indigo-50 {
-    background-color: #f8fafc !important;
+    background-color: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
   }
 
   .bg-gray-50, .bg-gray-100 {
-    background-color: #f9fafb !important;
+    background-color: white !important;
+    border: 1px solid #dee2e6 !important;
   }
 
   .bg-green-50, .bg-green-100 {
-    background-color: #f0fdf4 !important;
+    background-color: #f8f9fa !important;
+    border: 1px solid #28a745 !important;
   }
 
   .bg-red-50, .bg-red-100 {
-    background-color: #fef2f2 !important;
+    background-color: #f8f9fa !important;
+    border: 1px solid #dc3545 !important;
   }
 
   .bg-yellow-50, .bg-yellow-100 {
-    background-color: #fffbeb !important;
+    background-color: #f8f9fa !important;
+    border: 1px solid #ffc107 !important;
   }
 
-  /* Ensure borders are visible but subtle */
+  /* Professional borders and spacing */
   .border, .border-2, .border-b, .border-t {
-    border-color: #e5e7eb !important;
+    border-color: #000 !important;
+    border-width: 1pt !important;
   }
 
-  /* Make sure charts and images print properly */
+  /* Charts and graphics optimization */
   svg {
     max-width: 100% !important;
     height: auto !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Ensure table borders print */
-  table, th, td {
-    border-collapse: collapse !important;
-    border-color: #000 !important;
-  }
-
-  /* Optimize spacing for print */
-  .print\\:text-sm {
-    font-size: 9pt !important;
-  }
-
-  .print\\:text-xs {
-    font-size: 8pt !important;
-  }
-
-  /* Typography optimizations for print */
-  h1, h2, h3 {
+  /* Professional typography hierarchy */
+  h1, h2, h3, h4 {
     page-break-after: avoid !important;
-    color: black !important;
+    color: #000 !important;
+    font-weight: bold !important;
   }
 
   h1 {
     font-size: 18pt !important;
     margin-bottom: 12pt !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1pt !important;
   }
 
   h2 {
     font-size: 16pt !important;
     margin-bottom: 10pt !important;
+    margin-top: 16pt !important;
   }
 
   h3 {
     font-size: 14pt !important;
     margin-bottom: 8pt !important;
-  }
-
-  /* Card styling for print */
-  .rounded-lg, .rounded-xl {
-    border-radius: 4pt !important;
-    box-shadow: none !important;
-    border: 1px solid #e5e7eb !important;
-    margin-bottom: 12pt !important;
-  }
-
-  /* Ensure text is readable */
-  p, li, div {
-    color: black !important;
-  }
-
-  /* Special handling for donut charts */
-  .w-20 {
-    width: 72pt !important;
-    height: 72pt !important;
-  }
-
-  /* Ensure donut chart text is visible in print */
-  .w-20 svg text {
-    fill: black !important;
-    font-weight: bold !important;
-  }
-
-  /* Ensure donut chart percentage numbers are visible */
-  .w-20 .absolute {
-    color: black !important;
-  }
-
-  /* Ensure SVG paths in donut charts maintain visibility */
-  .w-20 svg path {
-    stroke: black !important;
-    stroke-width: 2 !important;
-  }
-
-  /* Ensure the donut chart circles are visible */
-  .w-20 svg circle {
-    fill: none !important;
-    stroke: #e5e7eb !important;
-    stroke-width: 2 !important;
-  }
-
-
-  /* Print-friendly grid spacing */
-  .grid {
-    gap: 12pt !important;
-  }
-
-  .space-y-6 > * + * {
     margin-top: 12pt !important;
   }
 
-  .space-y-4 > * + * {
+  h4 {
+    font-size: 12pt !important;
+    margin-bottom: 6pt !important;
     margin-top: 8pt !important;
   }
 
-  /* Ensure logos and headers print properly */
-  .text-gray-700, .text-gray-800, .text-gray-900 {
-    color: black !important;
+  /* Professional text sizing */
+  .print\\:text-lg {
+    font-size: 12pt !important;
   }
 
-  /* Badge styling for print */
-  .bg-blue-600, .bg-green-600, .bg-red-600 {
-    background-color: black !important;
+  .print\\:text-sm {
+    font-size: 10pt !important;
+  }
+
+  .print\\:text-xs {
+    font-size: 9pt !important;
+  }
+
+  /* Section spacing */
+  .print\\:section {
+    margin-bottom: 20pt !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print\\:subsection {
+    margin-bottom: 12pt !important;
+  }
+
+  /* Professional card styling */
+  .rounded-lg, .rounded-xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: 1pt solid #000 !important;
+    margin-bottom: 12pt !important;
+    padding: 12pt !important;
+  }
+
+  /* Professional text styling */
+  p, li, div, span {
+    color: #000 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Performance metrics styling */
+  .print\\:metric-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16pt !important;
+    margin-bottom: 20pt !important;
+  }
+
+  .print\\:metric-item {
+    border: 1pt solid #000 !important;
+    padding: 12pt !important;
+    text-align: left !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print\\:metric-label {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+    margin-bottom: 8pt !important;
+    text-align: center !important;
+  }
+
+  .print\\:metric-value {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  /* Ensure metric scores are visible in print */
+  .print\\:block .print\\:metric-value {
+    display: inline-block !important;
+    color: #000 !important;
+  }
+
+  /* Print metric layout improvements */
+  .print\\:block .flex.justify-center {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-bottom: 12pt !important;
+  }
+
+  .print\\:block .space-x-8 > * + * {
+    margin-left: 24pt !important;
+  }
+
+  /* Common needs styling for print */
+  .print\\:block .border-t {
+    border-top: 1pt solid #ccc !important;
+    padding-top: 8pt !important;
+    margin-top: 8pt !important;
+  }
+
+  .print\\:block ul {
+    margin: 0 !important;
+    padding-left: 12pt !important;
+  }
+
+  .print\\:block li {
+    margin-bottom: 4pt !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Action matrix for print */
+  .print\\:action-matrix {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12pt !important;
+    margin-top: 16pt !important;
+  }
+
+  .print\\:action-quadrant {
+    border: 2pt solid #000 !important;
+    padding: 12pt !important;
+    min-height: 120pt !important;
+  }
+
+  .print\\:quadrant-header {
+    text-align: center !important;
+    font-weight: bold !important;
+    font-size: 12pt !important;
+    margin-bottom: 8pt !important;
+    text-transform: uppercase !important;
+  }
+
+  /* Chart adaptations for print */
+  .w-20 {
+    width: 60pt !important;
+    height: 60pt !important;
+  }
+
+  .w-20 svg {
+    width: 60pt !important;
+    height: 60pt !important;
+  }
+
+  .w-20 svg path[stroke="#10B981"] {
+    stroke: #000 !important;
+    stroke-width: 3pt !important;
+  }
+
+  .w-20 svg path[stroke="#EF4444"] {
+    stroke: #666 !important;
+    stroke-width: 3pt !important;
+    stroke-dasharray: 3,2 !important;
+  }
+
+  .w-20 .absolute {
+    color: #000 !important;
+    font-weight: bold !important;
+    font-size: 10pt !important;
+  }
+
+  /* Professional spacing */
+  .grid {
+    gap: 16pt !important;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 16pt !important;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 12pt !important;
+  }
+
+  .space-y-3 > * + * {
+    margin-top: 8pt !important;
+  }
+
+  /* Badge and status indicators */
+  .bg-green-600, .bg-red-600, .bg-blue-600, .bg-yellow-600 {
+    background-color: #000 !important;
     color: white !important;
+    padding: 2pt 6pt !important;
+    border: 1pt solid #000 !important;
   }
 
-  /* Ensure all text colors are print-friendly */
-  .text-green-600, .text-red-600, .text-blue-600, .text-yellow-600 {
-    color: black !important;
+  /* Text color normalization */
+  .text-green-600, .text-red-600, .text-blue-600, .text-yellow-600,
+  .text-green-800, .text-red-800, .text-blue-800, .text-yellow-800,
+  .text-gray-600, .text-gray-700, .text-gray-800, .text-gray-900 {
+    color: #000 !important;
   }
 
-  /* Make sure donut chart backgrounds are visible */
-  .bg-blue-100, .bg-green-100, .bg-red-100, .bg-yellow-100 {
-    background-color: #f9fafb !important;
-    border: 1px solid #e5e7eb !important;
+  /* Matrix quadrant backgrounds */
+  .bg-green-100 {
+    background-color: #f0f0f0 !important;
+    border-color: #000 !important;
+  }
+
+  .bg-blue-100 {
+    background-color: #f5f5f5 !important;
+    border-color: #000 !important;
+  }
+
+  .bg-yellow-100 {
+    background-color: #f8f8f8 !important;
+    border-color: #000 !important;
+  }
+
+  .bg-red-100 {
+    background-color: #f0f0f0 !important;
+    border-color: #000 !important;
   }
 }
