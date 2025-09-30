@@ -374,7 +374,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
               {responses.length > 0 && user?.role?.toLowerCase() === 'admin' && (
                 <button
                   onClick={() => handleDeleteClick('all')}
-                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors mr-10"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete All</span>

@@ -20,9 +20,9 @@ export async function GET() {
   try {
     client = await pool.connect();
 
-    // Fetch barangays that have assignments with their progress
+    // Fetch barangays that have assignments with their progress calculated from survey data
     const barangaysQuery = `
-      SELECT 
+      SELECT
         b.barangay_id,
         b.barangay_name,
         b.population,
@@ -38,10 +38,23 @@ export async function GET() {
         a.updated_at as assignment_updated,
         u."firstName" as interviewer_first_name,
         u."lastName" as interviewer_last_name,
-        u.email as interviewer_email
+        u.email as interviewer_email,
+        st.target as survey_target,
+        COALESCE(sr_counts.completed_surveys, 0) as completed_surveys,
+        CASE
+          WHEN st.target > 0 THEN ROUND((COALESCE(sr_counts.completed_surveys, 0)::decimal / st.target) * 100, 0)
+          ELSE 0
+        END as calculated_progress
       FROM barangay b
       INNER JOIN assignment a ON b.barangay_id = a.barangay_id
       LEFT JOIN "user" u ON a.user_id = u.id
+      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+      LEFT JOIN (
+        SELECT barangay_id, COUNT(*) as completed_surveys
+        FROM survey_response
+        WHERE status IN ('completed', 'submitted')
+        GROUP BY barangay_id
+      ) sr_counts ON b.barangay_id = sr_counts.barangay_id
       WHERE b.is_active = true
       ORDER BY b.barangay_name ASC, a.created_at DESC
     `;
@@ -67,10 +80,10 @@ export async function GET() {
           description: row.description,
           currentStatus: row.currentStatus,
           seal: row.seal,
-          // Use assignment progress instead of survey target percentage
-          progress: row.assignment_progress || 0,
-          // Determine status based on assignment status and progress
-          status: getBarangayStatus(row.assignment_status, row.assignment_progress),
+          // Use calculated progress from actual survey completion
+          progress: row.calculated_progress || 0,
+          // Determine status based on assignment status and calculated progress
+          status: getBarangayStatus(row.assignment_status, row.calculated_progress),
           // Assignment details
           assignment: {
             assignment_id: row.assignment_id,
@@ -85,7 +98,7 @@ export async function GET() {
             }
           },
           // Add history for compatibility with existing components
-          history: generateAssignmentHistory(row.assignment_status, row.assignment_progress)
+          history: generateAssignmentHistory(row.assignment_status, row.calculated_progress)
         });
       } else {
         // If barangay already exists, we might want to handle multiple assignments
@@ -104,8 +117,8 @@ export async function GET() {
               email: row.interviewer_email
             }
           };
-          existing.progress = row.assignment_progress || 0;
-          existing.status = getBarangayStatus(row.assignment_status, row.assignment_progress);
+          existing.progress = row.calculated_progress || 0;
+          existing.status = getBarangayStatus(row.assignment_status, row.calculated_progress);
         }
       }
     });
@@ -126,11 +139,11 @@ export async function GET() {
   }
 }
 
-// Helper function to determine barangay status based on assignment
-function getBarangayStatus(assignmentStatus: string, progress: number): string {
-  if (assignmentStatus === 'Completed' || progress === 100) {
+// Helper function to determine barangay status based on assignment and actual survey progress
+function getBarangayStatus(assignmentStatus: string, calculatedProgress: number): string {
+  if (assignmentStatus === 'Completed' || calculatedProgress === 100) {
     return 'Completed';
-  } else if (assignmentStatus === 'Active' || (progress > 0 && progress < 100)) {
+  } else if (assignmentStatus === 'Active' || (calculatedProgress > 0 && calculatedProgress < 100)) {
     return 'In Progress';
   } else {
     return 'Pending';
