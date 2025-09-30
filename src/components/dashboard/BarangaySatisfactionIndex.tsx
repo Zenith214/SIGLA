@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface BarangaySatisfactionIndexProps {
@@ -259,13 +260,20 @@ export default function BarangaySatisfactionIndex({
       area: (barangay.area || 0).toString(),
       surveyStatus: barangay.status,
       satisfaction: satisfactionData.overall.toString(),
-      // Add category scores
+      // Add category satisfaction scores
       financial: satisfactionData.categories.financial?.satisfaction?.toString() || '0',
       disaster: satisfactionData.categories.disaster?.satisfaction?.toString() || '0',
       safety: satisfactionData.categories.safety?.satisfaction?.toString() || '0',
       social: satisfactionData.categories.social?.satisfaction?.toString() || '0',
       business: satisfactionData.categories.business?.satisfaction?.toString() || '0',
       environmental: satisfactionData.categories.environmental?.satisfaction?.toString() || '0',
+      // Add category need for action scores
+      financial_need: satisfactionData.categories.financial?.needForAction?.toString() || '0',
+      disaster_need: satisfactionData.categories.disaster?.needForAction?.toString() || '0',
+      safety_need: satisfactionData.categories.safety?.needForAction?.toString() || '0',
+      social_need: satisfactionData.categories.social?.needForAction?.toString() || '0',
+      business_need: satisfactionData.categories.business?.needForAction?.toString() || '0',
+      environmental_need: satisfactionData.categories.environmental?.needForAction?.toString() || '0',
       // Add survey response count
       responses: analyticsData?.totalResponses?.toString() || '0'
     });
@@ -276,16 +284,17 @@ export default function BarangaySatisfactionIndex({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      {/* Backdrop - 30% opacity */}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        onClick={onClose}
-      />
+    <TooltipProvider>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        {/* Backdrop - 30% opacity */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={onClose}
+        />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-auto border border-gray-200">
+        {/* Modal */}
+        <div className="relative bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-auto border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50">
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{barangay.name}</h1>
@@ -399,23 +408,30 @@ export default function BarangaySatisfactionIndex({
                       <div className="space-y-2 text-xs text-green-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
                           data.category === 'maintain' && (
-                            <div key={key} className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <span className="mr-2">★</span>
-                                <span>
-                                  {key === 'financial' ? 'Financial Administration' :
-                                   key === 'disaster' ? 'Disaster Preparedness' :
-                                   key === 'safety' ? 'Safety & Peace Order' :
-                                   key === 'social' ? 'Social Protection' :
-                                   key === 'business' ? 'Business Friendliness' :
-                                   key === 'environmental' ? 'Environmental Management' :
-                                   key.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <Badge variant="outline" className="text-xs bg-green-50">
-                                {data.satisfaction}%
-                              </Badge>
-                            </div>
+                            <Tooltip key={key}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-between cursor-help">
+                                  <div className="flex items-center">
+                                    <span className="mr-2">★</span>
+                                    <span>
+                                      {key === 'financial' ? 'Financial Administration' :
+                                       key === 'disaster' ? 'Disaster Preparedness' :
+                                       key === 'safety' ? 'Safety & Peace Order' :
+                                       key === 'social' ? 'Social Protection' :
+                                       key === 'business' ? 'Business Friendliness' :
+                                       key === 'environmental' ? 'Environmental Management' :
+                                       key.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-center">
+                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
+                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           )
                         )}
                         {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'maintain') && (
@@ -433,23 +449,30 @@ export default function BarangaySatisfactionIndex({
                       <div className="space-y-2 text-xs text-blue-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
                           data.category === 'opportunities' && (
-                            <div key={key} className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <span className="mr-2">★</span>
-                                <span>
-                                  {key === 'financial' ? 'Financial Administration' :
-                                   key === 'disaster' ? 'Disaster Preparedness' :
-                                   key === 'safety' ? 'Safety & Peace Order' :
-                                   key === 'social' ? 'Social Protection' :
-                                   key === 'business' ? 'Business Friendliness' :
-                                   key === 'environmental' ? 'Environmental Management' :
-                                   key.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <Badge variant="outline" className="text-xs bg-blue-50">
-                                {data.satisfaction}%
-                              </Badge>
-                            </div>
+                            <Tooltip key={key}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-between cursor-help">
+                                  <div className="flex items-center">
+                                    <span className="mr-2">★</span>
+                                    <span>
+                                      {key === 'financial' ? 'Financial Administration' :
+                                       key === 'disaster' ? 'Disaster Preparedness' :
+                                       key === 'safety' ? 'Safety & Peace Order' :
+                                       key === 'social' ? 'Social Protection' :
+                                       key === 'business' ? 'Business Friendliness' :
+                                       key === 'environmental' ? 'Environmental Management' :
+                                       key.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-center">
+                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
+                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           )
                         )}
                         {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'opportunities') && (
@@ -467,23 +490,30 @@ export default function BarangaySatisfactionIndex({
                       <div className="space-y-2 text-xs text-yellow-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
                           data.category === 'monitor' && (
-                            <div key={key} className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <span className="mr-2">★</span>
-                                <span>
-                                  {key === 'financial' ? 'Financial Administration' :
-                                   key === 'disaster' ? 'Disaster Preparedness' :
-                                   key === 'safety' ? 'Safety & Peace Order' :
-                                   key === 'social' ? 'Social Protection' :
-                                   key === 'business' ? 'Business Friendliness' :
-                                   key === 'environmental' ? 'Environmental Management' :
-                                   key.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <Badge variant="outline" className="text-xs bg-yellow-50">
-                                {data.satisfaction}%
-                              </Badge>
-                            </div>
+                            <Tooltip key={key}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-between cursor-help">
+                                  <div className="flex items-center">
+                                    <span className="mr-2">★</span>
+                                    <span>
+                                      {key === 'financial' ? 'Financial Administration' :
+                                       key === 'disaster' ? 'Disaster Preparedness' :
+                                       key === 'safety' ? 'Safety & Peace Order' :
+                                       key === 'social' ? 'Social Protection' :
+                                       key === 'business' ? 'Business Friendliness' :
+                                       key === 'environmental' ? 'Environmental Management' :
+                                       key.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-center">
+                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
+                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           )
                         )}
                         {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'monitor') && (
@@ -501,23 +531,30 @@ export default function BarangaySatisfactionIndex({
                       <div className="space-y-2 text-xs text-red-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
                           data.category === 'fix_now' && (
-                            <div key={key} className="flex items-center justify-between">
-                              <div className="flex items-center">
-                                <span className="mr-2">★</span>
-                                <span>
-                                  {key === 'financial' ? 'Financial Administration' :
-                                   key === 'disaster' ? 'Disaster Preparedness' :
-                                   key === 'safety' ? 'Safety & Peace Order' :
-                                   key === 'social' ? 'Social Protection' :
-                                   key === 'business' ? 'Business Friendliness' :
-                                   key === 'environmental' ? 'Environmental Management' :
-                                   key.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <Badge variant="outline" className="text-xs bg-red-50">
-                                {data.satisfaction}%
-                              </Badge>
-                            </div>
+                            <Tooltip key={key}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-between cursor-help">
+                                  <div className="flex items-center">
+                                    <span className="mr-2">★</span>
+                                    <span>
+                                      {key === 'financial' ? 'Financial Administration' :
+                                       key === 'disaster' ? 'Disaster Preparedness' :
+                                       key === 'safety' ? 'Safety & Peace Order' :
+                                       key === 'social' ? 'Social Protection' :
+                                       key === 'business' ? 'Business Friendliness' :
+                                       key === 'environmental' ? 'Environmental Management' :
+                                       key.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-center">
+                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
+                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           )
                         )}
                         {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'fix_now') && (
@@ -530,8 +567,9 @@ export default function BarangaySatisfactionIndex({
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
