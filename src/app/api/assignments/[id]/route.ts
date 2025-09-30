@@ -6,11 +6,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   let client;
+  let resolvedParams;
+  let assignmentId;
+  
   try {
     // Get database client with timeout
     client = await pool.connect();
-    const resolvedParams = await params;
-    const assignmentId = parseInt(resolvedParams.id);
+    resolvedParams = await params;
+    assignmentId = parseInt(resolvedParams.id);
 
     // Validate assignment ID
     if (isNaN(assignmentId) || assignmentId <= 0) {
@@ -85,16 +88,16 @@ export async function DELETE(
       throw transactionError;
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting assignment:', {
-      assignmentId: resolvedParams?.id,
-      error: error.message,
-      stack: error.stack,
+      assignmentId: assignmentId || resolvedParams?.id,
+      error: error?.message || 'Unknown error',
+      stack: error?.stack,
       timestamp: new Date().toISOString()
     });
 
     // Return appropriate error based on error type
-    if (error.code === '23503') { // Foreign key violation
+    if (error?.code === '23503') { // Foreign key violation
       return NextResponse.json(
         { 
           error: 'Cannot delete assignment due to related data',
@@ -104,7 +107,7 @@ export async function DELETE(
       );
     }
 
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
       return NextResponse.json(
         { error: 'Database connection failed' },
         { status: 503 } // Service unavailable
@@ -114,7 +117,7 @@ export async function DELETE(
     return NextResponse.json(
       { 
         error: 'Failed to delete assignment',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        details: process.env.NODE_ENV === 'development' ? error?.message || 'Unknown error' : 'Internal server error'
       },
       { status: 500 }
     );

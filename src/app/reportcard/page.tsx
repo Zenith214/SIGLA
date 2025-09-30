@@ -1,14 +1,14 @@
 "use client";
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, Users, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
-export default function ReportCard() {
+function ReportCardContent() {
   const searchParams = useSearchParams();
   const [barangayData, setBarangayData] = useState<any>(null);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -404,5 +404,13 @@ export default function ReportCard() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ReportCard() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <ReportCardContent />
+    </Suspense>
   );
 }

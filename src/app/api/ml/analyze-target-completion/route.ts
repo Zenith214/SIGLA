@@ -79,13 +79,13 @@ export async function GET(req: NextRequest) {
         });
         
         console.log(`✅ Successfully analyzed barangay ${target.barangay_name} (ID: ${target.barangay_id})`);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error processing barangay ${target.barangay_id}:`, error);
         analysisResults.push({
           barangay_id: target.barangay_id,
           barangay_name: target.barangay_name,
           success: false,
-          error: error.message
+          error: error?.message || 'Unknown error'
         });
       }
     }

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
+// import { Badge } from "@/components/ui/badge" // Unused import
 import { Button } from "@/components/ui/button"
 import {
   Breadcrumb,

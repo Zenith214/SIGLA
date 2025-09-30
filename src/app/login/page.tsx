@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Lock } from "lucide-react"
 
-export default function PulseLogin() {
+function PulseLoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -403,4 +403,12 @@ export default function PulseLogin() {
       </div>
     </div>
   )
+}
+
+export default function PulseLogin() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <PulseLoginContent />
+    </Suspense>
+  );
 }

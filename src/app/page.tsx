@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import {
-  Shield,
+
   BarChart3,
-  Link as LinkIcon,
+
   Zap,
   Eye,
   CheckCircle,
