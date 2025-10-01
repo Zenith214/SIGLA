@@ -2,42 +2,106 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import fs from 'fs';
 
 const execAsync = promisify(exec);
 
-// Path to the Python script
-const ML_SCRIPT_PATH = path.join(process.cwd(), 'ml', 'predict.py');
-
 export async function POST(request: NextRequest) {
   try {
-    // Parse the request body
     const body = await request.json();
+    const { barangayId } = body;
+
+    if (!barangayId) {
+      return NextResponse.json(
+        { error: "barangayId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Call the ML analysis Python script
+    const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+
+    console.log(`Running ML analysis for barangay ${barangayId}...`);
     
-    // Create a temporary JSON file to pass data to Python
-    const tempInputPath = path.join(process.cwd(), 'temp_input.json');
-    const tempOutputPath = path.join(process.cwd(), 'temp_output.json');
-    
-    // Write input data to temporary file
-    fs.writeFileSync(tempInputPath, JSON.stringify(body));
-    
-    // Execute the Python script
-    const command = `python ${ML_SCRIPT_PATH} --input ${tempInputPath} --output ${tempOutputPath}`;
-    await execAsync(command);
-    
-    // Read the results
-    const resultJson = fs.readFileSync(tempOutputPath, 'utf-8');
-    const result = JSON.parse(resultJson);
-    
-    // Clean up temporary files
-    fs.unlinkSync(tempInputPath);
-    fs.unlinkSync(tempOutputPath);
-    
-    return NextResponse.json(result);
+    const { stdout, stderr } = await execAsync(pythonCommand);
+
+    if (stderr) {
+      console.error('ML Prediction Error:', stderr);
+    }
+
+    let predictions;
+    try {
+      predictions = JSON.parse(stdout);
+    } catch (parseError) {
+      console.error('Failed to parse ML predictions:', parseError);
+      return NextResponse.json(
+        { error: "Failed to parse ML prediction results" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      barangay_id: parseInt(barangayId),
+      model_type: modelType,
+      predictions: predictions,
+      timestamp: new Date().toISOString()
+    });
+
   } catch (error) {
-    console.error('Error in ML prediction:', error);
+    console.error("Error in ML prediction:", error);
     return NextResponse.json(
-      { error: 'Failed to process ML prediction' },
+      { error: "Failed to generate ML predictions" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const barangayId = searchParams.get('barangayId');
+
+    if (!barangayId) {
+      return NextResponse.json(
+        { error: "barangayId parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    // Call the ML analysis Python script
+    const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+
+    console.log(`Running ML analysis for barangay ${barangayId}...`);
+    
+    const { stdout, stderr } = await execAsync(pythonCommand);
+
+    if (stderr) {
+      console.error('ML Prediction Error:', stderr);
+    }
+
+    let predictions;
+    try {
+      predictions = JSON.parse(stdout);
+    } catch (parseError) {
+      console.error('Failed to parse ML predictions:', parseError);
+      return NextResponse.json(
+        { error: "Failed to parse ML prediction results" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      barangay_id: parseInt(barangayId),
+      model_type: modelType,
+      predictions: predictions,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("Error in ML prediction:", error);
+    return NextResponse.json(
+      { error: "Failed to generate ML predictions" },
       { status: 500 }
     );
   }

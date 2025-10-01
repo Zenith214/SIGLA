@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     client = await pool.connect();
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
+    const useML = searchParams.get('useML') === 'true';
 
     if (!barangayId) {
       return NextResponse.json(
@@ -29,7 +30,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get survey responses for this barangay
+    // If ML is requested, try to get ML-enhanced results first
+    if (useML) {
+      try {
+        const mlResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ml/funnel-analysis?barangayId=${barangayId}`);
+        if (mlResponse.ok) {
+          const mlData = await mlResponse.json();
+          // Add ML flag to indicate this is ML-enhanced data
+          mlData.ml_enhanced = true;
+          return NextResponse.json(mlData);
+        }
+      } catch (mlError) {
+        console.warn('ML analysis failed, falling back to basic analysis:', mlError);
+      }
+    }
+
+    // Fallback to basic funnel analysis
     const surveyQuery = `
       SELECT
         sr.response_id,
@@ -53,6 +69,7 @@ export async function GET(request: NextRequest) {
         service_scores: {},
         action_grid: {},
         overall_satisfaction: 0,
+        ml_enhanced: false,
         message: "No survey data found for this barangay"
       });
     }
@@ -78,6 +95,7 @@ export async function GET(request: NextRequest) {
       service_scores: serviceScores,
       action_grid: actionGrid,
       overall_satisfaction: overallSatisfaction,
+      ml_enhanced: false,
       data_quality: {
         total_responses: surveyData.length,
         services_with_data: Object.keys(serviceScores).length,

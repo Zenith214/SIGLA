@@ -1,0 +1,200 @@
+2025-10-01 10:23:27,010 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:23:29,751 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/survey_response?select=response_id%2Cbarangay_id%2Cinterviewer_id%2Ccreated_at%2Cupdated_at%2Csurvey_section%28section_name%2Csurvey_answer%28answer_value%2Canswer_text%2Csurvey_question%28question_text%2Cquestion_type%29%29%29%2Cbarangay%28barangay_name%2Cpopulation%2Chouseholds%2Carea%29&barangay_id=eq.17 "HTTP/2 400 Bad Request"
+2025-10-01 10:23:29,754 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:29:50,819 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:29:53,414 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/survey_response?select=response_id%2Cbarangay_id%2Cinterviewer_id%2Ccreated_at%2Cupdated_at%2Cstatus%2Cprogress%2Csurvey_section%28section_name%2Csection_key%2Cdata%2Cstatus%29%2Cbarangay%28barangay_name%2Cpopulation%2Chouseholds%2Carea%29&barangay_id=eq.17&status=in.%28completed%2Csubmitted%29 "HTTP/2 401 Unauthorized"
+2025-10-01 10:29:53,418 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:30:22,375 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:30:24,189 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/survey_response?select=response_id%2Cbarangay_id%2Cinterviewer_id%2Ccreated_at%2Cupdated_at%2Cstatus%2Cprogress%2Csurvey_section%28section_name%2Csection_key%2Cdata%2Cstatus%29%2Cbarangay%28barangay_name%2Cpopulation%2Chouseholds%2Carea%29&barangay_id=eq.17&status=in.%28completed%2Csubmitted%29 "HTTP/2 403 Forbidden"
+2025-10-01 10:30:24,192 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:39:21,847 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:39:22,730 - analyze_barangay - ERROR - Error analyzing barangay ID 17: 'question_text'
+2025-10-01 10:41:57,048 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:42:00,069 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/barangay?select=barangay_id%2Cbarangay_name%2Cpopulation%2Chouseholds%2Carea%2Ccaptain%2Cseal%2Cis_active%2Cdescription%2Ccreated_at%2Cupdated_at&barangay_id=eq.17 "HTTP/2 403 Forbidden"
+2025-10-01 10:42:00,072 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:45:13,866 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:45:15,794 - analyze_barangay - ERROR - Error analyzing barangay ID 17: Object of type Timestamp is not JSON serializable
+2025-10-01 10:46:43,290 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:46:45,169 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:51:00,966 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:51:02,899 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:51:07,695 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:51:07,695 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 10:51:10,040 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 10:51:10,043 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 11:12:59,810 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 11:13:03,496 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 11:13:03,750 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 11:13:04,010 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 11:13:04,274 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 11:13:04,536 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 11:13:04,838 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 11:13:05,896 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 11:13:05,898 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 11:16:29,541 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 11:16:32,282 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 11:16:32,516 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 11:16:32,743 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 11:16:32,973 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 11:16:33,202 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 11:16:33,431 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 11:16:34,093 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 11:16:34,095 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 11:36:56,249 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 11:36:59,491 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 11:36:59,627 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 11:36:59,770 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 11:36:59,907 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 11:37:00,044 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 11:37:00,188 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 11:37:00,814 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 11:37:00,817 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:05:30,751 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:05:30,752 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:05:34,215 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,221 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,395 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,410 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,565 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,605 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,724 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,777 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,867 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,946 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:05:34,977 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:05:35,109 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:05:35,590 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:05:35,594 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:05:35,747 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:05:35,748 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:05:42,917 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:05:42,925 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:05:45,688 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:05:45,708 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:05:45,850 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:05:45,855 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:05:45,965 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:05:45,968 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,076 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,083 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,183 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,195 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,298 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,305 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:05:46,878 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:05:46,879 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:05:46,879 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:10:47,986 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:10:48,000 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:10:51,004 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,017 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,112 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,128 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,243 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,270 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,405 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,411 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,618 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,624 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,727 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:10:51,753 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:10:52,311 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:10:52,314 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:10:52,330 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:10:52,332 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:13:47,284 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:13:49,859 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:13:49,861 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:49,985 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:13:49,986 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:50,099 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:13:50,100 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:50,213 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:13:50,214 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:50,325 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:13:50,326 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:50,441 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:13:50,442 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:13:51,014 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:13:51,015 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:13:51,016 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:14:41,783 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:14:44,771 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:14:44,772 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:44,911 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:14:44,912 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:45,028 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:14:45,029 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:45,145 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:14:45,146 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:45,261 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:14:45,261 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:45,391 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:14:45,391 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:14:45,953 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:14:45,953 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:14:45,954 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:17:59,948 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:18:02,470 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:18:02,472 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:02,605 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:18:02,607 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:02,725 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:18:02,726 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:02,841 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:18:02,842 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:02,965 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:18:02,966 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:03,077 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:18:03,078 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:18:03,650 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:18:03,651 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:18:03,653 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:19:37,817 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:19:40,248 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,248 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:40,377 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,378 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:40,511 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,512 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:40,627 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,628 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:40,743 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,744 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:40,865 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:19:40,866 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:41,444 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:19:41,445 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:19:41,447 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:19:45,869 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:19:45,872 - analyze_barangay - INFO - Analyzing barangay ID: 17
+2025-10-01 12:19:48,155 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,157 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,273 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,275 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,353 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.business "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,354 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,395 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,396 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,467 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.disaster "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,469 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,516 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,518 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,584 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.environmental "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,586 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,633 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,635 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,700 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.financial "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,702 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,753 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,754 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,819 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.safety "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,821 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:48,940 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.17&service_name=eq.social "HTTP/2 403 Forbidden"
+2025-10-01 12:19:48,942 - sigla_ml.api - WARNING - Failed to save action grid classification to database: {'message': 'permission denied for schema public', 'code': '42501', 'hint': None, 'details': None}
+2025-10-01 12:19:49,359 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:19:49,361 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:19:49,362 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-01 12:19:49,540 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 400 Bad Request"
+2025-10-01 12:19:49,541 - sigla_ml.api - WARNING - Failed to save insights and recommendations to database: {'message': "Could not find the 'confidence' column of 'ai_insight' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+2025-10-01 12:19:49,543 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17

@@ -3,6 +3,7 @@
 
 import os
 import json
+import logging
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Union
@@ -10,6 +11,9 @@ from typing import Dict, List, Optional, Tuple, Union
 from .data_extraction import DataExtractor
 from .feature_engineering import FeatureEngineer
 from .random_forest import RandomForestModel
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 class SiglaMLAPI:
     """API for SIGLA Machine Learning functionality."""
@@ -158,7 +162,7 @@ class SiglaMLAPI:
                     result['prediction_id'] = response.data[0]['prediction_id']
                 
             except Exception as e:
-                print(f"Warning: Failed to save prediction to database: {str(e)}")
+                logger.warning(f"Failed to save prediction to database: {str(e)}")
                 result['db_error'] = str(e)
         
         return result
@@ -196,6 +200,9 @@ class SiglaMLAPI:
         demographic_data = self.data_extractor.extract_demographic_data(barangay_id)
         demographic_dict = demographic_data.to_dict('records')[0] if len(demographic_data) > 0 else {}
         
+        # Convert timestamps to strings for JSON serialization
+        demographic_dict = self._convert_timestamps_to_strings(demographic_dict)
+        
         # Generate insights and recommendations
         insights, recommendations = self._generate_insights_and_recommendations(barangay_id, action_grid, service_scores, demographic_dict, save_to_db)
         
@@ -210,6 +217,19 @@ class SiglaMLAPI:
         }
         
         return result
+    
+    def _convert_timestamps_to_strings(self, data_dict):
+        """Convert pandas Timestamp objects to strings for JSON serialization."""
+        import pandas as pd
+        converted = {}
+        for key, value in data_dict.items():
+            if isinstance(value, pd.Timestamp):
+                converted[key] = value.isoformat() if pd.notna(value) else None
+            elif pd.isna(value):
+                converted[key] = None
+            else:
+                converted[key] = value
+        return converted
         
     def _generate_insights_and_recommendations(self, barangay_id: int, action_grid: Dict, service_scores: Dict, demographic_data: Dict, save_to_db: bool = True) -> Tuple[List[Dict], List[Dict]]:
         """Generate insights and recommendations based on analysis results.
@@ -332,7 +352,7 @@ class SiglaMLAPI:
                                     recommendations[j]['recommendation_id'] = rec_response.data[0]['recommendation_id']
             
             except Exception as e:
-                print(f"Warning: Failed to save insights and recommendations to database: {str(e)}")
+                logger.warning(f"Failed to save insights and recommendations to database: {str(e)}")
                 for insight in insights:
                     insight['db_error'] = str(e)
         
@@ -416,7 +436,7 @@ class SiglaMLAPI:
                             action_grid[service]['classification_id'] = response.data[0]['classification_id']
                     
                 except Exception as e:
-                    print(f"Warning: Failed to save action grid classification to database: {str(e)}")
+                    logger.warning(f"Failed to save action grid classification to database: {str(e)}")
                     action_grid[service]['db_error'] = str(e)
         
         return action_grid
@@ -483,5 +503,5 @@ class SiglaMLAPI:
             return model_data
             
         except Exception as e:
-            print(f"Warning: Failed to save model metadata to database: {str(e)}")
+            logger.warning(f"Failed to save model metadata to database: {str(e)}")
             return {'filepath': filepath, 'error': str(e)}

@@ -32,59 +32,39 @@ class FeatureEngineer:
         Returns:
             dict: Dictionary containing service scores for each section.
         """
-        # Group by section_name
-        grouped = survey_data.groupby('section_name')
+        if survey_data.empty:
+            return {}
+        
+        # Group by section_key (more reliable than section_name)
+        grouped = survey_data.groupby('section_key')
         
         service_scores = {}
         
-        for section_name, group in grouped:
-            if section_name not in self.service_sections:
-                continue
-            
+        for section_key, group in grouped:
             # Count responses
             total_responses = len(group)
             
-            # Calculate awareness score
-            awareness_questions = [col for col in group.columns if 'aware' in col.lower()]
-            if awareness_questions:
-                aware_count = group[awareness_questions].eq(1).sum().sum()
-                total_awareness_questions = len(awareness_questions) * total_responses
-                awareness_score = (aware_count / total_awareness_questions) * 100 if total_awareness_questions > 0 else 0
-            else:
-                awareness_score = None
+            # Calculate awareness score (Yes/No questions)
+            awareness_questions = [col for col in group.columns if 'aware' in col.lower() and col != 'section_key']
+            awareness_score = self._calculate_binary_score(group, awareness_questions, 'Yes')
             
-            # Calculate availment score
-            availment_questions = [col for col in group.columns if 'avail' in col.lower()]
-            if availment_questions:
-                availed_count = group[availment_questions].eq(1).sum().sum()
-                total_availment_questions = len(availment_questions) * total_responses
-                availment_score = (availed_count / total_availment_questions) * 100 if total_availment_questions > 0 else 0
-            else:
-                availment_score = None
+            # Calculate availment score (Yes/No questions)
+            availment_questions = [col for col in group.columns if 'avail' in col.lower() and col != 'section_key']
+            availment_score = self._calculate_binary_score(group, availment_questions, 'Yes')
             
-            # Calculate satisfaction score
-            satisfaction_questions = [col for col in group.columns if 'satisf' in col.lower()]
-            if satisfaction_questions:
-                satisfied_count = group[satisfaction_questions].eq(1).sum().sum()
-                total_satisfaction_questions = len(satisfaction_questions) * total_responses
-                satisfaction_score = (satisfied_count / total_satisfaction_questions) * 100 if total_satisfaction_questions > 0 else 0
-            else:
-                satisfaction_score = None
+            # Calculate satisfaction score (1-5 scale, convert to percentage)
+            satisfaction_questions = [col for col in group.columns if 'satisf' in col.lower() and col != 'section_key']
+            satisfaction_score = self._calculate_satisfaction_score(group, satisfaction_questions)
             
-            # Calculate need action score
-            need_action_questions = [col for col in group.columns if 'need' in col.lower() or 'action' in col.lower()]
-            if need_action_questions:
-                need_action_count = group[need_action_questions].eq(1).sum().sum()
-                total_need_action_questions = len(need_action_questions) * total_responses
-                need_action_score = (need_action_count / total_need_action_questions) * 100 if total_need_action_questions > 0 else 0
-            else:
-                need_action_score = None
+            # Calculate need action score (look for suggestions/comments as proxy)
+            suggestion_questions = [col for col in group.columns if 'suggest' in col.lower() or 'comment' in col.lower()]
+            need_action_score = self._calculate_need_action_score(group, suggestion_questions)
             
             # Calculate confidence level
             confidence = self._calculate_confidence(total_responses)
             
             # Store scores
-            service_scores[section_name] = {
+            service_scores[section_key] = {
                 'awareness_score': awareness_score,
                 'availment_score': availment_score,
                 'satisfaction_score': satisfaction_score,
@@ -94,6 +74,69 @@ class FeatureEngineer:
             }
         
         return service_scores
+    
+    def _calculate_binary_score(self, group, questions, positive_value):
+        """Calculate score for binary Yes/No questions - matches dashboard calculation."""
+        if not questions:
+            return 0
+        
+        total_positive = 0
+        total_questions = 0
+        
+        for question in questions:
+            if question in group.columns:
+                for _, value in group[question].items():
+                    if pd.notna(value):
+                        total_questions += 1
+                        # Match dashboard logic: treat "Yes", 1, true, "1" as positive
+                        if (value == positive_value or value == 1 or value == True or value == '1'):
+                            total_positive += 1
+        
+        return round((total_positive / total_questions) * 100) if total_questions > 0 else 0
+    
+    def _calculate_satisfaction_score(self, group, questions):
+        """Calculate satisfaction score from 1-5 scale questions - matches dashboard calculation."""
+        if not questions:
+            return 0
+        
+        satisfaction_sum = 0
+        total_satisfaction_questions = 0
+        
+        for question in questions:
+            if question in group.columns:
+                for _, value in group[question].items():
+                    if pd.notna(value):
+                        total_satisfaction_questions += 1
+                        # Convert to numeric like dashboard does
+                        num_value = int(value) if isinstance(value, str) and value.isdigit() else value
+                        if isinstance(num_value, (int, float)) and 1 <= num_value <= 5:
+                            satisfaction_sum += num_value
+        
+        # Match dashboard calculation exactly: ((sum / total_questions) / 5) * 100
+        return round(((satisfaction_sum / total_satisfaction_questions) / 5) * 100) if total_satisfaction_questions > 0 else 0
+    
+    def _calculate_need_action_score(self, group, suggestion_questions):
+        """Calculate need for action score based on suggestions/comments."""
+        if not suggestion_questions:
+            return 50  # Default moderate need if no suggestion data
+        
+        total_suggestions = 0
+        total_responses = 0
+        
+        for question in suggestion_questions:
+            if question in group.columns:
+                # Count non-empty suggestions as indication of need for action
+                non_empty = group[question].notna() & (group[question] != '') & (group[question] != 'nan')
+                total_suggestions += non_empty.sum()
+                total_responses += len(group)
+        
+        # Higher percentage of suggestions = higher need for action
+        if total_responses > 0:
+            suggestion_rate = (total_suggestions / total_responses) * 100
+            # Scale suggestion rate to need action score (more suggestions = more need)
+            return min(suggestion_rate * 1.5, 100)  # Cap at 100%
+        
+        return 50  # Default moderate need
     
     def _calculate_confidence(self, sample_size):
         """Calculate confidence level based on sample size.
