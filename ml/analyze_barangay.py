@@ -51,7 +51,7 @@ def main():
         logger.info(f"Analyzing barangay ID: {args.barangay_id}")
         
         # Analyze the barangay (disable DB saves for now to avoid permission errors)
-        result = api.analyze_barangay(barangay_id=args.barangay_id, save_to_db=False)
+        result = api.analyze_barangay(barangay_id=args.barangay_id, save_to_db=True)
         
         # Output the result as JSON
         print(json.dumps(result))
