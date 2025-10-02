@@ -7,7 +7,7 @@ console.log('🧪 Testing ML System with Database Saves...');
 
 // Test the ML analysis with database saves enabled
 const mlScript = path.join(__dirname, '../ml/analyze_barangay.py');
-const testProcess = spawn('python', [mlScript, '--barangay-id', '1'], {
+const testProcess = spawn('python', [mlScript, '--barangay_id', '1'], {
   cwd: process.cwd(),
   stdio: 'pipe'
 });
