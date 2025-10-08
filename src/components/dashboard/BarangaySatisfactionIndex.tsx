@@ -58,7 +58,13 @@ export default function BarangaySatisfactionIndex({
   useEffect(() => {
     if (isOpen && barangay) {
       console.log('📊 Loading funnel analysis data for:', barangay.name);
-      fetchFunnelAnalysis();
+      // Only fetch data if barangay has an ID (not a "No data" placeholder)
+      if (barangay.id > 0) {
+        fetchFunnelAnalysis();
+      } else {
+        // Set "No data" state immediately
+        setNoDataState();
+      }
     }
   }, [isOpen, barangay?.id]);
 
@@ -142,6 +148,29 @@ export default function BarangaySatisfactionIndex({
       totalResponses: 0,
       completionRate: 0,
       averageRating: 3.5,
+      lastUpdated: new Date().toISOString()
+    });
+  };
+
+  const setNoDataState = () => {
+    // Set explicit "No data" state for barangays with no information
+    setLoading(false);
+    setError(null);
+    
+    const noDataSatisfaction = {
+      overall: 0,
+      categories: {
+        // Empty categories - will show "No services in this category"
+      }
+    };
+
+    setSatisfactionData(noDataSatisfaction);
+
+    // Set no data analytics
+    setAnalyticsData({
+      totalResponses: 0,
+      completionRate: 0,
+      averageRating: 0,
       lastUpdated: new Date().toISOString()
     });
   };
@@ -358,9 +387,13 @@ export default function BarangaySatisfactionIndex({
               <div className="border border-gray-200 rounded-full px-6 py-3 text-center bg-white shadow-sm">
                 <div className="flex items-center justify-center gap-3">
                   <span className="text-gray-700 font-medium text-base">Overall Satisfaction:</span>
-                  <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                    {satisfactionData.overall}%
-                  </span>
+                  {barangay.id === 0 ? (
+                    <span className="text-xl font-bold text-gray-500">No data</span>
+                  ) : (
+                    <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
+                      {satisfactionData.overall}%
+                    </span>
+                  )}
                   {loading && <span className="text-sm text-gray-500">(Loading...)</span>}
                 </div>
               </div>
@@ -369,22 +402,26 @@ export default function BarangaySatisfactionIndex({
               <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium text-gray-800">Survey Progress</span>
-                  <span className="font-bold text-gray-900">{barangay.progress}%</span>
+                  <span className="font-bold text-gray-900">
+                    {barangay.id === 0 ? 'No data' : `${barangay.progress}%`}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full transition-all duration-300 ${
+                      barangay.id === 0 ? 'bg-gray-300' :
                       barangay.progress === 100 ? 'bg-green-500' :
                       barangay.progress >= 75 ? 'bg-blue-600' :
                       barangay.progress >= 50 ? 'bg-blue-500' :
                       barangay.progress >= 25 ? 'bg-blue-400' :
                       barangay.progress > 0 ? 'bg-orange-500' : 'bg-gray-400'
                     }`}
-                    style={{ width: `${barangay.progress}%` }}
+                    style={{ width: barangay.id === 0 ? '100%' : `${barangay.progress}%` }}
                   ></div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500 text-center">
-                  {barangay.progress === 100 ? 'Survey Complete' :
+                  {barangay.id === 0 ? 'No survey data available' :
+                   barangay.progress === 100 ? 'Survey Complete' :
                    barangay.progress > 0 ? `${barangay.progress}% of target completed` :
                    'No surveys completed yet'}
                 </div>

@@ -50,9 +50,15 @@ export default function SmallCalloutModal({
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 bg-white rounded-lg shadow-xl border border-gray-300 p-2 min-w-[160px]">
           <div className="text-center">
             <div className="font-bold text-gray-900 text-xs mb-1">{barangay.name}</div>
-            <div className="text-xs text-gray-600 mb-1">
-              Pop: {barangay.population?.toLocaleString() || 'N/A'}
-            </div>
+            {barangay.id === 0 ? (
+              <div className="text-xs text-gray-500 mb-1 italic">
+                No data available
+              </div>
+            ) : (
+              <div className="text-xs text-gray-600 mb-1">
+                Pop: {barangay.population?.toLocaleString() || 'N/A'}
+              </div>
+            )}
             <div className="text-xs text-blue-600 font-medium">
               Click pin for details
             </div>

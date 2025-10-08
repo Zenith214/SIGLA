@@ -113,12 +113,35 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     console.log('🖱️ Path clicked:', pathId); // Debug log
     
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
-    const barangay = barangayName ? barangays[barangayName] : null;
+    let barangay = barangayName ? barangays[barangayName] : null;
     
     console.log('📍 Barangay found:', barangayName, barangay); // Debug log
     
+    // If no barangay data exists, create a placeholder with "No data"
+    if (!barangay && barangayName) {
+      barangay = {
+        id: 0, // Use 0 to indicate no data
+        name: barangayName,
+        population: 0,
+        households: 0,
+        area: 0,
+        progress: 0,
+        status: 'No data',
+        currentStatus: 'No data',
+        description: 'No data available for this barangay',
+        seal: 'no',
+        history: [
+          {
+            year: "2024",
+            status: 'No data',
+            score: "N/A",
+          }
+        ],
+      };
+    }
+
     if (!barangay) {
-      console.warn('❌ No barangay data found for:', pathId);
+      console.warn('❌ No barangay name found for path:', pathId);
       return;
     }
 
@@ -168,12 +191,17 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
     const barangay = barangayName ? barangays[barangayName] : null;
     
-    if (!barangay || isLoading) {
+    if (isLoading) {
       return "#e5e7eb"; // Default gray for loading
     }
 
     if (selectedBarangay === barangayName) return "#f59e0b"; // Amber highlight for selected
     if (hoveredBarangay === barangayName) return "#fbbf24"; // Lighter amber for hover
+
+    // If no barangay data exists, show as clickable but different color
+    if (!barangay) {
+      return "#d1d5db"; // Light gray for no data areas
+    }
 
     // Check if barangay has seal (is awardee)
     if (isBarangayAwardee(barangay)) {
@@ -244,9 +272,21 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
       </svg>
 
       {/* Callout Modal - Only show if large modal is not open */}
-      {calloutPosition && selectedBarangay && barangays[selectedBarangay] && !showLargeModal && (
+      {calloutPosition && selectedBarangay && !showLargeModal && (
         <SmallCalloutModal
-          barangay={barangays[selectedBarangay]}
+          barangay={barangays[selectedBarangay] || {
+            id: 0,
+            name: selectedBarangay,
+            population: 0,
+            households: 0,
+            area: 0,
+            progress: 0,
+            status: 'No data',
+            currentStatus: 'No data',
+            description: 'No data available for this barangay',
+            seal: 'no',
+            history: [{ year: "2024", status: 'No data', score: "N/A" }],
+          }}
           position={calloutPosition}
           onClose={handleCloseCallout}
           onViewDetails={handleViewDetails}
@@ -254,9 +294,21 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
       )}
 
       {/* Large Modal */}
-      {showLargeModal && selectedBarangay && barangays[selectedBarangay] && (
+      {showLargeModal && selectedBarangay && (
         <BarangaySatisfactionIndex
-          barangay={barangays[selectedBarangay]}
+          barangay={barangays[selectedBarangay] || {
+            id: 0,
+            name: selectedBarangay,
+            population: 0,
+            households: 0,
+            area: 0,
+            progress: 0,
+            status: 'No data',
+            currentStatus: 'No data',
+            description: 'No data available for this barangay',
+            seal: 'no',
+            history: [{ year: "2024", status: 'No data', score: "N/A" }],
+          }}
           isOpen={showLargeModal}
           onClose={handleCloseLargeModal}
         />
