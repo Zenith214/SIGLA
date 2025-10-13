@@ -164,17 +164,27 @@ function calculateSectionScores(responses: any[]): any {
       Object.entries(data).forEach(([key, value]: [string, any]) => {
         if (key.toLowerCase().includes('aware')) {
           totalAwarenessQuestions++;
-          if (value === 1 || value === true || value === '1') {
+          // Handle various positive response formats
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' || 
+              stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
             awarenessCount++;
           }
         }
       });
 
-      // Count availment questions (questions containing 'avail')
+      // Count availment questions (questions indicating usage/participation/experience)
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('avail')) {
+        const keyLower = key.toLowerCase();
+        if (keyLower.includes('avail') || keyLower.includes('experience') || 
+            keyLower.includes('benefited') || keyLower.includes('participated') || 
+            keyLower.includes('used') || keyLower.includes('accessed') ||
+            keyLower.includes('utilized') || keyLower.includes('received')) {
           totalAvailmentQuestions++;
-          if (value === 1 || value === true || value === '1') {
+          // Handle various positive response formats
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' || 
+              stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
             availmentCount++;
           }
         }
@@ -196,7 +206,10 @@ function calculateSectionScores(responses: any[]): any {
       Object.entries(data).forEach(([key, value]: [string, any]) => {
         if (key.toLowerCase().includes('need') || key.toLowerCase().includes('action')) {
           totalNeedActionQuestions++;
-          if (value === 1 || value === true || value === '1') {
+          // Handle various positive response formats
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' || 
+              stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
             needActionCount++;
           }
         }

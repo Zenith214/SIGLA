@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-10-13T08:44:48.815Z",
+  "tests": [
+    {
+      "name": "CSV Conversion Logic",
+      "status": "PASSED",
+      "duration": "1ms",
+      "result": {
+        "emptyDataTest": "PASSED",
+        "normalDataTest": "PASSED",
+        "specialCharactersTest": "PASSED",
+        "nullValuesTest": "PASSED",
+        "totalLines": 5
+      },
+      "timestamp": "2025-10-13T08:44:48.831Z"
+    },
+    {
+      "name": "Backup History Generation",
+      "status": "PASSED",
+      "duration": "0ms",
+      "result": {
+        "historyCount": 3,
+        "validationsPassed": 18,
+        "sampleBackup": {
+          "id": 1,
+          "date": "2025-10-13",
+          "time": "14:30",
+          "size": "2.4 MB",
+          "status": "Success",
+          "type": "Automatic"
+        }
+      },
+      "timestamp": "2025-10-13T08:44:48.832Z"
+    },
+    {
+      "name": "Backup Creation Logic",
+      "status": "PASSED",
+      "duration": "0ms",
+      "result": {
+        "id": 1760345088833,
+        "date": "2025-10-13",
+        "time": "16:44",
+        "size": "2.5 MB",
+        "status": "Success",
+        "type": "Manual"
+      },
+      "timestamp": "2025-10-13T08:44:48.833Z"
+    },
+    {
+      "name": "Report Generation Logic",
+      "status": "PASSED",
+      "duration": "30ms",
+      "result": {
+        "reportLength": 458,
+        "sectionsFound": 4,
+        "calculationsVerified": 5
+      },
+      "timestamp": "2025-10-13T08:44:48.864Z"
+    },
+    {
+      "name": "Data Validation Logic",
+      "status": "PASSED",
+      "duration": "1ms",
+      "result": {
+        "surveyValidation": true,
+        "userValidation": true,
+        "barangayValidation": true,
+        "allValidationsPassed": true
+      },
+      "timestamp": "2025-10-13T08:44:48.867Z"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  }
+}

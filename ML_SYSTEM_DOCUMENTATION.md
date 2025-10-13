@@ -8,25 +8,25 @@ The SIGLA (Sistema ng Integrated Governance at Local Administration) Machine Lea
 
 ### Core Components
 
-```
 SIGLA ML System
 ├── Python ML Engine (ml/)
-│   ├── Core API (sigla_ml/api.py)
-│   ├── Data Extraction (sigla_ml/data_extraction.py)
-│   ├── Feature Engineering (sigla_ml/feature_engineering.py)
-│   ├── ML Pipeline (sigla_ml/ml_pipeline.py)
-│   ├── Random Forest Models (sigla_ml/random_forest.py)
-│   └── Analysis Scripts (analyze_barangay.py)
+│ ├── Core API (sigla_ml/api.py)
+│ ├── Data Extraction (sigla_ml/data_extraction.py)
+│ ├── Feature Engineering (sigla_ml/feature_engineering.py)
+│ ├── ML Pipeline (sigla_ml/ml_pipeline.py)
+│ ├── Random Forest Models (sigla_ml/random_forest.py)
+│ └── Analysis Scripts (analyze_barangay.py)
 ├── Next.js API Integration (src/app/api/ml/)
-│   ├── Insights Generation (/insights)
-│   ├── Predictions (/predict)
-│   ├── Funnel Analysis (/funnel-analysis)
-│   └── Target Completion Analysis (/analyze-target-completion)
+│ ├── Insights Generation (/insights)
+│ ├── Predictions (/predict)
+│ ├── Funnel Analysis (/funnel-analysis)
+│ └── Target Completion Analysis (/analyze-target-completion)
 └── Database Layer (Supabase)
-    ├── ML Tables (action_grid_classification, ai_insight, ai_recommendation)
-    ├── Survey Data (survey_response, survey_answer)
-    └── Metadata (ml_model, ml_prediction)
-```
+├── ML Tables (action_grid_classification, ai_insight, ai_recommendation)
+├── Survey Data (survey_response, survey_answer)
+└── Metadata (ml_model, ml_prediction)
+
+````
 
 ## Key Features
 
@@ -86,9 +86,10 @@ metrics = api.train_model(target_type='satisfaction', optimize=True)
 
 # Make predictions
 prediction = api.predict(input_data, barangay_id=17)
-```
+````
 
 #### Key Methods
+
 - `analyze_barangay()`: Complete barangay analysis with insights
 - `train_model()`: Train Random Forest models on survey data
 - `predict()`: Generate predictions using trained models
@@ -98,6 +99,7 @@ prediction = api.predict(input_data, barangay_id=17)
 ### Next.js API Integration
 
 #### Insights Endpoint (`/api/ml/insights`)
+
 ```typescript
 // GET /api/ml/insights?barangayId=17
 {
@@ -120,6 +122,7 @@ prediction = api.predict(input_data, barangay_id=17)
 ```
 
 #### Prediction Endpoint (`/api/ml/predict`)
+
 ```typescript
 // POST /api/ml/predict
 {
@@ -133,6 +136,7 @@ prediction = api.predict(input_data, barangay_id=17)
 ```
 
 #### Funnel Analysis Endpoint (`/api/ml/funnel-analysis`)
+
 ```typescript
 // GET /api/ml/funnel-analysis?barangayId=17
 {
@@ -151,6 +155,7 @@ prediction = api.predict(input_data, barangay_id=17)
 ### Database Schema
 
 #### ML Tables
+
 ```sql
 -- Action Grid Classifications
 CREATE TABLE action_grid_classification (
@@ -220,12 +225,14 @@ CREATE TABLE ml_prediction (
 ## Installation & Setup
 
 ### Prerequisites
+
 - Python 3.8+
 - Node.js 18+
 - Supabase database
 - Required Python packages (see requirements.txt)
 
 ### Environment Configuration
+
 ```env
 # Supabase Configuration
 SUPABASE_URL=your_supabase_project_url
@@ -243,22 +250,26 @@ DB_PASSWORD=your_ml_password
 ### Installation Steps
 
 1. **Install Python Dependencies**
+
 ```bash
 cd ml
 pip install -r requirements.txt
 ```
 
 2. **Setup Database Tables**
+
 ```bash
 node scripts/fix-ml-database-issues.js
 ```
 
 3. **Test ML System**
+
 ```bash
 python ml/analyze_barangay.py --barangay_id 17
 ```
 
 4. **Verify API Integration**
+
 ```bash
 curl "http://localhost:3000/api/ml/insights?barangayId=17"
 ```
@@ -266,6 +277,7 @@ curl "http://localhost:3000/api/ml/insights?barangayId=17"
 ## Usage Examples
 
 ### Basic Barangay Analysis
+
 ```bash
 # Analyze specific barangay
 python ml/analyze_barangay.py --barangay_id 17
@@ -300,6 +312,7 @@ python ml/analyze_barangay.py --barangay_id 17
 ```
 
 ### API Integration Examples
+
 ```javascript
 // Frontend integration
 const getMLInsights = async (barangayId) => {
@@ -318,6 +331,7 @@ useEffect(() => {
 ## Performance Metrics
 
 ### Current System Performance
+
 - **Data Processing**: 450+ survey responses processed in <5 seconds
 - **Analysis Speed**: Complete barangay analysis in <10 seconds
 - **Accuracy**: 85% confidence on service classifications
@@ -325,8 +339,9 @@ useEffect(() => {
 - **Scalability**: Handles multiple concurrent analyses
 
 ### Quality Indicators
+
 - **High Confidence**: ≥50 responses, ≥5 services with data
-- **Medium Confidence**: ≥30 responses, ≥3 services with data  
+- **Medium Confidence**: ≥30 responses, ≥3 services with data
 - **Low Confidence**: <30 responses, <3 services with data
 
 ## Troubleshooting
@@ -334,31 +349,37 @@ useEffect(() => {
 ### Common Issues
 
 #### 1. Database Permission Errors
+
 ```bash
 # Fix RLS policies and permissions
 node scripts/fix-ml-database-issues.js
 ```
 
 #### 2. Missing Python Dependencies
+
 ```bash
 # Install missing packages
 pip install psycopg2-binary supabase pandas numpy scikit-learn
 ```
 
 #### 3. Environment Variable Issues
+
 ```bash
 # Check ML environment
 node scripts/check-ml-environment.js
 ```
 
 #### 4. API Integration Problems
+
 ```bash
 # Test API endpoints
 node scripts/test-ml-api-endpoints.js
 ```
 
 ### Error Handling
+
 The system includes comprehensive error handling:
+
 - **Graceful Degradation**: Continues analysis even with partial data
 - **Database Fallbacks**: Functions without database saves if permissions fail
 - **Input Validation**: Validates barangay IDs and data quality
@@ -367,12 +388,14 @@ The system includes comprehensive error handling:
 ## Security & Permissions
 
 ### Database Security
+
 - **Row Level Security (RLS)**: Enabled on all ML tables
 - **Service Role Access**: ML operations use service role key
 - **Authenticated Access**: Frontend uses authenticated user permissions
 - **Data Isolation**: Barangay-specific data access controls
 
 ### API Security
+
 - **Input Validation**: All inputs validated and sanitized
 - **Rate Limiting**: Prevents abuse of ML endpoints
 - **Error Sanitization**: Sensitive information not exposed in errors
@@ -381,6 +404,7 @@ The system includes comprehensive error handling:
 ## Future Enhancements
 
 ### Planned Features
+
 1. **Real-time Analysis**: Live dashboard updates as survey data comes in
 2. **Predictive Modeling**: Forecast future service performance trends
 3. **Comparative Analysis**: Cross-barangay performance comparisons
@@ -388,6 +412,7 @@ The system includes comprehensive error handling:
 5. **Mobile Optimization**: Mobile-friendly ML insights interface
 
 ### Technical Improvements
+
 1. **Model Optimization**: Hyperparameter tuning for better accuracy
 2. **Feature Engineering**: Additional demographic and geographic features
 3. **Ensemble Methods**: Combine multiple ML algorithms
@@ -397,12 +422,14 @@ The system includes comprehensive error handling:
 ## Support & Maintenance
 
 ### Monitoring
+
 - **System Health**: Automated checks for ML system availability
 - **Data Quality**: Monitoring of survey data completeness
 - **Performance Metrics**: Tracking of analysis speed and accuracy
 - **Error Rates**: Monitoring of failed analyses and API calls
 
 ### Maintenance Tasks
+
 - **Weekly**: Review ML analysis logs and error rates
 - **Monthly**: Update ML models with new survey data
 - **Quarterly**: Performance optimization and feature updates
@@ -411,11 +438,13 @@ The system includes comprehensive error handling:
 ## Contact & Resources
 
 ### Documentation
+
 - **API Reference**: `/docs/api/ml/` (when available)
 - **Database Schema**: `/docs/database/ml-tables.md`
 - **Deployment Guide**: `/docs/deployment/ml-system.md`
 
 ### Support
+
 - **Technical Issues**: Check ML_ISSUES.md for known problems
 - **Feature Requests**: Submit via project issue tracker
 - **Performance Problems**: Review ML_SYSTEM_TEST_RESULTS.md

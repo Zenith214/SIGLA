@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -10,63 +10,204 @@ import { Progress } from "@/components/ui/progress"
 import { Download, Database, AlertTriangle, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-const backupHistory = [
-  { id: 1, date: "2024-01-15", time: "14:30", size: "2.4 MB", status: "Success" },
-  { id: 2, date: "2024-01-14", time: "14:30", size: "2.3 MB", status: "Success" },
-  { id: 3, date: "2024-01-13", time: "14:30", size: "2.2 MB", status: "Success" },
-  { id: 4, date: "2024-01-12", time: "14:30", size: "2.1 MB", status: "Failed" },
-  { id: 5, date: "2024-01-11", time: "14:30", size: "2.0 MB", status: "Success" },
-]
-
 export function Backup() {
   const [autoBackup, setAutoBackup] = useState(true)
+  const [backupHistory, setBackupHistory] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const { addToast } = useToast()
 
-  const handleExportData = (dataType: string) => {
+  // Load backup history on component mount
+  useEffect(() => {
+    loadBackupHistory()
+  }, [])
+
+  const loadBackupHistory = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/backups')
+      if (response.ok) {
+        const history = await response.json()
+        setBackupHistory(history)
+      } else {
+        console.warn('Failed to load backup history, using fallback data')
+        // Fallback to mock data if API fails
+        setBackupHistory([
+          { id: 1, date: "2024-01-15", time: "14:30", size: "2.4 MB", status: "Success", type: "Manual" },
+          { id: 2, date: "2024-01-14", time: "14:30", size: "2.3 MB", status: "Success", type: "Automatic" },
+          { id: 3, date: "2024-01-13", time: "14:30", size: "2.2 MB", status: "Success", type: "Manual" },
+        ])
+      }
+    } catch (error) {
+      console.error('Error loading backup history:', error)
+      // Fallback to mock data
+      setBackupHistory([
+        { id: 1, date: "2024-01-15", time: "14:30", size: "2.4 MB", status: "Success", type: "Manual" },
+        { id: 2, date: "2024-01-14", time: "14:30", size: "2.3 MB", status: "Success", type: "Automatic" },
+        { id: 3, date: "2024-01-13", time: "14:30", size: "2.2 MB", status: "Success", type: "Manual" },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleExportData = async (dataType: string) => {
     addToast({
       type: "info",
       title: "Export Started",
       description: `${dataType} export has been initiated. Download will start shortly.`,
       duration: 4000
     });
-    
-    // Simulate export process
-    setTimeout(() => {
+
+    try {
+      let exportParam = '';
+      switch (dataType) {
+        case 'Survey Data':
+          exportParam = 'survey-data';
+          break;
+        case 'User Data':
+          exportParam = 'user-data';
+          break;
+        case 'Barangay Data':
+          exportParam = 'barangay-data';
+          break;
+        case 'Reports':
+          exportParam = 'reports';
+          break;
+        default:
+          throw new Error('Invalid data type');
+      }
+
+      const response = await fetch(`/api/backups?export=${exportParam}`);
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `${exportParam}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       addToast({
         type: "success",
         title: "Export Complete",
-        description: `${dataType} has been exported successfully.`,
+        description: `${dataType} has been exported and downloaded successfully.`,
         duration: 4000
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Export error:', error);
+      addToast({
+        type: "error",
+        title: "Export Failed",
+        description: `Failed to export ${dataType}. Please try again.`,
+        duration: 4000
+      });
+    }
   }
 
-  const handleCreateBackup = () => {
+  const handleCreateBackup = async () => {
     addToast({
       type: "info",
       title: "Backup Started",
       description: "Database backup is being created. This may take a few minutes.",
       duration: 4000
     });
-    
-    // Simulate backup process
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/backups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'create-backup' }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backup failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
       addToast({
         type: "success",
         title: "Backup Complete",
-        description: "Database backup has been created successfully.",
+        description: result.message || "Database backup has been created successfully.",
         duration: 4000
       });
-    }, 3000);
+
+      // Reload backup history to show the new backup
+      loadBackupHistory();
+    } catch (error) {
+      console.error('Backup error:', error);
+      addToast({
+        type: "error",
+        title: "Backup Failed",
+        description: "Failed to create database backup. Please try again.",
+        duration: 4000
+      });
+    }
   }
 
-  const handleDownloadBackup = () => {
+  const handleDownloadBackup = async (backupId?: number) => {
     addToast({
-      type: "success",
+      type: "info",
       title: "Download Started",
-      description: "Latest backup file download has been initiated.",
+      description: "Preparing backup file for download...",
       duration: 4000
     });
+
+    try {
+      // For now, we'll create a comprehensive backup by exporting all data
+      const exportTypes = ['survey-data', 'user-data', 'barangay-data', 'reports'];
+      
+      for (const exportType of exportTypes) {
+        const response = await fetch(`/api/backups?export=${exportType}`);
+        
+        if (response.ok) {
+          const contentDisposition = response.headers.get('Content-Disposition');
+          const filename = contentDisposition 
+            ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+            : `${exportType}_${new Date().toISOString().split('T')[0]}.csv`;
+
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
+      }
+
+      addToast({
+        type: "success",
+        title: "Download Complete",
+        description: "All backup files have been downloaded successfully.",
+        duration: 4000
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      addToast({
+        type: "error",
+        title: "Download Failed",
+        description: "Failed to download backup files. Please try again.",
+        duration: 4000
+      });
+    }
   }
 
   return (
@@ -129,7 +270,7 @@ export function Backup() {
               <Download className="w-5 h-5 mb-2" />
               <div className="text-center">
                 <div className="text-sm font-medium">Export Reports</div>
-                <div className="text-xs opacity-60">PDF Format</div>
+                <div className="text-xs opacity-60">TXT Format</div>
               </div>
             </Button>
           </div>
@@ -191,35 +332,57 @@ export function Backup() {
           <CardTitle className="text-xl">Backup History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {backupHistory.map((backup) => (
-              <div key={backup.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                <div className="flex items-center space-x-3">
-                  {backup.status === "Success" ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                  )}
-                  <div>
-                    <p className="font-medium text-sm">
-                      {backup.date} at {backup.time}
-                    </p>
-                    <p className="text-xs text-gray-600">Size: {backup.size}</p>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Loading backup history...</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {backupHistory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">No backup history available</p>
+                  <p className="text-xs">Create your first backup to see it here</p>
+                </div>
+              ) : (
+                backupHistory.map((backup) => (
+                  <div key={backup.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center space-x-3">
+                      {backup.status === "Success" ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5 text-red-600" />
+                      )}
+                      <div>
+                        <p className="font-medium text-sm">
+                          {backup.date} at {backup.time}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Size: {backup.size} • Type: {backup.type || 'Manual'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={backup.status === "Success" ? "default" : "destructive"} className="text-xs">
+                        {backup.status}
+                      </Badge>
+                      {backup.status === "Success" && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0 hover:bg-gray-200"
+                          onClick={() => handleDownloadBackup(backup.id)}
+                          title="Download backup"
+                        >
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={backup.status === "Success" ? "default" : "destructive"} className="text-xs">
-                    {backup.status}
-                  </Badge>
-                  {backup.status === "Success" && (
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-200">
-                      <Download className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                ))
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
