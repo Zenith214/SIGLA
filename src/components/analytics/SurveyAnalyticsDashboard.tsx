@@ -191,6 +191,7 @@ export default function SurveyAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{analyticsData.summary.totalResponses}</div>
+              <p className="text-xs text-muted-foreground">Unique respondents</p>
             </CardContent>
           </Card>
 

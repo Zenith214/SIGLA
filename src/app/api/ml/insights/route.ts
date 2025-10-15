@@ -127,7 +127,7 @@ function generateComprehensiveInsights(mlResults: any, barangayId: number) {
     keyInsights.push({
       type: 'info',
       title: 'Limited Survey Data',
-      message: `Only ${totalResponses} survey responses available. Consider increasing sample size for more reliable insights.`,
+      message: `Only ${totalResponses} residents participated in the survey. Consider increasing sample size for more reliable insights.`,
       priority: 'medium'
     });
   }
@@ -230,7 +230,7 @@ function generateExecutiveSummary(satisfaction: number, priorityAreas: string[],
     summary += `${maintainAreas.length} service area(s) are performing well and should be maintained: ${maintainAreas.join(', ')}. `;
   }
 
-  summary += `Based on ${totalResponses} survey responses, `;
+  summary += `Based on feedback from ${totalResponses} residents, `;
 
   if (priorityAreas.length > 0) {
     summary += 'immediate intervention is recommended to address critical service gaps.';

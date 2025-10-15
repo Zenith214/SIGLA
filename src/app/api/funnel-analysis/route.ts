@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
 
     const surveyResult = await client.query(surveyQuery, [parseInt(barangayId)]);
     const surveyData = surveyResult.rows;
+    
+    // Count unique respondents (not section records)
+    const uniqueRespondents = [...new Set(surveyData.map(row => row.response_id))].length;
 
     if (surveyData.length === 0) {
       return NextResponse.json({
@@ -91,15 +94,17 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       barangay_id: parseInt(barangayId),
-      total_responses: surveyData.length,
+      total_responses: uniqueRespondents,  // Now counts unique people, not sections
+      total_section_responses: surveyData.length,  // Keep section count for reference
       service_scores: serviceScores,
       action_grid: actionGrid,
       overall_satisfaction: overallSatisfaction,
       ml_enhanced: false,
       data_quality: {
-        total_responses: surveyData.length,
+        total_responses: uniqueRespondents,  // Unique respondents
+        total_section_responses: surveyData.length,  // Section records
         services_with_data: Object.keys(serviceScores).length,
-        average_responses_per_service: Math.round(surveyData.length / Math.max(Object.keys(serviceScores).length, 1))
+        average_sections_per_respondent: Math.round(surveyData.length / Math.max(uniqueRespondents, 1))
       }
     });
 

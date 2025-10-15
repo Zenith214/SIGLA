@@ -84,7 +84,7 @@ function AIInsightsSection({ barangayId }: { barangayId: string }) {
             ML Confidence: {insights.ml_confidence?.toUpperCase() || 'MEDIUM'}
           </span>
           <span className="text-xs text-blue-600">
-            Based on {insights.overall_assessment?.total_responses || 0} responses
+            Based on {insights.overall_assessment?.total_responses || 0} residents
           </span>
         </div>
         <div className="text-xs text-blue-700">
@@ -343,10 +343,13 @@ function ReportCardContent() {
       environmental: { awareness: 0, availment: 0, satisfaction: 0, total: 0 }
     };
 
+    // Count unique respondents (not section records)
+    const uniqueRespondents = [...new Set(responses.map(r => r.responseId))].length;
+
     // Sample funnel data based on typical patterns
     const sampleFunnelData = {
       financial: {
-        awareness: 85, availment: 45, satisfaction: 72, total: responses.length || 100,
+        awareness: 85, availment: 45, satisfaction: 72, total: uniqueRespondents || 100,
         concerns: [
           'Budget transparency needs improvement',
           'Slow processing of financial assistance',
@@ -365,7 +368,7 @@ function ReportCardContent() {
         }
       },
       disaster: {
-        awareness: 78, availment: 35, satisfaction: 64, total: responses.length || 100,
+        awareness: 78, availment: 35, satisfaction: 64, total: uniqueRespondents || 100,
         concerns: [
           'Need early warning systems',
           'Insufficient evacuation centers',
@@ -384,7 +387,7 @@ function ReportCardContent() {
         }
       },
       safety: {
-        awareness: 92, availment: 68, satisfaction: 59, total: responses.length || 100,
+        awareness: 92, availment: 68, satisfaction: 59, total: uniqueRespondents || 100,
         concerns: [
           'Poor street lighting',
           'Need more police patrols',
@@ -403,7 +406,7 @@ function ReportCardContent() {
         }
       },
       social: {
-        awareness: 88, availment: 52, satisfaction: 71, total: responses.length || 100,
+        awareness: 88, availment: 52, satisfaction: 71, total: uniqueRespondents || 100,
         concerns: [
           'Need more healthcare services',
           'Educational support programs',
@@ -422,7 +425,7 @@ function ReportCardContent() {
         }
       },
       business: {
-        awareness: 65, availment: 28, satisfaction: 47, total: responses.length || 100,
+        awareness: 65, availment: 28, satisfaction: 47, total: uniqueRespondents || 100,
         concerns: [
           'Complicated permit processes',
           'High fees and requirements',
@@ -441,7 +444,7 @@ function ReportCardContent() {
         }
       },
       environmental: {
-        awareness: 82, availment: 41, satisfaction: 58, total: responses.length || 100,
+        awareness: 82, availment: 41, satisfaction: 58, total: uniqueRespondents || 100,
         concerns: [
           'Poor waste collection',
           'Need more recycling programs',
@@ -583,7 +586,7 @@ function ReportCardContent() {
           </div>
           <div className="print:insights-content">
             <p className="print:insights-text">
-              Based on the satisfaction data analysis, this barangay shows {isHighSatisfaction ? 'strong performance' : 'areas requiring attention'}
+              Based on feedback from {barangayData.responses} residents, this barangay shows {isHighSatisfaction ? 'strong performance' : 'areas requiring attention'}
               with a {barangayData.satisfaction}% overall satisfaction rating. Key focus areas include service delivery improvements,
               community engagement enhancement, and addressing the most pressing resident concerns identified through survey feedback.
             </p>
@@ -613,8 +616,8 @@ function ReportCardContent() {
               <div className="print:reference-value">{barangayData.households.toLocaleString()}</div>
             </div>
             <div className="print:reference-item">
-              <div className="print:reference-label">Survey Responses</div>
-              <div className="print:reference-value">{barangayData.responses || 'N/A'}</div>
+              <div className="print:reference-label">Survey Participants</div>
+              <div className="print:reference-value">{barangayData.responses || 'N/A'} residents</div>
             </div>
             {barangayData.area > 0 && (
               <div className="print:reference-item">
@@ -649,7 +652,7 @@ function ReportCardContent() {
             <div className="flex gap-2 print:hidden">
               <Button variant="outline" onClick={() => setShowResponsesModal(true)}>
                 <Eye className="w-4 h-4 mr-2" />
-                View Responses
+                View Participants
               </Button>
               <div className="flex items-center gap-2 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -756,8 +759,8 @@ function ReportCardContent() {
                 </div>
                 {barangayData.responses > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Survey Responses:</span>
-                    <span className="font-medium">{barangayData.responses}</span>
+                    <span className="text-gray-600">Survey Participants:</span>
+                    <span className="font-medium">{barangayData.responses} residents</span>
                   </div>
                 )}
               </CardContent>
@@ -1096,7 +1099,7 @@ function ReportCardContent() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Survey Responses - {barangayData?.barangay}
+                Survey Participants - {barangayData?.barangay}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -1129,7 +1132,7 @@ function ReportCardContent() {
                 </>
               ) : (
                 <div className="text-center text-gray-500 py-8">
-                  No survey responses available for this barangay.
+                  No survey participants available for this barangay.
                 </div>
               )}
             </div>

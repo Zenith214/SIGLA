@@ -206,12 +206,16 @@ class SiglaMLAPI:
         # Generate insights and recommendations
         insights, recommendations = self._generate_insights_and_recommendations(barangay_id, action_grid, service_scores, demographic_dict, save_to_db)
         
+        # Count unique respondents (not section records)
+        unique_respondents = len(processed_data['response_id'].unique()) if not processed_data.empty else 0
+        
         result = {
             'barangay_id': barangay_id,
             'service_scores': service_scores,
             'action_grid': action_grid,
             'demographic_data': demographic_dict,
-            'total_responses': len(processed_data),
+            'total_responses': unique_respondents,  # Now counts unique people, not sections
+            'total_section_responses': len(processed_data),  # Keep section count for technical reference
             'insights': insights,
             'recommendations': recommendations
         }
