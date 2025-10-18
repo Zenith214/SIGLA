@@ -11,7 +11,9 @@
     "seed-static": "node scripts/seed-static-barangays.js",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:update": "node scripts/update-database.js"
+    "db:update": "node scripts/update-database.js",
+    "create-year-data": "node scripts/safe-create-year-data-table.js",
+    "update-year-data": "node scripts/update-year-data.js"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

@@ -10,9 +10,14 @@ export interface ApiBarangayData {
   currentStatus?: string;
   description?: string;
   seal?: string;
+  seal_original?: string;
+  seal_expiration_date?: string;
+  survey_count?: number;
+  completion_rate?: number;
+  year?: string;
   history?: {
     year: string;
-    status: 'Completed' | 'In Progress' | 'Pending';
+    status: 'Completed' | 'In Progress' | 'Pending' | 'No data';
     score: string;
   }[];
 }

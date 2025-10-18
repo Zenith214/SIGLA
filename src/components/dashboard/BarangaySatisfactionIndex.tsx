@@ -434,8 +434,18 @@ export default function BarangaySatisfactionIndex({
                     <h2 className="text-xl font-bold text-gray-800 mb-1">Action Grid</h2>
                   </div>
 
-                  {/* 2x2 Grid */}
-                  <div className="grid grid-cols-2 gap-4 min-h-80">
+                  {/* Show "No data" message for barangays with no data */}
+                  {barangay.id === 0 ? (
+                    <div className="flex items-center justify-center min-h-80 bg-gray-100 rounded-xl border-2 border-gray-300">
+                      <div className="text-center">
+                        <div className="text-2xl text-gray-400 mb-2">📊</div>
+                        <div className="text-lg font-semibold text-gray-600 mb-1">No Data Available</div>
+                        <div className="text-sm text-gray-500">Survey data not available for this barangay</div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* 2x2 Grid */
+                    <div className="grid grid-cols-2 gap-4 min-h-80">
                     {/* Top Left - Maintain */}
                     <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
@@ -600,6 +610,7 @@ export default function BarangaySatisfactionIndex({
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
               </div>
             </div>

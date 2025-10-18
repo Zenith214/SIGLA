@@ -27,16 +27,16 @@ function PulseLoginContent() {
   const [redirectMessage, setRedirectMessage] = useState("")
 
   const searchParams = useSearchParams()
-  const { login, user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
 
   // Add page loading effect and check if user is already authenticated
   useEffect(() => {
     const timer = setTimeout(() => {
       setPageLoading(false);
     }, 800);
-    
+
     // Removed the already authenticated user detection as requested
-    
+
     return () => clearTimeout(timer);
   }, [isAuthenticated, authLoading]);
 
@@ -143,9 +143,9 @@ function PulseLoginContent() {
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
 
         // Validate the redirect URL to prevent open redirect vulnerabilities
-        const isValidRedirect = redirectUrl.startsWith('/') && 
-                               !redirectUrl.startsWith('//') && 
-                               !redirectUrl.includes(':');
+        const isValidRedirect = redirectUrl.startsWith('/') &&
+          !redirectUrl.startsWith('//') &&
+          !redirectUrl.includes(':');
 
         // Redirect based on role immediately
         if (result.role === 'interviewer') {
@@ -241,19 +241,19 @@ function PulseLoginContent() {
 
             <CardContent>
               {/* Redirect Messages */}
-                {redirectMessage && (
-                  <Alert className={`mb-4 border-0 ${redirectMessage.includes('successfully') ? 'bg-green-50 text-green-800 border-green-200' : ''}`} 
-                         style={{ backgroundColor: redirectMessage.includes('successfully') ? "#228B22" : "#0072CE", color: "white" }}>
-                    {redirectMessage.includes('successfully') ? (
-                      <CheckCircle2 className="h-4 w-4" style={{ color: "white" }} />
-                    ) : (
-                      <Lock className="h-4 w-4" style={{ color: "white" }} />
-                    )}
-                    <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
-                      {redirectMessage}
-                    </AlertDescription>
-                  </Alert>
-                )}
+              {redirectMessage && (
+                <Alert className={`mb-4 border-0 ${redirectMessage.includes('successfully') ? 'bg-green-50 text-green-800 border-green-200' : ''}`}
+                  style={{ backgroundColor: redirectMessage.includes('successfully') ? "#228B22" : "#0072CE", color: "white" }}>
+                  {redirectMessage.includes('successfully') ? (
+                    <CheckCircle2 className="h-4 w-4" style={{ color: "white" }} />
+                  ) : (
+                    <Lock className="h-4 w-4" style={{ color: "white" }} />
+                  )}
+                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                    {redirectMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Status Messages */}
               {loginStatus === "success" && (

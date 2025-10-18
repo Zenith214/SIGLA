@@ -8,9 +8,10 @@ import barangayPaths from "@/data/barangayPaths";
 
 interface InteractiveSVGMapProps {
   onBarangaySelect?: (barangay: ApiBarangayData) => void;
+  selectedYear?: string;
 }
 
-export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMapProps) {
+export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: InteractiveSVGMapProps) {
   const [hoveredBarangay, setHoveredBarangay] = useState<string | null>(null);
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [calloutPosition, setCalloutPosition] = useState<{ x: number; y: number } | null>(null);
@@ -53,40 +54,73 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     const fetchBarangayData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/barangays');
+        const year = selectedYear || new Date().getFullYear().toString();
+        const response = await fetch(`/api/barangays-by-year?year=${year}`);
 
         if (response.ok) {
           const data = await response.json();
           const barangaysByName: { [key: string]: ApiBarangayData } = {};
           
-          data.forEach((barangay: any) => {
-            const name = barangay.barangay_name || barangay.name; 
-           barangaysByName[name] = {
-              id: barangay.barangay_id || barangay.id,
-              name: name,
-              population: barangay.population || 0,
-              households: barangay.households || 0,
-              area: barangay.area || 0,
-              progress: barangay.progress || 0,
-              status: barangay.status || 'Pending',
-              currentStatus: barangay.currentStatus,
-              description: barangay.description,
-              seal: barangay.seal,
-              history: [
-                {
-                  year: "2024",
-                  status: barangay.seal === 'yes' ? 'Completed' : 'Pending',
-                  score: barangay.seal === 'yes' ? "100%" : "N/A",
-                },
-                { year: "2023", status: "Completed", score: "75%" },
-                { year: "2022", status: "Completed", score: "70%" },
-                { year: "2021", status: "Completed", score: "65%" },
-              ],
-            };
+          // Create entries for all barangays (including those with no data)
+          Object.values(barangayMapping).forEach((barangayName) => {
+            const barangayData = data.find((b: any) => 
+              (b.barangay_name || b.name) === barangayName
+            );
+
+            if (barangayData) {
+              const name = barangayData.barangay_name || barangayData.name;
+              barangaysByName[name] = {
+                id: barangayData.barangay_id || barangayData.id,
+                name: name,
+                population: barangayData.population || 0,
+                households: barangayData.households || 0,
+                area: barangayData.area || 0,
+                progress: barangayData.progress || 0,
+                status: barangayData.status || 'No data',
+                currentStatus: barangayData.currentStatus || barangayData.status,
+                description: barangayData.description || `No data available for ${year}`,
+                seal: barangayData.seal || 'no',
+                survey_count: barangayData.survey_count || 0,
+                completion_rate: barangayData.completion_rate || 0,
+                year: year,
+                history: [
+                  {
+                    year: year,
+                    status: barangayData.status || 'No data',
+                    score: barangayData.survey_count > 0 ? `${Math.round(barangayData.completion_rate || 0)}%` : "N/A",
+                  }
+                ],
+              };
+            } else {
+              // Create placeholder for barangays with no data
+              barangaysByName[barangayName] = {
+                id: 0,
+                name: barangayName,
+                population: 0,
+                households: 0,
+                area: 0,
+                progress: 0,
+                status: 'No data',
+                currentStatus: 'No data',
+                description: `No data available for ${year}`,
+                seal: 'no', // No seal for placeholder data
+                seal_original: 'no',
+                survey_count: 0,
+                completion_rate: 0,
+                year: year,
+                history: [
+                  {
+                    year: year,
+                    status: 'No data',
+                    score: "N/A",
+                  }
+                ],
+              };
+            }
           });
 
           setBarangays(barangaysByName);
-          console.log('✅ Barangay data loaded:', Object.keys(barangaysByName).length, 'barangays');
+          console.log(`✅ Barangay data loaded for ${year}:`, Object.keys(barangaysByName).length, 'barangays');
         }
       } catch (error) {
         console.error('❌ Error fetching barangay data:', error);
@@ -96,7 +130,7 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     };
 
     fetchBarangayData();
-  }, []);
+  }, [selectedYear]);
 
   const handlePathHover = (pathId: string) => {
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
@@ -117,8 +151,9 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     
     console.log('📍 Barangay found:', barangayName, barangay); // Debug log
     
-    // If no barangay data exists, create a placeholder with "No data"
+    // If no barangay data exists, use the placeholder that should already be created
     if (!barangay && barangayName) {
+      const currentYear = selectedYear || new Date().getFullYear().toString();
       barangay = {
         id: 0, // Use 0 to indicate no data
         name: barangayName,
@@ -128,11 +163,15 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
         progress: 0,
         status: 'No data',
         currentStatus: 'No data',
-        description: 'No data available for this barangay',
+        description: `No data available for ${currentYear}`,
         seal: 'no',
+        seal_original: 'no',
+        survey_count: 0,
+        completion_rate: 0,
+        year: currentYear,
         history: [
           {
-            year: "2024",
+            year: currentYear,
             status: 'No data',
             score: "N/A",
           }
@@ -198,17 +237,28 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
     if (selectedBarangay === barangayName) return "#f59e0b"; // Amber highlight for selected
     if (hoveredBarangay === barangayName) return "#fbbf24"; // Lighter amber for hover
 
-    // If no barangay data exists, show as clickable but different color
+    // If no barangay data exists
     if (!barangay) {
       return "#d1d5db"; // Light gray for no data areas
     }
 
-    // Check if barangay has seal (is awardee)
+    // Priority 1: Check if barangay has seal (SGLGB awardee) - show in bright green
     if (isBarangayAwardee(barangay)) {
-      return "#10b981"; // Emerald green for awardee
+      return "#10b981"; // Emerald green for awardees
     }
 
-    return "#6b7280"; // Gray for non-awardee
+    // Priority 2: Color based on survey completion status for the selected year
+    if (barangay.status === 'Completed') {
+      return "#059669"; // Darker green for completed surveys (non-awardees)
+    } else if (barangay.status === 'In Progress') {
+      return "#d97706"; // Orange for in progress
+    } else if (barangay.status === 'Pending') {
+      return "#dc2626"; // Red for pending
+    } else if (barangay.status === 'No data' || barangay.survey_count === 0) {
+      return "#9ca3af"; // Medium gray for no survey data
+    }
+
+    return "#6b7280"; // Default gray
   };
 
   if (isLoading) {
@@ -230,7 +280,7 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
         viewBox="0 0 1920 892"
         className="w-full h-full bg-gray-100"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ imageRendering: "optimizeQuality" as const }}
+        style={{ imageRendering: "auto" }}
       >
         {/* Background - using a solid color instead of image for better performance */}
         <rect width="1920" height="892" fill="#f8fafc" />
@@ -283,9 +333,13 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
             progress: 0,
             status: 'No data',
             currentStatus: 'No data',
-            description: 'No data available for this barangay',
+            description: `No data available for ${selectedYear || new Date().getFullYear()}`,
             seal: 'no',
-            history: [{ year: "2024", status: 'No data', score: "N/A" }],
+            seal_original: 'no',
+            survey_count: 0,
+            completion_rate: 0,
+            year: selectedYear || new Date().getFullYear().toString(),
+            history: [{ year: selectedYear || new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
           }}
           position={calloutPosition}
           onClose={handleCloseCallout}
@@ -305,9 +359,13 @@ export default function InteractiveSVGMap({ onBarangaySelect }: InteractiveSVGMa
             progress: 0,
             status: 'No data',
             currentStatus: 'No data',
-            description: 'No data available for this barangay',
+            description: `No data available for ${selectedYear || new Date().getFullYear()}`,
             seal: 'no',
-            history: [{ year: "2024", status: 'No data', score: "N/A" }],
+            seal_original: 'no',
+            survey_count: 0,
+            completion_rate: 0,
+            year: selectedYear || new Date().getFullYear().toString(),
+            history: [{ year: selectedYear || new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
           }}
           isOpen={showLargeModal}
           onClose={handleCloseLargeModal}

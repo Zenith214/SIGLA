@@ -1,20 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import * as Prisma from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { NextRequest, NextResponse } from "next/server";
+import * as Prisma from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new Prisma.PrismaClient();
 
 export async function POST(req: NextRequest) {
-  const { firstName, lastName, email, password, phone, organization, jobTitle } = await req.json();
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+    organization,
+    jobTitle,
+  } = await req.json();
 
-  if (!firstName || !lastName || !email || !password || !phone || !organization || !jobTitle) {
-    return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !password ||
+    !phone ||
+    !organization ||
+    !jobTitle
+  ) {
+    return NextResponse.json(
+      { message: "Missing required fields" },
+      { status: 400 }
+    );
   }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ message: 'Email already registered' }, { status: 409 });
+      return NextResponse.json(
+        { message: "Email already registered" },
+        { status: 409 }
+      );
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     await prisma.user.create({
@@ -26,11 +48,20 @@ export async function POST(req: NextRequest) {
         phone,
         organization,
         jobTitle,
-        role: 'viewer', // Default role for new registrations
+        role: "viewer", // Default role for new registrations
       },
     });
-    return NextResponse.json({ message: 'User registered successfully' }, { status: 201 });
+    return NextResponse.json(
+      { message: "User registered successfully" },
+      { status: 201 }
+    );
   } catch (error) {
-    return NextResponse.json({ message: 'Registration failed', error: error instanceof Error ? error.message : error }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: "Registration failed",
+        error: error instanceof Error ? error.message : error,
+      },
+      { status: 500 }
+    );
   }
 }
