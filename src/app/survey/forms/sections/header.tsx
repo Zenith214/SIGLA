@@ -211,7 +211,7 @@ export function Header({ user, currentSection }: HeaderProps) {
                 {user.role?.toLowerCase() !== 'field interviewer' && (
                   <DropdownMenuItem onClick={() => router.push('/survey')} className="cursor-pointer">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Back to Dashboard</span>
+                    <span>Back to Survey Dashboard</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">

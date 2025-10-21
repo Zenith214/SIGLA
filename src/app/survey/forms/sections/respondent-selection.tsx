@@ -86,8 +86,16 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       return
     }
 
-    // Kish Grid logic: use last digit of survey number
-    const lastDigit = Number.parseInt(surveyNumber.slice(-1)) || 0
+    // Kish Grid logic: use last digit of questionnaire number
+    // For new format BB-YYYY-NNNN, extract the NNNN part
+    let questionnaireNumber = surveyNumber;
+    if (surveyNumber.includes('-')) {
+      const parts = surveyNumber.split('-');
+      if (parts.length === 3) {
+        questionnaireNumber = parts[2]; // Extract NNNN part
+      }
+    }
+    const lastDigit = Number.parseInt(questionnaireNumber.slice(-1)) || 0
     const selectedIndex = lastDigit % eligibleMembers.length
     const selected = eligibleMembers[selectedIndex]
 

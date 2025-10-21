@@ -22,9 +22,26 @@ export const EVEN_SECTIONS = ["disaster", "social", "business"];
 
 /**
  * Get assigned sections based on survey number
+ * Supports both old format (numbers) and new format (BB-YYYY-NNNN)
  */
 export function getAssignedSections(surveyNumber: string | number): AssignedSection[] {
-  const num = typeof surveyNumber === 'string' ? parseInt(surveyNumber) : surveyNumber;
+  let num: number;
+  
+  if (typeof surveyNumber === 'string') {
+    // Handle new format BB-YYYY-NNNN (extract questionnaire number)
+    if (surveyNumber.includes('-')) {
+      const parts = surveyNumber.split('-');
+      if (parts.length === 3) {
+        num = parseInt(parts[2]); // Extract NNNN part
+      } else {
+        num = parseInt(surveyNumber);
+      }
+    } else {
+      num = parseInt(surveyNumber);
+    }
+  } else {
+    num = surveyNumber;
+  }
   
   if (isNaN(num) || num < 1) {
     return [];
@@ -45,9 +62,26 @@ export function getAssignedSections(surveyNumber: string | number): AssignedSect
 
 /**
  * Get section assignment type (odd/even)
+ * Supports both old format (numbers) and new format (BB-YYYY-NNNN)
  */
 export function getAssignmentType(surveyNumber: string | number): 'odd' | 'even' | null {
-  const num = typeof surveyNumber === 'string' ? parseInt(surveyNumber) : surveyNumber;
+  let num: number;
+  
+  if (typeof surveyNumber === 'string') {
+    // Handle new format BB-YYYY-NNNN (extract questionnaire number)
+    if (surveyNumber.includes('-')) {
+      const parts = surveyNumber.split('-');
+      if (parts.length === 3) {
+        num = parseInt(parts[2]); // Extract NNNN part
+      } else {
+        num = parseInt(surveyNumber);
+      }
+    } else {
+      num = parseInt(surveyNumber);
+    }
+  } else {
+    num = surveyNumber;
+  }
   
   if (isNaN(num) || num < 1) {
     return null;

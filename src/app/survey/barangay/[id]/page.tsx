@@ -238,13 +238,13 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
       <header className="bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            {/* Back to Dashboard - redirects to survey dashboard for interviewers, main dashboard for others */}
+            {/* Back to Survey Dashboard - all users accessing barangay details should return to survey dashboard */}
             <Link
-              href={user?.role?.toLowerCase() === 'interviewer' ? '/survey' : '/dashboard'}
+              href="/survey"
               className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="font-medium text-sm sm:text-base">Back to Dashboard</span>
+              <span className="font-medium text-sm sm:text-base">Back to Survey Dashboard</span>
             </Link>
           </div>
         </div>

@@ -173,18 +173,24 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       return false
     }
     
-    if (!/^\d+$/.test(value)) {
-      setSurveyNumberError('Survey number must contain only numbers')
-      return false
+    // Check for new format BB-YYYY-NNNN
+    const newFormatRegex = /^\d{2}-\d{4}-\d{4}$/
+    if (newFormatRegex.test(value)) {
+      return true // Valid new format
     }
     
-    const num = parseInt(value)
-    if (num < 1 || num > 150) {
-      setSurveyNumberError('Survey number must be between 1 and 150')
-      return false
+    // Check for old format (numbers only) for backward compatibility
+    if (/^\d+$/.test(value)) {
+      const num = parseInt(value)
+      if (num < 1 || num > 9999) {
+        setSurveyNumberError('Questionnaire number must be between 1 and 9999')
+        return false
+      }
+      return true
     }
     
-    return true
+    setSurveyNumberError('Survey number must be in format BB-YYYY-NNNN (e.g., 24-2025-0001) or a questionnaire number (1-9999)')
+    return false
   }
 
   const handleSurveyNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -337,7 +343,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           {/* Help Text */}
           {!surveyNumberError && (
             <p className="mt-1 text-xs text-gray-500">
-              Enter a whole number between 1 and 150. No decimals or letters allowed.
+              Enter survey number in format BB-YYYY-NNNN (e.g., 24-2025-0001) or just the questionnaire number (1-9999).
             </p>
           )}
           

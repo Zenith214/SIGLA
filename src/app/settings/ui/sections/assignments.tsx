@@ -26,7 +26,8 @@ export function Assignments() {
   const [editingAssignment, setEditingAssignment] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingAssignment, setDeletingAssignment] = useState<any | null>(null)
-  const { addToast } = useToast()
+  const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     setLoading(true)
@@ -43,6 +44,10 @@ export function Assignments() {
 
         // The interviewers API returns the data directly (no wrapping)
         setInterviewers(interviewersData || [])
+        
+        // Check and update assignment statuses based on survey progress
+        checkAndUpdateAssignmentStatuses(assignmentsData || [], surveyTargetsData || [])
+        
         setLoading(false)
       })
       .catch((err) => {
@@ -50,6 +55,58 @@ export function Assignments() {
         setLoading(false)
       })
   }, [])
+
+  // Function to check and update assignment statuses based on survey progress
+  const checkAndUpdateAssignmentStatuses = async (assignmentsData: any[], surveyTargetsData: any[]) => {
+    const updatedAssignments: any[] = []
+    
+    for (const assignment of assignmentsData) {
+      const target = surveyTargetsData.find((t: any) => t.barangay_id === assignment.barangay_id)
+      
+      if (target && assignment.status !== 'Completed') {
+        const surveyProgress = Math.round((target.achieved || 0) / target.target * 100)
+        
+        // Auto-complete assignment if survey reaches 100%
+        if (surveyProgress >= 100) {
+          try {
+            const response = await fetch("/api/assignments", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...assignment,
+                status: 'Completed'
+              }),
+            })
+            
+            if (response.ok) {
+              const updated = await response.json()
+              updatedAssignments.push(updated)
+              console.log(`✅ Auto-completed assignment for barangay ${assignment.barangay_id}`)
+            }
+          } catch (error) {
+            console.error(`❌ Failed to auto-complete assignment for barangay ${assignment.barangay_id}:`, error)
+          }
+        }
+      }
+    }
+    
+    // Update assignments state if any were updated
+    if (updatedAssignments.length > 0) {
+      setAssignments(prev => 
+        prev.map(a => {
+          const updated = updatedAssignments.find(u => u.assignment_id === a.assignment_id)
+          return updated || a
+        })
+      )
+      
+      toast({
+        title: "Assignments Auto-Updated",
+        description: `${updatedAssignments.length} assignment(s) marked as completed due to 100% survey progress.`,
+      })
+    }
+    
+    setLastStatusCheck(new Date())
+  }
 
   // Add Assignment
   const handleAddChange = (e: any) => {
@@ -61,38 +118,34 @@ export function Assignments() {
 
   const validateAddForm = () => {
     if (targetBarangays.length === 0) {
-      addToast({
-        type: "warning",
+      toast({
+        variant: "destructive",
         title: "No Survey Targets",
         description: "Please create survey targets first before assigning interviewers.",
-        duration: 4000
       });
       return false
     }
     if (!addForm.barangay_id) {
-      addToast({
-        type: "warning",
+      toast({
+        variant: "destructive",
         title: "Missing Information",
         description: "Please select a barangay with survey targets for the assignment.",
-        duration: 4000
       });
       return false
     }
     if (!addForm.user_id) {
-      addToast({
-        type: "warning",
+      toast({
+        variant: "destructive",
         title: "Missing Information",
         description: "Please select an interviewer for the assignment.",
-        duration: 4000
       });
       return false
     }
     if (!addForm.status) {
-      addToast({
-        type: "warning",
+      toast({
+        variant: "destructive",
         title: "Missing Information",
         description: "Please select a status for the assignment.",
-        duration: 4000
       });
       return false
     }
@@ -127,19 +180,20 @@ export function Assignments() {
       setAssignments([...assignments, created])
       setAddModal(false)
       setAddForm({ barangay_id: "", user_id: "", status: "Pending" })
-      addToast({
-        type: "success",
+      
+      // Check if the new assignment should be auto-completed
+      await checkAndUpdateAssignmentStatuses([created], surveyTargets)
+      
+      toast({
         title: "Assignment Added Successfully!",
         description: "New interviewer assignment has been created.",
-        duration: 4000
       });
     } catch (err: any) {
       console.error('Add assignment error:', err)
-      addToast({
-        type: "error",
+      toast({
+        variant: "destructive",
         title: "Assignment Failed",
         description: err.message || "An unexpected error occurred while creating the assignment.",
-        duration: 6000
       });
     } finally {
       setSaving(false)
@@ -157,7 +211,7 @@ export function Assignments() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
-      const payload = { ...editForm, assignment_id: Number(editForm.assignment_id), barangay_id: Number(editForm.barangay_id), user_id: Number(editForm.user_id), progress: Number(editForm.progress) }
+      const payload = { ...editForm, assignment_id: Number(editForm.assignment_id), barangay_id: Number(editForm.barangay_id), user_id: Number(editForm.user_id) }
       const res = await fetch("/api/assignments", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -168,18 +222,15 @@ export function Assignments() {
       setAssignments(assignments.map(a => (a.assignment_id === updated.assignment_id ? updated : a)))
       setEditingAssignment(null)
       setEditForm(null)
-      addToast({
-        type: "success",
+      toast({
         title: "Assignment Updated!",
         description: "Assignment has been updated successfully.",
-        duration: 4000
       });
     } catch (err: any) {
-      addToast({
-        type: "error",
+      toast({
+        variant: "destructive",
         title: "Update Failed",
         description: err.message || "An unexpected error occurred while updating the assignment.",
-        duration: 6000
       });
     } finally {
       setSaving(false)
@@ -238,20 +289,17 @@ export function Assignments() {
       // Update UI regardless of response format if status was OK
       setAssignments(assignments.filter(a => a.assignment_id !== deletingAssignment.assignment_id))
       setDeletingAssignment(null)
-      addToast({
-        type: "success",
+      toast({
         title: "Assignment Deleted",
         description: "Assignment has been deleted successfully.",
-        duration: 4000
       });
 
     } catch (err: any) {
       console.error('Delete assignment error:', err)
-      addToast({
-        type: "error",
+      toast({
+        variant: "destructive",
         title: "Delete Failed",
         description: err.message || "An unexpected error occurred while deleting the assignment.",
-        duration: 6000
       });
     } finally {
       setSaving(false)
@@ -264,55 +312,97 @@ export function Assignments() {
     return barangay ? { ...barangay, target } : null
   }).filter(Boolean)
 
-  // Group assignments by barangay and calculate unified progress
-  const groupedAssignments = assignments.reduce((acc, assignment) => {
-    const barangayId = assignment.barangay_id
-    if (!acc[barangayId]) {
-      acc[barangayId] = {
-        barangay_id: barangayId,
-        assignments: [],
-        totalProgress: 0,
-        averageProgress: 0,
-        interviewers: [],
-        statuses: []
-      }
-    }
-    
-    acc[barangayId].assignments.push(assignment)
-    acc[barangayId].totalProgress += (assignment.progress || 0)
-    acc[barangayId].averageProgress = Math.round(acc[barangayId].totalProgress / acc[barangayId].assignments.length)
-    
-    const interviewer = interviewers.find(i => i.id === assignment.user_id)
-    if (interviewer && !acc[barangayId].interviewers.find(i => i.id === interviewer.id)) {
-      acc[barangayId].interviewers.push(interviewer)
-    }
-    
-    if (!acc[barangayId].statuses.includes(assignment.status)) {
-      acc[barangayId].statuses.push(assignment.status)
-    }
-    
-    return acc
-  }, {})
 
-  const unifiedAssignments = Object.values(groupedAssignments)
 
   // Statistics
   const total = assignments.length
   const active = assignments.filter(a => a.status === "Active").length
   const pending = assignments.filter(a => a.status === "Pending").length
-  const avgProgress = total ? Math.round(assignments.reduce((sum, a) => sum + (a.progress || 0), 0) / total) : 0
+  const completed = assignments.filter(a => a.status === "Completed").length
+  const assignedBarangays = new Set(assignments.map(a => a.barangay_id)).size
+  const assignedInterviewers = new Set(assignments.map(a => a.user_id)).size
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Interviewer Assignments</h1>
-          <p className="text-gray-600">Assign interviewers to barangays and monitor progress</p>
+          <div>
+            <p className="text-gray-600">Assign interviewers to barangays and track assignment status</p>
+            {lastStatusCheck && (
+              <p className="text-xs text-gray-500 mt-1">
+                Last status check: {lastStatusCheck.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
         </div>
-        <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
-          <UserCheck className="w-4 h-4 mr-2" />
-          Add Assignment
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => checkAndUpdateAssignmentStatuses(assignments, surveyTargets)}
+            disabled={loading}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Refresh Status
+          </Button>
+          <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
+            <UserCheck className="w-4 h-4 mr-2" />
+            Add Assignment
+          </Button>
+        </div>
+      </div>
+
+      {/* Assignment Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-blue-600">{total}</div>
+              <div className="text-xs text-gray-600">Total Assignments</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-green-600">{active}</div>
+              <div className="text-xs text-gray-600">Active</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-yellow-600">{pending}</div>
+              <div className="text-xs text-gray-600">Pending</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-purple-600">{completed}</div>
+              <div className="text-xs text-gray-600">Completed</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-indigo-600">{assignedBarangays}</div>
+              <div className="text-xs text-gray-600">Barangays Assigned</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-teal-600">{assignedInterviewers}</div>
+              <div className="text-xs text-gray-600">Interviewers Active</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Add Assignment Modal */}
@@ -480,19 +570,7 @@ export function Assignments() {
                 </select>
               </div>
 
-              <div>
-                <Label htmlFor="edit_progress" className="text-sm font-medium">Progress (%)</Label>
-                <Input
-                  id="edit_progress"
-                  name="progress"
-                  type="number"
-                  value={editForm?.progress || 0}
-                  onChange={handleEditChange}
-                  min={0}
-                  max={100}
-                  className="focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => setEditingAssignment(null)} disabled={saving}>Cancel</Button>
@@ -525,12 +603,12 @@ export function Assignments() {
         </Dialog>
       )}
 
-      {/* Unified Assignments by Barangay */}
+      {/* Assignment Overview Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="w-5 h-5 text-blue-500" />
-            <span>Assignments by Barangay</span>
+            <span>Assignment Overview</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -538,202 +616,155 @@ export function Assignments() {
             <div className="p-8 text-center text-gray-500">Loading...</div>
           ) : error ? (
             <div className="p-8 text-center text-red-500">{error}</div>
-          ) : unifiedAssignments.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No assignments found</div>
+          ) : assignments.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <p className="text-lg font-medium text-gray-900 mb-2">No assignments found</p>
+              <p className="text-gray-500 mb-4">Get started by creating your first interviewer assignment.</p>
+              <Button onClick={() => setAddModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white">
+                <UserCheck className="w-4 h-4 mr-2" />
+                Add First Assignment
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {unifiedAssignments.map((unified: any) => {
-                const barangay = barangays.find((b: any) => b.id === unified.barangay_id)
-                const target = surveyTargets.find((t: any) => t.barangay_id === unified.barangay_id)
-                const primaryStatus = unified.statuses.includes("Active") ? "Active" : 
-                                   unified.statuses.includes("Pending") ? "Pending" : "Completed"
-                
-                return (
-                  <div key={unified.barangay_id} className="p-4 bg-gray-50 rounded-lg border">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-lg text-gray-900">
-                            {barangay ? barangay.name : "Unknown Barangay"}
-                          </h3>
-                          <Badge variant={primaryStatus === "Active" ? "default" : "secondary"} className="text-xs">
-                            {primaryStatus}
-                          </Badge>
-                          {target && (
-                            <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
-                              Target: {target.target} responses
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-medium">Barangay</TableHead>
+                    <TableHead className="font-medium">Assigned Interviewer</TableHead>
+                    <TableHead className="font-medium">Contact</TableHead>
+                    <TableHead className="font-medium">Assignment Status</TableHead>
+                    <TableHead className="font-medium">Survey Progress</TableHead>
+                    <TableHead className="font-medium">Survey Target</TableHead>
+                    <TableHead className="font-medium text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assignments.map((assignment) => {
+                    const barangay = barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id)
+                    const interviewer = interviewers.find((u: any) => u.id === assignment.user_id)
+                    const target = surveyTargets.find((t: any) => t.barangay_id === assignment.barangay_id)
+                    
+                    // Get survey progress from barangay data (this would come from actual survey responses)
+                    const surveyProgress = target ? Math.round((target.achieved || 0) / target.target * 100) : 0
+                    
+                    return (
+                      <TableRow key={assignment.assignment_id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span className="text-gray-900">
+                              {barangay ? (barangay.name || barangay.barangay_name) : assignment.barangay_name || "Unknown"}
                             </span>
+                            <span className="text-xs text-gray-500">
+                              ID: {assignment.barangay_id}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-medium">
+                              {interviewer ? `${interviewer.firstName} ${interviewer.lastName}` : 
+                               `${assignment.firstName || ''} ${assignment.lastName || ''}`.trim() || "Unknown"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {interviewer?.role || 'Interviewer'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-600">
+                            {interviewer?.email || assignment.email || 'No email'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Badge 
+                              variant={
+                                assignment.status === "Active" ? "default" : 
+                                assignment.status === "Completed" ? "secondary" : 
+                                "outline"
+                              } 
+                              className={`text-xs ${
+                                assignment.status === "Active" ? "bg-green-100 text-green-800 border-green-200" :
+                                assignment.status === "Completed" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                                "bg-yellow-100 text-yellow-800 border-yellow-200"
+                              }`}
+                            >
+                              {assignment.status}
+                            </Badge>
+                            {assignment.status === "Completed" && surveyProgress >= 100 && (
+                              <span className="text-xs text-green-600 font-medium" title="Auto-completed due to 100% survey progress">
+                                ✓ Auto
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-1 min-w-[60px]">
+                              <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                <span>{surveyProgress}%</span>
+                                <span>{target?.achieved || 0}/{target?.target || 0}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    surveyProgress >= 100 ? 'bg-green-500' :
+                                    surveyProgress >= 75 ? 'bg-blue-500' :
+                                    surveyProgress >= 50 ? 'bg-yellow-500' :
+                                    surveyProgress > 0 ? 'bg-orange-500' : 'bg-gray-300'
+                                  }`}
+                                  style={{ width: `${Math.min(surveyProgress, 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {target ? (
+                            <div className="text-sm">
+                              <div className="font-medium text-gray-900">{target.target} responses</div>
+                              <div className="text-xs text-gray-500">
+                                {target.achieved || 0} completed
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">No target set</span>
                           )}
-                        </div>
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <span>{unified.assignments.length} assignment{unified.assignments.length !== 1 ? 's' : ''}</span>
-                          <span>•</span>
-                          <span>{unified.interviewers.length} interviewer{unified.interviewers.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        
-                        <div className="mt-2">
-                          <div className="text-xs text-gray-500 mb-1">
-                            Interviewers: {unified.interviewers.map((i: any) => `${i.firstName} ${i.lastName}`).join(', ')}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right ml-4">
-                        <div className="text-2xl font-semibold text-gray-900">{unified.averageProgress}%</div>
-                        <div className="text-sm text-gray-500">Avg Progress</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="flex-1 bg-gray-200 rounded-full h-3">
-                        <div
-                          className="bg-blue-500 h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${unified.averageProgress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-gray-600 min-w-[3rem]">{unified.averageProgress}%</span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs text-gray-500">
-                        Individual progress: {unified.assignments.map((a: any) => `${a.progress}%`).join(', ')}
-                      </div>
-                      <div className="flex space-x-1">
-                        {unified.assignments.map((assignment: any) => (
-                          <div key={assignment.assignment_id} className="flex space-x-1">
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center space-x-1">
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-7 w-7 p-0" 
+                              className="h-8 w-8 p-0 hover:bg-blue-100" 
                               onClick={() => handleEditClick(assignment)}
-                              title={`Edit assignment for ${unified.interviewers.find((i: any) => i.id === assignment.user_id)?.firstName || 'Unknown'}`}
+                              title="Edit assignment"
                             >
-                              <Edit className="w-3 h-3" />
+                              <Edit className="w-4 h-4 text-blue-600" />
                             </Button>
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-7 w-7 p-0 text-red-600" 
+                              className="h-8 w-8 p-0 hover:bg-red-100" 
                               onClick={() => handleDeleteClick(assignment)}
-                              title={`Delete assignment for ${unified.interviewers.find((i: any) => i.id === assignment.user_id)?.firstName || 'Unknown'}`}
+                              title="Delete assignment"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Individual Assignments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-gray-500" />
-            <span>Individual Assignments</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-500">{error}</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-medium">Barangay</TableHead>
-                  <TableHead className="font-medium">Interviewer</TableHead>
-                  <TableHead className="font-medium">Status</TableHead>
-                  <TableHead className="font-medium">Progress</TableHead>
-                  <TableHead className="font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignments.map((assignment) => {
-                  const barangay = barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id)
-                  const interviewer = interviewers.find((u: any) => u.id === assignment.user_id)
-                  return (
-                    <TableRow key={assignment.assignment_id}>
-                      <TableCell className="font-medium">{barangay ? (barangay.name || barangay.barangay_name) : assignment.barangay_name || "Unknown"}</TableCell>
-                      <TableCell className="text-gray-600">{interviewer ? `${interviewer.firstName} ${interviewer.lastName}` : `${assignment.firstName || ''} ${assignment.lastName || ''}`.trim() || "Unknown"}</TableCell>
-                      <TableCell>
-                        <Badge variant={assignment.status === "Active" ? "default" : "secondary"} className="text-xs">
-                          {assignment.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-blue-500 h-2 rounded-full"
-                              style={{ width: `${assignment.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-600">{assignment.progress}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleEditClick(assignment)}>
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteClick(assignment)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Assignment Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{total}</div>
-              <div className="text-sm text-gray-600">Total Assignments</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{active}</div>
-              <div className="text-sm text-gray-600">Active</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{pending}</div>
-              <div className="text-sm text-gray-600">Pending</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">{avgProgress}%</div>
-              <div className="text-sm text-gray-600">Avg Progress</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }

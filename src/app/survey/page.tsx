@@ -31,6 +31,45 @@ interface Barangay {
   };
 }
 
+// Helper function to calculate overall progress based on active assignments
+function calculateOverallProgress(barangays: Barangay[]): number {
+  if (!barangays || barangays.length === 0) {
+    return 0;
+  }
+
+  // Debug: Log the barangays data
+  console.log('Barangays data for progress calculation:', barangays.map(b => ({
+    name: b.name,
+    progress: b.progress,
+    assignment_status: b.assignment?.status,
+    has_assignment: !!b.assignment
+  })));
+
+  // Filter barangays that have assignments (any status)
+  const barangaysWithAssignments = barangays.filter(b => b.assignment);
+
+  if (barangaysWithAssignments.length === 0) {
+    console.log('No barangays with assignments found');
+    return 0;
+  }
+
+  // Calculate average progress of all barangays with assignments (ensure numbers)
+  const totalProgress = barangaysWithAssignments.reduce((acc, b) => {
+    const progress = typeof b.progress === 'string' ? parseInt(b.progress) || 0 : (b.progress || 0);
+    return acc + progress;
+  }, 0);
+  const averageProgress = totalProgress / barangaysWithAssignments.length;
+  
+  console.log('Progress calculation:', {
+    totalProgress,
+    count: barangaysWithAssignments.length,
+    averageProgress
+  });
+  
+  // Ensure progress doesn't exceed 100%
+  return Math.min(Math.round(averageProgress), 100);
+}
+
 function SurveyDashboardContent() {
   const { user, logout } = useAuth() // Add logout from useAuth
   const router = useRouter()
@@ -251,14 +290,14 @@ function SurveyDashboardContent() {
               <div className="flex justify-between text-sm">
                 <span className="text-[#6b7280]">Overall Progress</span>
                 <span className="text-[#111827] font-medium">
-                  {loading ? "Loading..." : `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / Math.max(barangays.length, 1))}%`}
+                  {loading ? "Loading..." : `${calculateOverallProgress(barangays)}%`}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
                   className="bg-[#16a34a] h-3 rounded-full transition-all duration-300"
                   style={{ 
-                    width: loading ? "0%" : `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / Math.max(barangays.length, 1))}%` 
+                    width: loading ? "0%" : `${calculateOverallProgress(barangays)}%` 
                   }}
                 ></div>
               </div>

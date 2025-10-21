@@ -42,7 +42,7 @@ export async function GET() {
         st.target as survey_target,
         COALESCE(sr_counts.completed_surveys, 0) as completed_surveys,
         CASE
-          WHEN st.target > 0 THEN ROUND((COALESCE(sr_counts.completed_surveys, 0)::decimal / st.target) * 100, 0)
+          WHEN st.target > 0 THEN LEAST(100, ROUND((COALESCE(sr_counts.completed_surveys, 0)::decimal / st.target) * 100, 0))
           ELSE 0
         END as calculated_progress
       FROM barangay b
@@ -141,7 +141,7 @@ export async function GET() {
 
 // Helper function to determine barangay status based on assignment and actual survey progress
 function getBarangayStatus(assignmentStatus: string, calculatedProgress: number): string {
-  if (assignmentStatus === 'Completed' || calculatedProgress === 100) {
+  if (assignmentStatus === 'Completed' || calculatedProgress >= 100) {
     return 'Completed';
   } else if (assignmentStatus === 'Active' || (calculatedProgress > 0 && calculatedProgress < 100)) {
     return 'In Progress';

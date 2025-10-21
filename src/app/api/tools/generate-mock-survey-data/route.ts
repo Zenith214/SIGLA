@@ -84,6 +84,33 @@ const SCORE_RANGES = {
   }
 };
 
+// Helper function to get next available questionnaire number for a barangay/year
+async function getNextQuestionnaireNumber(client: any, barangayId: number, year: number): Promise<number> {
+  const formattedBarangayId = barangayId.toString().padStart(2, '0');
+  const pattern = `${formattedBarangayId}-${year}-%`;
+  
+  const query = `
+    SELECT survey_number 
+    FROM survey_response 
+    WHERE survey_number LIKE $1 
+    ORDER BY survey_number DESC 
+    LIMIT 1
+  `;
+  
+  const result = await client.query(query, [pattern]);
+  
+  if (result.rows.length === 0) {
+    return 1; // First questionnaire for this barangay/year
+  }
+  
+  // Extract questionnaire number from format BB-YYYY-NNNN
+  const lastSurveyNumber = result.rows[0].survey_number;
+  const parts = lastSurveyNumber.split('-');
+  const lastQuestionnaireNumber = parseInt(parts[2]) || 0;
+  
+  return lastQuestionnaireNumber + 1;
+}
+
 export async function POST(request: NextRequest) {
   let client;
   try {
@@ -97,6 +124,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Debug: Check if barangay exists in database
+    const barangayCheckQuery = 'SELECT barangay_id, barangay_name FROM barangay WHERE barangay_id = $1';
+    const barangayCheckResult = await client.query(barangayCheckQuery, [parseInt(barangayId)]);
+    
+    console.log(`🔍 Barangay check for ID ${barangayId}:`, barangayCheckResult.rows);
+    
+    if (barangayCheckResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: `Barangay with ID ${barangayId} not found in database` },
+        { status: 404 }
+      );
+    }
+
+    // Get starting questionnaire number
+    const currentYear = new Date().getFullYear();
+    const startingQuestionnaireNumber = await getNextQuestionnaireNumber(client, parseInt(barangayId), currentYear);
+    
+    console.log(`📋 Starting questionnaire number for Barangay ${barangayId} (${currentYear}): ${startingQuestionnaireNumber}`);
 
     const profileConfig = RESPONSE_PROFILES[profile as keyof typeof RESPONSE_PROFILES];
     if (!profileConfig) {
@@ -113,13 +159,15 @@ export async function POST(request: NextRequest) {
     let errorCount = 0;
 
     // Generate responses
-    for (let i = 1; i <= responseCount; i++) {
+    for (let i = 0; i < responseCount; i++) {
       try {
-        // Determine assigned sections based on survey number (odd/even logic)
-        const assignedSections = getAssignedSections(i);
+        const questionnaireNumber = startingQuestionnaireNumber + i;
+        
+        // Determine assigned sections based on questionnaire number (odd/even logic)
+        const assignedSections = getAssignedSections(questionnaireNumber);
 
         // Generate response data
-        const responseData = generateResponseData(i, assignedSections, profile);
+        const responseData = generateResponseData(questionnaireNumber, assignedSections, profile, parseInt(barangayId));
 
         // Submit to database
         const submitResult = await submitSurveyResponse(client, barangayId, responseData);
@@ -127,29 +175,35 @@ export async function POST(request: NextRequest) {
         if (submitResult.success) {
           successCount++;
           results.push({
-            surveyNumber: i,
+            surveyNumber: responseData.surveyNumber,
             status: 'success',
             sections: assignedSections.length
           });
         } else {
           errorCount++;
           results.push({
-            surveyNumber: i,
+            surveyNumber: responseData.surveyNumber,
             status: 'error',
             error: submitResult.error
           });
         }
 
         // Progress logging
-        if (i % 10 === 0 || i === responseCount) {
-          console.log(`📊 Progress: ${i}/${responseCount} responses generated (${successCount} success, ${errorCount} errors)`);
+        if ((i + 1) % 10 === 0 || (i + 1) === responseCount) {
+          console.log(`📊 Progress: ${i + 1}/${responseCount} responses generated (${successCount} success, ${errorCount} errors)`);
         }
 
       } catch (error) {
         errorCount++;
-        console.error(`❌ Error generating response ${i}:`, error);
+        const questionnaireNumber = startingQuestionnaireNumber + i;
+        const currentYear = new Date().getFullYear();
+        const formattedBarangayId = barangayId.toString().padStart(2, '0');
+        const formattedQuestionnaireNumber = questionnaireNumber.toString().padStart(4, '0');
+        const surveyNumber = `${formattedBarangayId}-${currentYear}-${formattedQuestionnaireNumber}`;
+        
+        console.error(`❌ Error generating response ${surveyNumber}:`, error);
         results.push({
-          surveyNumber: i,
+          surveyNumber: surveyNumber,
           status: 'error',
           error: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -200,9 +254,15 @@ function getAssignedSections(surveyNumber: number): string[] {
 }
 
 // Generate response data for a survey
-function generateResponseData(surveyNumber: number, sections: string[], profile: string) {
+function generateResponseData(surveyNumber: number, sections: string[], profile: string, barangayId: number) {
+  // Create survey number in BB-YYYY-NNNN format
+  const currentYear = new Date().getFullYear();
+  const formattedBarangayId = barangayId.toString().padStart(2, '0');
+  const formattedQuestionnaireNumber = surveyNumber.toString().padStart(4, '0');
+  const surveyNumberFormatted = `${formattedBarangayId}-${currentYear}-${formattedQuestionnaireNumber}`;
+  
   const responseData = {
-    surveyNumber: surveyNumber.toString().padStart(3, '0'),
+    surveyNumber: surveyNumberFormatted,
     location: {
       lat: 10.3157 + (Math.random() - 0.5) * 0.01, // Random location near Cebu
       lng: 123.8854 + (Math.random() - 0.5) * 0.01,
@@ -211,7 +271,7 @@ function generateResponseData(surveyNumber: number, sections: string[], profile:
     },
     selectedMember: `Respondent ${surveyNumber}`,
     interviewerId: 1, // Default interviewer
-    barangayId: 17, // Will be overridden
+    barangayId: barangayId,
     respondentDemographics: generateDemographics(),
     sections: {} as { [key: string]: any }
   };
@@ -677,6 +737,18 @@ function generateRealisticTextareaResponse(type: string, score: number): string 
 // Submit survey response to database
 async function submitSurveyResponse(client: any, barangayId: number, responseData: any) {
   try {
+    console.log(`📝 Submitting survey response for barangay_id: ${barangayId}, survey_number: ${responseData.surveyNumber}`);
+    
+    // Check if survey number already exists
+    const duplicateCheck = await client.query(
+      'SELECT survey_number FROM survey_response WHERE survey_number = $1',
+      [responseData.surveyNumber]
+    );
+    
+    if (duplicateCheck.rows.length > 0) {
+      throw new Error(`Survey number ${responseData.surveyNumber} already exists`);
+    }
+    
     // Create the survey response record
     const insertQuery = `
       INSERT INTO survey_response (
@@ -742,14 +814,14 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       ]);
     }
 
-    // Update survey target progress
+    // Update survey target progress (but cap at 100%)
     const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 LIMIT 1';
     const targetResult = await client.query(targetQuery, [barangayId]);
 
     if (targetResult.rows.length > 0) {
       const surveyTarget = targetResult.rows[0];
       const newAchieved = (surveyTarget.achieved || 0) + 1;
-      const newPercentage = Math.round((newAchieved / surveyTarget.target) * 100);
+      const newPercentage = Math.min(100, Math.round((newAchieved / surveyTarget.target) * 100));
 
       await client.query(
         'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
