@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Pool } from 'pg';
+import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -15,35 +17,109 @@ const pool = new Pool({
   }
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let client;
   try {
     client = await pool.connect();
     
-    // Fetch ALL barangays with survey targets
-    const barangaysQuery = `
-      SELECT 
-        b.barangay_id,
-        b.barangay_name,
-        b.population,
-        b.households,
-        b.captain,
-        b.description,
-        b."currentStatus",
-        b.seal,
-        b.seal_expiration_date,
-        st.percentage
-      FROM barangay b
-      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
-      WHERE b.is_active = true
-      ORDER BY b.barangay_name ASC
-    `;
+    const { searchParams } = new URL(request.url);
+    const cycleId = searchParams.get('cycle_id');
+    const includeAwards = searchParams.get('include_awards') === 'true';
+    const awardeesOnly = searchParams.get('awardees_only') === 'true';
+    const legacyMode = searchParams.get('legacy_mode') === 'true';
+
+    const parsedCycleId = cycleId ? parseInt(cycleId, 10) : undefined;
+
+    // Validate cycle_id if provided
+    if (cycleId && (isNaN(parsedCycleId!) || parsedCycleId! <= 0)) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'cycle_id must be a positive integer'
+        },
+        { status: 400 }
+      );
+    }
+
+    const targetCycleId = parsedCycleId || await getActiveCycleId();
     
-    const result = await client.query(barangaysQuery);
-    const barangays = result.rows;
+    // Fetch ALL barangays with survey targets (cycle-aware)
+    let barangaysQuery;
+    let queryParams: any[] = [];
+    
+    if (targetCycleId) {
+      barangaysQuery = `
+        SELECT 
+          b.barangay_id,
+          b.barangay_name,
+          b.population,
+          b.households,
+          b.captain,
+          b.description,
+          b."currentStatus",
+          b.seal,
+          b.seal_expiration_date,
+          b.logo_url,
+          st.percentage
+        FROM barangay b
+        LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id AND st.survey_cycle_id = $1
+        WHERE b.is_active = true
+        ORDER BY b.barangay_name ASC
+      `;
+      queryParams = [targetCycleId];
+    } else {
+      barangaysQuery = `
+        SELECT 
+          b.barangay_id,
+          b.barangay_name,
+          b.population,
+          b.households,
+          b.captain,
+          b.description,
+          b."currentStatus",
+          b.seal,
+          b.seal_expiration_date,
+          b.logo_url,
+          st.percentage
+        FROM barangay b
+        LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+        WHERE b.is_active = true
+        ORDER BY b.barangay_name ASC
+      `;
+    }
+    
+    const result = await client.query(barangaysQuery, queryParams);
+    let barangays = result.rows;
+
+    // Get award information if needed
+    let awardeeIds: number[] = [];
+    let cycleAwards: any[] = [];
+
+    if ((includeAwards || awardeesOnly) && targetCycleId) {
+      if (includeAwards) {
+        // Get detailed award information
+        cycleAwards = await CycleAwardsService.getCycleAwards(targetCycleId);
+      } else {
+        // Just get awardee IDs for filtering
+        awardeeIds = await CycleAwardsService.getAwardeeBarangayIds(targetCycleId);
+      }
+    }
+
+    // Create award lookup map for efficient access
+    const awardMap = new Map();
+    if (includeAwards && cycleAwards.length > 0) {
+      cycleAwards.forEach(award => {
+        awardMap.set(award.barangay_id, {
+          isAwardee: award.is_awardee,
+          awardedDate: award.awarded_date,
+          notes: award.notes,
+          awardId: award.id
+        });
+      });
+    }
 
     // Transform the data to match frontend expectations
-    const transformedBarangays = barangays.map((barangay: any) => {
+    let transformedBarangays = barangays.map((barangay: any) => {
       const progress = barangay.percentage || 0;
       
       let status = "Pending";
@@ -53,7 +129,7 @@ export async function GET() {
         status = "In Progress";
       }
 
-      return {
+      const baseBarangay: any = {
         id: barangay.barangay_id, // Transform barangay_id to id
         barangay_id: barangay.barangay_id, // Keep original for updates
         name: barangay.barangay_name, // Transform barangay_name to name
@@ -64,13 +140,59 @@ export async function GET() {
         captain: barangay.captain,
         description: barangay.description,
         currentStatus: barangay.currentStatus || status,
-        seal: barangay.seal,
+        seal: barangay.seal, // Keep for backward compatibility
         seal_expiration_date: barangay.seal_expiration_date,
+        logo_url: barangay.logo_url,
         history: [] // Add empty history for now
       };
+
+      // Add cycle-aware award information if requested
+      if (includeAwards && targetCycleId) {
+        const awardInfo = awardMap.get(barangay.barangay_id);
+        baseBarangay.awardStatus = awardInfo ? {
+          isAwardee: awardInfo.isAwardee,
+          awardedDate: awardInfo.awardedDate,
+          notes: awardInfo.notes,
+          awardId: awardInfo.awardId,
+          cycleId: targetCycleId
+        } : {
+          isAwardee: false,
+          awardedDate: null,
+          notes: null,
+          awardId: null,
+          cycleId: targetCycleId
+        };
+      }
+
+      return baseBarangay;
     });
 
-    return NextResponse.json(transformedBarangays);
+    // Filter for awardees only if requested
+    if (awardeesOnly && targetCycleId) {
+      if (includeAwards) {
+        // Filter based on award status in the formatted data
+        transformedBarangays = transformedBarangays.filter(barangay => 
+          barangay.awardStatus?.isAwardee === true
+        );
+      } else {
+        // Filter based on awardee IDs
+        transformedBarangays = transformedBarangays.filter(barangay => 
+          awardeeIds.includes(barangay.id)
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: transformedBarangays,
+      meta: {
+        cycle_id: targetCycleId,
+        include_awards: includeAwards,
+        awardees_only: awardeesOnly,
+        legacy_mode: legacyMode,
+        total_count: transformedBarangays.length
+      }
+    });
   } catch (error: any) {
     console.error('Error fetching all barangays:', error);
     return NextResponse.json(
@@ -152,6 +274,11 @@ export async function PUT(req: Request) {
       values.push(updates.is_active);
       paramIndex++;
     }
+    if (updates.logo_url !== undefined) {
+      updateFields.push(`logo_url = $${paramIndex}`);
+      values.push(updates.logo_url);
+      paramIndex++;
+    }
 
     console.log('Mapped update data:', updateFields, values);
 
@@ -176,7 +303,8 @@ export async function PUT(req: Request) {
       households: updatedBarangay.households,
       captain: updatedBarangay.captain,
       currentStatus: updatedBarangay.currentStatus,
-      is_active: updatedBarangay.is_active
+      is_active: updatedBarangay.is_active,
+      logo_url: updatedBarangay.logo_url
     };
 
     console.log('Update successful:', transformedResponse);

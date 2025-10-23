@@ -2,17 +2,24 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 
 interface BarangayDetailsCardProps {
   selectedBarangay?: ApiBarangayData | null;
 }
 
 export default function BarangayDetailsCard({ selectedBarangay }: BarangayDetailsCardProps) {
+  const { activeCycle, hasActiveCycle } = useActiveCycle();
   return (
     <Card className="w-full h-full flex flex-col mb-4">
       <CardHeader className="flex-shrink-0 pb-2">
         <CardTitle className="text-lg font-semibold">
           {selectedBarangay ? `${selectedBarangay.name} Details` : "Barangay Details"}
+          {hasActiveCycle && (
+            <span className="text-xs font-normal text-blue-600 block mt-1">
+              {activeCycle?.name} ({activeCycle?.year})
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-start pt-3">

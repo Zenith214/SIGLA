@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from 'pg';
+import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -84,31 +85,14 @@ const SCORE_RANGES = {
   }
 };
 
-// Helper function to get next available questionnaire number for a barangay/year
-async function getNextQuestionnaireNumber(client: any, barangayId: number, year: number): Promise<number> {
-  const formattedBarangayId = barangayId.toString().padStart(2, '0');
-  const pattern = `${formattedBarangayId}-${year}-%`;
-  
-  const query = `
-    SELECT survey_number 
-    FROM survey_response 
-    WHERE survey_number LIKE $1 
-    ORDER BY survey_number DESC 
-    LIMIT 1
-  `;
-  
-  const result = await client.query(query, [pattern]);
-  
-  if (result.rows.length === 0) {
-    return 1; // First questionnaire for this barangay/year
+// Helper function to get next available questionnaire number for a barangay in active cycle
+async function getNextQuestionnaireNumber(barangayId: number): Promise<number> {
+  try {
+    return await getNextSurveySequence(barangayId);
+  } catch (error) {
+    console.error('Error getting next questionnaire number:', error);
+    throw error;
   }
-  
-  // Extract questionnaire number from format BB-YYYY-NNNN
-  const lastSurveyNumber = result.rows[0].survey_number;
-  const parts = lastSurveyNumber.split('-');
-  const lastQuestionnaireNumber = parseInt(parts[2]) || 0;
-  
-  return lastQuestionnaireNumber + 1;
 }
 
 export async function POST(request: NextRequest) {
@@ -128,9 +112,9 @@ export async function POST(request: NextRequest) {
     // Debug: Check if barangay exists in database
     const barangayCheckQuery = 'SELECT barangay_id, barangay_name FROM barangay WHERE barangay_id = $1';
     const barangayCheckResult = await client.query(barangayCheckQuery, [parseInt(barangayId)]);
-    
+
     console.log(`🔍 Barangay check for ID ${barangayId}:`, barangayCheckResult.rows);
-    
+
     if (barangayCheckResult.rows.length === 0) {
       return NextResponse.json(
         { error: `Barangay with ID ${barangayId} not found in database` },
@@ -138,11 +122,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get active cycle
+    const activeCycle = await getActiveCycle();
+    if (!activeCycle) {
+      return NextResponse.json(
+        { error: "No active survey cycle found. Please set an active cycle before generating mock data." },
+        { status: 400 }
+      );
+    }
+
     // Get starting questionnaire number
-    const currentYear = new Date().getFullYear();
-    const startingQuestionnaireNumber = await getNextQuestionnaireNumber(client, parseInt(barangayId), currentYear);
-    
-    console.log(`📋 Starting questionnaire number for Barangay ${barangayId} (${currentYear}): ${startingQuestionnaireNumber}`);
+    const startingQuestionnaireNumber = await getNextQuestionnaireNumber(parseInt(barangayId));
+
+    console.log(`📋 Starting questionnaire number for Barangay ${barangayId} (Cycle: ${activeCycle.name}): ${startingQuestionnaireNumber}`);
 
     const profileConfig = RESPONSE_PROFILES[profile as keyof typeof RESPONSE_PROFILES];
     if (!profileConfig) {
@@ -162,12 +154,12 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < responseCount; i++) {
       try {
         const questionnaireNumber = startingQuestionnaireNumber + i;
-        
+
         // Determine assigned sections based on questionnaire number (odd/even logic)
         const assignedSections = getAssignedSections(questionnaireNumber);
 
         // Generate response data
-        const responseData = generateResponseData(questionnaireNumber, assignedSections, profile, parseInt(barangayId));
+        const responseData = await generateResponseData(questionnaireNumber, assignedSections, profile, parseInt(barangayId));
 
         // Submit to database
         const submitResult = await submitSurveyResponse(client, barangayId, responseData);
@@ -196,11 +188,8 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         errorCount++;
         const questionnaireNumber = startingQuestionnaireNumber + i;
-        const currentYear = new Date().getFullYear();
-        const formattedBarangayId = barangayId.toString().padStart(2, '0');
-        const formattedQuestionnaireNumber = questionnaireNumber.toString().padStart(4, '0');
-        const surveyNumber = `${formattedBarangayId}-${currentYear}-${formattedQuestionnaireNumber}`;
-        
+        const surveyNumber = await generateSurveyNumber(parseInt(barangayId), questionnaireNumber);
+
         console.error(`❌ Error generating response ${surveyNumber}:`, error);
         results.push({
           surveyNumber: surveyNumber,
@@ -254,13 +243,10 @@ function getAssignedSections(surveyNumber: number): string[] {
 }
 
 // Generate response data for a survey
-function generateResponseData(surveyNumber: number, sections: string[], profile: string, barangayId: number) {
-  // Create survey number in BB-YYYY-NNNN format
-  const currentYear = new Date().getFullYear();
-  const formattedBarangayId = barangayId.toString().padStart(2, '0');
-  const formattedQuestionnaireNumber = surveyNumber.toString().padStart(4, '0');
-  const surveyNumberFormatted = `${formattedBarangayId}-${currentYear}-${formattedQuestionnaireNumber}`;
-  
+async function generateResponseData(surveyNumber: number, sections: string[], profile: string, barangayId: number) {
+  // Create survey number in BB-CYCLEYEAR-NNNN format using active cycle
+  const surveyNumberFormatted = await generateSurveyNumber(barangayId, surveyNumber);
+
   const responseData = {
     surveyNumber: surveyNumberFormatted,
     location: {
@@ -738,27 +724,33 @@ function generateRealisticTextareaResponse(type: string, score: number): string 
 async function submitSurveyResponse(client: any, barangayId: number, responseData: any) {
   try {
     console.log(`📝 Submitting survey response for barangay_id: ${barangayId}, survey_number: ${responseData.surveyNumber}`);
-    
+
+    // Get active cycle
+    const activeCycle = await getActiveCycle();
+    if (!activeCycle) {
+      throw new Error('No active survey cycle found');
+    }
+
     // Check if survey number already exists
     const duplicateCheck = await client.query(
       'SELECT survey_number FROM survey_response WHERE survey_number = $1',
       [responseData.surveyNumber]
     );
-    
+
     if (duplicateCheck.rows.length > 0) {
       throw new Error(`Survey number ${responseData.surveyNumber} already exists`);
     }
-    
-    // Create the survey response record
+
+    // Create the survey response record with cycle linkage
     const insertQuery = `
       INSERT INTO survey_response (
-        survey_number, barangay_id, interviewer_id, respondent_name,
+        survey_number, barangay_id, interviewer_id, survey_cycle_id, respondent_name,
         respondent_age, respondent_gender, respondent_educational_attainment,
         respondent_household_income, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
 
@@ -766,6 +758,7 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       responseData.surveyNumber,
       barangayId,
       responseData.interviewerId,
+      activeCycle.cycle_id,
       responseData.selectedMember,
       responseData.respondentDemographics.age,
       responseData.respondentDemographics.gender,
@@ -814,9 +807,9 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       ]);
     }
 
-    // Update survey target progress (but cap at 100%)
-    const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 LIMIT 1';
-    const targetResult = await client.query(targetQuery, [barangayId]);
+    // Update survey target progress for the active cycle (but cap at 100%)
+    const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2 LIMIT 1';
+    const targetResult = await client.query(targetQuery, [barangayId, activeCycle.cycle_id]);
 
     if (targetResult.rows.length > 0) {
       const surveyTarget = targetResult.rows[0];

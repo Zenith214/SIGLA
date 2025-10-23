@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, Users, MapPin, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { CycleDisplay } from '@/components/survey-cycle';
+import { useActiveCycle } from '@/hooks/useSurveyCycle';
 import './print.css';
 
 function AIInsightsSection({ barangayId }: { barangayId: string }) {
@@ -98,6 +100,7 @@ function AIInsightsSection({ barangayId }: { barangayId: string }) {
 function ReportCardContent() {
   const searchParams = useSearchParams();
   const [barangayData, setBarangayData] = useState<any>(null);
+  const { hasActiveCycle, activeCycle, loading: cycleLoading } = useActiveCycle();
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [commonNeeds, setCommonNeeds] = useState<any>({});
   const [funnelData, setFunnelData] = useState<any>({});
@@ -112,6 +115,7 @@ function ReportCardContent() {
     const data = {
       barangay: searchParams.get('barangay') || '',
       barangayId: searchParams.get('barangayId') || '',
+      logo_url: searchParams.get('logo_url') || '',
       population: parseInt(searchParams.get('population') || '0'),
       households: parseInt(searchParams.get('households') || '0'),
       area: parseFloat(searchParams.get('area') || '0'),
@@ -541,11 +545,24 @@ function ReportCardContent() {
       <div className="hidden print:show print:document-header">
         {/* Top Header Row - Logo and Satisfaction Score */}
         <div className="print:header-row">
-          {/* BLGU Logo - Upper Left */}
+          {/* Barangay Logo - Upper Left */}
           <div className="print:logo-section">
             <div className="print:logo-container">
               <div className="print:logo-placeholder">
-                BLGU LOGO
+                {barangayData.logo_url ? (
+                  <img 
+                    src={barangayData.logo_url} 
+                    alt={`${barangayData.barangay} logo`}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement!.innerHTML = 'BLGU LOGO';
+                    }}
+                  />
+                ) : (
+                  'BLGU LOGO'
+                )}
               </div>
               <div className="print:logo-text">
                 Barangay Local Government Unit
@@ -654,6 +671,14 @@ function ReportCardContent() {
                 <Eye className="w-4 h-4 mr-2" />
                 View Participants
               </Button>
+              <div className="flex items-center gap-2 text-sm text-white">
+                {hasActiveCycle ? (
+                  <CycleDisplay className="text-white" />
+                ) : (
+                  <span className="text-amber-300 font-medium">⚠️ No Active Cycle</span>
+                )}
+              </div>
+              <div className="text-gray-400">|</div>
               <div className="flex items-center gap-2 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-green-200">ML Enhanced</span>
@@ -694,11 +719,24 @@ function ReportCardContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:single-column print:gap-0">
           {/* Left Column - Overview (Web Only) */}
           <div className="lg:col-span-1 space-y-6 print:hidden">
-            {/* BLGU Logo */}
+            {/* Barangay Logo */}
             <Card>
               <CardContent className="p-8">
-                <div className="border-2 border-gray-200 rounded-xl p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50">
-                  <span className="text-xl font-bold text-gray-700">BLGU LOGO</span>
+                <div className="border-2 border-gray-200 rounded-xl p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-32">
+                  {barangayData.logo_url ? (
+                    <img 
+                      src={barangayData.logo_url} 
+                      alt={`${barangayData.barangay} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.parentElement!.innerHTML = '<span class="text-xl font-bold text-gray-700">BLGU LOGO</span>';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xl font-bold text-gray-700">BLGU LOGO</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1290,9 +1328,14 @@ function ReportCardContent() {
                       <Share2 className="w-4 h-4 mr-2" />
                       Share Infographic
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={!hasActiveCycle}
+                      title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}
+                    >
                       <BarChart3 className="w-4 h-4 mr-2" />
-                      Export Data (CSV)
+                      Export Data (CSV) {hasActiveCycle && `(${activeCycle?.name})`}
                     </Button>
                   </div>
                 </div>

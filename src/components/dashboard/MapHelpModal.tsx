@@ -139,11 +139,11 @@ export default function MapHelpModal({ isOpen, onClose }: MapHelpModalProps) {
             </h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#64D9B7" }}></div>
-                <span className="text-sm">Awardee barangays</span>
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#10b981" }}></div>
+                <span className="text-sm">SGLGB Awardee barangays</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#6A7280" }}></div>
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#6b7280" }}></div>
                 <span className="text-sm">Non-awardee barangays</span>
               </div>
               {!isMobile && (

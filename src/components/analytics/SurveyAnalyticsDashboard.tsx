@@ -14,6 +14,8 @@ import {
   FileText,
   Calendar
 } from 'lucide-react'
+import { useActiveCycle } from '@/hooks/useSurveyCycle'
+import { CycleDisplay } from '@/components/survey-cycle'
 
 interface AnalyticsData {
   summary?: {
@@ -57,6 +59,7 @@ export default function SurveyAnalyticsDashboard() {
     endDate: '',
     section: ''
   })
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   const fetchAnalytics = async (format: string) => {
     setLoading(true)
@@ -95,6 +98,11 @@ export default function SurveyAnalyticsDashboard() {
   }
 
   const exportToCSV = () => {
+    if (!hasActiveCycle) {
+      console.warn('Cannot export: No active survey cycle')
+      return
+    }
+
     if (!analyticsData.export?.data) {
       fetchAnalytics('export').then(() => {
         // CSV export logic would go here
@@ -103,9 +111,10 @@ export default function SurveyAnalyticsDashboard() {
       return
     }
     
-    // Convert to CSV and download
+    // Convert to CSV and download with cycle information in filename
     const csvContent = convertToCSV(analyticsData.export.data)
-    downloadCSV(csvContent, 'survey-data.csv')
+    const filename = `survey-data-${activeCycle?.name?.replace(/\s+/g, '-')}-${activeCycle?.year}.csv`
+    downloadCSV(csvContent, filename)
   }
 
   const convertToCSV = (data: any[]) => {
@@ -141,14 +150,39 @@ export default function SurveyAnalyticsDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Survey Analytics</h1>
-          <p className="text-gray-600">Analyze survey responses and generate insights</p>
+          <p className="text-gray-600">
+            Analyze survey responses and generate insights
+            {hasActiveCycle && ` for ${activeCycle?.name} (${activeCycle?.year})`}
+          </p>
+          <div className="mt-2 flex items-center gap-4">
+            {hasActiveCycle && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-gray-700">Active Cycle:</span>
+                <CycleDisplay />
+              </div>
+            )}
+            {!hasActiveCycle && !cycleLoading && (
+              <div className="text-sm text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-md">
+                ⚠️ No active survey cycle - Contact admin to set up a cycle
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={exportToCSV} variant="outline">
+          <Button 
+            onClick={exportToCSV} 
+            variant="outline"
+            disabled={!hasActiveCycle}
+            title={!hasActiveCycle ? "No active cycle to export data from" : "Export data from active cycle"}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            Export CSV {hasActiveCycle && `(${activeCycle?.name})`}
           </Button>
-          <Button onClick={() => fetchAnalytics(activeView)} disabled={loading}>
+          <Button 
+            onClick={() => fetchAnalytics(activeView)} 
+            disabled={loading || !hasActiveCycle}
+            title={!hasActiveCycle ? "No active cycle to refresh data from" : "Refresh data from active cycle"}
+          >
             <TrendingUp className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -365,9 +399,28 @@ export default function SurveyAnalyticsDashboard() {
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
                 Export survey data in CSV format for external analysis tools.
+                {hasActiveCycle && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                    <div className="font-medium text-blue-900">Export will include data from:</div>
+                    <div className="text-blue-700 mt-1">
+                      <CycleDisplay />
+                    </div>
+                  </div>
+                )}
               </div>
               
-              {analyticsData.export && (
+              {!hasActiveCycle && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                  <div className="text-sm text-amber-800">
+                    <div className="font-medium">⚠️ No Active Survey Cycle</div>
+                    <div className="mt-1">
+                      Cannot export data without an active survey cycle. Contact your administrator to set up a cycle.
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {analyticsData.export && hasActiveCycle && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-sm">
                     <div>Records available: {analyticsData.export.count}</div>
@@ -380,9 +433,16 @@ export default function SurveyAnalyticsDashboard() {
                 </div>
               )}
               
-              <Button onClick={exportToCSV} className="w-full">
+              <Button 
+                onClick={exportToCSV} 
+                className="w-full"
+                disabled={!hasActiveCycle}
+              >
                 <Download className="w-4 h-4 mr-2" />
-                Download CSV Export
+                {hasActiveCycle 
+                  ? `Download CSV Export (${activeCycle?.name})` 
+                  : 'Download CSV Export (No Active Cycle)'
+                }
               </Button>
             </div>
           </CardContent>

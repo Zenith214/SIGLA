@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from 'pg';
+import { getActiveCycle } from '@/utils/surveyCycleHelpers';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -52,12 +53,21 @@ export async function DELETE(request: NextRequest) {
 
     const barangayName = barangayResult.rows[0].barangay_name;
 
-    console.log(`🗑️ Deleting all survey responses for Barangay ${barangayId} (${barangayName})`);
+    // Get active cycle for cycle-scoped deletion
+    const activeCycle = await getActiveCycle();
+    if (!activeCycle) {
+      return NextResponse.json(
+        { error: "No active survey cycle found" },
+        { status: 400 }
+      );
+    }
 
-    // Get count of responses before deletion
+    console.log(`🗑️ Deleting all survey responses for Barangay ${barangayId} (${barangayName}) in cycle ${activeCycle.name}`);
+
+    // Get count of responses before deletion (cycle-scoped)
     const countResult = await client.query(
-      'SELECT COUNT(*) as count FROM survey_response WHERE barangay_id = $1',
-      [parseInt(barangayId)]
+      'SELECT COUNT(*) as count FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2',
+      [parseInt(barangayId), activeCycle.cycle_id]
     );
     const responseCount = parseInt(countResult.rows[0].count);
 
@@ -78,54 +88,54 @@ export async function DELETE(request: NextRequest) {
     await client.query('BEGIN');
 
     try {
-      // Delete survey sections
+      // Delete survey sections (cycle-scoped)
       const sectionsResult = await client.query(
-        'DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Delete survey metadata
+      // Delete survey metadata (cycle-scoped)
       const metadataResult = await client.query(
-        'DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Delete survey answers
+      // Delete survey answers (cycle-scoped)
       const answersResult = await client.query(
-        'DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Delete survey attachments
+      // Delete survey attachments (cycle-scoped)
       const attachmentsResult = await client.query(
-        'DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Delete survey validations
+      // Delete survey validations (cycle-scoped)
       const validationsResult = await client.query(
-        'DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Finally delete survey responses
+      // Finally delete survey responses (cycle-scoped)
       const responsesResult = await client.query(
-        'DELETE FROM survey_response WHERE barangay_id = $1',
-        [parseInt(barangayId)]
+        'DELETE FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
-      // Reset survey target progress to 0
+      // Reset survey target progress to 0 for the active cycle
       const targetResult = await client.query(
-        'SELECT target_id FROM survey_target WHERE barangay_id = $1',
-        [parseInt(barangayId)]
+        'SELECT target_id FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2',
+        [parseInt(barangayId), activeCycle.cycle_id]
       );
 
       if (targetResult.rows.length > 0) {
         await client.query(
-          'UPDATE survey_target SET achieved = 0, percentage = 0, updated_at = NOW() WHERE barangay_id = $1',
-          [parseInt(barangayId)]
+          'UPDATE survey_target SET achieved = 0, percentage = 0, updated_at = NOW() WHERE barangay_id = $1 AND survey_cycle_id = $2',
+          [parseInt(barangayId), activeCycle.cycle_id]
         );
-        console.log(`📈 Reset survey target progress for ${barangayName}`);
+        console.log(`📈 Reset survey target progress for ${barangayName} in cycle ${activeCycle.name}`);
       }
 
       // Commit the transaction
@@ -135,10 +145,12 @@ export async function DELETE(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Successfully deleted all survey responses for ${barangayName}`,
+        message: `Successfully deleted all survey responses for ${barangayName} in cycle ${activeCycle.name}`,
         deletedCount: responseCount,
         barangayId: parseInt(barangayId),
         barangayName: barangayName,
+        cycleId: activeCycle.cycle_id,
+        cycleName: activeCycle.name,
         details: {
           responses: responsesResult.rowCount || 0,
           sections: sectionsResult.rowCount || 0,

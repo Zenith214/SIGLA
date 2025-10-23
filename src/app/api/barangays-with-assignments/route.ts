@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Pool } from 'pg';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -20,7 +21,16 @@ export async function GET() {
   try {
     client = await pool.connect();
 
+    // Get the active survey cycle ID
+    const activeCycleId = await getActiveCycleId();
+    
+    if (!activeCycleId) {
+      // If no active cycle, return empty array with zero progress
+      return NextResponse.json([]);
+    }
+
     // Fetch barangays that have assignments with their progress calculated from survey data
+    // Filter by active cycle for assignments, survey targets, and survey responses
     const barangaysQuery = `
       SELECT
         b.barangay_id,
@@ -31,6 +41,7 @@ export async function GET() {
         b.description,
         b."currentStatus",
         b.seal,
+        b.logo_url,
         a.assignment_id,
         a.status as assignment_status,
         a.progress as assignment_progress,
@@ -46,20 +57,20 @@ export async function GET() {
           ELSE 0
         END as calculated_progress
       FROM barangay b
-      INNER JOIN assignment a ON b.barangay_id = a.barangay_id
+      INNER JOIN assignment a ON b.barangay_id = a.barangay_id AND a.survey_cycle_id = $1
       LEFT JOIN "user" u ON a.user_id = u.id
-      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id AND st.survey_cycle_id = $1
       LEFT JOIN (
         SELECT barangay_id, COUNT(*) as completed_surveys
         FROM survey_response
-        WHERE status IN ('completed', 'submitted')
+        WHERE status IN ('completed', 'submitted') AND survey_cycle_id = $1
         GROUP BY barangay_id
       ) sr_counts ON b.barangay_id = sr_counts.barangay_id
       WHERE b.is_active = true
       ORDER BY b.barangay_name ASC, a.created_at DESC
     `;
 
-    const result = await client.query(barangaysQuery);
+    const result = await client.query(barangaysQuery, [activeCycleId]);
     const rows = result.rows;
 
     // Group assignments by barangay (in case a barangay has multiple assignments)
@@ -80,6 +91,7 @@ export async function GET() {
           description: row.description,
           currentStatus: row.currentStatus,
           seal: row.seal,
+          logo_url: row.logo_url,
           // Use calculated progress from actual survey completion
           progress: row.calculated_progress || 0,
           // Determine status based on assignment status and calculated progress

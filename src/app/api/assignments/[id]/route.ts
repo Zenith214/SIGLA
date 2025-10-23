@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers'
 
 export async function DELETE(
   request: NextRequest,
@@ -27,21 +28,32 @@ export async function DELETE(
     await client.query('BEGIN');
 
     try {
-      // Check if assignment exists and get details for logging
+      // Get active cycle ID to ensure operations are cycle-scoped
+      const activeCycleId = await getActiveCycleId();
+
+      if (!activeCycleId) {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          { error: 'No active survey cycle found' },
+          { status: 400 }
+        );
+      }
+
+      // Check if assignment exists in active cycle and get details for logging
       const checkQuery = `
-        SELECT a.assignment_id, a.barangay_id, a.user_id, 
+        SELECT a.assignment_id, a.barangay_id, a.user_id, a.survey_cycle_id,
                b.barangay_name, u."firstName", u."lastName"
         FROM assignment a
         LEFT JOIN barangay b ON a.barangay_id = b.barangay_id
         LEFT JOIN "user" u ON a.user_id = u.id
-        WHERE a.assignment_id = $1
+        WHERE a.assignment_id = $1 AND a.survey_cycle_id = $2
       `;
-      const checkResult = await client.query(checkQuery, [assignmentId]);
+      const checkResult = await client.query(checkQuery, [assignmentId, activeCycleId]);
       
       if (checkResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return NextResponse.json(
-          { error: 'Assignment not found' },
+          { error: 'Assignment not found in active cycle' },
           { status: 404 }
         );
       }
@@ -52,10 +64,10 @@ export async function DELETE(
       // Note: Based on the schema, assignments don't have direct dependencies
       // The database foreign key constraints will handle referential integrity
 
-      // Delete the assignment
+      // Delete the assignment (already verified to be in active cycle)
       const deleteResult = await client.query(
-        'DELETE FROM assignment WHERE assignment_id = $1 RETURNING assignment_id',
-        [assignmentId]
+        'DELETE FROM assignment WHERE assignment_id = $1 AND survey_cycle_id = $2 RETURNING assignment_id',
+        [assignmentId, activeCycleId]
       );
 
       if (deleteResult.rows.length === 0) {
@@ -150,6 +162,16 @@ export async function GET(
       );
     }
 
+    // Get active cycle ID to ensure we only return assignments from active cycle
+    const activeCycleId = await getActiveCycleId();
+
+    if (!activeCycleId) {
+      return NextResponse.json(
+        { error: 'No active survey cycle found' },
+        { status: 400 }
+      );
+    }
+
     const query = `
       SELECT 
         a.*,
@@ -158,18 +180,21 @@ export async function GET(
         b.households,
         u."firstName",
         u."lastName",
-        u.email
+        u.email,
+        sc.name as cycle_name,
+        sc.year as cycle_year
       FROM assignment a
       LEFT JOIN barangay b ON a.barangay_id = b.barangay_id
       LEFT JOIN "user" u ON a.user_id = u.id
-      WHERE a.assignment_id = $1
+      LEFT JOIN survey_cycle sc ON a.survey_cycle_id = sc.cycle_id
+      WHERE a.assignment_id = $1 AND a.survey_cycle_id = $2
     `;
 
-    const result = await client.query(query, [assignmentId]);
+    const result = await client.query(query, [assignmentId, activeCycleId]);
 
     if (result.rows.length === 0) {
       return NextResponse.json(
-        { error: 'Assignment not found' },
+        { error: 'Assignment not found in active cycle' },
         { status: 404 }
       );
     }
@@ -187,6 +212,11 @@ export async function GET(
         firstName: row.firstName,
         lastName: row.lastName,
         email: row.email
+      },
+      survey_cycle: {
+        cycle_id: row.survey_cycle_id,
+        name: row.cycle_name,
+        year: row.cycle_year
       }
     };
 
@@ -223,10 +253,20 @@ export async function PUT(
       );
     }
 
+    // Get active cycle ID to ensure updates are cycle-scoped
+    const activeCycleId = await getActiveCycleId();
+
+    if (!activeCycleId) {
+      return NextResponse.json(
+        { error: 'No active survey cycle found' },
+        { status: 400 }
+      );
+    }
+
     const updateQuery = `
       UPDATE assignment 
       SET barangay_id = $2, user_id = $3, status = $4, progress = $5, updated_at = NOW()
-      WHERE assignment_id = $1
+      WHERE assignment_id = $1 AND survey_cycle_id = $6
       RETURNING *
     `;
 
@@ -235,12 +275,13 @@ export async function PUT(
       parseInt(barangay_id),
       parseInt(user_id),
       status,
-      parseInt(progress) || 0
+      parseInt(progress) || 0,
+      activeCycleId
     ]);
 
     if (result.rows.length === 0) {
       return NextResponse.json(
-        { error: 'Assignment not found or failed to update' },
+        { error: 'Assignment not found in active cycle or failed to update' },
         { status: 404 }
       );
     }
@@ -254,10 +295,13 @@ export async function PUT(
         b.households,
         u."firstName",
         u."lastName",
-        u.email
+        u.email,
+        sc.name as cycle_name,
+        sc.year as cycle_year
       FROM assignment a
       LEFT JOIN barangay b ON a.barangay_id = b.barangay_id
       LEFT JOIN "user" u ON a.user_id = u.id
+      LEFT JOIN survey_cycle sc ON a.survey_cycle_id = sc.cycle_id
       WHERE a.assignment_id = $1
     `;
 
@@ -276,6 +320,11 @@ export async function PUT(
         firstName: row.firstName,
         lastName: row.lastName,
         email: row.email
+      },
+      survey_cycle: {
+        cycle_id: row.survey_cycle_id,
+        name: row.cycle_name,
+        year: row.cycle_year
       }
     };
 

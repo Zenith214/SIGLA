@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Pool } from 'pg';
+import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -32,23 +33,39 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!surveyNumber || !location || !interviewerId || !barangayId) {
+    if (!location || !interviewerId || !barangayId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       )
     }
 
-    // Create the survey response record
+    // Get active survey cycle
+    const activeCycle = await getActiveCycle();
+    if (!activeCycle) {
+      return NextResponse.json(
+        { error: "No active survey cycle found. Please set an active cycle before creating survey responses." },
+        { status: 400 }
+      )
+    }
+
+    // Generate survey number if not provided, using cycle-aware format
+    let finalSurveyNumber = surveyNumber;
+    if (!finalSurveyNumber) {
+      const sequenceNumber = await getNextSurveySequence(parseInt(barangayId));
+      finalSurveyNumber = await generateSurveyNumber(parseInt(barangayId), sequenceNumber);
+    }
+
+    // Create the survey response record with cycle linkage
     const insertQuery = `
       INSERT INTO survey_response (
-        survey_number, barangay_id, interviewer_id, respondent_name,
+        survey_number, barangay_id, interviewer_id, survey_cycle_id, respondent_name,
         respondent_age, respondent_gender, respondent_educational_attainment,
         respondent_household_income, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
     
@@ -61,9 +78,10 @@ export async function POST(request: NextRequest) {
     }
 
     const responseResult = await client.query(insertQuery, [
-      surveyNumber,
+      finalSurveyNumber,
       parseInt(barangayId),
       parseInt(interviewerId),
+      activeCycle.cycle_id,
       selectedMember,
       respondentDemographics?.age || null,
       genderValue,
@@ -116,9 +134,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update survey target progress for the barangay
-    const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 LIMIT 1';
-    const targetResult = await client.query(targetQuery, [parseInt(barangayId)]);
+    // Update survey target progress for the barangay in the active cycle
+    const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2 LIMIT 1';
+    const targetResult = await client.query(targetQuery, [parseInt(barangayId), activeCycle.cycle_id]);
     
     if (targetResult.rows.length > 0) {
       const surveyTarget = targetResult.rows[0];
@@ -134,6 +152,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       responseId: responseId,
+      surveyNumber: finalSurveyNumber,
+      cycleId: activeCycle.cycle_id,
+      cycleName: activeCycle.name,
       message: "Survey submitted successfully"
     })
 
@@ -166,16 +187,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (deleteAll === 'true' && barangayId) {
-      // Delete all responses for the barangay
-      await client.query('DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)', [parseInt(barangayId)]);
-      await client.query('DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)', [parseInt(barangayId)]);
-      await client.query('DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)', [parseInt(barangayId)]);
-      await client.query('DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)', [parseInt(barangayId)]);
-      await client.query('DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)', [parseInt(barangayId)]);
-      const result = await client.query('DELETE FROM survey_response WHERE barangay_id = $1', [parseInt(barangayId)]);
+      // Get active cycle for cycle-scoped deletion
+      const activeCycle = await getActiveCycle();
+      if (!activeCycle) {
+        return NextResponse.json({ error: "No active survey cycle found" }, { status: 400 });
+      }
 
-      // Reset survey target progress
-      await client.query('UPDATE survey_target SET achieved = 0, percentage = 0 WHERE barangay_id = $1', [parseInt(barangayId)]);
+      // Delete all responses for the barangay in the active cycle
+      await client.query('DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
+      await client.query('DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
+      await client.query('DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
+      await client.query('DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
+      await client.query('DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
+      const result = await client.query('DELETE FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2', [parseInt(barangayId), activeCycle.cycle_id]);
+
+      // Reset survey target progress for the active cycle
+      await client.query('UPDATE survey_target SET achieved = 0, percentage = 0 WHERE barangay_id = $1 AND survey_cycle_id = $2', [parseInt(barangayId), activeCycle.cycle_id]);
 
       return NextResponse.json({
         success: true,
@@ -192,19 +219,28 @@ export async function DELETE(request: NextRequest) {
       await client.query('DELETE FROM survey_validation WHERE response_id = $1', [parseInt(responseId)]);
       const result = await client.query('DELETE FROM survey_response WHERE response_id = $1', [parseInt(responseId)]);
 
-      // Update survey target progress
+      // Update survey target progress for the cycle
       if (result.rowCount && result.rowCount > 0) {
-        const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = (SELECT barangay_id FROM survey_response WHERE response_id = $1)';
-        const targetResult = await client.query(targetQuery, [parseInt(responseId)]);
-        if (targetResult.rows.length > 0) {
-          const surveyTarget = targetResult.rows[0];
-          const newAchieved = Math.max(0, (surveyTarget.achieved || 0) - 1);
-          const newPercentage = Math.round((newAchieved / surveyTarget.target) * 100);
+        // Get the survey response details to find the cycle
+        const responseQuery = 'SELECT barangay_id, survey_cycle_id FROM survey_response WHERE response_id = $1';
+        const responseResult = await client.query(responseQuery, [parseInt(responseId)]);
+        
+        if (responseResult.rows.length > 0) {
+          const { barangay_id, survey_cycle_id } = responseResult.rows[0];
+          
+          const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2';
+          const targetResult = await client.query(targetQuery, [barangay_id, survey_cycle_id]);
+          
+          if (targetResult.rows.length > 0) {
+            const surveyTarget = targetResult.rows[0];
+            const newAchieved = Math.max(0, (surveyTarget.achieved || 0) - 1);
+            const newPercentage = Math.round((newAchieved / surveyTarget.target) * 100);
 
-          await client.query(
-            'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
-            [newAchieved, newPercentage, surveyTarget.target_id]
-          );
+            await client.query(
+              'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
+              [newAchieved, newPercentage, surveyTarget.target_id]
+            );
+          }
         }
       }
 
@@ -237,10 +273,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const barangayId = searchParams.get('barangayId')
     const interviewerId = searchParams.get('interviewerId')
+    const cycleId = searchParams.get('cycleId')
 
-    let whereConditions = [];
-    let queryParams = [];
-    let paramIndex = 1;
+    // Get active cycle if no specific cycle requested
+    let targetCycleId = cycleId;
+    if (!targetCycleId) {
+      const activeCycle = await getActiveCycle();
+      if (!activeCycle) {
+        return NextResponse.json({ error: "No active survey cycle found" }, { status: 400 });
+      }
+      targetCycleId = activeCycle.cycle_id.toString();
+    }
+
+    let whereConditions = [`sr.survey_cycle_id = $1`];
+    let queryParams = [parseInt(targetCycleId)];
+    let paramIndex = 2;
     
     if (barangayId) {
       whereConditions.push(`sr.barangay_id = $${paramIndex}`);
@@ -254,7 +301,7 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
     const query = `
       SELECT

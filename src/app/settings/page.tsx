@@ -18,16 +18,20 @@ import { AdminSidebar } from "./ui/admin-sidebar"
 import { Skeleton, SkeletonSidebar } from "@/components/ui/skeleton"
 import { SurveyCycles } from "./ui/sections/survey-cycles"
 import { Barangays } from "./ui/sections/barangays"
+import { AwardManagement } from "./ui/sections/award-management"
 import { SurveyTargets } from "./ui/sections/survey-targets"
 import { UsersRoles } from "./ui/sections/users-roles"
 import { Assignments } from "./ui/sections/assignments"
 import { Backup } from "./ui/sections/backup"
 import { Menu, X } from "lucide-react"
 import { ToastProvider } from "@/hooks/use-toast"
+import { CycleDisplay } from "@/components/survey-cycle"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 const sectionTitles = {
   "survey-cycles": "Survey Cycles",
   barangays: "Barangays",
+  "award-management": "Award Management",
   targets: "Survey Targets",
   users: "Users & Roles",
   assignments: "Assignments",
@@ -42,6 +46,7 @@ export default function AdminSettingsPanel() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [dateTime, setDateTime] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
+  const { activeCycle, hasActiveCycle } = useActiveCycle()
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -57,12 +62,25 @@ export default function AdminSettingsPanel() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const handleNavigation = (event: CustomEvent) => {
+      setActiveSection(event.detail);
+    };
+
+    window.addEventListener('navigate-to-section', handleNavigation as EventListener);
+    return () => {
+      window.removeEventListener('navigate-to-section', handleNavigation as EventListener);
+    };
+  }, []);
+
   const renderSection = () => {
     switch (activeSection) {
       case "survey-cycles":
         return <SurveyCycles />
       case "barangays":
         return <Barangays />
+      case "award-management":
+        return <AwardManagement />
       case "targets":
         return <SurveyTargets />
       case "users":
@@ -136,6 +154,18 @@ export default function AdminSettingsPanel() {
             </Breadcrumb>
             <div className="ml-auto flex items-center gap-4">
               <span className="text-white text-xs md:text-sm font-mono bg-black/20 rounded px-2 py-1">{dateTime}</span>
+              <div className="text-white text-xs md:text-sm">
+                {hasActiveCycle ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/70">Active:</span>
+                    <CycleDisplay className="text-white" />
+                  </div>
+                ) : (
+                  <div className="text-amber-300 font-medium">
+                    ⚠️ No Active Cycle
+                  </div>
+                )}
+              </div>
               <Link
                 href="/dashboard"
                 className="px-3 py-1 text-sm font-medium text-white border border-white/20 rounded hover:bg-white/10 transition"

@@ -1,163 +1,160 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { requireAuth, requireAdmin, createAuditLog } from '@/lib/auth-middleware';
+import { getSurveyCycles, createSurveyCycle, updateSurveyCycle, deleteSurveyCycle } from '@/utils/surveyCycleHelpers';
 
-// Initialize PostgreSQL connection pool
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  console.error("Missing DATABASE_URL in environment variables");
-}
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: {
-    rejectUnauthorized: false, // Required for Supabase connections
-  },
-});
-
-export async function GET() {
-  let client;
-  try {
-    client = await pool.connect();
-    const result = await client.query(
-      "SELECT * FROM survey_cycle ORDER BY created_at DESC"
+/**
+ * GET /api/survey-cycles
+ * Lists all survey cycles
+ * Requires authentication
+ */
+export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authError = requireAuth(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error },
+      { status: 401 }
     );
-    return NextResponse.json(result.rows);
+  }
+
+  try {
+    const cycles = await getSurveyCycles();
+    
+    return NextResponse.json({
+      success: true,
+      data: cycles
+    });
   } catch (error) {
     console.error("Error fetching survey cycles:", error);
     return NextResponse.json(
-      { error: "Failed to fetch survey cycles" },
+      { 
+        error: "Failed to fetch survey cycles",
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      client.release();
-    }
   }
 }
 
+/**
+ * POST /api/survey-cycles
+ * Creates a new survey cycle
+ * Requires admin authentication
+ */
 export async function POST(request: NextRequest) {
-  let client;
+  // Verify admin authentication
+  const authError = requireAdmin(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error },
+      { status: authError.error === 'No authentication token provided' || authError.error === 'Invalid authentication token' ? 401 : 403 }
+    );
+  }
+
   try {
-    client = await pool.connect();
     const body = await request.json();
-    const { year, status, start_date, end_date, responses } = body;
+    const { name, year, start_date, end_date } = body;
 
-    const query = `
-      INSERT INTO survey_cycle (year, status, start_date, end_date, responses, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING *
-    `;
-
-    const result = await client.query(query, [
-      year,
-      status,
-      new Date(start_date),
-      new Date(end_date),
-      responses || 0,
-    ]);
-
-    if (result.rows.length === 0) {
-      throw new Error("Failed to create survey cycle");
+    // Validate required fields
+    if (!name || !year) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'name and year are required fields'
+        },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(result.rows[0]);
+    // Validate year is a number
+    if (typeof year !== 'number' || year < 2000 || year > 2100) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'year must be a valid number between 2000 and 2100'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Parse dates if provided
+    const startDate = start_date ? new Date(start_date) : undefined;
+    const endDate = end_date ? new Date(end_date) : undefined;
+
+    // Validate dates if provided
+    if (startDate && isNaN(startDate.getTime())) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'start_date must be a valid date'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (endDate && isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'end_date must be a valid date'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (startDate && endDate && startDate >= endDate) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'start_date must be before end_date'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create the survey cycle
+    const newCycle = await createSurveyCycle(name, year, startDate, endDate);
+
+    // Create audit log
+    const authResult = requireAuth(request);
+    if (authResult?.success && authResult.user) {
+      createAuditLog(authResult.user, 'CREATE_SURVEY_CYCLE', {
+        cycle_id: newCycle.cycle_id,
+        name,
+        year,
+        start_date: startDate?.toISOString(),
+        end_date: endDate?.toISOString()
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Survey cycle created successfully',
+      data: newCycle
+    });
+
   } catch (error) {
     console.error("Error creating survey cycle:", error);
+    
+    // Handle specific error cases
+    if (error instanceof Error) {
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        return NextResponse.json(
+          { 
+            error: 'Duplicate survey cycle',
+            message: 'A survey cycle with this name or year may already exist'
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { error: "Failed to create survey cycle" },
+      { 
+        error: "Failed to create survey cycle",
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  let client;
-  try {
-    client = await pool.connect();
-    const body = await request.json();
-    const { cycle_id, year, status, start_date, end_date, responses } = body;
-
-    const updateFields = [];
-    const values = [cycle_id];
-    let paramIndex = 2;
-
-    if (year !== undefined) {
-      updateFields.push(`year = $${paramIndex}`);
-      values.push(year);
-      paramIndex++;
-    }
-    if (status !== undefined) {
-      updateFields.push(`status = $${paramIndex}`);
-      values.push(status);
-      paramIndex++;
-    }
-    if (start_date !== undefined) {
-      updateFields.push(`start_date = $${paramIndex}`);
-      values.push(new Date(start_date));
-      paramIndex++;
-    }
-    if (end_date !== undefined) {
-      updateFields.push(`end_date = $${paramIndex}`);
-      values.push(new Date(end_date));
-      paramIndex++;
-    }
-    if (responses !== undefined) {
-      updateFields.push(`responses = $${paramIndex}`);
-      values.push(responses);
-      paramIndex++;
-    }
-
-    updateFields.push(`updated_at = NOW()`);
-
-    const query = `UPDATE survey_cycle SET ${updateFields.join(
-      ", "
-    )} WHERE cycle_id = $1 RETURNING *`;
-    const result = await client.query(query, values);
-
-    if (result.rows.length === 0) {
-      throw new Error("Failed to update survey cycle");
-    }
-
-    return NextResponse.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error updating survey cycle:", error);
-    return NextResponse.json(
-      { error: "Failed to update survey cycle" },
-      { status: 500 }
-    );
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  let client;
-  try {
-    client = await pool.connect();
-    const body = await request.json();
-    const { cycle_id } = body;
-
-    await client.query("DELETE FROM survey_cycle WHERE cycle_id = $1", [
-      cycle_id,
-    ]);
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting survey cycle:", error);
-    return NextResponse.json(
-      { error: "Failed to delete survey cycle" },
-      { status: 500 }
-    );
-  } finally {
-    if (client) {
-      client.release();
-    }
   }
 }

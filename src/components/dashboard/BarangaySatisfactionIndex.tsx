@@ -304,7 +304,9 @@ export default function BarangaySatisfactionIndex({
       business_need: satisfactionData.categories.business?.needForAction?.toString() || '0',
       environmental_need: satisfactionData.categories.environmental?.needForAction?.toString() || '0',
       // Add survey response count
-      responses: analyticsData?.totalResponses?.toString() || '0'
+      responses: analyticsData?.totalResponses?.toString() || '0',
+      // Add logo URL
+      logo_url: barangay.logo_url || ''
     });
 
     router.push(`/reportcard?${params.toString()}`);
@@ -342,9 +344,22 @@ export default function BarangaySatisfactionIndex({
           <div className="grid grid-cols-5 gap-6">
             {/* Left Column - 2/5 width */}
             <div className="col-span-2 space-y-4">
-              {/* BLGU Logo */}
+              {/* Barangay Logo */}
               <div className="border-2 border-gray-200 rounded-xl p-6 h-40 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
-                <span className="text-2xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+                {barangay.logo_url ? (
+                  <img 
+                    src={barangay.logo_url} 
+                    alt={`${barangay.name} logo`}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement!.innerHTML = '<span class="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                    }}
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+                )}
               </div>
 
               {/* View Report Card Button */}

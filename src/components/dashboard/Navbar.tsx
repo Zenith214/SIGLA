@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { CycleDisplay } from "@/components/survey-cycle";
 import UserDropdown from "./UserDropdown";
 
 interface NavbarProps {
@@ -42,11 +43,19 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
           <h1 className="text-xl font-semibold text-white">PULSE</h1>
         </div>
 
-        {/* Right side - Date/Time, Toggle Button, User Menu */}
+        {/* Right side - Date/Time, Cycle Selector, Toggle Button, User Menu */}
         <div className="flex items-center gap-4">
           {/* Philippine Date and Time */}
           <div className="text-white text-sm font-mono">
             {currentTime}
+          </div>
+          
+          {/* Separator */}
+          <div className="text-gray-400">|</div>
+          
+          {/* Active Survey Cycle Display */}
+          <div className="min-w-[200px]">
+            <CycleDisplay className="text-white" />
           </div>
           
           {/* Separator */}
@@ -76,6 +85,15 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
               Analytics
             </button>
           </div>
+          
+          {/* Historical Dashboard Link */}
+          <a
+            href="/historical-dashboard"
+            className="text-white hover:text-blue-300 text-sm font-medium transition-colors"
+            title="View Historical Dashboard"
+          >
+            📊 Historical
+          </a>
           
           {/* Separator */}
           <div className="text-gray-400">|</div>

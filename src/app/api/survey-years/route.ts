@@ -28,7 +28,7 @@ export async function GET() {
         FROM survey_response
         WHERE created_at IS NOT NULL
         UNION
-        SELECT year as year_value
+        SELECT year::text as year_value
         FROM survey_cycle
         WHERE year IS NOT NULL
       ) years

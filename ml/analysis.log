@@ -406,3 +406,17 @@
 2025-10-02 16:20:59,910 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 201 Created"
 2025-10-02 16:21:00,044 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_recommendation "HTTP/2 201 Created"
 2025-10-02 16:21:00,046 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 17
+2025-10-22 21:23:18,940 - analyze_barangay - INFO - Analyzing barangay ID: 0
+2025-10-22 21:23:19,605 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 0
+2025-10-22 21:23:24,940 - analyze_barangay - INFO - Analyzing barangay ID: 0
+2025-10-22 21:23:25,426 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 0
+2025-10-22 21:23:26,459 - analyze_barangay - INFO - Analyzing barangay ID: 0
+2025-10-22 21:23:26,469 - analyze_barangay - INFO - Analyzing barangay ID: 0
+2025-10-22 21:23:27,118 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 0
+2025-10-22 21:23:27,118 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 0
+2025-10-23 14:15:13,957 - analyze_barangay - INFO - Analyzing barangay ID: 8
+2025-10-23 14:15:15,749 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 8
+2025-10-23 14:15:23,737 - analyze_barangay - INFO - Analyzing barangay ID: 8
+2025-10-23 14:15:23,772 - analyze_barangay - INFO - Analyzing barangay ID: 8
+2025-10-23 14:15:24,683 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 8
+2025-10-23 14:15:24,902 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 8

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from 'pg';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
+import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
     const useML = searchParams.get('useML') === 'true';
+    const includeNonAwardees = searchParams.get('include_non_awardees') === 'true';
 
     if (!barangayId) {
       return NextResponse.json(
@@ -30,10 +33,42 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get the active survey cycle ID
+    const activeCycleId = await getActiveCycleId();
+    
+    if (!activeCycleId) {
+      // If no active cycle, return zero data
+      return NextResponse.json({
+        barangay_id: parseInt(barangayId),
+        total_responses: 0,
+        service_scores: {},
+        action_grid: {},
+        overall_satisfaction: 0,
+        ml_enhanced: false,
+        message: "No active survey cycle found"
+      });
+    }
+
+    // Check if the barangay is an awardee (unless explicitly including non-awardees)
+    if (!includeNonAwardees) {
+      const isAwardee = await CycleAwardsService.isBarangayAwardee(parseInt(barangayId), activeCycleId);
+      if (!isAwardee) {
+        return NextResponse.json({
+          barangay_id: parseInt(barangayId),
+          total_responses: 0,
+          service_scores: {},
+          action_grid: {},
+          overall_satisfaction: 0,
+          ml_enhanced: false,
+          message: "Analysis is only available for awardee barangays"
+        });
+      }
+    }
+
     // If ML is requested, try to get ML-enhanced results first
     if (useML) {
       try {
-        const mlResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ml/funnel-analysis?barangayId=${barangayId}`);
+        const mlResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${activeCycleId}`);
         if (mlResponse.ok) {
           const mlData = await mlResponse.json();
           // Add ML flag to indicate this is ML-enhanced data
@@ -45,7 +80,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback to basic funnel analysis
+    // Fallback to basic funnel analysis - filter by active cycle
     const surveyQuery = `
       SELECT
         sr.response_id,
@@ -55,11 +90,11 @@ export async function GET(request: NextRequest) {
         ss.data as section_data
       FROM survey_response sr
       JOIN survey_section ss ON sr.response_id = ss.response_id
-      WHERE sr.barangay_id = $1 AND sr.status IN ('completed', 'submitted')
+      WHERE sr.barangay_id = $1 AND sr.survey_cycle_id = $2 AND sr.status IN ('completed', 'submitted')
       ORDER BY sr.created_at DESC
     `;
 
-    const surveyResult = await client.query(surveyQuery, [parseInt(barangayId)]);
+    const surveyResult = await client.query(surveyQuery, [parseInt(barangayId), activeCycleId]);
     const surveyData = surveyResult.rows;
     
     // Count unique respondents (not section records)

@@ -3,15 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import { isBarangayAwardee, type ApiBarangayData } from "@/utils/barangayUtils";
 import SmallCalloutModal from "./SmallCalloutModal";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import BarangaySatisfactionIndex from "./BarangaySatisfactionIndex";
 import barangayPaths from "@/data/barangayPaths";
 
 interface InteractiveSVGMapProps {
   onBarangaySelect?: (barangay: ApiBarangayData) => void;
-  selectedYear?: string;
+  selectedCycleId?: number | null;
 }
 
-export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: InteractiveSVGMapProps) {
+export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }: InteractiveSVGMapProps) {
   const [hoveredBarangay, setHoveredBarangay] = useState<string | null>(null);
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
   const [calloutPosition, setCalloutPosition] = useState<{ x: number; y: number } | null>(null);
@@ -19,6 +20,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
   const [barangays, setBarangays] = useState<{ [key: string]: ApiBarangayData }>({});
   const [isLoading, setIsLoading] = useState(true);
   const mapRef = useRef<SVGSVGElement>(null);
+  const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   // Mapping from SVG path IDs to actual barangay names based on geographic location
   const barangayMapping = {
@@ -54,11 +56,20 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
     const fetchBarangayData = async () => {
       try {
         setIsLoading(true);
-        const year = selectedYear || new Date().getFullYear().toString();
-        const response = await fetch(`/api/barangays-by-year?year=${year}`);
+        
+        // Determine which cycle to use for data
+        const cycleId = selectedCycleId || (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
+        
+        // Use cycle-aware API if we have a cycle ID, otherwise fall back to current year
+        const apiUrl = cycleId 
+          ? `/api/barangays/all?cycle_id=${cycleId}&include_awards=true`
+          : `/api/barangays-by-year?year=${new Date().getFullYear()}`;
+        const response = await fetch(apiUrl);
 
         if (response.ok) {
-          const data = await response.json();
+          const responseData = await response.json();
+          // Handle both new API format (with success/data structure) and legacy format
+          const data = responseData.data || responseData;
           const barangaysByName: { [key: string]: ApiBarangayData } = {};
           
           // Create entries for all barangays (including those with no data)
@@ -78,14 +89,26 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
                 progress: barangayData.progress || 0,
                 status: barangayData.status || 'No data',
                 currentStatus: barangayData.currentStatus || barangayData.status,
-                description: barangayData.description || `No data available for ${year}`,
+                description: barangayData.description || `No data available`,
                 seal: barangayData.seal || 'no',
                 survey_count: barangayData.survey_count || 0,
                 completion_rate: barangayData.completion_rate || 0,
-                year: year,
+                year: cycleId ? 'cycle' : new Date().getFullYear().toString(),
+                // Include cycle-aware award information
+                awardStatus: barangayData.awardStatus ? {
+                  isAwardee: barangayData.awardStatus.isAwardee,
+                  awardedDate: barangayData.awardStatus.awardedDate,
+                  notes: barangayData.awardStatus.notes,
+                  awardId: barangayData.awardStatus.awardId,
+                  cycleId: barangayData.awardStatus.cycleId,
+                  createdAt: barangayData.awardStatus.createdAt,
+                  updatedAt: barangayData.awardStatus.updatedAt
+                } : undefined,
+                cycleId: cycleId || undefined,
+                isAwardee: barangayData.isAwardee,
                 history: [
                   {
-                    year: year,
+                    year: cycleId ? 'cycle' : new Date().getFullYear().toString(),
                     status: barangayData.status || 'No data',
                     score: barangayData.survey_count > 0 ? `${Math.round(barangayData.completion_rate || 0)}%` : "N/A",
                   }
@@ -93,6 +116,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
               };
             } else {
               // Create placeholder for barangays with no data
+              const displayYear = cycleId ? 'cycle' : new Date().getFullYear().toString();
               barangaysByName[barangayName] = {
                 id: 0,
                 name: barangayName,
@@ -102,15 +126,17 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
                 progress: 0,
                 status: 'No data',
                 currentStatus: 'No data',
-                description: `No data available for ${year}`,
+                description: `No data available`,
                 seal: 'no', // No seal for placeholder data
                 seal_original: 'no',
                 survey_count: 0,
                 completion_rate: 0,
-                year: year,
+                year: displayYear,
+                cycleId: cycleId || undefined,
+                isAwardee: false, // Default to non-awardee for placeholder data
                 history: [
                   {
-                    year: year,
+                    year: displayYear,
                     status: 'No data',
                     score: "N/A",
                   }
@@ -120,7 +146,8 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
           });
 
           setBarangays(barangaysByName);
-          console.log(`✅ Barangay data loaded for ${year}:`, Object.keys(barangaysByName).length, 'barangays');
+          console.log(`✅ Barangay data loaded for cycle ${cycleId || 'current'}:`, Object.keys(barangaysByName).length, 'barangays');
+          console.log('🎯 Award data included:', cycleId ? 'Yes' : 'No', '- Cycle ID:', cycleId);
         }
       } catch (error) {
         console.error('❌ Error fetching barangay data:', error);
@@ -130,7 +157,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
     };
 
     fetchBarangayData();
-  }, [selectedYear]);
+  }, [selectedCycleId, activeCycle, hasActiveCycle]);
 
   const handlePathHover = (pathId: string) => {
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
@@ -153,7 +180,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
     
     // If no barangay data exists, use the placeholder that should already be created
     if (!barangay && barangayName) {
-      const currentYear = selectedYear || new Date().getFullYear().toString();
+      const currentYear = selectedCycleId ? 'cycle' : new Date().getFullYear().toString();
       barangay = {
         id: 0, // Use 0 to indicate no data
         name: barangayName,
@@ -169,6 +196,8 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
         survey_count: 0,
         completion_rate: 0,
         year: currentYear,
+        cycleId: selectedCycleId || undefined,
+        isAwardee: false,
         history: [
           {
             year: currentYear,
@@ -242,23 +271,15 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
       return "#d1d5db"; // Light gray for no data areas
     }
 
-    // Priority 1: Check if barangay has seal (SGLGB awardee) - show in bright green
-    if (isBarangayAwardee(barangay)) {
-      return "#10b981"; // Emerald green for awardees
-    }
+    // Determine which cycle to use for award checking
+    const cycleForAwards = selectedCycleId || (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
 
-    // Priority 2: Color based on survey completion status for the selected year
-    if (barangay.status === 'Completed') {
-      return "#059669"; // Darker green for completed surveys (non-awardees)
-    } else if (barangay.status === 'In Progress') {
-      return "#d97706"; // Orange for in progress
-    } else if (barangay.status === 'Pending') {
-      return "#dc2626"; // Red for pending
-    } else if (barangay.status === 'No data' || barangay.survey_count === 0) {
-      return "#9ca3af"; // Medium gray for no survey data
+    // Simple 2-color system: Awardee vs Non-Awardee (cycle-aware)
+    if (isBarangayAwardee(barangay, cycleForAwards || undefined)) {
+      return "#22c55e"; // Green for SGLGB awardees (updated to match design spec)
+    } else {
+      return "#6b7280"; // Gray for non-awardees
     }
-
-    return "#6b7280"; // Default gray
   };
 
   if (isLoading) {
@@ -333,13 +354,15 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
             progress: 0,
             status: 'No data',
             currentStatus: 'No data',
-            description: `No data available for ${selectedYear || new Date().getFullYear()}`,
+            description: `No data available`,
             seal: 'no',
             seal_original: 'no',
             survey_count: 0,
             completion_rate: 0,
-            year: selectedYear || new Date().getFullYear().toString(),
-            history: [{ year: selectedYear || new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
+            year: selectedCycleId ? 'cycle' : new Date().getFullYear().toString(),
+            cycleId: selectedCycleId || undefined,
+            isAwardee: false,
+            history: [{ year: selectedCycleId ? 'cycle' : new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
           }}
           position={calloutPosition}
           onClose={handleCloseCallout}
@@ -359,13 +382,15 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedYear }: In
             progress: 0,
             status: 'No data',
             currentStatus: 'No data',
-            description: `No data available for ${selectedYear || new Date().getFullYear()}`,
+            description: `No data available`,
             seal: 'no',
             seal_original: 'no',
             survey_count: 0,
             completion_rate: 0,
-            year: selectedYear || new Date().getFullYear().toString(),
-            history: [{ year: selectedYear || new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
+            year: selectedCycleId ? 'cycle' : new Date().getFullYear().toString(),
+            cycleId: selectedCycleId || undefined,
+            isAwardee: false,
+            history: [{ year: selectedCycleId ? 'cycle' : new Date().getFullYear().toString(), status: 'No data', score: "N/A" }],
           }}
           isOpen={showLargeModal}
           onClose={handleCloseLargeModal}

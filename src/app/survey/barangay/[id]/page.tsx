@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { CycleDisplay } from "@/components/survey-cycle"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 type BarangayData = {
   barangay_id: number
@@ -70,6 +72,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
   const [successMessage, setSuccessMessage] = React.useState('')
   const [errorMessage, setErrorMessage] = React.useState('')
   const { user } = useAuth()
+  const { hasActiveCycle, activeCycle, loading: cycleLoading } = useActiveCycle()
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -273,6 +276,26 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                     <span className="text-xs sm:text-sm">Updated {lastUpdated}</span>
                   </div>
                 </div>
+                {/* Survey Cycle Context */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Survey Cycle:</span>
+                      <div className="mt-1">
+                        {hasActiveCycle ? (
+                          <CycleDisplay />
+                        ) : (
+                          <span className="text-amber-600 font-medium">⚠️ No active cycle</span>
+                        )}
+                      </div>
+                    </div>
+                    {!hasActiveCycle && (
+                      <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                        Contact admin to set up cycle
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <span
                 className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${barangay.currentStatus === "Completed"
@@ -320,8 +343,16 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                 >
                   {isLoadingResponses ? "Loading..." : "View Responses"}
                 </button>
-                <button className="bg-gray-100 hover:bg-gray-200 text-[#111827] font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
-                  Export Data
+                <button 
+                  className={`font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
+                    hasActiveCycle 
+                      ? 'bg-gray-100 hover:bg-gray-200 text-[#111827]' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                  disabled={!hasActiveCycle}
+                  title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}
+                >
+                  Export Data {hasActiveCycle && `(${activeCycle?.name})`}
                 </button>
               </div>
             </div>

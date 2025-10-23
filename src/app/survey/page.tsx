@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { CycleDisplay } from "@/components/survey-cycle"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 interface Barangay {
   id: number;
@@ -78,6 +80,7 @@ function SurveyDashboardContent() {
   const [currentTime, setCurrentTime] = useState<string>('')
   const [barangays, setBarangays] = useState<Barangay[]>([])
   const [loading, setLoading] = useState(true)
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   // Logout handler function
   const handleLogout = async () => {
@@ -179,11 +182,19 @@ function SurveyDashboardContent() {
               <span className="sm:hidden">PULSE Survey</span>
             </h1>
 
-            {/* Right side - Time, Back Button, and User Menu */}
+            {/* Right side - Time, Cycle Info, Back Button, and User Menu */}
             <div className="flex items-center gap-4">
               {/* Philippine Date and Time */}
               <div className="text-white text-sm font-mono hidden sm:block">
                 {currentTime}
+              </div>
+
+              {/* Separator */}
+              <div className="text-gray-400 hidden sm:block">|</div>
+
+              {/* Survey Cycle Display */}
+              <div className="text-white text-sm hidden sm:block">
+                <CycleDisplay className="text-white" />
               </div>
 
               {/* Separator */}
@@ -263,9 +274,23 @@ function SurveyDashboardContent() {
 
           {/* Overall Assignment Progress Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
-              PULSE Survey 2025 - Assignment Progress Overview
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-[#111827]">
+                {hasActiveCycle ? `${activeCycle?.name} - Assignment Progress Overview` : 'Assignment Progress Overview'}
+              </h3>
+              <div className="text-sm text-gray-600">
+                {hasActiveCycle ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Survey Cycle:</span>
+                    <CycleDisplay />
+                  </div>
+                ) : (
+                  <div className="text-amber-600 font-medium">
+                    ⚠️ No active survey cycle
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
@@ -327,7 +352,17 @@ function SurveyDashboardContent() {
               ))
             ) : barangays.length === 0 ? (
               <div className="col-span-full text-center py-8">
-                <p className="text-gray-500">No active assignments found. Please check with your administrator to get assigned to barangays.</p>
+                <div className="text-gray-500">
+                  <p className="mb-2">No active assignments found.</p>
+                  {!hasActiveCycle && !cycleLoading && (
+                    <p className="text-amber-600 font-medium">
+                      ⚠️ No active survey cycle is set. Contact your administrator to set up a survey cycle.
+                    </p>
+                  )}
+                  {hasActiveCycle && (
+                    <p>Please check with your administrator to get assigned to barangays for the current cycle.</p>
+                  )}
+                </div>
               </div>
             ) : (
               barangays.map((barangay) => (

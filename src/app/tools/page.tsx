@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3 } from "lucide-react";
 import { useEffect } from "react";
+import { CycleDisplay } from "@/components/survey-cycle";
 
 interface GenerationResult {
   success: boolean;
@@ -348,6 +349,12 @@ export default function ToolsPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
           <p className="text-gray-600">Mock data generation and testing utilities</p>
+          <div className="mt-4 flex justify-center">
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg border">
+              <span className="font-medium">Active Cycle:</span>
+              <CycleDisplay />
+            </div>
+          </div>
         </div>
 
         {/* Mock Data Generator */}

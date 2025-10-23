@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Download, Database, AlertTriangle, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 export function Backup() {
   const [autoBackup, setAutoBackup] = useState(true)
   const [backupHistory, setBackupHistory] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const { addToast } = useToast()
+  const { activeCycle, hasActiveCycle } = useActiveCycle()
 
   // Load backup history on component mount
   useEffect(() => {
@@ -77,7 +79,15 @@ export function Backup() {
           throw new Error('Invalid data type');
       }
 
-      const response = await fetch(`/api/backups?export=${exportParam}`);
+      // Add cycle information to the export request
+      const params = new URLSearchParams({ export: exportParam });
+      if (hasActiveCycle && activeCycle) {
+        params.append('cycle_id', activeCycle.cycle_id.toString());
+        params.append('cycle_name', activeCycle.name);
+        params.append('cycle_year', activeCycle.year.toString());
+      }
+      
+      const response = await fetch(`/api/backups?${params}`);
       
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);
@@ -215,6 +225,16 @@ export function Backup() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-gray-900">Data Backup</h1>
         <p className="text-gray-600 text-lg">Manage system data backups and exports</p>
+        {hasActiveCycle && (
+          <p className="text-sm text-blue-600">
+            Active Cycle: {activeCycle?.name} ({activeCycle?.year}) - Exports will include cycle context
+          </p>
+        )}
+        {!hasActiveCycle && (
+          <p className="text-sm text-amber-600">
+            ⚠️ No active survey cycle - Exports will include all historical data
+          </p>
+        )}
       </div>
 
       {/* Data Export */}

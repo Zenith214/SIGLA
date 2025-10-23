@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 const statusOptions = ["Active", "Pending", "Completed"];
 
@@ -28,6 +29,7 @@ export function Assignments() {
   const [deletingAssignment, setDeletingAssignment] = useState<any | null>(null)
   const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null)
   const { toast } = useToast()
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   useEffect(() => {
     setLoading(true)
@@ -329,6 +331,16 @@ export function Assignments() {
           <h1 className="text-2xl font-bold text-gray-900">Interviewer Assignments</h1>
           <div>
             <p className="text-gray-600">Assign interviewers to barangays and track assignment status</p>
+            {hasActiveCycle && (
+              <p className="text-sm text-blue-600 mt-1">
+                Active Cycle: {activeCycle?.name} ({activeCycle?.year})
+              </p>
+            )}
+            {!hasActiveCycle && !cycleLoading && (
+              <p className="text-sm text-amber-600 mt-1">
+                ⚠️ No active survey cycle - Contact admin to set up a cycle
+              </p>
+            )}
             {lastStatusCheck && (
               <p className="text-xs text-gray-500 mt-1">
                 Last status check: {lastStatusCheck.toLocaleTimeString()}

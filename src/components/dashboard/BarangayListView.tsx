@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { Search, ChevronRight, Award, MapPin } from "lucide-react";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
@@ -39,14 +40,21 @@ export default function BarangayListView() {
   const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
   const [barangays, setBarangays] = useState<ApiBarangayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   // Fetch barangays from API
   useEffect(() => {
     const fetchBarangays = async () => {
       try {
-        const response = await fetch('/api/barangays');
+        // Use cycle-aware API if active cycle exists
+        const apiUrl = hasActiveCycle && activeCycle 
+          ? `/api/barangays-with-assignments?cycle_id=${activeCycle.cycle_id}`
+          : '/api/barangays';
+        const response = await fetch(apiUrl);
         if (response.ok) {
-          const data = await response.json();
+          const responseData = await response.json();
+          // Handle both old array format and new object format
+          const data = Array.isArray(responseData) ? responseData : responseData.data || [];
           // Add mock history data for each barangay
           const barangaysWithHistory = data.map((barangay: any) => ({
             ...barangay,
@@ -67,7 +75,7 @@ export default function BarangayListView() {
     };
 
     fetchBarangays();
-  }, []);
+  }, [activeCycle, hasActiveCycle]);
   
   const filteredBarangays = barangays.filter((barangay) =>
     barangay.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -104,7 +112,8 @@ export default function BarangayListView() {
         households: selectedBarangay.households.toString(),
         area: (selectedBarangay.area || 0).toString(),
         surveyStatus: selectedBarangay.status,
-        satisfaction: satisfactionPercentage.toString()
+        satisfaction: satisfactionPercentage.toString(),
+        logo_url: selectedBarangay.logo_url || ''
       });
       
       window.location.href = `/reportcard?${params.toString()}`;
@@ -151,9 +160,22 @@ export default function BarangayListView() {
               </div>
             </div>
 
-            {/* BLGU Logo */}
+            {/* Barangay Logo */}
             <div className="border-2 border-gray-200 rounded-xl p-6 h-32 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
-              <span className="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+              {selectedBarangay.logo_url ? (
+                <img 
+                  src={selectedBarangay.logo_url} 
+                  alt={`${selectedBarangay.name} logo`}
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.parentElement!.innerHTML = '<span class="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                  }}
+                />
+              ) : (
+                <span className="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+              )}
             </div>
 
             {/* View Report Card Button */}
@@ -272,9 +294,19 @@ export default function BarangayListView() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4">
-        <CardTitle className="text-xl font-semibold mb-3">Satisfaction Index Overview</CardTitle>
+        <CardTitle className="text-xl font-semibold mb-3">
+          Satisfaction Index Overview
+          {hasActiveCycle && (
+            <span className="text-sm font-normal text-blue-600 block mt-1">
+              {activeCycle?.name} ({activeCycle?.year})
+            </span>
+          )}
+        </CardTitle>
         <p className="text-sm text-gray-600 mb-4">
           Browse and search through all barangays to view their satisfaction index status and details.
+          {hasActiveCycle && (
+            <span className="text-blue-600"> Data filtered for active survey cycle.</span>
+          )}
         </p>
         {/* Search bar */}
         <div className="relative">

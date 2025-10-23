@@ -14,9 +14,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock } from "lucide-react"
+import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock, Upload, Eye } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])
@@ -28,25 +29,21 @@ export function Barangays() {
   const [editForm, setEditForm] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
   const [deletingBarangay, setDeletingBarangay] = useState<any | null>(null)
-  const { addToast } = useToast()
+  const [logoViewModal, setLogoViewModal] = useState(false)
+  const [selectedBarangayLogo, setSelectedBarangayLogo] = useState<{name: string, logo_url: string} | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const { toast } = useToast()
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
   
-  // Function to check if seal is expired or expiring soon
-  const getSealStatus = (barangay: any) => {
-    if (barangay.seal !== 'yes') return { status: 'non-awardee' };
+  // Function to get award status from cycle-aware system
+  const getAwardStatus = (barangay: any) => {
+    if (!barangay.awardStatus) return { status: 'non-awardee' };
     
-    if (!barangay.seal_expiration_date) return { status: 'valid' };
-    
-    const expirationDate = new Date(barangay.seal_expiration_date);
-    const now = new Date();
-    const daysUntilExpiration = Math.floor((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilExpiration < 0) {
-      return { status: 'expired', daysUntilExpiration };
-    } else if (daysUntilExpiration <= 30) {
-      return { status: 'expiring-soon', daysUntilExpiration };
-    } else {
-      return { status: 'valid', daysUntilExpiration };
-    }
+    return {
+      status: barangay.awardStatus.isAwardee ? 'awardee' : 'non-awardee',
+      awardedDate: barangay.awardStatus.awardedDate,
+      notes: barangay.awardStatus.notes
+    };
   };
 
 
@@ -59,28 +56,38 @@ export function Barangays() {
   }, [])
 
   useEffect(() => {
+    if (cycleLoading) return; // Wait for cycle to load
+    
     setLoading(true)
-    fetch("/api/barangays/all")
+    // Fetch barangays with cycle-aware award information
+    const url = hasActiveCycle 
+      ? `/api/barangays?include_awards=true&cycle_id=${activeCycle?.cycle_id}`
+      : "/api/barangays/all"
+      
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch barangays")
         return res.json()
       })
-      .then((data) => {
-        setBarangays(data)
+      .then((response) => {
+        // Handle the API response structure: { success: true, data: [...], meta: {...} }
+        const barangaysData = response.data || response || []
+        setBarangays(Array.isArray(barangaysData) ? barangaysData : [])
         setLoading(false)
       })
       .catch((err) => {
         setError(err.message)
+        setBarangays([]) // Ensure barangays is always an array
         setLoading(false)
       })
-  }, [])
+  }, [hasActiveCycle, activeCycle, cycleLoading])
 
   // Handle edit button click
   const handleEditClick = (barangay: any) => {
     setEditingBarangay(barangay)
     setEditForm({ 
       ...barangay,
-      seal_expiration_date: barangay.seal_expiration_date ? new Date(barangay.seal_expiration_date).toISOString().split('T')[0] : ''
+      logo_url: barangay.logo_url || ''
     })
   }
   
@@ -90,21 +97,68 @@ export function Barangays() {
   }
 
   // Handle form field change
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // If changing seal status to 'yes', automatically set expiration date to one year from now
-    if (name === 'seal' && value === 'yes') {
-      const oneYearFromNow = new Date();
-      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-      
-      setEditForm({ 
-        ...editForm, 
-        [name]: value,
-        seal_expiration_date: oneYearFromNow.toISOString().split('T')[0]
+    setEditForm({ ...editForm, [name]: value });
+  }
+
+  // Handle logo upload
+  const handleLogoUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File Type",
+        description: "Please select an image file (PNG, JPG, etc.)",
       });
-    } else {
-      setEditForm({ ...editForm, [name]: value });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+      });
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('barangay_id', (editForm.barangay_id || editForm.id).toString());
+
+      const response = await fetch('/api/barangays/upload-logo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload logo');
+      }
+
+      const data = await response.json();
+      
+      // Update the form with the new logo URL
+      setEditForm({ ...editForm, logo_url: data.logo_url });
+
+      toast({
+        title: "Logo Uploaded Successfully!",
+        description: "The barangay logo has been uploaded.",
+      });
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "Failed to upload logo. Please try again.",
+      });
+    } finally {
+      setUploadingLogo(false);
     }
   }
 
@@ -112,57 +166,48 @@ export function Barangays() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
-      
-      // Include the barangayId that the API expects
-      const updatePayload = {
-        barangayId: editForm.barangay_id || editForm.id, // Use barangay_id or fallback to id
-        ...editForm
+      // Update only basic barangay info (no award management here)
+      const barangayUpdatePayload = {
+        barangayId: editForm.barangay_id || editForm.id,
+        households: editForm.households,
+        population: editForm.population,
+        captain: editForm.captain,
+        logo_url: editForm.logo_url
       };
 
-      console.log('Sending update payload:', updatePayload);
-
-      const res = await fetch("/api/barangays/all", {
+      const barangayRes = await fetch("/api/barangays/all", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatePayload),
-      })
+        body: JSON.stringify(barangayUpdatePayload),
+      });
       
-      if (!res.ok) {
-        let errorMessage = "Failed to update barangay";
-        try {
-          const errorData = await res.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (jsonError) {
-          // If response is not JSON (e.g., HTML error page), use status text
-          errorMessage = `Server error: ${res.status} ${res.statusText}`;
-        }
-        throw new Error(errorMessage);
+      if (!barangayRes.ok) {
+        throw new Error("Failed to update barangay information");
       }
+
+      const updated = await barangayRes.json();
       
-      const updated = await res.json()
-      console.log('Update response:', updated);
+      // Update local state with basic info only (preserve award status)
+      setBarangays(Array.isArray(barangays) ? barangays.map(b => 
+        (b.id === updated.id || b.barangay_id === updated.barangay_id) 
+          ? { ...b, ...updated, awardStatus: b.awardStatus } // Preserve award status
+          : b
+      ) : []);
       
-      // Update the local state with the updated barangay
-      setBarangays(barangays.map(b => (b.id === updated.id ? { ...b, ...updated } : b)))
       setEditingBarangay(null)
       setEditForm(null)
       
-      // Show beautiful success toast
-      addToast({
-        type: "success",
+      toast({
         title: "Barangay Updated Successfully!",
-        description: `${editForm.name} has been updated with the latest information.`,
-        duration: 4000
+        description: `${editForm.name} information has been updated.`,
       });
     } catch (err: any) {
       console.error('Update error:', err);
       
-      // Show beautiful error toast
-      addToast({
-        type: "error",
+      toast({
+        variant: "destructive",
         title: "Update Failed",
         description: err.message || "An unexpected error occurred while updating the barangay.",
-        duration: 6000
       });
     } finally {
       setSaving(false)
@@ -192,25 +237,22 @@ export function Barangays() {
       }
       
       // Update the local state by removing the deleted barangay
-      setBarangays(barangays.filter(b => b.id !== deletingBarangay.id && b.barangay_id !== deletingBarangay.barangay_id));
+      setBarangays(Array.isArray(barangays) ? barangays.filter(b => b.id !== deletingBarangay.id && b.barangay_id !== deletingBarangay.barangay_id) : []);
       setDeletingBarangay(null);
       
       // Show success toast
-      addToast({
-        type: "success",
+      toast({
         title: "Barangay Deleted",
         description: `${deletingBarangay.name} has been successfully removed.`,
-        duration: 4000
       });
     } catch (err: any) {
       console.error('Delete error:', err);
       
       // Show error toast
-      addToast({
-        type: "error",
+      toast({
+        variant: "destructive",
         title: "Delete Failed",
         description: err.message || "An unexpected error occurred while deleting the barangay.",
-        duration: 6000
       });
     } finally {
       setSaving(false);
@@ -223,7 +265,17 @@ export function Barangays() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900">Barangay Management</h1>
-            <p className="text-gray-600 text-lg">Manage barangays and their SGLGB award information</p>
+            <p className="text-gray-600 text-lg">Manage barangay information and view award status</p>
+            {hasActiveCycle && (
+              <p className="text-sm text-blue-600">
+                Active Cycle: {activeCycle?.name} ({activeCycle?.year})
+              </p>
+            )}
+            {!hasActiveCycle && !cycleLoading && (
+              <p className="text-sm text-amber-600">
+                ⚠️ No active survey cycle - Award management disabled
+              </p>
+            )}
           </div>
           <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
         </div>
@@ -236,6 +288,20 @@ export function Barangays() {
           >
             📊 Export Data
           </Button>
+          {hasActiveCycle && (
+            <Button
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+              onClick={() => {
+                // Navigate to award management section
+                const event = new CustomEvent('navigate-to-section', { detail: 'award-management' });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Award className="w-4 h-4 mr-2" />
+              Manage Awards
+            </Button>
+          )}
         </div>
       </div>
 
@@ -246,7 +312,7 @@ export function Barangays() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Barangays</p>
-                <p className="text-2xl font-bold text-gray-900">{barangays.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{Array.isArray(barangays) ? barangays.length : 0}</p>
               </div>
               <MapPin className="w-8 h-8 text-blue-500" />
             </div>
@@ -258,7 +324,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">SGLGB Awardees</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {barangays.filter((b) => b.seal === 'yes').length}
+                  {Array.isArray(barangays) ? barangays.filter((b) => b.awardStatus?.isAwardee).length : 0}
                 </p>
               </div>
               <Award className="w-8 h-8 text-green-500" />
@@ -271,7 +337,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Non-Awardees</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {barangays.filter((b) => b.seal === 'no').length}
+                  {Array.isArray(barangays) ? barangays.filter((b) => !b.awardStatus?.isAwardee).length : 0}
                 </p>
               </div>
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -286,7 +352,7 @@ export function Barangays() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Survey Status</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {barangays.filter((b) => b.currentStatus === "Completed").length} Done
+                  {Array.isArray(barangays) ? barangays.filter((b) => b.currentStatus === "Completed").length : 0} Done
                 </p>
               </div>
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -319,13 +385,13 @@ export function Barangays() {
                     <TableHead className="font-medium">Households</TableHead>
                     <TableHead className="font-medium">Population</TableHead>
                     <TableHead className="font-medium">Captain</TableHead>
-                    <TableHead className="font-medium">SGLGB Awardee</TableHead>
-                    <TableHead className="font-medium">Seal Expiration</TableHead>
+                    <TableHead className="font-medium">Award Status</TableHead>
+                    <TableHead className="font-medium">Logo</TableHead>
                     <TableHead className="font-medium">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {barangays.map((barangay) => (
+                  {Array.isArray(barangays) ? barangays.map((barangay) => (
                     <TableRow key={barangay.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">{barangay.name}</TableCell>
                       <TableCell>{barangay.households ?? "-"}</TableCell>
@@ -333,48 +399,40 @@ export function Barangays() {
                       <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
                       <TableCell>
                         {(() => {
-                          const sealStatus = getSealStatus(barangay);
+                          const awardStatus = getAwardStatus(barangay);
                           return (
                             <Badge
-                              variant={barangay.seal === 'yes' ? "default" : "destructive"}
+                              variant={awardStatus.status === 'awardee' ? "default" : "destructive"}
                               className={cn(
                                 "text-xs",
-                                barangay.seal === 'yes' && sealStatus.status === 'valid' && "bg-green-100 text-green-800 hover:bg-green-200",
-                                barangay.seal === 'yes' && sealStatus.status === 'expiring-soon' && "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-                                barangay.seal === 'yes' && sealStatus.status === 'expired' && "bg-orange-100 text-orange-800 hover:bg-orange-200",
-                                barangay.seal === 'no' && "bg-red-100 text-red-800 hover:bg-red-200",
+                                awardStatus.status === 'awardee' && "bg-green-100 text-green-800 hover:bg-green-200",
+                                awardStatus.status === 'non-awardee' && "bg-red-100 text-red-800 hover:bg-red-200",
                               )}
                             >
-                              {barangay.seal === 'yes' && (
-                                sealStatus.status === 'expired' ? 
-                                <AlertTriangle className="w-3 h-3 mr-1" /> : 
-                                sealStatus.status === 'expiring-soon' ? 
-                                <Calendar className="w-3 h-3 mr-1" /> :
-                                <Award className="w-3 h-3 mr-1" />
-                              )}
-                              {barangay.seal === 'yes' ? 
-                                (sealStatus.status === 'expired' ? "Expired" : 
-                                 sealStatus.status === 'expiring-soon' ? "Renew Soon" : 
-                                 "Awardee") : 
-                                "Non-Awardee"}
+                              {awardStatus.status === 'awardee' && <Award className="w-3 h-3 mr-1" />}
+                              {awardStatus.status === 'awardee' ? "Awardee" : "Non-Awardee"}
                             </Badge>
                           );
                         })()} 
                       </TableCell>
                       <TableCell>
-                        {barangay.seal === 'yes' && barangay.seal_expiration_date ? (
-                          <span className={cn(
-                            "text-xs",
-                            getSealStatus(barangay).status === 'expired' && "text-red-600 font-semibold",
-                            getSealStatus(barangay).status === 'expiring-soon' && "text-yellow-600 font-semibold",
-                            getSealStatus(barangay).status === 'valid' && "text-green-600",
-                          )}>
-                            {new Date(barangay.seal_expiration_date).toLocaleDateString()}
-                            {getSealStatus(barangay).status === 'expired' && " (Expired)"}
-                            {getSealStatus(barangay).status === 'expiring-soon' && ` (${getSealStatus(barangay).daysUntilExpiration} days left)`}
-                          </span>
+                        {barangay.logo_url ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => {
+                              setSelectedBarangayLogo({
+                                name: barangay.name,
+                                logo_url: barangay.logo_url
+                              });
+                              setLogoViewModal(true);
+                            }}
+                          >
+                            View Logo
+                          </Button>
                         ) : (
-                          <span className="text-gray-400 text-xs">N/A</span>
+                          <span className="text-gray-400 text-xs">No logo</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -442,7 +500,7 @@ export function Barangays() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : null}
                 </TableBody>
               </Table>
             )}
@@ -475,23 +533,90 @@ export function Barangays() {
                 <Input name="captain" value={editForm.captain ?? ""} onChange={handleEditChange} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">SGLGB Award Status</label>
-                <select name="seal" value={editForm.seal ?? "no"} onChange={handleEditChange} className="w-full border border-gray-300 rounded px-2 py-1">
-                  <option value="no">Non-Awardee</option>
-                  <option value="yes">Awardee</option>
-                </select>
-              </div>
-              
-              {editForm?.seal === 'yes' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Seal Expiration Date
-                  </label>
-                  <div className="flex items-center border border-gray-300 rounded px-3 py-2 bg-gray-50">
-                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                    <span>{editForm.seal_expiration_date}</span>
+                <label className="block text-sm font-medium mb-1">Barangay Logo</label>
+                <div className="space-y-3">
+                  {editForm.logo_url && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                      <img 
+                        src={editForm.logo_url} 
+                        alt="Current logo" 
+                        className="w-12 h-12 object-cover rounded border"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-700">Current logo uploaded</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="mt-1 text-xs"
+                          onClick={() => {
+                            setSelectedBarangayLogo({
+                              name: editForm.name,
+                              logo_url: editForm.logo_url
+                            });
+                            setLogoViewModal(true);
+                          }}
+                        >
+                          View Full Size
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleLogoUpload(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="logo-upload"
+                      disabled={uploadingLogo}
+                    />
+                    <label 
+                      htmlFor="logo-upload" 
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 text-lg">📷</span>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-700">
+                          {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG up to 5MB
+                        </p>
+                      </div>
+                    </label>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Annual renewal automatically set to one year from today.</p>
+                </div>
+              </div>
+
+              {hasActiveCycle && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Current Award Status</span>
+                  </div>
+                  <div className="text-sm text-blue-700">
+                    <strong>Status:</strong> {editForm.awardStatus?.isAwardee ? "Awardee" : "Non-Awardee"}
+                  </div>
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 To modify award status, use the Award Management section
+                  </p>
+                </div>
+              )}
+              
+              {!hasActiveCycle && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded">
+                  <p className="text-sm text-gray-600">
+                    No active survey cycle - Award information not available
+                  </p>
                 </div>
               )}
             </div>
@@ -524,6 +649,47 @@ export function Barangays() {
               <Button variant="outline" onClick={() => setDeletingBarangay(null)} disabled={saving}>Cancel</Button>
               <Button onClick={handleDeleteConfirm} disabled={saving} className="bg-red-600 text-white">
                 {saving ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Logo View Modal */}
+      {selectedBarangayLogo && (
+        <Dialog open={logoViewModal} onOpenChange={setLogoViewModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <span>📷</span>
+                <span>{selectedBarangayLogo.name} Logo</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center p-4">
+              <img 
+                src={selectedBarangayLogo.logo_url} 
+                alt={`${selectedBarangayLogo.name} logo`}
+                className="max-w-full max-h-96 object-contain rounded-lg shadow-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder-logo.svg'; // Fallback image
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = selectedBarangayLogo.logo_url;
+                  link.download = `${selectedBarangayLogo.name}-logo`;
+                  link.click();
+                }}
+              >
+                Download
+              </Button>
+              <Button onClick={() => setLogoViewModal(false)}>
+                Close
               </Button>
             </div>
           </DialogContent>

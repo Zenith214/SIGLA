@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Target, TrendingUp, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 export function SurveyTargets() {
   const [targets, setTargets] = useState<any[]>([])
@@ -22,6 +23,7 @@ export function SurveyTargets() {
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<any | null>(null)
   const { addToast } = useToast()
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   useEffect(() => {
     setLoading(true)
@@ -31,7 +33,14 @@ export function SurveyTargets() {
     ])
       .then(([targetsData, barangaysData]) => {
         setTargets(targetsData)
-        setBarangays(barangaysData)
+        // Handle both old array format and new object format
+        if (Array.isArray(barangaysData)) {
+          setBarangays(barangaysData)
+        } else if (barangaysData?.data && Array.isArray(barangaysData.data)) {
+          setBarangays(barangaysData.data)
+        } else {
+          setBarangays([])
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -154,6 +163,16 @@ export function SurveyTargets() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Survey Targets</h1>
           <p className="text-gray-600 text-lg">Set and monitor survey response targets by barangay</p>
+          {hasActiveCycle && (
+            <p className="text-sm text-blue-600 mt-1">
+              Active Cycle: {activeCycle?.name} ({activeCycle?.year})
+            </p>
+          )}
+          {!hasActiveCycle && !cycleLoading && (
+            <p className="text-sm text-amber-600 mt-1">
+              ⚠️ No active survey cycle - Contact admin to set up a cycle
+            </p>
+          )}
         </div>
         <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
           <Target className="w-4 h-4 mr-2" />
@@ -173,7 +192,7 @@ export function SurveyTargets() {
                 <label className="block text-sm font-medium mb-1">Barangay</label>
                 <select name="barangay_id" value={addForm.barangay_id} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
                   <option value="">Select Barangay</option>
-                  {barangays.map((b: any) => (
+                  {Array.isArray(barangays) && barangays.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
@@ -210,7 +229,7 @@ export function SurveyTargets() {
               <div>
                 <label className="block text-sm font-medium mb-1">Barangay</label>
                 <select name="barangay_id" value={editForm.barangay_id} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {barangays.map((b: any) => (
+                  {Array.isArray(barangays) && barangays.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
@@ -275,7 +294,7 @@ export function SurveyTargets() {
           ) : Array.isArray(targets) && targets.length > 0 ? (
             <div className="space-y-6">
               {targets.map((target) => {
-                const barangay = barangays.find((b: any) => b.id === target.barangay_id)
+                const barangay = Array.isArray(barangays) ? barangays.find((b: any) => b.id === target.barangay_id) : null
                 return (
                   <div key={target.target_id} className="space-y-3 p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
