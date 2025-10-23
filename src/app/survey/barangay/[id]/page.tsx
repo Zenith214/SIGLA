@@ -14,6 +14,7 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { CycleDisplay } from "@/components/survey-cycle"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+import { useEffect } from "react"
 
 type BarangayData = {
   barangay_id: number
@@ -77,18 +78,52 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
   React.useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch cycle-aware barangay data
         const response = await fetch(`/api/barangays/${barangayId}`)
         if (!response.ok) {
           throw new Error('Failed to fetch barangay data')
         }
-        const data = await response.json()
-        setBarangay(data)
+        const result = await response.json()
+        const data = result.data || result // Handle API response structure
+        
+        console.log('Barangay API response:', data) // Debug log
+        
+        // Also fetch survey responses for this barangay in the active cycle
+        const responsesResponse = await fetch(`/api/survey-responses?barangayId=${barangayId}`)
+        let surveyResponses: any[] = []
+        if (responsesResponse.ok) {
+          surveyResponses = await responsesResponse.json()
+        }
+        
+        // Update barangay data with actual survey responses
+        const updatedData = {
+          ...data,
+          survey_response: surveyResponses,
+          // Update survey targets with actual response count
+          surveyTargets: data.surveyTargets?.map((target: any) => ({
+            ...target,
+            achieved: surveyResponses.length,
+            percentage: target.target > 0 ? Math.min(100, Math.round((surveyResponses.length / target.target) * 100)) : 0
+          })) || []
+        }
+        
+        setBarangay(updatedData)
       } catch (error) {
         console.error("Error fetching barangay data:", error)
       }
     }
     fetchData()
   }, [barangayId])
+
+  // Set document title with barangay name
+  React.useEffect(() => {
+    if (barangay?.barangay_name) {
+      document.title = `${barangay.barangay_name} - Survey Details | PULSE`
+    }
+    return () => {
+      document.title = "PULSE Survey System"
+    }
+  }, [barangay?.barangay_name])
 
   // Filter responses based on search term
   React.useEffect(() => {
@@ -106,13 +141,20 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
   const handleViewResponses = async () => {
     setIsLoadingResponses(true)
     try {
-      const response = await fetch(`/api/survey-responses?barangayId=${barangayId}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch responses')
+      // Use already fetched survey responses if available
+      if (barangay?.survey_response && barangay.survey_response.length > 0) {
+        setResponses(barangay.survey_response as unknown as SurveyResponse[])
+        setFilteredResponses(barangay.survey_response as unknown as SurveyResponse[])
+      } else {
+        // Fallback to API call if not already loaded
+        const response = await fetch(`/api/survey-responses?barangayId=${barangayId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch responses')
+        }
+        const data = await response.json()
+        setResponses(data)
+        setFilteredResponses(data)
       }
-      const data = await response.json()
-      setResponses(data)
-      setFilteredResponses(data)
       setIsModalOpen(true)
     } catch (error) {
       console.error("Error fetching responses:", error)
@@ -227,12 +269,22 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
     )
   }
 
-  // Calculate survey metrics from database data
+  // Calculate survey metrics from actual survey response data
   const maxRespondents = barangay.surveyTargets?.[0]?.target || 150
-  const completedSurveys = barangay.surveyTargets?.[0]?.achieved || 0
-  const progress = barangay.surveyTargets?.[0]?.percentage || 0
-  const lastUpdated = barangay.survey_response?.[0]?.completed_at
-    ? new Date(barangay.survey_response[0].completed_at).toLocaleDateString()
+  const actualResponseCount = barangay.survey_response?.length || 0
+  const completedSurveys = actualResponseCount
+  const progress = maxRespondents > 0 ? Math.min(100, Math.round((actualResponseCount / maxRespondents) * 100)) : 0
+  
+  // Update barangay status based on actual progress
+  let currentStatus = "Not Started"
+  if (progress >= 100) {
+    currentStatus = "Completed"
+  } else if (progress > 0) {
+    currentStatus = "In Progress"
+  }
+  
+  const lastUpdated = (barangay.survey_response?.[0] as any)?.submitted_at || (barangay.survey_response?.[0] as any)?.completed_at
+    ? new Date((barangay.survey_response[0] as any).submitted_at || (barangay.survey_response[0] as any).completed_at).toLocaleDateString()
     : "Not started"
 
   return (
@@ -265,7 +317,13 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0 text-[#6b7280]">
                   <div className="flex items-center space-x-1">
                     <MapPin className="w-4 h-4" />
-                    <span className="text-xs sm:text-sm">Population: {barangay.population.toLocaleString()}</span>
+                    <span className="text-xs sm:text-sm">
+                      Population: {
+                        barangay.population && barangay.population > 0 
+                          ? barangay.population.toLocaleString() 
+                          : 'Data not available'
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Users className="w-4 h-4" />
@@ -298,14 +356,14 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                 </div>
               </div>
               <span
-                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${barangay.currentStatus === "Completed"
+                className={`px-3 py-1 text-xs sm:text-sm rounded-full font-medium self-start ${currentStatus === "Completed"
                   ? "bg-green-100 text-green-800"
-                  : barangay.currentStatus === "In Progress"
+                  : currentStatus === "In Progress"
                     ? "bg-blue-100 text-blue-800"
                     : "bg-gray-100 text-gray-800"
                   }`}
               >
-                {barangay.currentStatus || "Not Started"}
+                {currentStatus}
               </span>
             </div>
 

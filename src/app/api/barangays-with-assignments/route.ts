@@ -29,8 +29,8 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    // Fetch barangays that have assignments with their progress calculated from survey data
-    // Filter by active cycle for assignments, survey targets, and survey responses
+    // Fetch barangays that have survey targets with their progress calculated from survey data
+    // Show barangays as soon as they have survey targets, assignments are optional
     const barangaysQuery = `
       SELECT
         b.barangay_id,
@@ -57,9 +57,9 @@ export async function GET() {
           ELSE 0
         END as calculated_progress
       FROM barangay b
-      INNER JOIN assignment a ON b.barangay_id = a.barangay_id AND a.survey_cycle_id = $1
+      INNER JOIN survey_target st ON b.barangay_id = st.barangay_id AND st.survey_cycle_id = $1
+      LEFT JOIN assignment a ON b.barangay_id = a.barangay_id AND a.survey_cycle_id = $1
       LEFT JOIN "user" u ON a.user_id = u.id
-      LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id AND st.survey_cycle_id = $1
       LEFT JOIN (
         SELECT barangay_id, COUNT(*) as completed_surveys
         FROM survey_response
@@ -96,8 +96,8 @@ export async function GET() {
           progress: row.calculated_progress || 0,
           // Determine status based on assignment status and calculated progress
           status: getBarangayStatus(row.assignment_status, row.calculated_progress),
-          // Assignment details
-          assignment: {
+          // Assignment details (may be null if no assignment exists yet)
+          assignment: row.assignment_id ? {
             assignment_id: row.assignment_id,
             status: row.assignment_status,
             progress: row.assignment_progress || 0,
@@ -108,7 +108,7 @@ export async function GET() {
               lastName: row.interviewer_last_name,
               email: row.interviewer_email
             }
-          },
+          } : null,
           // Add history for compatibility with existing components
           history: generateAssignmentHistory(row.assignment_status, row.calculated_progress)
         });
@@ -152,13 +152,20 @@ export async function GET() {
 }
 
 // Helper function to determine barangay status based on assignment and actual survey progress
-function getBarangayStatus(assignmentStatus: string, calculatedProgress: number): string {
-  if (assignmentStatus === 'Completed' || calculatedProgress >= 100) {
+function getBarangayStatus(assignmentStatus: string | null, calculatedProgress: number): string {
+  if (calculatedProgress >= 100) {
     return 'Completed';
-  } else if (assignmentStatus === 'Active' || (calculatedProgress > 0 && calculatedProgress < 100)) {
+  } else if (calculatedProgress > 0) {
     return 'In Progress';
+  } else if (assignmentStatus === 'In Progress') {
+    return 'In Progress';
+  } else if (assignmentStatus === 'Completed') {
+    return 'Completed';
+  } else if (assignmentStatus === 'Assigned') {
+    return 'Assigned';
   } else {
-    return 'Pending';
+    // No assignment yet
+    return 'No Assignment';
   }
 }
 

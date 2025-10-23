@@ -10,9 +10,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3, HelpCircle, Terminal } from "lucide-react";
 import { useEffect } from "react";
 import { CycleDisplay } from "@/components/survey-cycle";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 
 interface GenerationResult {
   success: boolean;
@@ -30,6 +32,9 @@ interface Barangay {
   seal: boolean;
   description: string;
   isActive: boolean;
+  target?: number;
+  achieved?: number;
+  percentage?: number;
 }
 
 export default function ToolsPage() {
@@ -46,6 +51,8 @@ export default function ToolsPage() {
   const [barangays, setBarangays] = useState<Barangay[]>([]);
   const [loadingBarangays, setLoadingBarangays] = useState(true);
   const [databaseStatus, setDatabaseStatus] = useState<any>(null);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle();
 
   // Fetch barangays from database on component mount
   useEffect(() => {
@@ -55,18 +62,40 @@ export default function ToolsPage() {
   const fetchBarangays = async () => {
     try {
       setLoadingBarangays(true);
-      const response = await fetch('/api/barangays/all');
+      // Fetch barangays that have survey targets for the active cycle
+      const response = await fetch('/api/survey-targets');
       if (response.ok) {
-        const data = await response.json();
-        setBarangays(data); // /api/barangays/all returns array directly
+        const surveyTargets = await response.json();
+        
+        // Transform survey targets to barangay format for the dropdown
+        const barangaysData = surveyTargets.map((target: any) => ({
+          id: target.barangay_id,
+          name: target.barangay_name,
+          households: target.households || 0,
+          population: target.population || 0,
+          area: 0,
+          status: 'Active',
+          seal: true,
+          description: `Survey Target: ${target.target} responses`,
+          isActive: true,
+          target: target.target,
+          achieved: target.achieved || 0,
+          percentage: target.percentage || 0
+        }));
+        
+        setBarangays(barangaysData);
         
         // Set default barangay to first one if none selected
-        if (data.length > 0 && !barangayId) {
-          setBarangayId(data[0].id.toString());
+        if (barangaysData.length > 0 && !barangayId) {
+          setBarangayId(barangaysData[0].id.toString());
         }
+      } else {
+        console.error('Failed to fetch survey targets');
+        setBarangays([]);
       }
     } catch (error) {
-      console.error('Failed to fetch barangays:', error);
+      console.error('Failed to fetch barangays with survey targets:', error);
+      setBarangays([]);
     } finally {
       setLoadingBarangays(false);
     }
@@ -284,8 +313,8 @@ export default function ToolsPage() {
     }
   };
 
-  const checkAssignmentProgress = async () => {
-    setCurrentAction("Checking assignment progress...");
+  const checkSurveyTargets = async () => {
+    setCurrentAction("Checking survey targets...");
     try {
       const response = await fetch('/api/barangays-with-assignments');
       if (response.ok) {
@@ -300,13 +329,13 @@ export default function ToolsPage() {
         
         addResult({
           success: true,
-          message: `Assignment check completed. Found ${data.length} assignments.`,
-          data: { assignments: progressInfo }
+          message: `Survey targets check completed. Found ${data.length} targets.`,
+          data: { targets: progressInfo }
         });
       } else {
         addResult({
           success: false,
-          message: 'Failed to check assignments'
+          message: 'Failed to check survey targets'
         });
       }
     } catch (error) {
@@ -349,12 +378,22 @@ export default function ToolsPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
           <p className="text-gray-600">Mock data generation and testing utilities</p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg border">
               <span className="font-medium">Active Cycle:</span>
               <CycleDisplay />
             </div>
+            {hasActiveCycle && !cycleLoading && (
+              <Badge variant="outline" className="text-sm">
+                Working with {activeCycle?.name} targets
+              </Badge>
+            )}
           </div>
+          {!hasActiveCycle && !cycleLoading && (
+            <div className="mt-2 text-amber-600 text-sm">
+              ⚠️ No active survey cycle set. Please set an active cycle in settings.
+            </div>
+          )}
         </div>
 
         {/* Mock Data Generator */}
@@ -366,7 +405,7 @@ export default function ToolsPage() {
             </CardTitle>
             <CardDescription>
               Generate realistic survey responses for testing funnel analysis and Action Grid calculations. 
-              {barangays.length > 0 ? `Works with all ${barangays.length} barangays` : 'Loading barangays'} from the live database.
+              {barangays.length > 0 ? `Works with ${barangays.length} barangays that have survey targets` : 'Loading survey targets'} for the active cycle.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -382,11 +421,11 @@ export default function ToolsPage() {
                     <SelectValue placeholder={loadingBarangays ? "Loading barangays..." : "Select a barangay"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {barangays.map((barangay) => (
+                    {Array.isArray(barangays) ? barangays.map((barangay) => (
                       <SelectItem key={barangay.id} value={barangay.id.toString()}>
-                        {barangay.name} (ID: {barangay.id})
+                        {barangay.name} - Target: {barangay.target || 0} ({barangay.achieved || 0}/{barangay.target || 0} completed)
                       </SelectItem>
-                    ))}
+                    )) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -502,13 +541,13 @@ export default function ToolsPage() {
                 Check Database
               </Button>
               <Button
-                onClick={checkAssignmentProgress}
+                onClick={checkSurveyTargets}
                 disabled={isGenerating || isDeleting}
                 variant="outline"
                 className="border-purple-300 text-purple-600 hover:bg-purple-50"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Check Assignments
+                Check Survey Targets
               </Button>
               <Button
                 onClick={checkBarangayIds}
@@ -652,42 +691,63 @@ export default function ToolsPage() {
           </Card>
         )}
 
-        {/* Results Log */}
-        {results.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Operation Results
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {results.map((result, index) => (
-                  <Alert key={index} className={result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
-                    <div className="flex items-center gap-2">
-                      {result.success ? (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-600" />
-                      )}
-                      <AlertDescription className="flex-1">
-                        {result.message}
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Usage Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>📖 Usage Instructions</CardTitle>
+        {/* Terminal Output - Always Visible */}
+        <Card className="bg-black border-gray-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-green-400 font-mono text-sm">
+              <Terminal className="w-4 h-4" />
+              PULSE Tools Terminal
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
+            <div className="bg-black p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+              <div className="text-green-400">
+                <div className="mb-2">PULSE Survey Tools v1.0.0</div>
+                <div className="mb-2">Ready for operations...</div>
+                <div className="mb-4">{'>'} _</div>
+              </div>
+              
+              {currentAction && (
+                <div className="text-yellow-400 mb-2">
+                  {'>'} {currentAction}
+                </div>
+              )}
+              
+              {results.map((result, index) => (
+                <div key={index} className={`mb-1 ${result.success ? 'text-green-400' : 'text-red-400'}`}>
+                  {'>'} {result.success ? '[SUCCESS]' : '[ERROR]'} {result.message}
+                </div>
+              ))}
+              
+              {results.length === 0 && !currentAction && (
+                <div className="text-gray-500">
+                  {'>'} Waiting for operations...
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+
+      </div>
+
+      {/* Floating Help Button */}
+      <Dialog open={helpModalOpen} onOpenChange={setHelpModalOpen}>
+        <DialogTrigger asChild>
+          <Button
+            className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white z-50"
+            size="icon"
+          >
+            <HelpCircle className="w-6 h-6" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              📖 Usage Instructions
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Response Profiles:</h4>
               <ul className="text-sm space-y-1 ml-4">
@@ -728,9 +788,19 @@ export default function ToolsPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Separator />
+            <div>
+              <h4 className="font-semibold mb-2">Terminal Commands:</h4>
+              <ul className="text-sm space-y-1 ml-4 font-mono">
+                <li><strong>Generate Mock Data:</strong> Creates test survey responses for selected barangay</li>
+                <li><strong>Check Survey Targets:</strong> Validates survey targets and progress</li>
+                <li><strong>Delete Operations:</strong> Removes mock or all survey data</li>
+                <li><strong>Database Status:</strong> Shows current database health and statistics</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

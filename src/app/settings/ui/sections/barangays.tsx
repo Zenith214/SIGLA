@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock, Upload, Eye } from "lucide-react"
+import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock, Upload, Eye, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
@@ -32,6 +32,7 @@ export function Barangays() {
   const [logoViewModal, setLogoViewModal] = useState(false)
   const [selectedBarangayLogo, setSelectedBarangayLogo] = useState<{name: string, logo_url: string} | null>(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
   
@@ -45,6 +46,22 @@ export function Barangays() {
       notes: barangay.awardStatus.notes
     };
   };
+
+  // Filter barangays based on search term
+  const filteredBarangays = Array.isArray(barangays) ? barangays.filter(barangay => {
+    if (!searchTerm) return true
+    
+    const searchLower = searchTerm.toLowerCase()
+    const awardStatus = getAwardStatus(barangay)
+    
+    return (
+      barangay.name.toLowerCase().includes(searchLower) ||
+      (barangay.population?.toString() || '').includes(searchLower) ||
+      (barangay.households?.toString() || '').includes(searchLower) ||
+      barangay.status?.toLowerCase().includes(searchLower) ||
+      awardStatus.status.includes(searchLower)
+    )
+  }) : [];
 
 
 
@@ -371,6 +388,20 @@ export function Barangays() {
             <span>Barangays List</span>
           </CardTitle>
         </CardHeader>
+        
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search barangays by name, population, households, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+        
         <CardContent>
           <div className="overflow-x-auto">
             {loading ? (
@@ -391,7 +422,23 @@ export function Barangays() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.isArray(barangays) ? barangays.map((barangay) => (
+                  {filteredBarangays.length === 0 && searchTerm ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                        <p className="text-lg font-medium text-gray-900 mb-2">No barangays found</p>
+                        <p className="text-gray-500 mb-4">No barangays match your search criteria "{searchTerm}"</p>
+                        <Button 
+                          onClick={() => setSearchTerm("")} 
+                          variant="outline"
+                          className="text-gray-600 hover:text-gray-800"
+                        >
+                          Clear Search
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredBarangays.map((barangay) => (
                     <TableRow key={barangay.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">{barangay.name}</TableCell>
                       <TableCell>{barangay.households ?? "-"}</TableCell>
@@ -500,7 +547,8 @@ export function Barangays() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )) : null}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             )}

@@ -5,14 +5,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { UserCheck, Users, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { UserCheck, Users, Edit, Trash2, AlertTriangle, Search } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
-const statusOptions = ["Active", "Pending", "Completed"];
+const statusOptions = [
+  "Assigned",    // Assignment created, interviewer notified
+  "In Progress", // Interviewer has started collecting surveys
+  "Completed"    // Assignment finished (target reached or manually completed)
+];
 
 export function Assignments() {
   const [assignments, setAssignments] = useState<any[]>([])
@@ -22,12 +26,13 @@ export function Assignments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [addModal, setAddModal] = useState(false)
-  const [addForm, setAddForm] = useState<any>({ barangay_id: "", user_id: "", status: "Pending" })
+  const [addForm, setAddForm] = useState<any>({ barangay_id: "", user_id: "", status: "Assigned" })
   const [saving, setSaving] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingAssignment, setDeletingAssignment] = useState<any | null>(null)
   const [lastStatusCheck, setLastStatusCheck] = useState<Date | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
@@ -42,7 +47,8 @@ export function Assignments() {
       .then(([assignmentsData, surveyTargetsData, barangaysData, interviewersData]) => {
         setAssignments(assignmentsData || [])
         setSurveyTargets(surveyTargetsData || [])
-        setBarangays(barangaysData || [])
+        // Handle the new barangays API response structure
+        setBarangays(barangaysData?.data || barangaysData || [])
 
         // The interviewers API returns the data directly (no wrapping)
         setInterviewers(interviewersData || [])
@@ -68,25 +74,35 @@ export function Assignments() {
       if (target && assignment.status !== 'Completed') {
         const surveyProgress = Math.round((target.achieved || 0) / target.target * 100)
         
-        // Auto-complete assignment if survey reaches 100%
+        // Auto-update assignment status based on survey progress
+        let newStatus = assignment.status
+        
         if (surveyProgress >= 100) {
+          // Auto-complete when target is reached
+          newStatus = 'Completed'
+        } else if (surveyProgress > 0 && assignment.status === 'Assigned') {
+          // Auto-progress to "In Progress" when surveys start coming in
+          newStatus = 'In Progress'
+        }
+        
+        if (newStatus !== assignment.status) {
           try {
             const response = await fetch("/api/assignments", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ...assignment,
-                status: 'Completed'
+                status: newStatus
               }),
             })
             
             if (response.ok) {
               const updated = await response.json()
               updatedAssignments.push(updated)
-              console.log(`✅ Auto-completed assignment for barangay ${assignment.barangay_id}`)
+              console.log(`✅ Auto-updated assignment status to "${newStatus}" for barangay ${assignment.barangay_id}`)
             }
           } catch (error) {
-            console.error(`❌ Failed to auto-complete assignment for barangay ${assignment.barangay_id}:`, error)
+            console.error(`❌ Failed to auto-update assignment status for barangay ${assignment.barangay_id}:`, error)
           }
         }
       }
@@ -310,7 +326,7 @@ export function Assignments() {
 
   // Get barangays that have survey targets
   const targetBarangays = surveyTargets.map(target => {
-    const barangay = barangays.find(b => b.id === target.barangay_id)
+    const barangay = Array.isArray(barangays) ? barangays.find(b => b.id === target.barangay_id) : null
     return barangay ? { ...barangay, target } : null
   }).filter(Boolean)
 
@@ -318,11 +334,32 @@ export function Assignments() {
 
   // Statistics
   const total = assignments.length
-  const active = assignments.filter(a => a.status === "Active").length
-  const pending = assignments.filter(a => a.status === "Pending").length
+  const assigned = assignments.filter(a => a.status === "Assigned").length
+  const inProgress = assignments.filter(a => a.status === "In Progress").length
   const completed = assignments.filter(a => a.status === "Completed").length
   const assignedBarangays = new Set(assignments.map(a => a.barangay_id)).size
   const assignedInterviewers = new Set(assignments.map(a => a.user_id)).size
+
+  // Filter assignments based on search term
+  const filteredAssignments = assignments.filter(assignment => {
+    if (!searchTerm) return true
+    
+    const barangay = Array.isArray(barangays) ? barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id) : null
+    const interviewer = interviewers.find((u: any) => u.id === assignment.user_id)
+    
+    const searchLower = searchTerm.toLowerCase()
+    
+    return (
+      // Search by barangay name
+      (barangay?.name || barangay?.barangay_name || assignment.barangay_name || '').toLowerCase().includes(searchLower) ||
+      // Search by interviewer name
+      `${interviewer?.firstName || assignment.firstName || ''} ${interviewer?.lastName || assignment.lastName || ''}`.toLowerCase().includes(searchLower) ||
+      // Search by email
+      (interviewer?.email || assignment.email || '').toLowerCase().includes(searchLower) ||
+      // Search by status
+      assignment.status.toLowerCase().includes(searchLower)
+    )
+  })
 
   return (
     <div className="space-y-6">
@@ -366,7 +403,7 @@ export function Assignments() {
       </div>
 
       {/* Assignment Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
@@ -378,16 +415,24 @@ export function Assignments() {
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-xl font-bold text-green-600">{active}</div>
-              <div className="text-xs text-gray-600">Active</div>
+              <div className="text-xl font-bold text-orange-600">{assigned}</div>
+              <div className="text-xs text-gray-600">Assigned</div>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-xl font-bold text-yellow-600">{pending}</div>
-              <div className="text-xs text-gray-600">Pending</div>
+              <div className="text-xl font-bold text-teal-600">{assignedInterviewers}</div>
+              <div className="text-xs text-gray-600">Interviewers Active</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-green-600">{inProgress}</div>
+              <div className="text-xs text-gray-600">In Progress</div>
             </div>
           </CardContent>
         </Card>
@@ -404,14 +449,6 @@ export function Assignments() {
             <div className="text-center">
               <div className="text-xl font-bold text-indigo-600">{assignedBarangays}</div>
               <div className="text-xs text-gray-600">Barangays Assigned</div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-xl font-bold text-teal-600">{assignedInterviewers}</div>
-              <div className="text-xs text-gray-600">Interviewers Active</div>
             </div>
           </CardContent>
         </Card>
@@ -623,6 +660,20 @@ export function Assignments() {
             <span>Assignment Overview</span>
           </CardTitle>
         </CardHeader>
+        
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search assignments by barangay, interviewer, email, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+        
         <CardContent>
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
@@ -638,6 +689,19 @@ export function Assignments() {
                 Add First Assignment
               </Button>
             </div>
+          ) : filteredAssignments.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <p className="text-lg font-medium text-gray-900 mb-2">No assignments found</p>
+              <p className="text-gray-500 mb-4">No assignments match your search criteria "{searchTerm}"</p>
+              <Button 
+                onClick={() => setSearchTerm("")} 
+                variant="outline"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Clear Search
+              </Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -647,14 +711,12 @@ export function Assignments() {
                     <TableHead className="font-medium">Assigned Interviewer</TableHead>
                     <TableHead className="font-medium">Contact</TableHead>
                     <TableHead className="font-medium">Assignment Status</TableHead>
-                    <TableHead className="font-medium">Survey Progress</TableHead>
-                    <TableHead className="font-medium">Survey Target</TableHead>
                     <TableHead className="font-medium text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {assignments.map((assignment) => {
-                    const barangay = barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id)
+                  {filteredAssignments.map((assignment) => {
+                    const barangay = Array.isArray(barangays) ? barangays.find((b: any) => b.id === assignment.barangay_id || b.barangay_id === assignment.barangay_id) : null
                     const interviewer = interviewers.find((u: any) => u.id === assignment.user_id)
                     const target = surveyTargets.find((t: any) => t.barangay_id === assignment.barangay_id)
                     
@@ -693,14 +755,15 @@ export function Assignments() {
                           <div className="flex items-center space-x-2">
                             <Badge 
                               variant={
-                                assignment.status === "Active" ? "default" : 
+                                assignment.status === "In Progress" ? "default" : 
                                 assignment.status === "Completed" ? "secondary" : 
                                 "outline"
                               } 
                               className={`text-xs ${
-                                assignment.status === "Active" ? "bg-green-100 text-green-800 border-green-200" :
-                                assignment.status === "Completed" ? "bg-blue-100 text-blue-800 border-blue-200" :
-                                "bg-yellow-100 text-yellow-800 border-yellow-200"
+                                assignment.status === "Assigned" ? "bg-orange-100 text-orange-800 border-orange-200" :
+                                assignment.status === "In Progress" ? "bg-green-100 text-green-800 border-green-200" :
+                                assignment.status === "Completed" ? "bg-purple-100 text-purple-800 border-purple-200" :
+                                "bg-gray-100 text-gray-800 border-gray-200"
                               }`}
                             >
                               {assignment.status}
@@ -711,39 +774,6 @@ export function Assignments() {
                               </span>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-1 min-w-[60px]">
-                              <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                                <span>{surveyProgress}%</span>
-                                <span>{target?.achieved || 0}/{target?.target || 0}</span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full transition-all duration-300 ${
-                                    surveyProgress >= 100 ? 'bg-green-500' :
-                                    surveyProgress >= 75 ? 'bg-blue-500' :
-                                    surveyProgress >= 50 ? 'bg-yellow-500' :
-                                    surveyProgress > 0 ? 'bg-orange-500' : 'bg-gray-300'
-                                  }`}
-                                  style={{ width: `${Math.min(surveyProgress, 100)}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {target ? (
-                            <div className="text-sm">
-                              <div className="font-medium text-gray-900">{target.target} responses</div>
-                              <div className="text-xs text-gray-500">
-                                {target.achieved || 0} completed
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">No target set</span>
-                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-center space-x-1">

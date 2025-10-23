@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       parseInt(barangay_id),
       parseInt(user_id),
       activeCycleId,
-      status || 'Pending',
+      status || 'Assigned',
       parseInt(progress) || 0
     ]);
 

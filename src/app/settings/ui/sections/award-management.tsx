@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,8 @@ import {
   Copy,
   Clock,
   ArrowRight,
-  Edit
+  Edit,
+  Search
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
@@ -107,6 +109,7 @@ export function AwardManagement() {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dateTime, setDateTime] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Cycle transition management states
   const [historicalCycles, setHistoricalCycles] = useState<HistoricalCycleData[]>([])
@@ -323,11 +326,24 @@ export function AwardManagement() {
   }
 
   // Handle bulk selection
+  // Filter barangays based on search term
+  const filteredBarangays = barangays.filter(barangay => {
+    if (!searchTerm) return true
+
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      barangay.barangay_name.toLowerCase().includes(searchLower) ||
+      (barangay.population?.toString() || '').includes(searchLower) ||
+      (barangay.households?.toString() || '').includes(searchLower) ||
+      (barangay.award_status?.is_awardee ? 'awardee' : 'not awardee').includes(searchLower)
+    )
+  })
+
   const handleSelectAll = () => {
-    if (selectedBarangays.size === barangays.length) {
+    if (selectedBarangays.size === filteredBarangays.length) {
       setSelectedBarangays(new Set())
     } else {
-      setSelectedBarangays(new Set(barangays.map(b => b.barangay_id)))
+      setSelectedBarangays(new Set(filteredBarangays.map(b => b.barangay_id)))
     }
   }
 
@@ -1064,6 +1080,20 @@ export function AwardManagement() {
             </div>
           </CardTitle>
         </CardHeader>
+
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search barangays by name, population, households, or award status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+
         <CardContent>
           <div className="overflow-x-auto">
             {loading ? (
@@ -1098,7 +1128,7 @@ export function AwardManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {barangays.map((barangay) => (
+                  {filteredBarangays.map((barangay) => (
                     <TableRow key={barangay.barangay_id} className="hover:bg-gray-50">
                       <TableCell>
                         <Button

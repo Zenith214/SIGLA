@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Shield, AlertTriangle, Search, ChevronDown, ChevronUp } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -31,7 +31,22 @@ export function UsersRoles() {
     status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
   })
+  const [searchTerm, setSearchTerm] = useState("")
+  const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
   const { toast } = useToast()
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    if (!searchTerm) return true
+    
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      user.status.toLowerCase().includes(searchLower)
+    )
+  })
 
   useEffect(() => {
     setLoading(true)
@@ -207,6 +222,65 @@ export function UsersRoles() {
         </Button>
       </div>
 
+      {/* Role Permissions - Collapsible */}
+      <Card>
+        <CardHeader className="pb-2">
+          <Button
+            variant="ghost"
+            onClick={() => setRolePermissionsVisible(!rolePermissionsVisible)}
+            className="w-full justify-between p-0 h-auto hover:bg-transparent"
+          >
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-blue-500" />
+              <span>Role Permissions</span>
+            </CardTitle>
+            {rolePermissionsVisible ? (
+              <ChevronUp className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            )}
+          </Button>
+        </CardHeader>
+        {rolePermissionsVisible && (
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                  <h3 className="font-semibold text-red-800">Admin</h3>
+                  <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
+                  <ul className="text-xs text-red-600 mt-2 space-y-1">
+                    <li>• Manage all settings</li>
+                    <li>• Create/delete users</li>
+                    <li>• Export data</li>
+                    <li>• System backup</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                  <h3 className="font-semibold text-blue-800">Interviewer</h3>
+                  <p className="text-sm text-blue-600 mt-1">Conduct surveys and view assigned data</p>
+                  <ul className="text-xs text-blue-600 mt-2 space-y-1">
+                    <li>• Conduct interviews</li>
+                    <li>• View assigned barangays</li>
+                    <li>• Submit responses</li>
+                    <li>• Basic reporting</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-gray-800">Viewer</h3>
+                  <p className="text-sm text-gray-600 mt-1">Read-only access to reports and data</p>
+                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                    <li>• View reports</li>
+                    <li>• Export reports</li>
+                    <li>• Dashboard access</li>
+                    <li>• No data modification</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Role Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {roleStats.map((stat) => (
@@ -226,52 +300,6 @@ export function UsersRoles() {
         ))}
       </div>
 
-      {/* Role Permissions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-blue-500" />
-            <span>Role Permissions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                <h3 className="font-semibold text-red-800">Admin</h3>
-                <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
-                <ul className="text-xs text-red-600 mt-2 space-y-1">
-                  <li>• Manage all settings</li>
-                  <li>• Create/delete users</li>
-                  <li>• Export data</li>
-                  <li>• System backup</li>
-                </ul>
-              </div>
-              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-                <h3 className="font-semibold text-blue-800">Interviewer</h3>
-                <p className="text-sm text-blue-600 mt-1">Conduct surveys and view assigned data</p>
-                <ul className="text-xs text-blue-600 mt-2 space-y-1">
-                  <li>• Conduct interviews</li>
-                  <li>• View assigned barangays</li>
-                  <li>• Submit responses</li>
-                  <li>• Basic reporting</li>
-                </ul>
-              </div>
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Viewer</h3>
-                <p className="text-sm text-gray-600 mt-1">Read-only access to reports and data</p>
-                <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                  <li>• View reports</li>
-                  <li>• Export reports</li>
-                  <li>• Dashboard access</li>
-                  <li>• No data modification</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Users Table */}
       <Card>
         <CardHeader>
@@ -280,6 +308,20 @@ export function UsersRoles() {
             <span>User Management</span>
           </CardTitle>
         </CardHeader>
+        
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search users by name, email, role, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+        
         <CardContent>
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
@@ -298,7 +340,22 @@ export function UsersRoles() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUsers.length === 0 && searchTerm ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-lg font-medium text-gray-900 mb-2">No users found</p>
+                      <p className="text-gray-500 mb-4">No users match your search criteria "{searchTerm}"</p>
+                      <Button 
+                        onClick={() => setSearchTerm("")} 
+                        variant="outline"
+                        className="text-gray-600 hover:text-gray-800"
+                      >
+                        Clear Search
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
                     <TableCell className="text-gray-600">{user.email}</TableCell>

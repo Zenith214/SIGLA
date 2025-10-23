@@ -47,24 +47,16 @@ function calculateOverallProgress(barangays: Barangay[]): number {
     has_assignment: !!b.assignment
   })));
 
-  // Filter barangays that have assignments (any status)
-  const barangaysWithAssignments = barangays.filter(b => b.assignment);
-
-  if (barangaysWithAssignments.length === 0) {
-    console.log('No barangays with assignments found');
-    return 0;
-  }
-
-  // Calculate average progress of all barangays with assignments (ensure numbers)
-  const totalProgress = barangaysWithAssignments.reduce((acc, b) => {
+  // Calculate average progress of all barangays (whether they have assignments or not)
+  const totalProgress = barangays.reduce((acc, b) => {
     const progress = typeof b.progress === 'string' ? parseInt(b.progress) || 0 : (b.progress || 0);
     return acc + progress;
   }, 0);
-  const averageProgress = totalProgress / barangaysWithAssignments.length;
+  const averageProgress = barangays.length > 0 ? totalProgress / barangays.length : 0;
   
   console.log('Progress calculation:', {
     totalProgress,
-    count: barangaysWithAssignments.length,
+    count: barangays.length,
     averageProgress
   });
   
@@ -276,7 +268,7 @@ function SurveyDashboardContent() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-[#111827]">
-                {hasActiveCycle ? `${activeCycle?.name} - Assignment Progress Overview` : 'Assignment Progress Overview'}
+                {hasActiveCycle ? `${activeCycle?.name} - Survey Progress Overview` : 'Survey Progress Overview'}
               </h3>
               <div className="text-sm text-gray-600">
                 {hasActiveCycle ? (
@@ -291,12 +283,18 @@ function SurveyDashboardContent() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
                   {loading ? "..." : barangays.length}
                 </div>
-                <div className="text-sm text-gray-600">Active Assignments</div>
+                <div className="text-sm text-gray-600">Survey Targets</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {loading ? "..." : barangays.filter(b => b.assignment).length}
+                </div>
+                <div className="text-sm text-gray-600">With Assignments</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
@@ -353,14 +351,14 @@ function SurveyDashboardContent() {
             ) : barangays.length === 0 ? (
               <div className="col-span-full text-center py-8">
                 <div className="text-gray-500">
-                  <p className="mb-2">No active assignments found.</p>
+                  <p className="mb-2">No survey targets found.</p>
                   {!hasActiveCycle && !cycleLoading && (
                     <p className="text-amber-600 font-medium">
                       ⚠️ No active survey cycle is set. Contact your administrator to set up a survey cycle.
                     </p>
                   )}
                   {hasActiveCycle && (
-                    <p>Please check with your administrator to get assigned to barangays for the current cycle.</p>
+                    <p>Please check with your administrator to create survey targets for the current cycle.</p>
                   )}
                 </div>
               </div>
@@ -372,11 +370,14 @@ function SurveyDashboardContent() {
                       <div className="flex justify-between items-start">
                         <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
                         <span
-                          className={`px-2 py-1 text-xs rounded-full font-medium ${barangay.status === "Completed"
-                            ? "bg-green-100 text-green-800"
-                            : barangay.status === "In Progress"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
+                          className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            barangay.status === "Completed"
+                              ? "bg-green-100 text-green-800"
+                              : barangay.status === "In Progress"
+                                ? "bg-blue-100 text-blue-800"
+                                : barangay.status === "Assigned"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-gray-100 text-gray-800"
                             }`}
                         >
                           {barangay.status}
@@ -384,20 +385,27 @@ function SurveyDashboardContent() {
                       </div>
 
                       {/* Assignment Information */}
-                      {barangay.assignment && (
-                        <div className="text-xs text-gray-600">
+                      <div className="text-xs text-gray-600">
+                        {barangay.assignment ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Interviewer:</span>
+                              <span className="font-medium">
+                                {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
+                              </span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span>Assignment:</span>
+                              <span className="font-medium">{barangay.assignment.status}</span>
+                            </div>
+                          </>
+                        ) : (
                           <div className="flex justify-between">
-                            <span>Interviewer:</span>
-                            <span className="font-medium">
-                              {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
-                            </span>
+                            <span>Status:</span>
+                            <span className="font-medium text-amber-600">No assignment yet</span>
                           </div>
-                          <div className="flex justify-between mt-1">
-                            <span>Assignment:</span>
-                            <span className="font-medium">{barangay.assignment.status}</span>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs sm:text-sm">

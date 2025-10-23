@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle, Power } from "lucide-react"
+import { Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle, Power, Search } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle, useSurveyCycle } from "@/hooks/useSurveyCycle"
@@ -30,6 +30,7 @@ export function SurveyCycles() {
   const [editForm, setEditForm] = useState<any>({})
   const [deletingCycle, setDeletingCycle] = useState<any | null>(null)
   const [activatingCycle, setActivatingCycle] = useState<any | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
   const { activeCycle } = useActiveCycle()
   const { refreshActiveCycle } = useSurveyCycle()
@@ -399,6 +400,20 @@ export function SurveyCycles() {
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">Survey Cycle History</CardTitle>
         </CardHeader>
+        
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search cycles by name, year, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+        
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
@@ -412,9 +427,35 @@ export function SurveyCycles() {
             <div className="text-gray-500 py-8 text-center">
               No survey cycles found
             </div>
-          ) : (
-          <div className="space-y-4">
-            {surveyCycles.map((cycle) => (
+          ) : (() => {
+            // Filter survey cycles based on search term
+            const filteredCycles = surveyCycles.filter(cycle => {
+              if (!searchTerm) return true
+              
+              const searchLower = searchTerm.toLowerCase()
+              return (
+                cycle.name.toLowerCase().includes(searchLower) ||
+                cycle.year.toString().includes(searchLower) ||
+                (cycle.is_active ? 'active' : 'inactive').includes(searchLower)
+              )
+            })
+            
+            return filteredCycles.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-lg font-medium text-gray-900 mb-2">No cycles found</p>
+                <p className="text-gray-500 mb-4">No cycles match your search criteria "{searchTerm}"</p>
+                <Button 
+                  onClick={() => setSearchTerm("")} 
+                  variant="outline"
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Clear Search
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCycles.map((cycle) => (
               <div
                 key={cycle.cycle_id || cycle.id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors"
@@ -470,9 +511,10 @@ export function SurveyCycles() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-          )}
+                ))}
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 
