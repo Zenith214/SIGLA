@@ -193,6 +193,17 @@ function calculateSectionScores(responses: any[]): any {
   let totalSatisfactionQuestions = 0;
   let totalNeedActionQuestions = 0;
 
+  // Debug: Track satisfaction questions found
+  const satisfactionQuestionsFound: any[] = [];
+  
+  // Collect quotes and concerns
+  const quotes: { awareness: string[], availment: string[], satisfaction: string[] } = {
+    awareness: [],
+    availment: [],
+    satisfaction: []
+  };
+  const concerns: string[] = [];
+
   // Process each response
   responses.forEach(response => {
     try {
@@ -238,6 +249,8 @@ function calculateSectionScores(responses: any[]): any {
           if ((typeof numValue === 'number' || typeof value === 'number') &&
               numValue >= 1 && numValue <= 5) {
             satisfactionSum += numValue;
+            // Track for debugging
+            satisfactionQuestionsFound.push({ key, value, numValue });
           }
         }
       });
@@ -251,6 +264,25 @@ function calculateSectionScores(responses: any[]): any {
           if (value === 1 || value === true || value === '1' || 
               stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
             needActionCount++;
+          }
+        }
+      });
+
+      // Extract quotes from suggestion fields
+      Object.entries(data).forEach(([key, value]: [string, any]) => {
+        if (typeof value === 'string' && value.trim() !== '') {
+          // Suggestions are concerns/feedback
+          if (key.toLowerCase().includes('suggestion') || key.toLowerCase().includes('comment')) {
+            concerns.push(value.trim());
+            
+            // Categorize by stage based on context
+            if (key.toLowerCase().includes('awareness') || awarenessCount < totalAwarenessQuestions * 0.5) {
+              quotes.awareness.push(value.trim());
+            } else if (key.toLowerCase().includes('availment') || key.toLowerCase().includes('access')) {
+              quotes.availment.push(value.trim());
+            } else {
+              quotes.satisfaction.push(value.trim());
+            }
           }
         }
       });
@@ -277,6 +309,59 @@ function calculateSectionScores(responses: any[]): any {
     ? Math.round((needActionCount / totalNeedActionQuestions) * 100)
     : 0;
 
+  // Identify bottleneck (lowest score in the funnel)
+  const funnelStages = [
+    { stage: 'awareness', score: awarenessScore },
+    { stage: 'availment', score: availmentScore },
+    { stage: 'satisfaction', score: satisfactionScore }
+  ];
+  const bottleneck = funnelStages.reduce((min, current) => 
+    current.score < min.score ? current : min
+  ).stage;
+
+  // Generate recommendations based on bottleneck and scores
+  const recommendations = generateRecommendations(
+    awarenessScore,
+    availmentScore,
+    satisfactionScore,
+    needActionScore,
+    bottleneck
+  );
+
+  // Select representative quotes (one per stage) - use deterministic selection based on scores
+  const awarenessIndex = quotes.awareness.length > 0 ? Math.floor(awarenessScore / 100 * quotes.awareness.length) % quotes.awareness.length : -1;
+  const availmentIndex = quotes.availment.length > 0 ? Math.floor(availmentScore / 100 * quotes.availment.length) % quotes.availment.length : -1;
+  const satisfactionIndex = quotes.satisfaction.length > 0 ? Math.floor(satisfactionScore / 100 * quotes.satisfaction.length) % quotes.satisfaction.length : -1;
+  
+  const selectedQuotes = {
+    awareness: awarenessIndex >= 0 ? quotes.awareness[awarenessIndex] : 
+               "More information campaigns needed about available services.",
+    availment: availmentIndex >= 0 ? quotes.availment[availmentIndex] : 
+               "The process to access services should be simplified.",
+    satisfaction: satisfactionIndex >= 0 ? quotes.satisfaction[satisfactionIndex] : 
+                  "Service quality needs improvement to better serve residents."
+  };
+
+  // Get top 3 most common concerns
+  const topConcerns = getTopConcerns(concerns);
+
+  // Debug logging for satisfaction calculation
+  if (satisfactionQuestionsFound.length > 0 && Math.random() < 0.1) { // Log 10% of sections
+    console.log('🔍 [FUNNEL ANALYSIS] Satisfaction Calculation:', {
+      sectionKey: responses[0]?.section_key,
+      totalSatisfactionQuestions,
+      satisfactionSum,
+      satisfactionScore,
+      calculation: `((${satisfactionSum} / ${totalSatisfactionQuestions}) / 5) * 100 = ${satisfactionScore}%`,
+      sampleQuestions: satisfactionQuestionsFound.slice(0, 3),
+      needActionScore,
+      totalNeedActionQuestions,
+      needActionCount,
+      bottleneck,
+      topConcerns: topConcerns.length
+    });
+  }
+
   return {
     awareness_score: awarenessScore,
     availment_score: availmentScore,
@@ -286,8 +371,145 @@ function calculateSectionScores(responses: any[]): any {
     total_awareness_questions: totalAwarenessQuestions,
     total_availment_questions: totalAvailmentQuestions,
     total_satisfaction_questions: totalSatisfactionQuestions,
-    total_need_action_questions: totalNeedActionQuestions
+    total_need_action_questions: totalNeedActionQuestions,
+    bottleneck: bottleneck,
+    quotes: selectedQuotes,
+    concerns: topConcerns,
+    recommendations: recommendations
   };
+}
+
+function generateRecommendations(
+  awareness: number,
+  availment: number,
+  satisfaction: number,
+  needAction: number,
+  bottleneck: string
+): { shortTerm: string[], mediumTerm: string[], longTerm: string[] } {
+  const recommendations = {
+    shortTerm: [] as string[],
+    mediumTerm: [] as string[],
+    longTerm: [] as string[]
+  };
+
+  // Generate varied short-term recommendations based on bottleneck and scores
+  // Use deterministic selection based on scores to ensure consistency
+  const shortTermOptions = {
+    awareness: [
+      'Launch information campaign through barangay announcements',
+      'Distribute flyers and posters in high-traffic areas',
+      'Conduct house-to-house information drives',
+      'Use social media to promote available services',
+      'Hold community assemblies to explain programs',
+      'Create infographics for easy understanding'
+    ],
+    availment: [
+      'Simplify application and registration processes',
+      'Extend service hours to accommodate more residents',
+      'Set up mobile service points in different sitios',
+      'Reduce documentary requirements for applications',
+      'Provide assistance desks for application help',
+      'Implement online application systems'
+    ],
+    satisfaction: [
+      'Gather detailed feedback from service users',
+      'Address immediate service quality issues',
+      'Improve staff training and customer service',
+      'Upgrade facilities and equipment',
+      'Reduce waiting times and processing delays',
+      'Establish complaint resolution mechanisms'
+    ]
+  };
+
+  // Use deterministic selection based on scores instead of random
+  const shortTermPool = shortTermOptions[bottleneck as keyof typeof shortTermOptions] || shortTermOptions.satisfaction;
+  const scoreBasedIndex = Math.floor((awareness + availment + satisfaction) / 100 * shortTermPool.length) % shortTermPool.length;
+  recommendations.shortTerm = [
+    shortTermPool[scoreBasedIndex],
+    shortTermPool[(scoreBasedIndex + 1) % shortTermPool.length],
+    shortTermPool[(scoreBasedIndex + 2) % shortTermPool.length]
+  ];
+
+  // Medium-term recommendations with deterministic selection
+  const mediumTermOptions = needAction > 50 ? [
+    'Allocate additional budget for service improvements',
+    'Upgrade facilities and equipment',
+    'Hire additional staff or volunteers',
+    'Develop comprehensive training programs',
+    'Establish partnerships with NGOs and agencies',
+    'Create service quality monitoring systems'
+  ] : [
+    'Establish regular monitoring and feedback mechanisms',
+    'Create service quality standards and benchmarks',
+    'Develop partnerships with NGOs and other agencies',
+    'Implement continuous improvement processes',
+    'Build community engagement programs',
+    'Strengthen coordination with other departments'
+  ];
+  
+  const mediumIndex = Math.floor((satisfaction + needAction) / 100 * mediumTermOptions.length) % mediumTermOptions.length;
+  recommendations.mediumTerm = [
+    mediumTermOptions[mediumIndex],
+    mediumTermOptions[(mediumIndex + 1) % mediumTermOptions.length],
+    mediumTermOptions[(mediumIndex + 2) % mediumTermOptions.length]
+  ];
+
+  // Long-term recommendations with deterministic selection
+  const longTermOptions = [
+    'Integrate digital solutions for service delivery',
+    'Develop comprehensive service improvement plan',
+    'Build sustainable funding mechanisms for service continuity',
+    'Establish innovation and modernization programs',
+    'Create long-term capacity building initiatives',
+    'Develop strategic partnerships for sustainability'
+  ];
+  
+  const longIndex = Math.floor((awareness + availment + satisfaction + needAction) / 200 * longTermOptions.length) % longTermOptions.length;
+  recommendations.longTerm = [
+    longTermOptions[longIndex],
+    longTermOptions[(longIndex + 1) % longTermOptions.length],
+    longTermOptions[(longIndex + 2) % longTermOptions.length]
+  ];
+
+  return recommendations;
+}
+
+function getTopConcerns(concerns: string[]): string[] {
+  if (concerns.length === 0) {
+    return [
+      'No specific concerns reported',
+      'Continue monitoring service quality',
+      'Maintain current service standards'
+    ];
+  }
+
+  // Normalize and clean concerns
+  const normalizedConcerns = concerns.map(c => {
+    // Remove common prefixes/suffixes added by variations
+    let cleaned = c.trim()
+      .replace(/^(I think |In my opinion, )/i, '')
+      .replace(/\. (This is important|We hope|Many residents|Thank you).*$/i, '');
+    return cleaned;
+  });
+
+  // Count frequency of concerns
+  const concernCounts: { [key: string]: number } = {};
+  normalizedConcerns.forEach(concern => {
+    concernCounts[concern] = (concernCounts[concern] || 0) + 1;
+  });
+
+  // Sort by frequency and get top 3 unique concerns
+  const sortedConcerns = Object.entries(concernCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([concern, count]) => `${concern} (${count} mentions)`);
+
+  // If we have less than 3, pad with generic ones
+  while (sortedConcerns.length < 3) {
+    sortedConcerns.push('Additional feedback needed for detailed analysis');
+  }
+
+  return sortedConcerns;
 }
 
 function calculateActionGrid(serviceScores: { [key: string]: any }): { [key: string]: any } {

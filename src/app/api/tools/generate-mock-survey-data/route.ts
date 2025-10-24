@@ -47,9 +47,9 @@ const RESPONSE_PROFILES = {
 const SCORE_RANGES = {
   highPerformer: {
     awareness: [0.85, 0.95],
-    availment: [0.80, 0.90],
-    satisfaction: [0.75, 0.85],
-    needAction: [0.10, 0.25]
+    availment: [0.85, 0.95],
+    satisfaction: [0.80, 0.90],
+    needAction: [0.05, 0.15]
   },
   needsImprovement: {
     awareness: [0.40, 0.60],
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     let successCount = 0;
     let errorCount = 0;
 
-    // Generate responses
+    // Generate responses with progress tracking
     for (let i = 0; i < responseCount; i++) {
       try {
         const questionnaireNumber = startingQuestionnaireNumber + i;
@@ -180,9 +180,21 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Progress logging
-        if ((i + 1) % 10 === 0 || (i + 1) === responseCount) {
-          console.log(`📊 Progress: ${i + 1}/${responseCount} responses generated (${successCount} success, ${errorCount} errors)`);
+        // Progress tracking at 20% intervals
+        const currentProgress = Math.round(((i + 1) / responseCount) * 100);
+        const previousProgress = i > 0 ? Math.round((i / responseCount) * 100) : 0;
+        
+        // Log progress at 20% milestones
+        if (currentProgress >= 20 && previousProgress < 20) {
+          console.log(`📊 Progress: 20% - ${Math.round(responseCount * 0.2)}/${responseCount} responses generated`);
+        } else if (currentProgress >= 40 && previousProgress < 40) {
+          console.log(`📊 Progress: 40% - ${Math.round(responseCount * 0.4)}/${responseCount} responses generated`);
+        } else if (currentProgress >= 60 && previousProgress < 60) {
+          console.log(`📊 Progress: 60% - ${Math.round(responseCount * 0.6)}/${responseCount} responses generated`);
+        } else if (currentProgress >= 80 && previousProgress < 80) {
+          console.log(`📊 Progress: 80% - ${Math.round(responseCount * 0.8)}/${responseCount} responses generated`);
+        } else if (i + 1 === responseCount) {
+          console.log(`✅ Progress: Done - ${responseCount}/${responseCount} responses completed (${successCount} success, ${errorCount} errors)`);
         }
 
       } catch (error) {
@@ -200,6 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Generation complete: ${successCount}/${responseCount} responses submitted successfully`);
+    console.log(`📊 [GENERATION SUMMARY] Profile: ${profile}, Expected Scores:`, SCORE_RANGES[profile === 'high-performer' ? 'highPerformer' : profile as keyof typeof SCORE_RANGES]);
 
     return NextResponse.json({
       success: true,
@@ -288,9 +301,20 @@ function generateDemographics() {
 function generateSectionData(sectionName: string, profile: string) {
   const sectionData: { [key: string]: any } = {};
 
+  // Map profile names from UI (kebab-case) to SCORE_RANGES keys (camelCase)
+  const profileMap: Record<string, string> = {
+    'high-performer': 'highPerformer',
+    'needs-improvement': 'needsImprovement',
+    'mixed': 'mixed',
+    'extreme-mixed': 'extremeMixed',
+    'balanced': 'balanced'
+  };
+
   // Get performance profile for this response
-  let actualProfile = profile;
-  if (profile === 'balanced') {
+  let actualProfile = profileMap[profile] || profile;
+  
+  if (actualProfile === 'balanced') {
+    // For balanced profile, randomly select one of the four sub-profiles
     const profiles = ['highPerformer', 'needsImprovement', 'growthPotential', 'stableLow'];
     const weights = [0.25, 0.25, 0.25, 0.25];
     const random = Math.random();
@@ -306,25 +330,30 @@ function generateSectionData(sectionName: string, profile: string) {
 
   const profileRanges = SCORE_RANGES[actualProfile as keyof typeof SCORE_RANGES] || SCORE_RANGES.mixed;
 
+  // Calculate needActionScore once for the entire section
+  const needActionScore = profile === 'mixed' || profile === 'extreme-mixed'
+    ? Math.random()
+    : profileRanges.needAction[0] + Math.random() * (profileRanges.needAction[1] - profileRanges.needAction[0]);
+
   // Generate responses based on actual survey questions for each section
   switch (sectionName) {
     case 'financial':
-      generateFinancialSectionData(sectionData, profileRanges, profile);
+      generateFinancialSectionData(sectionData, profileRanges, profile, needActionScore);
       break;
     case 'disaster':
-      generateDisasterSectionData(sectionData, profileRanges, profile);
+      generateDisasterSectionData(sectionData, profileRanges, profile, needActionScore);
       break;
     case 'safety':
-      generateSafetySectionData(sectionData, profileRanges, profile);
+      generateSafetySectionData(sectionData, profileRanges, profile, needActionScore);
       break;
     case 'social':
-      generateSocialSectionData(sectionData, profileRanges, profile);
+      generateSocialSectionData(sectionData, profileRanges, profile, needActionScore);
       break;
     case 'business':
-      generateBusinessSectionData(sectionData, profileRanges, profile);
+      generateBusinessSectionData(sectionData, profileRanges, profile, needActionScore);
       break;
     case 'environmental':
-      generateEnvironmentalSectionData(sectionData, profileRanges, profile);
+      generateEnvironmentalSectionData(sectionData, profileRanges, profile, needActionScore);
       break;
   }
 
@@ -332,7 +361,7 @@ function generateSectionData(sectionName: string, profile: string) {
 }
 
 // Generate realistic responses for Financial Administration section
-function generateFinancialSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateFinancialSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -345,54 +374,57 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
     ? Math.random()
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
-  const needActionScore = profile === 'mixed' || profile === 'extreme-mixed'
-    ? Math.random()
-    : profileRanges.needAction[0] + Math.random() * (profileRanges.needAction[1] - profileRanges.needAction[0]);
-
   // Part A: Barangay Projects
-  sectionData['awarenessProjects'] = awarenessScore > 0.5 ? "Oo" : "Hindi";
+  // Use threshold of 0.3 instead of 0.5 to ensure high-performer profiles get "Oo" responses
+  sectionData['awarenessProjects'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
+  sectionData['benefitedProjects'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+  
+  // Always generate satisfaction rating for high performers
+  const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionProjects'] = satisfactionRating.toString();
+  sectionData['suggestionsProjects'] = generateRealisticTextareaResponse('projects', needActionScore);
 
-  if (sectionData['awarenessProjects'] === "Oo") {
-    sectionData['benefitedProjects'] = availmentScore > 0.5 ? "Oo" : "Hindi";
-
-    if (sectionData['benefitedProjects'] === "Oo") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionProjects'] = satisfactionRating.toString();
-
-      sectionData['suggestionsProjects'] = generateRealisticTextareaResponse('projects', needActionScore);
-    }
+  // Debug logging for first response
+  if (Math.random() < 0.01) { // Log 1% of responses
+    console.log('🔍 [MOCK DATA] Financial Section Generated:', {
+      profile,
+      awarenessScore: awarenessScore.toFixed(2),
+      availmentScore: availmentScore.toFixed(2),
+      satisfactionScore: satisfactionScore.toFixed(2),
+      needActionScore: needActionScore.toFixed(2),
+      satisfactionRating,
+      sampleData: {
+        awarenessProjects: sectionData['awarenessProjects'],
+        benefitedProjects: sectionData['benefitedProjects'],
+        satisfactionProjects: sectionData['satisfactionProjects'],
+        needActionProjects: sectionData['needActionProjects']
+      }
+    });
   }
 
   // Part B: Financial Transparency
-  sectionData['awarenessFinancial'] = awarenessScore > 0.6 ? "Oo" : "Hindi";
-
-  if (sectionData['awarenessFinancial'] === "Oo") {
-    sectionData['usedFinancialInfo'] = availmentScore > 0.6 ? "Oo" : "Hindi";
-
-    if (sectionData['usedFinancialInfo'] === "Oo") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionFinancial'] = satisfactionRating.toString();
-
-      sectionData['suggestionsFinancial'] = generateRealisticTextareaResponse('financial', needActionScore);
-    }
-  }
+  // Use threshold of 0.3 instead of 0.6 to ensure high-performer profiles get "Oo" responses
+  sectionData['awarenessFinancial'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
+  sectionData['usedFinancialInfo'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingFinancial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionFinancial'] = satisfactionRatingFinancial.toString();
+  sectionData['suggestionsFinancial'] = generateRealisticTextareaResponse('financial', needActionScore);
 
   // Part C: Social Programs
-  sectionData['awarenessSocialPrograms'] = awarenessScore > 0.55 ? "Oo" : "Hindi";
-
-  if (sectionData['awarenessSocialPrograms'] === "Oo") {
-    sectionData['participatedSocialPrograms'] = availmentScore > 0.55 ? "Oo" : "Hindi";
-
-    if (sectionData['participatedSocialPrograms'] === "Oo") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionSocialPrograms'] = satisfactionRating.toString();
-
-      sectionData['suggestionsSocialPrograms'] = generateRealisticTextareaResponse('socialPrograms', needActionScore);
-    }
-  }
+  // Use threshold of 0.3 instead of 0.55 to ensure high-performer profiles get "Oo" responses
+  sectionData['awarenessSocialPrograms'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
+  sectionData['participatedSocialPrograms'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingSocial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionSocialPrograms'] = satisfactionRatingSocial.toString();
+  sectionData['suggestionsSocialPrograms'] = generateRealisticTextareaResponse('socialPrograms', needActionScore);
 
   // Part D: Corruption Perception
-  sectionData['awarenessCorruption'] = awarenessScore > 0.7 ? "Oo (Yes)" : "Hindi (No)";
+  // Use threshold of 0.3 instead of 0.7 to ensure high-performer profiles get "Oo (Yes)" responses
+  sectionData['awarenessCorruption'] = awarenessScore > 0.3 ? "Oo (Yes)" : "Hindi (No)";
 
   if (sectionData['awarenessCorruption'] === "Oo (Yes)") {
     sectionData['experiencedCorruption'] = needActionScore > 0.6 ? "Oo (Yes)" : "Hindi (No)";
@@ -410,10 +442,15 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
       sectionData['suggestionsCorruption'] = generateRealisticTextareaResponse('corruption', needActionScore);
     }
   }
+
+  // Add need for action questions for proper scoring
+  sectionData['needActionProjects'] = needActionScore > 0.5 ? "Oo" : "Hindi";
+  sectionData['needActionFinancial'] = needActionScore > 0.5 ? "Oo" : "Hindi";
+  sectionData['needActionSocialPrograms'] = needActionScore > 0.5 ? "Oo" : "Hindi";
 }
 
 // Generate realistic responses for Disaster Preparedness section
-function generateDisasterSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateDisasterSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -427,36 +464,32 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
   // Part A: Disaster Information
-  sectionData['awarenessDisasterInfo'] = awarenessScore > 0.5 ? "Yes" : "No";
-
-  if (sectionData['awarenessDisasterInfo'] === "Yes") {
-    sectionData['availmentDisasterInfo'] = availmentScore > 0.5 ? "Yes" : "No";
-
-    if (sectionData['availmentDisasterInfo'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionDisasterInfo'] = satisfactionRating.toString();
-
-      sectionData['suggestionsDisasterInfo'] = generateRealisticTextareaResponse('disasterInfo', satisfactionScore);
-    }
-  }
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessDisasterInfo'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentDisasterInfo'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingDisaster = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionDisasterInfo'] = satisfactionRatingDisaster.toString();
+  sectionData['suggestionsDisasterInfo'] = generateRealisticTextareaResponse('disasterInfo', satisfactionScore);
 
   // Part B: Evacuation Resources
-  sectionData['awarenessEvacuation'] = awarenessScore > 0.6 ? "Yes" : "No";
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessEvacuation'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['locationEvacuation'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingEvacuation = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionEvacuation'] = satisfactionRatingEvacuation.toString();
+  sectionData['suggestionsEvacuation'] = generateRealisticTextareaResponse('evacuation', satisfactionScore);
 
-  if (sectionData['awarenessEvacuation'] === "Yes") {
-    sectionData['locationEvacuation'] = availmentScore > 0.6 ? "Yes" : "No";
-
-    if (sectionData['locationEvacuation'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionEvacuation'] = satisfactionRating.toString();
-
-      sectionData['suggestionsEvacuation'] = generateRealisticTextareaResponse('evacuation', satisfactionScore);
-    }
-  }
+  // Add need for action questions for proper scoring
+  sectionData['needActionDisasterInfo'] = needActionScore > 0.5 ? "Yes" : "No";
+  sectionData['needActionEvacuation'] = needActionScore > 0.5 ? "Yes" : "No";
 }
 
 // Generate realistic responses for Safety & Peace Order section
-function generateSafetySectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateSafetySectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -470,50 +503,43 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
   // Part A: Barangay Tanods
-  sectionData['awarenessTanods'] = awarenessScore > 0.5 ? "Yes" : "No";
-
-  if (sectionData['awarenessTanods'] === "Yes") {
-    sectionData['experienceTanods'] = availmentScore > 0.5 ? "Yes" : "No";
-
-    if (sectionData['experienceTanods'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionTanods'] = satisfactionRating.toString();
-
-      sectionData['suggestionsTanods'] = generateRealisticTextareaResponse('tanods', satisfactionScore);
-    }
-  }
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessTanods'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['experienceTanods'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingTanods = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionTanods'] = satisfactionRatingTanods.toString();
+  sectionData['suggestionsTanods'] = generateRealisticTextareaResponse('tanods', satisfactionScore);
 
   // Part B: Lupon (Dispute Resolution)
-  sectionData['awarenessLupon'] = awarenessScore > 0.6 ? "Yes" : "No";
-
-  if (sectionData['awarenessLupon'] === "Yes") {
-    sectionData['experienceLupon'] = availmentScore > 0.6 ? "Yes" : "No";
-
-    if (sectionData['experienceLupon'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionLupon'] = satisfactionRating.toString();
-
-      sectionData['suggestionsLupon'] = generateRealisticTextareaResponse('lupon', satisfactionScore);
-    }
-  }
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessLupon'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['experienceLupon'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingLupon = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionLupon'] = satisfactionRatingLupon.toString();
+  sectionData['suggestionsLupon'] = generateRealisticTextareaResponse('lupon', satisfactionScore);
 
   // Part C: Anti-Drug Programs
-  sectionData['awarenessAntiDrug'] = awarenessScore > 0.55 ? "Yes" : "No";
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessAntiDrug'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['experienceAntiDrug'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingAntiDrug = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionAntiDrug'] = satisfactionRatingAntiDrug.toString();
+  sectionData['suggestionsAntiDrug'] = generateRealisticTextareaResponse('antiDrug', satisfactionScore);
 
-  if (sectionData['awarenessAntiDrug'] === "Yes") {
-    sectionData['experienceAntiDrug'] = availmentScore > 0.55 ? "Yes" : "No";
-
-    if (sectionData['experienceAntiDrug'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionAntiDrug'] = satisfactionRating.toString();
-
-      sectionData['suggestionsAntiDrug'] = generateRealisticTextareaResponse('antiDrug', satisfactionScore);
-    }
-  }
+  // Add need for action questions for proper scoring
+  sectionData['needActionTanods'] = needActionScore > 0.5 ? "Yes" : "No";
+  sectionData['needActionLupon'] = needActionScore > 0.5 ? "Yes" : "No";
+  sectionData['needActionAntiDrug'] = needActionScore > 0.5 ? "Yes" : "No";
 }
 
 // Generate realistic responses for Social Protection section
-function generateSocialSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateSocialSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -527,50 +553,43 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
   // Part A: Health Services
-  sectionData['awarenessHealthServices'] = awarenessScore > 0.5 ? "Yes" : "No";
-
-  if (sectionData['awarenessHealthServices'] === "Yes") {
-    sectionData['availmentHealthServices'] = availmentScore > 0.5 ? "Yes" : "No";
-
-    if (sectionData['availmentHealthServices'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionHealthServices'] = satisfactionRating.toString();
-
-      sectionData['suggestionsHealthServices'] = generateRealisticTextareaResponse('health', satisfactionScore);
-    }
-  }
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessHealthServices'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentHealthServices'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingHealth = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionHealthServices'] = satisfactionRatingHealth.toString();
+  sectionData['suggestionsHealthServices'] = generateRealisticTextareaResponse('health', satisfactionScore);
 
   // Part B: Women & Children Protection
-  sectionData['awarenessWomenChildrenProtection'] = awarenessScore > 0.6 ? "Yes" : "No";
-
-  if (sectionData['awarenessWomenChildrenProtection'] === "Yes") {
-    sectionData['availmentWomenChildrenProtection'] = availmentScore > 0.6 ? "Yes" : "No";
-
-    if (sectionData['availmentWomenChildrenProtection'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionWomenChildrenProtection'] = satisfactionRating.toString();
-
-      sectionData['suggestionsWomenChildrenProtection'] = generateRealisticTextareaResponse('womenChildren', satisfactionScore);
-    }
-  }
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessWomenChildrenProtection'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentWomenChildrenProtection'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingWomen = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionWomenChildrenProtection'] = satisfactionRatingWomen.toString();
+  sectionData['suggestionsWomenChildrenProtection'] = generateRealisticTextareaResponse('womenChildren', satisfactionScore);
 
   // Part C: Community Participation
-  sectionData['awarenessCommunityParticipation'] = awarenessScore > 0.55 ? "Yes" : "No";
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessCommunityParticipation'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentCommunityParticipation'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingCommunity = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionCommunityParticipation'] = satisfactionRatingCommunity.toString();
+  sectionData['suggestionsCommunityParticipation'] = generateRealisticTextareaResponse('community', satisfactionScore);
 
-  if (sectionData['awarenessCommunityParticipation'] === "Yes") {
-    sectionData['availmentCommunityParticipation'] = availmentScore > 0.55 ? "Yes" : "No";
-
-    if (sectionData['availmentCommunityParticipation'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionCommunityParticipation'] = satisfactionRating.toString();
-
-      sectionData['suggestionsCommunityParticipation'] = generateRealisticTextareaResponse('community', satisfactionScore);
-    }
-  }
+  // Add need for action questions for proper scoring
+  sectionData['needActionHealthServices'] = needActionScore > 0.5 ? "Yes" : "No";
+  sectionData['needActionWomenChildrenProtection'] = needActionScore > 0.5 ? "Yes" : "No";
+  sectionData['needActionCommunityParticipation'] = needActionScore > 0.5 ? "Yes" : "No";
 }
 
 // Generate realistic responses for Business Friendliness section
-function generateBusinessSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateBusinessSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -584,22 +603,21 @@ function generateBusinessSectionData(sectionData: { [key: string]: any }, profil
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
   // Business Clearance
-  sectionData['awarenessBusinessClearance'] = awarenessScore > 0.5 ? "Yes" : "No";
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessBusinessClearance'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentBusinessClearance'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingBusiness = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionBusinessClearance'] = satisfactionRatingBusiness.toString();
+  sectionData['suggestionsBusinessClearance'] = generateRealisticTextareaResponse('business', satisfactionScore);
 
-  if (sectionData['awarenessBusinessClearance'] === "Yes") {
-    sectionData['availmentBusinessClearance'] = availmentScore > 0.5 ? "Yes" : "No";
-
-    if (sectionData['availmentBusinessClearance'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionBusinessClearance'] = satisfactionRating.toString();
-
-      sectionData['suggestionsBusinessClearance'] = generateRealisticTextareaResponse('business', satisfactionScore);
-    }
-  }
+  // Add need for action questions for proper scoring
+  sectionData['needActionBusinessClearance'] = needActionScore > 0.5 ? "Yes" : "No";
 }
 
 // Generate realistic responses for Environmental Management section
-function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string) {
+function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, profileRanges: any, profile: string, needActionScore: number) {
   const awarenessScore = profile === 'mixed' || profile === 'extreme-mixed'
     ? Math.random()
     : profileRanges.awareness[0] + Math.random() * (profileRanges.awareness[1] - profileRanges.awareness[0]);
@@ -613,40 +631,72 @@ function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, p
     : profileRanges.satisfaction[0] + Math.random() * (profileRanges.satisfaction[1] - profileRanges.satisfaction[0]);
 
   // Waste Management
-  sectionData['awarenessWasteManagement'] = awarenessScore > 0.5 ? "Yes" : "No";
+  // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
+  sectionData['awarenessWasteManagement'] = awarenessScore > 0.3 ? "Yes" : "No";
+  sectionData['availmentWasteManagement'] = availmentScore > 0.3 ? "Yes" : "No";
+  
+  // Always generate satisfaction rating
+  const satisfactionRatingWaste = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+  sectionData['satisfactionWasteManagement'] = satisfactionRatingWaste.toString();
+  sectionData['suggestionsWasteManagement'] = generateRealisticTextareaResponse('waste', satisfactionScore);
 
-  if (sectionData['awarenessWasteManagement'] === "Yes") {
-    sectionData['availmentWasteManagement'] = availmentScore > 0.5 ? "Yes" : "No";
-
-    if (sectionData['availmentWasteManagement'] === "Yes") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionWasteManagement'] = satisfactionRating.toString();
-
-      sectionData['suggestionsWasteManagement'] = generateRealisticTextareaResponse('waste', satisfactionScore);
-    }
-  }
+  // Add need for action questions for proper scoring
+  sectionData['needActionWasteManagement'] = needActionScore > 0.5 ? "Yes" : "No";
 }
 
-// Generate realistic textarea responses
+// Generate realistic textarea responses with more variety
 function generateRealisticTextareaResponse(type: string, score: number): string {
   const responses = {
     projects: [
       "We need better road quality and more frequent maintenance.",
       "The barangay hall needs renovation and more facilities.",
       "More street lighting and pedestrian walkways would be helpful.",
-      "The drainage system needs improvement to prevent flooding."
+      "The drainage system needs improvement to prevent flooding.",
+      "Repair damaged sidewalks and pathways in our area.",
+      "Install more covered waiting sheds for commuters.",
+      "Improve the basketball court and playground facilities.",
+      "Better waste collection schedules and more garbage bins.",
+      "Fix potholes on main roads before the rainy season.",
+      "Upgrade the barangay health center equipment.",
+      "More public restrooms in common areas.",
+      "Better internet connectivity for online services.",
+      "Renovate the multi-purpose hall for community events.",
+      "Install CCTV cameras in strategic locations.",
+      "Improve water supply system in our sitio."
     ],
     financial: [
       "Make the budget documents easier to understand for regular residents.",
       "Hold more frequent barangay assemblies to discuss spending.",
       "Provide digital access to financial reports online.",
-      "Train more residents on how to read budget documents."
+      "Train more residents on how to read budget documents.",
+      "Post monthly financial reports on the barangay bulletin board.",
+      "Explain budget allocations in simple Filipino language.",
+      "Create infographics showing where our taxes go.",
+      "Allow residents to ask questions about the budget.",
+      "Publish quarterly financial summaries in newsletters.",
+      "Make financial documents available at the barangay hall.",
+      "Conduct town hall meetings to discuss major expenses.",
+      "Provide receipts and documentation for all projects.",
+      "Create a citizen's budget guide for transparency.",
+      "Use social media to share financial updates regularly.",
+      "Establish a feedback mechanism for budget concerns."
     ],
     socialPrograms: [
       "More financial assistance for senior citizens is needed.",
       "Expand the youth development programs and activities.",
       "Better coordination between different social services.",
-      "More support for persons with disabilities."
+      "More support for persons with disabilities.",
+      "Increase the number of scholarships for students.",
+      "Provide livelihood training programs for unemployed residents.",
+      "Improve the feeding program for malnourished children.",
+      "Offer more skills training workshops for youth.",
+      "Expand medical assistance coverage for indigent families.",
+      "Create more job opportunities through barangay projects.",
+      "Strengthen support for solo parents and their children.",
+      "Provide educational materials for out-of-school youth.",
+      "Improve access to social services for remote sitios.",
+      "Offer free skills certification programs.",
+      "Enhance the senior citizen's monthly allowance program."
     ],
     corruption: [
       "Implement stricter monitoring of official transactions.",
@@ -717,7 +767,25 @@ function generateRealisticTextareaResponse(type: string, score: number): string 
   };
 
   const typeResponses = responses[type as keyof typeof responses] || responses.projects;
-  return typeResponses[Math.floor(Math.random() * typeResponses.length)];
+  
+  // Use deterministic selection based on score instead of random
+  const scoreBasedIndex = Math.floor(score * typeResponses.length) % typeResponses.length;
+  const selectedResponse = typeResponses[scoreBasedIndex];
+  
+  // Add slight variation to make responses more unique, but deterministically
+  const variations = [
+    selectedResponse,
+    selectedResponse + " This is important for our community.",
+    selectedResponse + " We hope this can be addressed soon.",
+    selectedResponse + " Many residents have mentioned this concern.",
+    "I think " + selectedResponse.toLowerCase(),
+    "In my opinion, " + selectedResponse.toLowerCase(),
+    selectedResponse + " Thank you for considering our feedback."
+  ];
+  
+  // Use score to determine which variation to use (deterministic)
+  const variationIndex = Math.floor((score * 10) % variations.length);
+  return score > 0.7 ? selectedResponse : variations[variationIndex];
 }
 
 // Submit survey response to database
@@ -797,6 +865,23 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       };
 
       const sectionName = sectionNames[sectionKey] || sectionKey;
+
+      // Debug logging for data being saved
+      if (Math.random() < 0.01) { // Log 1% of sections
+        const sectionDataObj = (sectionData as any).data;
+        const satisfactionFields = Object.entries(sectionDataObj)
+          .filter(([key]) => key.toLowerCase().includes('satisf'))
+          .reduce((acc, [key, val]) => ({ ...acc, [key]: val }), {});
+        
+        console.log('🔍 [DATABASE SAVE] Section Data:', {
+          sectionKey,
+          responseId,
+          satisfactionFields,
+          needActionFields: Object.entries(sectionDataObj)
+            .filter(([key]) => key.toLowerCase().includes('need') || key.toLowerCase().includes('action'))
+            .reduce((acc, [key, val]) => ({ ...acc, [key]: val }), {})
+        });
+      }
 
       await client.query(sectionInsertQuery, [
         responseId,

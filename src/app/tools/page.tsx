@@ -52,6 +52,7 @@ export default function ToolsPage() {
   const [loadingBarangays, setLoadingBarangays] = useState(true);
   const [databaseStatus, setDatabaseStatus] = useState<any>(null);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [communityVoiceResults, setCommunityVoiceResults] = useState<any>(null);
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle();
 
   // Fetch barangays from database on component mount
@@ -118,6 +119,17 @@ export default function ToolsPage() {
     setProgress(0);
     setResults([]);
     setFunnelAnalysis(null);
+    setCurrentAction("Initializing mock data generation...");
+
+    // Simulate progress updates during generation
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 95) {
+          return prev + Math.random() * 5; // Gradual progress increase
+        }
+        return prev;
+      });
+    }, 500);
 
     try {
       const response = await fetch('/api/tools/generate-mock-survey-data', {
@@ -132,9 +144,15 @@ export default function ToolsPage() {
 
       const data = await response.json();
 
+      // Clear the progress interval
+      clearInterval(progressInterval);
+
       if (response.ok) {
         const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
         const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
+        
+        setProgress(100);
+        setCurrentAction("Generation completed successfully!");
         
         addResult({
           success: true,
@@ -142,23 +160,52 @@ export default function ToolsPage() {
           data: data
         });
 
+        // Add progress milestone results to terminal
+        addResult({
+          success: true,
+          message: `✅ 20% - Generated ${Math.round(parseInt(responseCount) * 0.2)} responses`
+        });
+        addResult({
+          success: true,
+          message: `✅ 40% - Generated ${Math.round(parseInt(responseCount) * 0.4)} responses`
+        });
+        addResult({
+          success: true,
+          message: `✅ 60% - Generated ${Math.round(parseInt(responseCount) * 0.6)} responses`
+        });
+        addResult({
+          success: true,
+          message: `✅ 80% - Generated ${Math.round(parseInt(responseCount) * 0.8)} responses`
+        });
+        addResult({
+          success: true,
+          message: `🎉 Done - All ${responseCount} responses completed!`
+        });
+
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
       } else {
+        setProgress(0);
+        setCurrentAction("Generation failed");
         addResult({
           success: false,
           message: data.error || 'Failed to generate mock data'
         });
       }
     } catch (error) {
+      clearInterval(progressInterval);
+      setProgress(0);
+      setCurrentAction("Generation failed");
       addResult({
         success: false,
         message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     } finally {
       setIsGenerating(false);
-      setProgress(100);
+      setTimeout(() => {
+        setCurrentAction("");
+      }, 2000);
     }
   };
 
@@ -371,6 +418,41 @@ export default function ToolsPage() {
     }
   };
 
+  const analyzeCommunityVoice = async () => {
+    setCurrentAction("Analyzing community voice...");
+    setCommunityVoiceResults(null);
+    
+    try {
+      const url = barangayId && barangayId !== "" ? `/api/community-voice?barangayId=${barangayId}` : '/api/community-voice';
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCommunityVoiceResults(data.data);
+        
+        const selectedBarangay = barangayId && barangayId !== "" ? barangays.find(b => b.id.toString() === barangayId) : null;
+        const barangayName = selectedBarangay ? selectedBarangay.name : 'All Barangays';
+        
+        addResult({
+          success: true,
+          message: `Community voice analysis completed for ${barangayName}. Analyzed ${data.data.total_comments} comments.`,
+          data: data.data
+        });
+      } else {
+        const errorData = await response.json();
+        addResult({
+          success: false,
+          message: errorData.error || 'Failed to analyze community voice'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -395,6 +477,135 @@ export default function ToolsPage() {
             </div>
           )}
         </div>
+
+        {/* Community Voice Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Community Voice Analysis
+            </CardTitle>
+            <CardDescription>
+              Analyze survey comments to extract community insights and themes from feedback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="voiceBarangayId">Barangay (Optional)</Label>
+                <Select value={barangayId || "all"} onValueChange={(value) => setBarangayId(value === "all" ? "" : value)} disabled={loadingBarangays}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingBarangays ? "Loading barangays..." : "All barangays"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Barangays</SelectItem>
+                    {Array.isArray(barangays) ? barangays.map((barangay) => (
+                      <SelectItem key={barangay.id} value={barangay.id.toString()}>
+                        {barangay.name}
+                      </SelectItem>
+                    )) : null}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={analyzeCommunityVoice}
+                  disabled={isGenerating || isDeleting || loadingBarangays}
+                  className="w-full"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Analyze Community Voice
+                </Button>
+              </div>
+            </div>
+
+            {/* Community Voice Results */}
+            {communityVoiceResults && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-3">Community Voice Insights</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <div className="text-sm text-blue-700 mb-2">
+                      <strong>Comments Analyzed:</strong> {communityVoiceResults.total_comments} total, {communityVoiceResults.processed_comments} processed
+                    </div>
+                    
+                    {communityVoiceResults.themes && (
+                      <div>
+                        <h5 className="font-medium text-blue-800 mb-2">Top Themes:</h5>
+                        <div className="space-y-1">
+                          {communityVoiceResults.themes.top_themes?.slice(0, 3).map(([theme, percentage]: [string, number]) => (
+                            <div key={theme} className="flex justify-between text-sm">
+                              <span className="capitalize">{theme.replace('_', ' ')}</span>
+                              <span className="font-mono">{percentage}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    {communityVoiceResults.categories && (
+                      <div>
+                        <h5 className="font-medium text-blue-800 mb-2">Sentiment Distribution:</h5>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-green-600">Positive</span>
+                            <span className="font-mono">{communityVoiceResults.categories.percentages?.positive}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-red-600">Negative</span>
+                            <span className="font-mono">{communityVoiceResults.categories.percentages?.negative}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Neutral</span>
+                            <span className="font-mono">{communityVoiceResults.categories.percentages?.neutral}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {communityVoiceResults.insights && communityVoiceResults.insights.length > 0 && (
+                  <div>
+                    <h5 className="font-medium text-blue-800 mb-2">Key Insights:</h5>
+                    <div className="space-y-2">
+                      {communityVoiceResults.insights.map((insight: any, index: number) => (
+                        <div key={index} className="p-2 bg-white rounded border border-blue-100">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-sm">{insight.title}</span>
+                            <Badge variant={
+                              insight.priority === 'high' ? 'destructive' :
+                              insight.priority === 'medium' ? 'secondary' : 'outline'
+                            }>
+                              {insight.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{insight.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {communityVoiceResults.sample_comments && communityVoiceResults.sample_comments.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="font-medium text-blue-800 mb-2">Sample Comments:</h5>
+                    <div className="space-y-1">
+                      {communityVoiceResults.sample_comments.slice(0, 3).map((comment: string, index: number) => (
+                        <div key={index} className="text-sm text-gray-600 italic p-2 bg-white rounded border border-blue-100">
+                          "{comment}"
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Mock Data Generator */}
         <Card>
@@ -565,9 +776,19 @@ export default function ToolsPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>{currentAction}</span>
-                  <span>{progress}%</span>
+                  <span>{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
+                {isGenerating && (
+                  <div className="text-xs text-gray-500 text-center">
+                    {progress < 20 ? "Starting generation..." :
+                     progress < 40 ? "20% complete - Creating survey responses..." :
+                     progress < 60 ? "40% complete - Processing data..." :
+                     progress < 80 ? "60% complete - Saving to database..." :
+                     progress < 95 ? "80% complete - Finalizing..." :
+                     "Almost done..."}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -715,7 +936,11 @@ export default function ToolsPage() {
               
               {results.map((result, index) => (
                 <div key={index} className={`mb-1 ${result.success ? 'text-green-400' : 'text-red-400'}`}>
-                  {'>'} {result.success ? '[SUCCESS]' : '[ERROR]'} {result.message}
+                  {'>'} {result.success ? 
+                    (result.message.includes('20%') || result.message.includes('40%') || 
+                     result.message.includes('60%') || result.message.includes('80%') || 
+                     result.message.includes('Done') ? '[PROGRESS]' : '[SUCCESS]') 
+                    : '[ERROR]'} {result.message}
                 </div>
               ))}
               

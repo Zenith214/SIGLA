@@ -49,7 +49,11 @@ class FeatureEngineer:
             awareness_score = self._calculate_binary_score(group, awareness_questions, 'Yes')
             
             # Calculate availment score (Yes/No questions)
-            availment_questions = [col for col in group.columns if 'avail' in col.lower() and col != 'section_key']
+            # Match the funnel analysis logic - check for multiple keywords
+            availment_keywords = ['avail', 'experience', 'benefited', 'participated', 'used', 'accessed', 'utilized', 'received']
+            availment_questions = [col for col in group.columns 
+                                 if any(keyword in col.lower() for keyword in availment_keywords) 
+                                 and col != 'section_key']
             availment_score = self._calculate_binary_score(group, availment_questions, 'Yes')
             
             # Calculate satisfaction score (1-5 scale, convert to percentage)
@@ -88,8 +92,11 @@ class FeatureEngineer:
                 for _, value in group[question].items():
                     if pd.notna(value):
                         total_questions += 1
-                        # Match dashboard logic: treat "Yes", 1, true, "1" as positive
-                        if (value == positive_value or value == 1 or value == True or value == '1'):
+                        # Match dashboard logic: treat "Yes", "Oo", 1, true, "1", "Oo (Yes)" as positive
+                        string_value = str(value).lower() if value is not None else ''
+                        if (value == positive_value or value == 1 or value == True or value == '1' or 
+                            string_value == 'yes' or string_value == 'oo' or string_value == 'true' or
+                            string_value == 'oo (yes)'):
                             total_positive += 1
         
         return round((total_positive / total_questions) * 100) if total_questions > 0 else 0

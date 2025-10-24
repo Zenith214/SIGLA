@@ -75,17 +75,21 @@ function transformMLToFunnelFormat(mlResults: any, barangayId: number) {
       // Map ML service keys to our standard service areas
       const mappedKey = mapServiceKey(serviceKey);
       if (mappedKey && serviceAreas.includes(mappedKey)) {
-        funnelData.service_scores[mappedKey] = {
+        const serviceScores = {
           awareness: scores.awareness_score || 0,
           availment: scores.availment_score || 0,
           satisfaction: scores.satisfaction_score || 0,
-          need_action: scores.need_action_score || 0,
+          need_action: scores.need_action_score || 0
+        };
+        
+        funnelData.service_scores[mappedKey] = {
+          ...serviceScores,
           sample_size: scores.sample_size || 0,
           confidence: scores.sample_size >= 5 ? 'high' : scores.sample_size >= 3 ? 'medium' : 'low',
           bottleneck: identifyBottleneck(scores),
-          concerns: extractConcerns(mlResults, mappedKey),
-          quotes: extractQuotes(mlResults, mappedKey),
-          recommendations: extractRecommendations(mlResults, mappedKey)
+          concerns: extractConcerns(mlResults, mappedKey, serviceScores),
+          quotes: extractQuotes(mlResults, mappedKey, serviceScores),
+          recommendations: extractRecommendations(mlResults, mappedKey, serviceScores)
         };
       }
     });
@@ -144,101 +148,343 @@ function identifyBottleneck(scores: any): string {
   }
 }
 
-function extractConcerns(mlResults: any, serviceArea: string): string[] {
+function extractConcerns(mlResults: any, serviceArea: string, scores: any): string[] {
   // Extract concerns from ML insights
   const concerns = mlResults.insights?.[serviceArea]?.concerns || [];
   
-  // Default concerns if none found
-  const defaultConcerns: { [key: string]: string[] } = {
-    financial: ['Budget transparency needs improvement', 'Slow processing of financial assistance', 'Limited information about available programs'],
-    disaster: ['Need early warning systems', 'Insufficient evacuation centers', 'Lack of emergency supplies'],
-    safety: ['Poor street lighting', 'Need more police patrols', 'Install CCTV cameras'],
-    social: ['Need more healthcare services', 'Educational support programs', 'Senior citizen assistance'],
-    business: ['Complicated permit processes', 'High fees and requirements', 'Lack of business support programs'],
-    environmental: ['Poor waste collection', 'Need more recycling programs', 'Water quality issues']
+  if (concerns.length > 0) {
+    return concerns.slice(0, 3);
+  }
+  
+  // Generate deterministic concerns based on service area and scores
+  const serviceScores = mlResults.service_scores?.[serviceArea] || {};
+  const awareness = serviceScores.awareness_score || 0;
+  const availment = serviceScores.availment_score || 0;
+  const satisfaction = serviceScores.satisfaction_score || 0;
+  
+  // Use score-based selection for deterministic concerns
+  const concernPools: { [key: string]: string[] } = {
+    financial: [
+      'Budget transparency needs improvement',
+      'Slow processing of financial assistance',
+      'Limited information about available programs',
+      'Need better communication of budget allocations',
+      'Improve accessibility of financial reports',
+      'Streamline application procedures'
+    ],
+    disaster: [
+      'Need early warning systems',
+      'Insufficient evacuation centers',
+      'Lack of emergency supplies',
+      'Improve disaster preparedness training',
+      'Better coordination with emergency services',
+      'Upgrade emergency communication systems'
+    ],
+    safety: [
+      'Poor street lighting',
+      'Need more police patrols',
+      'Install CCTV cameras',
+      'Improve response time to incidents',
+      'Strengthen community watch programs',
+      'Better coordination with law enforcement'
+    ],
+    social: [
+      'Need more healthcare services',
+      'Educational support programs',
+      'Senior citizen assistance',
+      'Expand social welfare programs',
+      'Improve access to health facilities',
+      'Strengthen family support services'
+    ],
+    business: [
+      'Complicated permit processes',
+      'High fees and requirements',
+      'Lack of business support programs',
+      'Simplify business registration',
+      'Reduce processing time for permits',
+      'Provide business development assistance'
+    ],
+    environmental: [
+      'Poor waste collection',
+      'Need more recycling programs',
+      'Water quality issues',
+      'Improve waste segregation compliance',
+      'Expand environmental education',
+      'Better enforcement of environmental regulations'
+    ]
   };
-
-  return concerns.length > 0 ? concerns.slice(0, 3) : defaultConcerns[serviceArea] || [];
+  
+  const pool = concernPools[serviceArea] || concernPools.financial;
+  const scoreBasedIndex = Math.floor((awareness + availment + satisfaction) / 100 * pool.length) % pool.length;
+  
+  return [
+    pool[scoreBasedIndex],
+    pool[(scoreBasedIndex + 1) % pool.length],
+    pool[(scoreBasedIndex + 2) % pool.length]
+  ];
 }
 
-function extractQuotes(mlResults: any, serviceArea: string): any {
-  // Extract quotes from ML results or use defaults
+function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
+  // Extract quotes from ML results or use score-based selection for deterministic quotes
   const quotes = mlResults.insights?.[serviceArea]?.quotes || {};
   
-  const defaultQuotes: { [key: string]: any } = {
-    financial: {
-      awareness: "I didn't know about the financial assistance programs available.",
-      availment: "The application process is too complicated and takes too long.",
-      satisfaction: "Good service, but more funding is needed for programs."
-    },
-    disaster: {
-      awareness: "We need more information about disaster preparedness programs.",
-      availment: "Emergency response is slow and not well-coordinated.",
-      satisfaction: "Response was good but we need better equipment."
-    },
-    safety: {
-      awareness: "Everyone knows about the safety programs.",
-      availment: "Police response is usually quick when called.",
-      satisfaction: "Security is okay but needs improvement in some areas."
-    },
-    social: {
-      awareness: "Most people know about social services available.",
-      availment: "Services are available but sometimes hard to access.",
-      satisfaction: "Good programs but need more resources and staff."
-    },
-    business: {
-      awareness: "Many don't know about business support programs.",
-      availment: "Permit process is too slow and expensive.",
-      satisfaction: "Service needs major improvement to help local businesses."
-    },
-    environmental: {
-      awareness: "People know about environmental programs but participation is low.",
-      availment: "Waste collection is irregular and unreliable.",
-      satisfaction: "Environmental services exist but need better implementation."
-    }
+  if (Object.keys(quotes).length > 0) {
+    return quotes;
+  }
+  
+  // Use score-based selection for deterministic quotes
+  const awarenessQuotes: { [key: string]: string[] } = {
+    financial: [
+      "I didn't know about the financial assistance programs available.",
+      "More information campaigns needed about available services.",
+      "We need better communication about budget allocations.",
+      "Many residents are unaware of social programs.",
+      "Information about services should be more accessible."
+    ],
+    disaster: [
+      "We need more information about disaster preparedness programs.",
+      "Not everyone knows where the evacuation centers are.",
+      "Better awareness campaigns about emergency procedures needed.",
+      "More residents should know about disaster response plans.",
+      "Information about emergency services is lacking."
+    ],
+    safety: [
+      "Everyone knows about the safety programs.",
+      "Most residents are aware of security measures.",
+      "Information about safety services is well-distributed.",
+      "Community is well-informed about peace and order programs.",
+      "Awareness of safety initiatives is high."
+    ],
+    social: [
+      "Most people know about social services available.",
+      "Information about health programs is widespread.",
+      "Many are aware of social welfare assistance.",
+      "Community knows about available support services.",
+      "Social program awareness is generally good."
+    ],
+    business: [
+      "Many don't know about business support programs.",
+      "Information about permits and clearances is unclear.",
+      "Business owners need more guidance on requirements.",
+      "Awareness of business assistance is low.",
+      "Better information dissemination for entrepreneurs needed."
+    ],
+    environmental: [
+      "People know about environmental programs but participation is low.",
+      "Awareness of waste management rules is moderate.",
+      "More education about environmental protection needed.",
+      "Community knows about recycling but needs encouragement.",
+      "Environmental awareness campaigns should continue."
+    ]
   };
-
-  return Object.keys(quotes).length > 0 ? quotes : defaultQuotes[serviceArea] || {};
+  
+  const availmentQuotes: { [key: string]: string[] } = {
+    financial: [
+      "The application process is too complicated and takes too long.",
+      "Access to financial assistance is difficult.",
+      "Processing of applications needs improvement.",
+      "Too many requirements for simple transactions.",
+      "Service delivery should be faster and easier."
+    ],
+    disaster: [
+      "Emergency response is slow and not well-coordinated.",
+      "Access to evacuation centers needs improvement.",
+      "Emergency supplies are insufficient.",
+      "Response time during disasters is too long.",
+      "Better coordination with emergency services needed."
+    ],
+    safety: [
+      "Police response is usually quick when called.",
+      "Security services are accessible to residents.",
+      "Tanods are visible and responsive.",
+      "Safety services are generally available.",
+      "Response to security concerns is adequate."
+    ],
+    social: [
+      "Services are available but sometimes hard to access.",
+      "Health center hours should be extended.",
+      "Access to social programs needs simplification.",
+      "Service delivery could be more efficient.",
+      "Some residents find it difficult to avail services."
+    ],
+    business: [
+      "Permit process is too slow and expensive.",
+      "Business clearance takes too long to process.",
+      "Too many steps in the application process.",
+      "Fees are high for small businesses.",
+      "Processing time should be reduced."
+    ],
+    environmental: [
+      "Waste collection is irregular and unreliable.",
+      "Garbage collection schedule is inconsistent.",
+      "Access to recycling facilities is limited.",
+      "Waste management services need improvement.",
+      "Collection frequency should be increased."
+    ]
+  };
+  
+  const satisfactionQuotes: { [key: string]: string[] } = {
+    financial: [
+      "Good service, but more funding is needed for programs.",
+      "Staff are helpful but resources are limited.",
+      "Service quality is acceptable but can improve.",
+      "Programs are beneficial but need expansion.",
+      "Overall satisfied but more support needed."
+    ],
+    disaster: [
+      "Response was good but we need better equipment.",
+      "Emergency services are adequate but need upgrading.",
+      "Disaster response is satisfactory but can be better.",
+      "Preparedness is okay but needs more resources.",
+      "Overall response is acceptable with room for improvement."
+    ],
+    safety: [
+      "Security is okay but needs improvement in some areas.",
+      "Safety services are satisfactory but not excellent.",
+      "Peace and order is maintained but can be better.",
+      "Security measures are adequate but need enhancement.",
+      "Overall safety is good but requires more attention."
+    ],
+    social: [
+      "Good programs but need more resources and staff.",
+      "Services are helpful but capacity is limited.",
+      "Social programs are beneficial but need expansion.",
+      "Quality is good but accessibility needs improvement.",
+      "Overall satisfied but more support is needed."
+    ],
+    business: [
+      "Service needs major improvement to help local businesses.",
+      "Business support is minimal and needs enhancement.",
+      "Permit services are slow and need modernization.",
+      "More assistance needed for entrepreneurs.",
+      "Business environment needs significant improvement."
+    ],
+    environmental: [
+      "Environmental services exist but need better implementation.",
+      "Waste management is functional but needs upgrading.",
+      "Programs are in place but enforcement is weak.",
+      "Services are available but quality varies.",
+      "Overall environmental management needs improvement."
+    ]
+  };
+  
+  const awareness = scores.awareness || 0;
+  const availment = scores.availment || 0;
+  const satisfaction = scores.satisfaction || 0;
+  
+  const awarenessPool = awarenessQuotes[serviceArea] || awarenessQuotes.financial;
+  const availmentPool = availmentQuotes[serviceArea] || availmentQuotes.financial;
+  const satisfactionPool = satisfactionQuotes[serviceArea] || satisfactionQuotes.financial;
+  
+  const awarenessIndex = Math.floor(awareness / 100 * awarenessPool.length) % awarenessPool.length;
+  const availmentIndex = Math.floor(availment / 100 * availmentPool.length) % availmentPool.length;
+  const satisfactionIndex = Math.floor(satisfaction / 100 * satisfactionPool.length) % satisfactionPool.length;
+  
+  return {
+    awareness: awarenessPool[awarenessIndex],
+    availment: availmentPool[availmentIndex],
+    satisfaction: satisfactionPool[satisfactionIndex]
+  };
 }
 
-function extractRecommendations(mlResults: any, serviceArea: string): any {
-  // Extract ML-generated recommendations
+function extractRecommendations(mlResults: any, serviceArea: string, scores: any): any {
+  // Extract ML-generated recommendations or use score-based selection
   const mlRecommendations = mlResults.recommendations?.[serviceArea] || {};
   
-  const defaultRecommendations: { [key: string]: any } = {
-    financial: {
-      shortTerm: ['Create information campaigns', 'Simplify application forms'],
-      mediumTerm: ['Train staff on customer service', 'Digitize application process'],
-      longTerm: ['Increase budget allocation', 'Establish satellite offices']
-    },
-    disaster: {
-      shortTerm: ['Install warning sirens', 'Conduct evacuation drills'],
-      mediumTerm: ['Build evacuation centers', 'Train emergency responders'],
-      longTerm: ['Establish disaster risk reduction office', 'Upgrade communication systems']
-    },
-    safety: {
-      shortTerm: ['Increase patrol frequency', 'Fix broken streetlights'],
-      mediumTerm: ['Install CCTV systems', 'Establish neighborhood watch'],
-      longTerm: ['Build police outpost', 'Upgrade security infrastructure']
-    },
-    social: {
-      shortTerm: ['Extend service hours', 'Add mobile health services'],
-      mediumTerm: ['Hire additional staff', 'Expand program coverage'],
-      longTerm: ['Build health center', 'Establish scholarship fund']
-    },
-    business: {
-      shortTerm: ['Launch business awareness campaign', 'Simplify permit forms'],
-      mediumTerm: ['Establish one-stop shop', 'Reduce processing time'],
-      longTerm: ['Create business incubation center', 'Develop MSME support programs']
-    },
-    environmental: {
-      shortTerm: ['Improve waste collection schedule', 'Launch recycling campaign'],
-      mediumTerm: ['Add collection vehicles', 'Establish recycling center'],
-      longTerm: ['Build waste treatment facility', 'Implement comprehensive environmental program']
-    }
+  if (Object.keys(mlRecommendations).length > 0) {
+    return mlRecommendations;
+  }
+  
+  // Use score-based selection for deterministic recommendations
+  const awareness = scores.awareness || 0;
+  const availment = scores.availment || 0;
+  const satisfaction = scores.satisfaction || 0;
+  const needAction = scores.need_action || 0;
+  
+  // Identify bottleneck
+  let bottleneck = 'satisfaction';
+  if (awareness < availment && awareness < satisfaction) {
+    bottleneck = 'awareness';
+  } else if (availment < satisfaction) {
+    bottleneck = 'availment';
+  }
+  
+  // Short-term recommendations based on bottleneck
+  const shortTermOptions: { [key: string]: string[] } = {
+    awareness: [
+      'Launch information campaign through barangay announcements',
+      'Distribute flyers and posters in high-traffic areas',
+      'Conduct house-to-house information drives',
+      'Use social media to promote available services',
+      'Hold community assemblies to explain programs',
+      'Create infographics for easy understanding'
+    ],
+    availment: [
+      'Simplify application and registration processes',
+      'Extend service hours to accommodate more residents',
+      'Set up mobile service points in different sitios',
+      'Reduce documentary requirements for applications',
+      'Provide assistance desks for application help',
+      'Implement online application systems'
+    ],
+    satisfaction: [
+      'Gather detailed feedback from service users',
+      'Address immediate service quality issues',
+      'Improve staff training and customer service',
+      'Upgrade facilities and equipment',
+      'Reduce waiting times and processing delays',
+      'Establish complaint resolution mechanisms'
+    ]
   };
-
-  return Object.keys(mlRecommendations).length > 0 ? mlRecommendations : defaultRecommendations[serviceArea] || {};
+  
+  // Medium-term recommendations
+  const mediumTermOptions = needAction > 50 ? [
+    'Allocate additional budget for service improvements',
+    'Upgrade facilities and equipment',
+    'Hire additional staff or volunteers',
+    'Develop comprehensive training programs',
+    'Establish partnerships with NGOs and agencies',
+    'Create service quality monitoring systems'
+  ] : [
+    'Establish regular monitoring and feedback mechanisms',
+    'Create service quality standards and benchmarks',
+    'Develop partnerships with NGOs and other agencies',
+    'Implement continuous improvement processes',
+    'Build community engagement programs',
+    'Strengthen coordination with other departments'
+  ];
+  
+  // Long-term recommendations
+  const longTermOptions = [
+    'Integrate digital solutions for service delivery',
+    'Develop comprehensive service improvement plan',
+    'Build sustainable funding mechanisms for service continuity',
+    'Establish innovation and modernization programs',
+    'Create long-term capacity building initiatives',
+    'Develop strategic partnerships for sustainability'
+  ];
+  
+  // Use deterministic selection based on scores
+  const shortTermPool = shortTermOptions[bottleneck] || shortTermOptions.satisfaction;
+  const scoreBasedIndex = Math.floor((awareness + availment + satisfaction) / 100 * shortTermPool.length) % shortTermPool.length;
+  
+  const mediumIndex = Math.floor((satisfaction + needAction) / 100 * mediumTermOptions.length) % mediumTermOptions.length;
+  const longIndex = Math.floor((awareness + availment + satisfaction + needAction) / 200 * longTermOptions.length) % longTermOptions.length;
+  
+  return {
+    shortTerm: [
+      shortTermPool[scoreBasedIndex],
+      shortTermPool[(scoreBasedIndex + 1) % shortTermPool.length]
+    ],
+    mediumTerm: [
+      mediumTermOptions[mediumIndex],
+      mediumTermOptions[(mediumIndex + 1) % mediumTermOptions.length]
+    ],
+    longTerm: [
+      longTermOptions[longIndex],
+      longTermOptions[(longIndex + 1) % longTermOptions.length]
+    ]
+  };
 }
 
 function calculateTrend(mlResults: any, serviceArea: string): any {

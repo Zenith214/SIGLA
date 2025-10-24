@@ -130,3 +130,116 @@ Services are classified into the Action Grid quadrants based on satisfaction and
 - **Opportunities**: High satisfaction, high need for action
 - **Monitor**: Low satisfaction, low need for action
 - **Fix Now**: Low satisfaction, high need for action
+## Fa
+stAPI Server
+
+The ML module now includes a FastAPI server for real-time API access:
+
+### Starting the Server
+
+```bash
+# Option 1: Using the start script
+python start_server.py
+
+# Option 2: Direct uvicorn command
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The server will be available at:
+- API: http://localhost:8000
+- Documentation: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
+
+### API Endpoints
+
+#### Community Voice Analysis
+Analyze survey comments to extract community insights and themes:
+
+```bash
+POST /analyze-community-voice
+{
+  "comments": ["Great service!", "Needs improvement", "Very helpful staff"],
+  "barangay_id": 1  // optional
+}
+```
+
+Response includes:
+- Theme analysis (service quality, accessibility, process, etc.)
+- Sentiment categorization (positive, negative, neutral)
+- Actionable insights with priority levels
+- Sample representative comments
+
+#### Service Performance Prediction
+```bash
+POST /predict-service-performance
+{
+  "barangay_id": 1,
+  "service_data": {...}
+}
+```
+
+#### Model Metrics
+```bash
+GET /model-metrics
+```
+
+#### Feature Importance
+```bash
+GET /feature-importance
+```
+
+## Community Voice Analysis
+
+The ML module includes advanced text analysis capabilities for survey comments:
+
+### Features
+- **Theme Extraction**: Identifies key themes like service quality, accessibility, process efficiency
+- **Sentiment Analysis**: Categorizes feedback as positive, negative, or neutral
+- **Insight Generation**: Provides actionable insights with priority levels
+- **Multi-language Support**: Basic text cleaning and preprocessing
+
+### Usage Example
+
+```python
+from sigla_ml.api import SiglaMLAPI
+
+# Initialize the API
+ml_api = SiglaMLAPI()
+
+# Analyze community comments
+comments = [
+    "The service quality is excellent and staff are helpful",
+    "It's too far from our location and hard to access",
+    "The process is complicated and takes too long"
+]
+
+analysis = ml_api.analyze_community_voice(
+    comments=comments,
+    barangay_id=1
+)
+
+print(f"Themes: {analysis['themes']['top_themes']}")
+print(f"Sentiment: {analysis['categories']['percentages']}")
+print(f"Insights: {len(analysis['insights'])} generated")
+```
+
+## Testing
+
+Test the community voice analysis functionality:
+
+```bash
+python test_community_voice.py
+```
+
+## Integration with Next.js Frontend
+
+The ML service integrates with the SIGLA frontend through:
+
+1. **Community Voice API**: `/api/community-voice` endpoint
+2. **Real-time Analysis**: Frontend calls Next.js API, which communicates with FastAPI ML service
+3. **Tools Interface**: Available in the Tools page for testing and analysis
+
+### Frontend Integration Flow
+```
+Frontend (Tools Page) → Next.js API (/api/community-voice) → FastAPI ML Service (port 8000) → Analysis Results
+```

@@ -22,32 +22,58 @@ export function SurveyTargets() {
   const [editingTarget, setEditingTarget] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<any | null>(null)
-  const { addToast } = useToast()
+  const { toast } = useToast()
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   useEffect(() => {
+    if (!hasActiveCycle || !activeCycle) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     Promise.all([
       fetch("/api/survey-targets").then(r => r.json()),
+      fetch(`/api/cycle-awards?cycle_id=${activeCycle.cycle_id}`).then(r => r.json()),
       fetch("/api/barangays").then(r => r.json()),
     ])
-      .then(([targetsData, barangaysData]) => {
+      .then(([targetsData, awardsResponse, barangaysData]) => {
         setTargets(targetsData)
-        // Handle both old array format and new object format
+        
+        // Get all barangays data
+        let allBarangays: any[] = []
         if (Array.isArray(barangaysData)) {
-          setBarangays(barangaysData)
+          allBarangays = barangaysData
         } else if (barangaysData?.data && Array.isArray(barangaysData.data)) {
-          setBarangays(barangaysData.data)
-        } else {
-          setBarangays([])
+          allBarangays = barangaysData.data
         }
+        
+        // Extract awards data from response
+        const awardsData = awardsResponse?.data || awardsResponse || []
+        
+        // Get barangay IDs that have awards in the active cycle
+        const awardedBarangayIds = new Set(
+          Array.isArray(awardsData) ? awardsData.map((award: any) => award.barangay_id) : []
+        )
+        
+        // Get barangay IDs that already have targets
+        const targetedBarangayIds = new Set(
+          Array.isArray(targetsData) ? targetsData.map((target: any) => target.barangay_id) : []
+        )
+        
+        // Filter barangays: include those with awards OR those that already have targets
+        const filteredBarangays = allBarangays.filter((b: any) => 
+          awardedBarangayIds.has(b.id) || targetedBarangayIds.has(b.id)
+        )
+        
+        setBarangays(filteredBarangays)
         setLoading(false)
       })
       .catch((err) => {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [hasActiveCycle, activeCycle])
 
   // Add Target
   const handleAddChange = (e: any) => {
@@ -67,18 +93,15 @@ export function SurveyTargets() {
       setTargets([...targets, created])
       setAddModal(false)
       setAddForm({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
-      addToast({
-        type: "success",
+      toast({
         title: "Survey Target Added!",
         description: "New survey target has been created successfully.",
-        duration: 4000
       });
     } catch (err: any) {
-      addToast({
-        type: "error",
+      toast({
         title: "Add Target Failed",
         description: err.message || "An unexpected error occurred while adding the survey target.",
-        duration: 6000
+        variant: "destructive"
       });
     } finally {
       setSaving(false)
@@ -107,18 +130,15 @@ export function SurveyTargets() {
       setTargets(targets.map(t => (t.target_id === updated.target_id ? updated : t)))
       setEditingTarget(null)
       setEditForm(null)
-      addToast({
-        type: "success",
+      toast({
         title: "Survey Target Updated!",
         description: "Survey target has been updated successfully.",
-        duration: 4000
       });
     } catch (err: any) {
-      addToast({
-        type: "error",
+      toast({
         title: "Update Failed",
         description: err.message || "An unexpected error occurred while updating the survey target.",
-        duration: 6000
+        variant: "destructive"
       });
     } finally {
       setSaving(false)
@@ -139,18 +159,15 @@ export function SurveyTargets() {
       if (!res.ok) throw new Error("Failed to delete target")
       setTargets(targets.filter(t => t.target_id !== deletingTarget.target_id))
       setDeletingTarget(null)
-      addToast({
-        type: "success",
+      toast({
         title: "Survey Target Deleted",
         description: "Survey target has been deleted successfully.",
-        duration: 4000
       });
     } catch (err: any) {
-      addToast({
-        type: "error",
+      toast({
         title: "Delete Failed",
         description: err.message || "An unexpected error occurred while deleting the survey target.",
-        duration: 6000
+        variant: "destructive"
       });
     } finally {
       setSaving(false)

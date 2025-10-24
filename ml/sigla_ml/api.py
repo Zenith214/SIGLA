@@ -7,10 +7,13 @@ import logging
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Union
+from collections import Counter
+import re
 
 from .data_extraction import DataExtractor
 from .feature_engineering import FeatureEngineer
 from .random_forest import RandomForestModel
+from .ml_pipeline import BarangayMLPipeline
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -27,6 +30,7 @@ class SiglaMLAPI:
         self.data_extractor = DataExtractor()
         self.feature_engineer = FeatureEngineer()
         self.model = None
+        self.pipeline = BarangayMLPipeline()
         
         if model_path and os.path.exists(model_path):
             self.model = RandomForestModel()
@@ -509,3 +513,141 @@ class SiglaMLAPI:
         except Exception as e:
             logger.warning(f"Failed to save model metadata to database: {str(e)}")
             return {'filepath': filepath, 'error': str(e)}
+    
+    def analyze_community_voice(self, comments: List[str], barangay_id: Optional[int] = None) -> Dict:
+        """Analyze survey comments to extract community voice insights."""
+        try:
+            if not comments:
+                return {'error': 'No comments provided'}
+            
+            # Clean and preprocess comments
+            cleaned_comments = []
+            for comment in comments:
+                if comment and isinstance(comment, str):
+                    # Basic text cleaning
+                    clean_comment = re.sub(r'[^\w\s]', '', comment.lower().strip())
+                    if len(clean_comment) > 3:  # Filter out very short comments
+                        cleaned_comments.append(clean_comment)
+            
+            if not cleaned_comments:
+                return {'error': 'No valid comments after cleaning'}
+            
+            # Extract key themes using simple keyword analysis
+            themes = self._extract_themes(cleaned_comments)
+            
+            # Categorize feedback
+            categories = self._categorize_feedback(cleaned_comments)
+            
+            # Generate insights
+            insights = self._generate_insights(cleaned_comments, themes, categories)
+            
+            return {
+                'barangay_id': barangay_id,
+                'total_comments': len(comments),
+                'processed_comments': len(cleaned_comments),
+                'themes': themes,
+                'categories': categories,
+                'insights': insights,
+                'sample_comments': cleaned_comments[:3]  # First 3 for preview
+            }
+            
+        except Exception as e:
+            logger.error(f"Error analyzing community voice: {str(e)}")
+            return {'error': str(e)}
+    
+    def _extract_themes(self, comments: List[str]) -> Dict:
+        """Extract common themes from comments."""
+        # Define theme keywords
+        theme_keywords = {
+            'service_quality': ['quality', 'good', 'bad', 'excellent', 'poor', 'service', 'staff'],
+            'accessibility': ['access', 'far', 'near', 'location', 'transport', 'reach', 'available'],
+            'process': ['process', 'procedure', 'steps', 'complicated', 'easy', 'difficult', 'requirements'],
+            'facilities': ['facility', 'building', 'equipment', 'resources', 'infrastructure'],
+            'awareness': ['know', 'aware', 'information', 'inform', 'understand', 'explain'],
+            'time': ['time', 'fast', 'slow', 'quick', 'delay', 'wait', 'schedule']
+        }
+        
+        theme_counts = {theme: 0 for theme in theme_keywords}
+        
+        for comment in comments:
+            for theme, keywords in theme_keywords.items():
+                if any(keyword in comment for keyword in keywords):
+                    theme_counts[theme] += 1
+        
+        # Calculate percentages
+        total = len(comments)
+        theme_percentages = {theme: round((count / total) * 100, 1) for theme, count in theme_counts.items()}
+        
+        return {
+            'counts': theme_counts,
+            'percentages': theme_percentages,
+            'top_themes': sorted(theme_percentages.items(), key=lambda x: x[1], reverse=True)[:3]
+        }
+    
+    def _categorize_feedback(self, comments: List[str]) -> Dict:
+        """Categorize feedback into positive, negative, and neutral."""
+        positive_words = ['good', 'great', 'excellent', 'satisfied', 'happy', 'helpful', 'easy', 'fast']
+        negative_words = ['bad', 'poor', 'terrible', 'difficult', 'slow', 'complicated', 'problem', 'issue']
+        
+        categories = {'positive': 0, 'negative': 0, 'neutral': 0}
+        
+        for comment in comments:
+            positive_score = sum(1 for word in positive_words if word in comment)
+            negative_score = sum(1 for word in negative_words if word in comment)
+            
+            if positive_score > negative_score:
+                categories['positive'] += 1
+            elif negative_score > positive_score:
+                categories['negative'] += 1
+            else:
+                categories['neutral'] += 1
+        
+        total = len(comments)
+        percentages = {cat: round((count / total) * 100, 1) for cat, count in categories.items()}
+        
+        return {
+            'counts': categories,
+            'percentages': percentages
+        }
+    
+    def _generate_insights(self, comments: List[str], themes: Dict, categories: Dict) -> List[Dict]:
+        """Generate actionable insights from the analysis."""
+        insights = []
+        
+        # Top theme insight
+        if themes['top_themes']:
+            top_theme = themes['top_themes'][0]
+            insights.append({
+                'type': 'theme',
+                'title': f"Primary Concern: {top_theme[0].replace('_', ' ').title()}",
+                'description': f"{top_theme[1]}% of comments relate to {top_theme[0].replace('_', ' ')}",
+                'priority': 'high' if top_theme[1] > 30 else 'medium'
+            })
+        
+        # Sentiment insight
+        sentiment_data = categories['percentages']
+        if sentiment_data['negative'] > 40:
+            insights.append({
+                'type': 'sentiment',
+                'title': 'High Negative Feedback',
+                'description': f"{sentiment_data['negative']}% of feedback is negative, indicating areas for improvement",
+                'priority': 'high'
+            })
+        elif sentiment_data['positive'] > 60:
+            insights.append({
+                'type': 'sentiment',
+                'title': 'Positive Community Response',
+                'description': f"{sentiment_data['positive']}% of feedback is positive, showing good service delivery",
+                'priority': 'low'
+            })
+        
+        # Sample representative comments
+        if len(comments) >= 3:
+            insights.append({
+                'type': 'sample',
+                'title': 'Representative Feedback',
+                'description': 'Sample comments from the community',
+                'comments': comments[:3]
+            })
+        
+        return insights

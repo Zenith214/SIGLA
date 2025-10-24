@@ -146,6 +146,8 @@ function ReportCardContent() {
     }
   }, [searchParams]);
 
+  const [communityVoiceData, setCommunityVoiceData] = useState<any>(null);
+
   const fetchDetailedAnalytics = async (barangayId: string) => {
     try {
       // First try to get ML-enhanced funnel analysis
@@ -164,18 +166,26 @@ function ReportCardContent() {
         }
       }
 
+      // Get community voice analysis
+      const communityVoiceResponse = await fetch(`/api/community-voice?barangayId=${barangayId}`);
+      if (communityVoiceResponse.ok) {
+        const cvData = await communityVoiceResponse.json();
+        console.log('Community voice data:', cvData);
+        if (cvData.success && cvData.data) {
+          setCommunityVoiceData(cvData.data);
+        }
+      }
+
       // Get detailed survey analytics
       const response = await fetch(`/api/survey-analytics?format=detailed&barangayId=${barangayId}`);
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data.detailed);
 
-        // Extract common needs from survey responses if not already processed by ML
-        if (data.detailed.responses && Object.keys(funnelData || {}).length === 0) {
-          extractCommonNeeds(data.detailed.responses);
-          generateFunnelData(data.detailed.responses);
-          generateTrendsData();
-        }
+        // Only generate fallback data if we don't have funnel data from API
+        // Check if funnelData state is empty (not the variable from fetch)
+        // Since we already processed funnel data above, we don't need this fallback
+        console.log('Survey analytics loaded, funnel data already processed from API');
       }
     } catch (error) {
       console.error('Failed to fetch detailed analytics:', error);
@@ -186,14 +196,22 @@ function ReportCardContent() {
 
   const processFunnelData = (funnelData: any) => {
     // Process ML-enhanced funnel data
+    console.log('🔍 Processing funnel data:', funnelData);
+    console.log('🔍 Service scores:', funnelData.service_scores);
+    
     const processedFunnel: any = {};
     const processedTrends: any = {};
 
     Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
+      console.log(`🔍 Processing ${serviceKey}:`, scores);
+      console.log(`  - Concerns:`, scores.concerns);
+      console.log(`  - Quotes:`, scores.quotes);
+      console.log(`  - Recommendations:`, scores.recommendations);
+      
       processedFunnel[serviceKey] = {
-        awareness: scores.awareness || 0,
-        availment: scores.availment || 0,
-        satisfaction: scores.satisfaction || 0,
+        awareness: scores.awareness_score || scores.awareness || 0,
+        availment: scores.availment_score || scores.availment || 0,
+        satisfaction: scores.satisfaction_score || scores.satisfaction || 0,
         total: funnelData.total_responses || 100,
         concerns: scores.concerns || [],
         quotes: scores.quotes || {},
@@ -224,9 +242,9 @@ function ReportCardContent() {
   };
 
   const processBasicFunnelData = (funnelData: any) => {
-    // Process basic funnel data (fallback)
-    console.log('Processing basic funnel data as fallback');
-    generateTrendsData();
+    // Process basic funnel data (same as ML-enhanced, just without ML flag)
+    console.log('Processing basic funnel data');
+    processFunnelData(funnelData);
   };
 
   const extractCommonNeeds = (responses: any[]) => {
@@ -338,137 +356,9 @@ function ReportCardContent() {
   };
 
   const generateFunnelData = (responses: any[]) => {
-    const funnelByArea: any = {
-      financial: { awareness: 0, availment: 0, satisfaction: 0, total: 0 },
-      disaster: { awareness: 0, availment: 0, satisfaction: 0, total: 0 },
-      safety: { awareness: 0, availment: 0, satisfaction: 0, total: 0 },
-      social: { awareness: 0, availment: 0, satisfaction: 0, total: 0 },
-      business: { awareness: 0, availment: 0, satisfaction: 0, total: 0 },
-      environmental: { awareness: 0, availment: 0, satisfaction: 0, total: 0 }
-    };
-
-    // Count unique respondents (not section records)
-    const uniqueRespondents = [...new Set(responses.map(r => r.responseId))].length;
-
-    // Sample funnel data based on typical patterns
-    const sampleFunnelData = {
-      financial: {
-        awareness: 85, availment: 45, satisfaction: 72, total: uniqueRespondents || 100,
-        concerns: [
-          'Budget transparency needs improvement',
-          'Slow processing of financial assistance',
-          'Limited information about available programs'
-        ],
-        quotes: {
-          awareness: "I didn't know about the financial assistance programs available.",
-          availment: "The application process is too complicated and takes too long.",
-          satisfaction: "Good service, but more funding is needed for programs."
-        },
-        bottleneck: 'availment',
-        recommendations: {
-          shortTerm: ['Create information campaigns', 'Simplify application forms'],
-          mediumTerm: ['Train staff on customer service', 'Digitize application process'],
-          longTerm: ['Increase budget allocation', 'Establish satellite offices']
-        }
-      },
-      disaster: {
-        awareness: 78, availment: 35, satisfaction: 64, total: uniqueRespondents || 100,
-        concerns: [
-          'Need early warning systems',
-          'Insufficient evacuation centers',
-          'Lack of emergency supplies'
-        ],
-        quotes: {
-          awareness: "We need more information about disaster preparedness programs.",
-          availment: "Emergency response is slow and not well-coordinated.",
-          satisfaction: "Response was good but we need better equipment."
-        },
-        bottleneck: 'availment',
-        recommendations: {
-          shortTerm: ['Install warning sirens', 'Conduct evacuation drills'],
-          mediumTerm: ['Build evacuation centers', 'Train emergency responders'],
-          longTerm: ['Establish disaster risk reduction office', 'Upgrade communication systems']
-        }
-      },
-      safety: {
-        awareness: 92, availment: 68, satisfaction: 59, total: uniqueRespondents || 100,
-        concerns: [
-          'Poor street lighting',
-          'Need more police patrols',
-          'Install CCTV cameras'
-        ],
-        quotes: {
-          awareness: "Everyone knows about the safety programs.",
-          availment: "Police response is usually quick when called.",
-          satisfaction: "Security is okay but needs improvement in some areas."
-        },
-        bottleneck: 'satisfaction',
-        recommendations: {
-          shortTerm: ['Increase patrol frequency', 'Fix broken streetlights'],
-          mediumTerm: ['Install CCTV systems', 'Establish neighborhood watch'],
-          longTerm: ['Build police outpost', 'Upgrade security infrastructure']
-        }
-      },
-      social: {
-        awareness: 88, availment: 52, satisfaction: 71, total: uniqueRespondents || 100,
-        concerns: [
-          'Need more healthcare services',
-          'Educational support programs',
-          'Senior citizen assistance'
-        ],
-        quotes: {
-          awareness: "Most people know about social services available.",
-          availment: "Services are available but sometimes hard to access.",
-          satisfaction: "Good programs but need more resources and staff."
-        },
-        bottleneck: 'availment',
-        recommendations: {
-          shortTerm: ['Extend service hours', 'Add mobile health services'],
-          mediumTerm: ['Hire additional staff', 'Expand program coverage'],
-          longTerm: ['Build health center', 'Establish scholarship fund']
-        }
-      },
-      business: {
-        awareness: 65, availment: 28, satisfaction: 47, total: uniqueRespondents || 100,
-        concerns: [
-          'Complicated permit processes',
-          'High fees and requirements',
-          'Lack of business support programs'
-        ],
-        quotes: {
-          awareness: "Many don't know about business support programs.",
-          availment: "Permit process is too slow and expensive.",
-          satisfaction: "Service needs major improvement to help local businesses."
-        },
-        bottleneck: 'awareness',
-        recommendations: {
-          shortTerm: ['Launch business awareness campaign', 'Simplify permit forms'],
-          mediumTerm: ['Establish one-stop shop', 'Reduce processing time'],
-          longTerm: ['Create business incubation center', 'Develop MSME support programs']
-        }
-      },
-      environmental: {
-        awareness: 82, availment: 41, satisfaction: 58, total: uniqueRespondents || 100,
-        concerns: [
-          'Poor waste collection',
-          'Need more recycling programs',
-          'Water quality issues'
-        ],
-        quotes: {
-          awareness: "People know about environmental programs but participation is low.",
-          availment: "Waste collection is irregular and unreliable.",
-          satisfaction: "Environmental services exist but need better implementation."
-        },
-        bottleneck: 'availment',
-        recommendations: {
-          shortTerm: ['Improve waste collection schedule', 'Launch recycling campaign'],
-          mediumTerm: ['Add collection vehicles', 'Establish recycling center'],
-          longTerm: ['Build waste treatment facility', 'Implement comprehensive environmental program']
-        }
-      }
-    };
-
-    setFunnelData(sampleFunnelData);
+    // No longer using hardcoded data - funnel data should come from API
+    console.log('No funnel data available from API - service drill-down will show "no data" message');
+    setFunnelData({});
   };
 
   const generateTrendsData = () => {
@@ -964,40 +854,94 @@ function ReportCardContent() {
                     <span className="print:hidden">Community Voice</span>
                   </div>
                   <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 print:hidden">
-                    📊 Baseline Survey - No Historical Comparison Available
+                    {communityVoiceData ? `${communityVoiceData.total_comments} comments analyzed` : 'Loading...'}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                    <h4 className="font-semibold text-blue-800 mb-2">Awareness Issues</h4>
-                    <p className="text-sm italic text-blue-700 mb-2">
-                      "I didn't know this program exists in our barangay."
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      Common among business and environmental services
-                    </p>
+                {loading ? (
+                  <div className="text-center py-8 text-gray-500">Loading community insights...</div>
+                ) : !communityVoiceData || communityVoiceData.total_comments === 0 ? (
+                  <div className="text-center py-8 text-gray-500">No community feedback available yet</div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Top Insights */}
+                    {communityVoiceData.insights && communityVoiceData.insights.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {communityVoiceData.insights.slice(0, 3).map((insight: any, index: number) => (
+                          <div 
+                            key={index} 
+                            className={`p-4 rounded-lg border-l-4 ${
+                              insight.priority === 'high' ? 'bg-red-50 border-red-400' :
+                              insight.priority === 'medium' ? 'bg-yellow-50 border-yellow-400' :
+                              'bg-blue-50 border-blue-400'
+                            }`}
+                          >
+                            <h4 className={`font-semibold mb-2 ${
+                              insight.priority === 'high' ? 'text-red-800' :
+                              insight.priority === 'medium' ? 'text-yellow-800' :
+                              'text-blue-800'
+                            }`}>
+                              {insight.title}
+                            </h4>
+                            <p className={`text-sm mb-2 ${
+                              insight.priority === 'high' ? 'text-red-700' :
+                              insight.priority === 'medium' ? 'text-yellow-700' :
+                              'text-blue-700'
+                            }`}>
+                              {insight.description}
+                            </p>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              insight.priority === 'high' ? 'bg-red-100 text-red-600' :
+                              insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                              'bg-blue-100 text-blue-600'
+                            }`}>
+                              {insight.priority} priority
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Sentiment Distribution */}
+                    {communityVoiceData.categories && (
+                      <div className="grid grid-cols-3 gap-4 mt-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-3xl font-bold text-green-600">
+                            {communityVoiceData.categories.percentages?.positive || 0}%
+                          </div>
+                          <div className="text-sm text-green-700">Positive Feedback</div>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-lg">
+                          <div className="text-3xl font-bold text-gray-600">
+                            {communityVoiceData.categories.percentages?.neutral || 0}%
+                          </div>
+                          <div className="text-sm text-gray-700">Neutral Feedback</div>
+                        </div>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <div className="text-3xl font-bold text-red-600">
+                            {communityVoiceData.categories.percentages?.negative || 0}%
+                          </div>
+                          <div className="text-sm text-red-700">Negative Feedback</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sample Comments */}
+                    {communityVoiceData.sample_comments && communityVoiceData.sample_comments.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">Sample Community Feedback:</h4>
+                        <div className="space-y-2">
+                          {communityVoiceData.sample_comments.slice(0, 3).map((comment: string, index: number) => (
+                            <div key={index} className="p-3 bg-gray-50 rounded-lg border-l-2 border-gray-300">
+                              <p className="text-sm italic text-gray-700">"{comment}"</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-                    <h4 className="font-semibold text-green-800 mb-2">Access Challenges</h4>
-                    <p className="text-sm italic text-green-700 mb-2">
-                      "The application process is too complicated and takes too long."
-                    </p>
-                    <p className="text-xs text-green-600">
-                      Frequent feedback across multiple service areas
-                    </p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-400">
-                    <h4 className="font-semibold text-purple-800 mb-2">Service Quality</h4>
-                    <p className="text-sm italic text-purple-700 mb-2">
-                      "Good service, but it needs more resources and better facilities."
-                    </p>
-                    <p className="text-xs text-purple-600">
-                      Most common satisfaction-related feedback
-                    </p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1246,74 +1190,116 @@ function ReportCardContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Top 3 Citizen Concerns</h3>
-                    <div className="space-y-2">
-                      {selectedServiceArea.funnel?.concerns?.map((concern: string, index: number) => (
-                        <div key={index} className="flex items-start gap-2 p-3 bg-gray-50 rounded">
-                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">{index + 1}</span>
-                          <span className="text-sm">{concern}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {selectedServiceArea.funnel?.concerns && selectedServiceArea.funnel.concerns.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedServiceArea.funnel.concerns.map((concern: string, index: number) => (
+                          <div key={index} className="flex items-start gap-2 p-3 bg-gray-50 rounded">
+                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">{index + 1}</span>
+                            <span className="text-sm">{concern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded text-center text-gray-500">
+                        <p className="text-sm">No citizen concerns data available yet.</p>
+                        <p className="text-xs mt-1">Data will appear once survey responses are collected and analyzed.</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Resident Voice */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Resident Voice</h3>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-400">
-                        <div className="text-xs font-medium text-blue-600 mb-1">AWARENESS STAGE</div>
-                        <p className="text-sm italic">"{selectedServiceArea.funnel?.quotes?.awareness}"</p>
+                    {selectedServiceArea.funnel?.quotes && Object.keys(selectedServiceArea.funnel.quotes).length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedServiceArea.funnel.quotes.awareness && (
+                          <div className="p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                            <div className="text-xs font-medium text-blue-600 mb-1">AWARENESS STAGE</div>
+                            <p className="text-sm italic">"{selectedServiceArea.funnel.quotes.awareness}"</p>
+                          </div>
+                        )}
+                        {selectedServiceArea.funnel.quotes.availment && (
+                          <div className="p-3 bg-green-50 rounded border-l-4 border-green-400">
+                            <div className="text-xs font-medium text-green-600 mb-1">AVAILMENT STAGE</div>
+                            <p className="text-sm italic">"{selectedServiceArea.funnel.quotes.availment}"</p>
+                          </div>
+                        )}
+                        {selectedServiceArea.funnel.quotes.satisfaction && (
+                          <div className="p-3 bg-purple-50 rounded border-l-4 border-purple-400">
+                            <div className="text-xs font-medium text-purple-600 mb-1">SATISFACTION STAGE</div>
+                            <p className="text-sm italic">"{selectedServiceArea.funnel.quotes.satisfaction}"</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-3 bg-green-50 rounded border-l-4 border-green-400">
-                        <div className="text-xs font-medium text-green-600 mb-1">AVAILMENT STAGE</div>
-                        <p className="text-sm italic">"{selectedServiceArea.funnel?.quotes?.availment}"</p>
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded text-center text-gray-500">
+                        <p className="text-sm">No resident feedback available yet.</p>
+                        <p className="text-xs mt-1">Quotes from survey responses will appear here once data is collected.</p>
                       </div>
-                      <div className="p-3 bg-purple-50 rounded border-l-4 border-purple-400">
-                        <div className="text-xs font-medium text-purple-600 mb-1">SATISFACTION STAGE</div>
-                        <p className="text-sm italic">"{selectedServiceArea.funnel?.quotes?.satisfaction}"</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Action Recommendations */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">🎯 AI-Generated Action Roadmap</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <h4 className="font-semibold text-green-800 mb-2">Short-term (0-3 months)</h4>
-                      <ul className="space-y-1 text-sm">
-                        {selectedServiceArea.funnel?.recommendations?.shortTerm?.map((rec: string, index: number) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-green-600">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  {selectedServiceArea.funnel?.recommendations && 
+                   (selectedServiceArea.funnel.recommendations.shortTerm?.length > 0 || 
+                    selectedServiceArea.funnel.recommendations.mediumTerm?.length > 0 || 
+                    selectedServiceArea.funnel.recommendations.longTerm?.length > 0) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Short-term (0-3 months)</h4>
+                        {selectedServiceArea.funnel.recommendations.shortTerm?.length > 0 ? (
+                          <ul className="space-y-1 text-sm">
+                            {selectedServiceArea.funnel.recommendations.shortTerm.map((rec: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-green-600">•</span>
+                                <span>{rec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500">No recommendations yet</p>
+                        )}
+                      </div>
+                      <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h4 className="font-semibold text-yellow-800 mb-2">Medium-term (6-12 months)</h4>
+                        {selectedServiceArea.funnel.recommendations.mediumTerm?.length > 0 ? (
+                          <ul className="space-y-1 text-sm">
+                            {selectedServiceArea.funnel.recommendations.mediumTerm.map((rec: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-yellow-600">•</span>
+                                <span>{rec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500">No recommendations yet</p>
+                        )}
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-800 mb-2">Long-term (1+ year)</h4>
+                        {selectedServiceArea.funnel.recommendations.longTerm?.length > 0 ? (
+                          <ul className="space-y-1 text-sm">
+                            {selectedServiceArea.funnel.recommendations.longTerm.map((rec: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-blue-600">•</span>
+                                <span>{rec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-gray-500">No recommendations yet</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <h4 className="font-semibold text-yellow-800 mb-2">Medium-term (6-12 months)</h4>
-                      <ul className="space-y-1 text-sm">
-                        {selectedServiceArea.funnel?.recommendations?.mediumTerm?.map((rec: string, index: number) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-yellow-600">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  ) : (
+                    <div className="p-6 bg-gray-50 rounded text-center text-gray-500">
+                      <p className="text-sm">No action recommendations available yet.</p>
+                      <p className="text-xs mt-1">AI-generated recommendations will appear once sufficient survey data is collected and analyzed.</p>
                     </div>
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h4 className="font-semibold text-blue-800 mb-2">Long-term (1+ year)</h4>
-                      <ul className="space-y-1 text-sm">
-                        {selectedServiceArea.funnel?.recommendations?.longTerm?.map((rec: string, index: number) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-blue-600">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Export Options */}

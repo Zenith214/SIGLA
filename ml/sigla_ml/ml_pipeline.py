@@ -21,7 +21,11 @@ class BarangayMLPipeline:
             supabase_key (str): Supabase service role key
         """
         # Initialize components
-        self.data_extractor = DataExtractor(supabase_url, supabase_key)
+        supabase_config = {
+            'url': supabase_url,
+            'key': supabase_key
+        } if supabase_url and supabase_key else None
+        self.data_extractor = DataExtractor(supabase_config)
         self.feature_engineer = FeatureEngineer()
         self.model = None
         
