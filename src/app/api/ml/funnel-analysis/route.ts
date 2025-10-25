@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { supabaseAdmin } from '@/lib/supabase';
 
 const execAsync = promisify(exec);
 
@@ -9,10 +10,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
+    const cycleId = searchParams.get('cycleId');
+
+    console.log(`🚀 [ML FUNNEL] Request received - Barangay: ${barangayId}, Cycle: ${cycleId}`);
 
     if (!barangayId) {
       return NextResponse.json(
         { error: "barangayId parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!cycleId) {
+      console.log(`⚠️ [ML FUNNEL] Missing cycleId parameter`);
+      return NextResponse.json(
+        { error: "cycleId parameter is required" },
         { status: 400 }
       );
     }
@@ -22,7 +34,7 @@ export async function GET(request: NextRequest) {
     const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
 
     console.log(`Running ML analysis for barangay ${barangayId}...`);
-    
+
     const { stdout, stderr } = await execAsync(pythonCommand);
 
     if (stderr) {
@@ -42,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform ML results into funnel analysis format
-    const funnelAnalysis = transformMLToFunnelFormat(mlResults, parseInt(barangayId));
+    const funnelAnalysis = await transformMLToFunnelFormat(mlResults, parseInt(barangayId), parseInt(cycleId));
 
     return NextResponse.json(funnelAnalysis);
 
@@ -55,9 +67,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function transformMLToFunnelFormat(mlResults: any, barangayId: number) {
+async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cycleId: number) {
   const serviceAreas = ['financial', 'disaster', 'safety', 'social', 'business', 'environmental'];
-  
+
+  console.log(`📊 [ML FUNNEL] Overall satisfaction from ML results: ${mlResults.overall_satisfaction}`);
+
   const funnelData: any = {
     barangay_id: barangayId,
     total_responses: mlResults.total_responses || 0,
@@ -69,7 +83,11 @@ function transformMLToFunnelFormat(mlResults: any, barangayId: number) {
     data_quality: mlResults.data_quality || {}
   };
 
+  console.log(`📊 [ML FUNNEL] Funnel data overall_satisfaction: ${funnelData.overall_satisfaction}`);
+
   // Transform service scores from ML format to funnel format
+  const satisfactionScores: number[] = [];
+
   if (mlResults.service_scores) {
     Object.entries(mlResults.service_scores).forEach(([serviceKey, scores]: [string, any]) => {
       // Map ML service keys to our standard service areas
@@ -81,7 +99,10 @@ function transformMLToFunnelFormat(mlResults: any, barangayId: number) {
           satisfaction: scores.satisfaction_score || 0,
           need_action: scores.need_action_score || 0
         };
-        
+
+        // Collect satisfaction scores for overall calculation
+        satisfactionScores.push(serviceScores.satisfaction);
+
         funnelData.service_scores[mappedKey] = {
           ...serviceScores,
           sample_size: scores.sample_size || 0,
@@ -95,20 +116,29 @@ function transformMLToFunnelFormat(mlResults: any, barangayId: number) {
     });
   }
 
+  // Calculate overall satisfaction from service scores if not provided by ML
+  if (!funnelData.overall_satisfaction && satisfactionScores.length > 0) {
+    funnelData.overall_satisfaction = Math.round(
+      satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length
+    );
+    console.log(`📊 [ML FUNNEL] Calculated overall satisfaction from ${satisfactionScores.length} services: ${funnelData.overall_satisfaction}%`);
+  }
+
   // Transform action grid from ML format
   if (mlResults.action_grid) {
-    Object.entries(mlResults.action_grid).forEach(([serviceKey, grid]: [string, any]) => {
+    for (const [serviceKey, grid] of Object.entries(mlResults.action_grid)) {
       const mappedKey = mapServiceKey(serviceKey);
       if (mappedKey && serviceAreas.includes(mappedKey)) {
+        const trend = await calculateTrend(mlResults, mappedKey, barangayId, cycleId, funnelData.service_scores[mappedKey]);
         funnelData.action_grid[mappedKey] = {
-          quadrant: grid.quadrant || 'INSUFFICIENT_DATA',
-          satisfaction_score: grid.satisfaction_score || 0,
-          need_action_score: grid.need_action_score || 0,
-          confidence: grid.confidence || 'low',
-          trend: calculateTrend(mlResults, mappedKey)
+          quadrant: (grid as any).quadrant || 'INSUFFICIENT_DATA',
+          satisfaction_score: (grid as any).satisfaction_score || 0,
+          need_action_score: (grid as any).need_action_score || 0,
+          confidence: (grid as any).confidence || 'low',
+          trend: trend
         };
       }
-    });
+    }
   }
 
   return funnelData;
@@ -151,17 +181,17 @@ function identifyBottleneck(scores: any): string {
 function extractConcerns(mlResults: any, serviceArea: string, scores: any): string[] {
   // Extract concerns from ML insights
   const concerns = mlResults.insights?.[serviceArea]?.concerns || [];
-  
+
   if (concerns.length > 0) {
     return concerns.slice(0, 3);
   }
-  
+
   // Generate deterministic concerns based on service area and scores
   const serviceScores = mlResults.service_scores?.[serviceArea] || {};
   const awareness = serviceScores.awareness_score || 0;
   const availment = serviceScores.availment_score || 0;
   const satisfaction = serviceScores.satisfaction_score || 0;
-  
+
   // Use score-based selection for deterministic concerns
   const concernPools: { [key: string]: string[] } = {
     financial: [
@@ -213,10 +243,10 @@ function extractConcerns(mlResults: any, serviceArea: string, scores: any): stri
       'Better enforcement of environmental regulations'
     ]
   };
-  
+
   const pool = concernPools[serviceArea] || concernPools.financial;
   const scoreBasedIndex = Math.floor((awareness + availment + satisfaction) / 100 * pool.length) % pool.length;
-  
+
   return [
     pool[scoreBasedIndex],
     pool[(scoreBasedIndex + 1) % pool.length],
@@ -227,11 +257,11 @@ function extractConcerns(mlResults: any, serviceArea: string, scores: any): stri
 function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
   // Extract quotes from ML results or use score-based selection for deterministic quotes
   const quotes = mlResults.insights?.[serviceArea]?.quotes || {};
-  
+
   if (Object.keys(quotes).length > 0) {
     return quotes;
   }
-  
+
   // Use score-based selection for deterministic quotes
   const awarenessQuotes: { [key: string]: string[] } = {
     financial: [
@@ -277,7 +307,7 @@ function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
       "Environmental awareness campaigns should continue."
     ]
   };
-  
+
   const availmentQuotes: { [key: string]: string[] } = {
     financial: [
       "The application process is too complicated and takes too long.",
@@ -322,7 +352,7 @@ function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
       "Collection frequency should be increased."
     ]
   };
-  
+
   const satisfactionQuotes: { [key: string]: string[] } = {
     financial: [
       "Good service, but more funding is needed for programs.",
@@ -367,19 +397,19 @@ function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
       "Overall environmental management needs improvement."
     ]
   };
-  
+
   const awareness = scores.awareness || 0;
   const availment = scores.availment || 0;
   const satisfaction = scores.satisfaction || 0;
-  
+
   const awarenessPool = awarenessQuotes[serviceArea] || awarenessQuotes.financial;
   const availmentPool = availmentQuotes[serviceArea] || availmentQuotes.financial;
   const satisfactionPool = satisfactionQuotes[serviceArea] || satisfactionQuotes.financial;
-  
+
   const awarenessIndex = Math.floor(awareness / 100 * awarenessPool.length) % awarenessPool.length;
   const availmentIndex = Math.floor(availment / 100 * availmentPool.length) % availmentPool.length;
   const satisfactionIndex = Math.floor(satisfaction / 100 * satisfactionPool.length) % satisfactionPool.length;
-  
+
   return {
     awareness: awarenessPool[awarenessIndex],
     availment: availmentPool[availmentIndex],
@@ -390,17 +420,17 @@ function extractQuotes(mlResults: any, serviceArea: string, scores: any): any {
 function extractRecommendations(mlResults: any, serviceArea: string, scores: any): any {
   // Extract ML-generated recommendations or use score-based selection
   const mlRecommendations = mlResults.recommendations?.[serviceArea] || {};
-  
+
   if (Object.keys(mlRecommendations).length > 0) {
     return mlRecommendations;
   }
-  
+
   // Use score-based selection for deterministic recommendations
   const awareness = scores.awareness || 0;
   const availment = scores.availment || 0;
   const satisfaction = scores.satisfaction || 0;
   const needAction = scores.need_action || 0;
-  
+
   // Identify bottleneck
   let bottleneck = 'satisfaction';
   if (awareness < availment && awareness < satisfaction) {
@@ -408,7 +438,7 @@ function extractRecommendations(mlResults: any, serviceArea: string, scores: any
   } else if (availment < satisfaction) {
     bottleneck = 'availment';
   }
-  
+
   // Short-term recommendations based on bottleneck
   const shortTermOptions: { [key: string]: string[] } = {
     awareness: [
@@ -436,7 +466,7 @@ function extractRecommendations(mlResults: any, serviceArea: string, scores: any
       'Establish complaint resolution mechanisms'
     ]
   };
-  
+
   // Medium-term recommendations
   const mediumTermOptions = needAction > 50 ? [
     'Allocate additional budget for service improvements',
@@ -453,7 +483,7 @@ function extractRecommendations(mlResults: any, serviceArea: string, scores: any
     'Build community engagement programs',
     'Strengthen coordination with other departments'
   ];
-  
+
   // Long-term recommendations
   const longTermOptions = [
     'Integrate digital solutions for service delivery',
@@ -463,14 +493,14 @@ function extractRecommendations(mlResults: any, serviceArea: string, scores: any
     'Create long-term capacity building initiatives',
     'Develop strategic partnerships for sustainability'
   ];
-  
+
   // Use deterministic selection based on scores
   const shortTermPool = shortTermOptions[bottleneck] || shortTermOptions.satisfaction;
   const scoreBasedIndex = Math.floor((awareness + availment + satisfaction) / 100 * shortTermPool.length) % shortTermPool.length;
-  
+
   const mediumIndex = Math.floor((satisfaction + needAction) / 100 * mediumTermOptions.length) % mediumTermOptions.length;
   const longIndex = Math.floor((awareness + availment + satisfaction + needAction) / 200 * longTermOptions.length) % longTermOptions.length;
-  
+
   return {
     shortTerm: [
       shortTermPool[scoreBasedIndex],
@@ -487,23 +517,217 @@ function extractRecommendations(mlResults: any, serviceArea: string, scores: any
   };
 }
 
-function calculateTrend(mlResults: any, serviceArea: string): any {
-  // Extract trend data from ML results if available
-  const trends = mlResults.trends?.[serviceArea];
-  
-  if (trends) {
+async function calculateTrend(
+  mlResults: any,
+  serviceArea: string,
+  barangayId: number,
+  currentCycleId: number,
+  currentScores: any
+): Promise<any> {
+  try {
+    console.log(`🔍 [TREND] Calculating trend for ${serviceArea}, Barangay ${barangayId}, Current Cycle ${currentCycleId}`);
+    console.log(`🔍 [TREND] Current scores:`, currentScores);
+
+    // Extract trend data from ML results if available
+    const trends = mlResults.trends?.[serviceArea];
+
+    if (trends) {
+      console.log(`✅ [TREND] Using ML-provided trends for ${serviceArea}:`, trends);
+      return {
+        change: trends.change || 0,
+        direction: trends.change >= 0 ? 'up' : 'down',
+        available: true
+      };
+    }
+
+    console.log(`🔍 [TREND] No ML trends, fetching previous cycle...`);
+
+    // Get the previous completed cycle
+    const { data: previousCycle, error: cycleError } = await supabaseAdmin
+      .from('survey_cycle')
+      .select('cycle_id, name, year, is_active')
+      .eq('is_active', false)
+      .lt('cycle_id', currentCycleId)
+      .order('cycle_id', { ascending: false })
+      .limit(1)
+      .single();
+
+    console.log(`🔍 [TREND] Previous cycle query result:`, { previousCycle, cycleError: cycleError?.message });
+
+    if (cycleError || !previousCycle) {
+      // No previous cycle - this is baseline
+      console.log(`⚠️ [TREND] No previous cycle found - returning baseline`);
+      return {
+        change: 0,
+        direction: 'baseline',
+        available: false,
+        message: 'No historical data available for comparison'
+      };
+    }
+
+    console.log(`✅ [TREND] Found previous cycle: ${previousCycle.name} (ID: ${previousCycle.cycle_id})`);
+
+
+    // Get survey responses from previous cycle for this barangay and service area
+    console.log(`🔍 [TREND] Fetching previous responses for Barangay ${barangayId}, Cycle ${previousCycle.cycle_id}, Service ${serviceArea}...`);
+
+    const { data: previousResponses, error: responsesError } = await supabaseAdmin
+      .from('survey_response')
+      .select(`
+        response_id,
+        survey_section!inner (
+          section_key,
+          data
+        )
+      `)
+      .eq('barangay_id', barangayId)
+      .eq('survey_cycle_id', previousCycle.cycle_id)
+      .eq('survey_section.section_key', serviceArea)
+      .in('status', ['completed', 'submitted']);
+
+    console.log(`🔍 [TREND] Previous responses query result:`, {
+      count: previousResponses?.length || 0,
+      error: responsesError?.message
+    });
+
+    if (responsesError || !previousResponses || previousResponses.length === 0) {
+      // No data from previous cycle for this service area
+      console.log(`⚠️ [TREND] No previous responses found - returning baseline`);
+      return {
+        change: 0,
+        direction: 'baseline',
+        available: false,
+        message: `No data from previous cycle (${previousCycle.name})`
+      };
+    }
+
+    // Calculate scores for previous cycle using the same logic as current
+    console.log(`🔍 [TREND] Calculating scores from ${previousResponses.length} previous responses...`);
+    const previousScores = calculateScoresFromResponses(previousResponses, serviceArea);
+    console.log(`🔍 [TREND] Previous scores calculated:`, previousScores);
+
+    if (!previousScores) {
+      console.log(`⚠️ [TREND] Failed to calculate previous scores - returning baseline`);
+      return {
+        change: 0,
+        direction: 'baseline',
+        available: false,
+        message: 'Unable to calculate previous cycle scores'
+      };
+    }
+
+    // Calculate change in satisfaction score
+    const currentSatisfaction = currentScores.satisfaction || 0;
+    const previousSatisfaction = previousScores.satisfaction || 0;
+    const change = currentSatisfaction - previousSatisfaction;
+
+    console.log(`✅ [TREND] Trend calculated successfully:`, {
+      currentSatisfaction,
+      previousSatisfaction,
+      change,
+      direction: change > 0 ? 'up' : change < 0 ? 'down' : 'stable'
+    });
+
+    const trendResult = {
+      change: Math.round(change),
+      direction: change > 0 ? 'up' : change < 0 ? 'down' : 'stable',
+      available: true,
+      previousScore: previousSatisfaction,
+      currentScore: currentSatisfaction,
+      previousCycle: previousCycle.name,
+      previousCycleYear: previousCycle.year
+    };
+
+    console.log(`🎉 [TREND] Returning trend result:`, trendResult);
+    return trendResult;
+
+  } catch (error) {
+    console.error('❌ [TREND] Error calculating trend:', error);
     return {
-      change: trends.change || 0,
-      direction: trends.change >= 0 ? 'up' : 'down',
-      available: true
+      change: 0,
+      direction: 'baseline',
+      available: false,
+      message: 'Error calculating trend'
     };
   }
+}
 
-  // No historical data available - this is baseline survey
+// Helper function to calculate scores from raw survey responses
+function calculateScoresFromResponses(responses: any[], serviceArea: string): any {
+  let awarenessCount = 0;
+  let availmentCount = 0;
+  let satisfactionSum = 0;
+  let totalAwarenessQuestions = 0;
+  let totalAvailmentQuestions = 0;
+  let totalSatisfactionQuestions = 0;
+
+  responses.forEach((response: any) => {
+    const sections = Array.isArray(response.survey_section) ? response.survey_section : [response.survey_section];
+
+    sections.forEach((section: any) => {
+      if (section.section_key !== serviceArea) return;
+
+      let data: any = {};
+      try {
+        data = typeof section.data === 'string' ? JSON.parse(section.data) : section.data;
+      } catch (e) {
+        return;
+      }
+
+      // Count awareness questions
+      Object.entries(data).forEach(([key, value]: [string, any]) => {
+        if (key.toLowerCase().includes('aware')) {
+          totalAwarenessQuestions++;
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' ||
+            stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
+            awarenessCount++;
+          }
+        }
+      });
+
+      // Count availment questions
+      const availmentKeywords = ['avail', 'experience', 'benefited', 'participated', 'used', 'accessed', 'utilized', 'received'];
+      Object.entries(data).forEach(([key, value]: [string, any]) => {
+        const keyLower = key.toLowerCase();
+        if (availmentKeywords.some(keyword => keyLower.includes(keyword))) {
+          totalAvailmentQuestions++;
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' ||
+            stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
+            availmentCount++;
+          }
+        }
+      });
+
+      // Count satisfaction questions
+      Object.entries(data).forEach(([key, value]: [string, any]) => {
+        if (key.toLowerCase().includes('satisf')) {
+          totalSatisfactionQuestions++;
+          const numValue = typeof value === 'string' ? parseInt(value) : value;
+          if (typeof numValue === 'number' && numValue >= 1 && numValue <= 5) {
+            satisfactionSum += numValue;
+          }
+        }
+      });
+    });
+  });
+
+  const awarenessScore = totalAwarenessQuestions > 0
+    ? Math.round((awarenessCount / totalAwarenessQuestions) * 100)
+    : 0;
+
+  const availmentScore = totalAvailmentQuestions > 0
+    ? Math.round((availmentCount / totalAvailmentQuestions) * 100)
+    : 0;
+
+  const satisfactionScore = totalSatisfactionQuestions > 0
+    ? Math.round(((satisfactionSum / totalSatisfactionQuestions) / 5) * 100)
+    : 0;
+
   return {
-    change: 0,
-    direction: 'baseline',
-    available: false,
-    message: 'No historical data available for comparison'
+    awareness: awarenessScore,
+    availment: availmentScore,
+    satisfaction: satisfactionScore
   };
 }

@@ -73,9 +73,35 @@ export default function BarangaySatisfactionIndex({
     setError(null);
 
     try {
-      const response = await fetch(`/api/funnel-analysis?barangayId=${barangay.id}`);
+      // First, get the active cycle ID
+      const cycleResponse = await fetch('/api/survey-cycles/active');
+      let cycleId = null;
+      
+      if (cycleResponse.ok) {
+        const cycleData = await cycleResponse.json();
+        // The API returns { success: true, data: { cycle_id, ... } }
+        cycleId = cycleData.data?.cycle_id;
+        console.log('📊 Active cycle ID:', cycleId);
+      } else {
+        console.warn('Failed to fetch active cycle:', cycleResponse.status);
+      }
+
+      if (!cycleId) {
+        console.error('No active cycle found');
+        setError('No active survey cycle found');
+        setFallbackData();
+        return;
+      }
+
+      // Fetch ML-enhanced funnel analysis with cycle ID
+      const url = `/api/ml/funnel-analysis?barangayId=${barangay.id}&cycleId=${cycleId}`;
+      
+      console.log('📊 Fetching funnel analysis from:', url);
+      const response = await fetch(url);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Received funnel data:', data);
 
         // Transform funnel analysis data to match component expectations
         const transformedData = transformFunnelData(data);
@@ -114,15 +140,28 @@ export default function BarangaySatisfactionIndex({
       environmental: 'Environmental Management'
     };
 
-    // Transform each service score
+    // Transform each service score and recalculate category based on Report Card thresholds
     Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
       const displayName = sectionNames[serviceKey] || serviceKey;
-      const quadrant = funnelData.action_grid?.[serviceKey]?.quadrant || 'insufficient_data';
+      const satisfaction = scores.satisfaction_score || 0;
+      const needForAction = scores.need_action_score || 0;
+
+      // Use Report Card thresholds: 70% satisfaction, 30% need-for-action
+      let category = 'monitor';
+      if (satisfaction >= 70 && needForAction <= 30) {
+        category = 'maintain';
+      } else if (satisfaction >= 70 && needForAction > 30) {
+        category = 'opportunities';
+      } else if (satisfaction < 70 && needForAction <= 30) {
+        category = 'monitor';
+      } else if (satisfaction < 70 && needForAction > 30) {
+        category = 'fix_now';
+      }
 
       categories[serviceKey] = {
-        satisfaction: scores.satisfaction_score || 0,
-        needForAction: scores.need_action_score || 0,
-        category: quadrant.toLowerCase()
+        satisfaction: satisfaction,
+        needForAction: needForAction,
+        category: category
       };
     });
 

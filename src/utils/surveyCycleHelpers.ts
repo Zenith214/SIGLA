@@ -27,7 +27,22 @@ export async function getActiveCycle(): Promise<SurveyCycle | null> {
       throw error;
     }
 
-    return activeCycle;
+    if (!activeCycle) {
+      return null;
+    }
+
+    // Calculate actual response count for the active cycle
+    const { count, error: countError } = await supabaseAdmin
+      .from('survey_response')
+      .select('response_id', { count: 'exact', head: true })
+      .eq('survey_cycle_id', activeCycle.cycle_id);
+
+    if (countError) {
+      console.error(`Error counting responses for active cycle ${activeCycle.cycle_id}:`, countError);
+      return { ...activeCycle, responses: 0 };
+    }
+
+    return { ...activeCycle, responses: count || 0 };
   } catch (error) {
     console.error('Error retrieving active cycle:', error);
     throw new Error('Failed to retrieve active survey cycle');
@@ -168,7 +183,25 @@ export async function getSurveyCycles(activeOnly: boolean = false): Promise<Surv
       throw error;
     }
 
-    return cycles || [];
+    // Calculate actual response counts for each cycle
+    const cyclesWithCounts = await Promise.all(
+      (cycles || []).map(async (cycle) => {
+        // Count unique survey responses for this cycle
+        const { count, error: countError } = await supabaseAdmin
+          .from('survey_response')
+          .select('response_id', { count: 'exact', head: true })
+          .eq('survey_cycle_id', cycle.cycle_id);
+
+        if (countError) {
+          console.error(`Error counting responses for cycle ${cycle.cycle_id}:`, countError);
+          return { ...cycle, responses: 0 };
+        }
+
+        return { ...cycle, responses: count || 0 };
+      })
+    );
+
+    return cyclesWithCounts;
   } catch (error) {
     console.error('Error retrieving survey cycles:', error);
     throw new Error('Failed to retrieve survey cycles');

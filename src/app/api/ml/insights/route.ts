@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
 
 const execAsync = promisify(exec);
 
@@ -53,8 +55,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate comprehensive insights
-    const insights = generateComprehensiveInsights(mlResults, parseInt(barangayId));
+    // Get actual unique respondent count from database
+    const activeCycleId = await getActiveCycleId();
+    let actualRespondentCount = mlResults.total_responses || 0;
+    
+    if (activeCycleId) {
+      try {
+        const { count, error } = await supabaseAdmin
+          .from('survey_response')
+          .select('response_id', { count: 'exact', head: true })
+          .eq('barangay_id', parseInt(barangayId))
+          .eq('survey_cycle_id', activeCycleId)
+          .in('status', ['completed', 'submitted']);
+        
+        if (!error && count !== null) {
+          actualRespondentCount = count;
+          console.log(`📊 [ML INSIGHTS] Corrected respondent count from ${mlResults.total_responses} to ${actualRespondentCount}`);
+        }
+      } catch (error) {
+        console.error('Error fetching actual respondent count:', error);
+      }
+    }
+
+    // Generate comprehensive insights with corrected count
+    const insights = generateComprehensiveInsights(mlResults, parseInt(barangayId), actualRespondentCount);
 
     return NextResponse.json(insights);
 
@@ -67,14 +91,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateComprehensiveInsights(mlResults: any, barangayId: number) {
+function generateComprehensiveInsights(mlResults: any, barangayId: number, actualRespondentCount?: number) {
   // Calculate overall satisfaction from service scores
   const serviceScores = mlResults.service_scores || {};
   const satisfactionScores = Object.values(serviceScores).map((score: any) => score.satisfaction_score || 0);
   const overallSatisfaction = satisfactionScores.length > 0 
     ? Math.round(satisfactionScores.reduce((sum: number, score: number) => sum + score, 0) / satisfactionScores.length)
     : 0;
-  const totalResponses = mlResults.total_responses || 0;
+  // Use corrected respondent count if provided, otherwise fall back to ML results
+  const totalResponses = actualRespondentCount !== undefined ? actualRespondentCount : (mlResults.total_responses || 0);
   const actionGrid = mlResults.action_grid || {};
 
   // Generate performance assessment

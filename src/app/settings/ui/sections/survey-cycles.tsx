@@ -30,6 +30,7 @@ export function SurveyCycles() {
   const [editForm, setEditForm] = useState<any>({})
   const [deletingCycle, setDeletingCycle] = useState<any | null>(null)
   const [activatingCycle, setActivatingCycle] = useState<any | null>(null)
+  const [completingCycle, setCompletingCycle] = useState<any | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
   const { activeCycle } = useActiveCycle()
@@ -291,6 +292,47 @@ export function SurveyCycles() {
     }
   }
 
+  const handleCompleteCycleClick = (cycle: any) => {
+    setCompletingCycle(cycle)
+  }
+
+  const handleCompleteCycleConfirm = async () => {
+    if (!completingCycle) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/survey-cycles/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cycle_id: completingCycle.cycle_id || completingCycle.id })
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to complete survey cycle')
+      }
+      
+      // Refresh both the cycles list and active cycle context
+      await Promise.all([
+        fetchSurveyCycles(),
+        refreshActiveCycle()
+      ])
+      
+      setCompletingCycle(null)
+      toast({
+        title: "Cycle Completed!",
+        description: `${completingCycle.name || completingCycle.year} has been marked as completed and is no longer active.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Completion Failed",
+        description: err.message || "An unexpected error occurred while completing the survey cycle.",
+      });
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -488,17 +530,28 @@ export function SurveyCycles() {
                       variant="ghost" 
                       className="h-8 w-8 p-0 text-green-600 hover:bg-green-50" 
                       onClick={() => handleSetActiveClick(cycle)}
-
+                      title="Set as active cycle (reactivates if completed)"
                     >
                       <Power className="w-4 h-4" />
                     </Button>
                   )}
                   
-                  {/* Active Indicator */}
+                  {/* Active Indicator & Complete Button */}
                   {activeCycle && activeCycle.cycle_id === (cycle.cycle_id || cycle.id) && (
-                    <div className="h-8 w-8 flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    </div>
+                    <>
+                      <div className="h-8 w-8 flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 px-3 text-xs text-blue-600 border-blue-300 hover:bg-blue-50" 
+                        onClick={() => handleCompleteCycleClick(cycle)}
+                        title="Mark this cycle as completed"
+                      >
+                        Complete
+                      </Button>
+                    </>
                   )}
                   
                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-gray-200" onClick={() => handleEditClick(cycle)}>
@@ -588,9 +641,13 @@ export function SurveyCycles() {
             <div className="mt-2 text-gray-700">
               Are you sure you want to set <b>{activatingCycle.name || activatingCycle.year}</b> as the active survey cycle?
               <br /><br />
-              {activeCycle && (
+              {activeCycle ? (
                 <span className="text-amber-600">
                   This will deactivate the current active cycle: <b>{activeCycle.name}</b>
+                </span>
+              ) : (
+                <span className="text-green-600">
+                  This will reactivate the cycle and allow you to continue collecting data.
                 </span>
               )}
             </div>
@@ -598,6 +655,34 @@ export function SurveyCycles() {
               <Button variant="outline" onClick={() => setActivatingCycle(null)} disabled={saving}>Cancel</Button>
               <Button onClick={handleSetActiveConfirm} disabled={saving} className="bg-green-600 text-white">
                 {saving ? 'Setting Active...' : 'Set Active'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Complete Cycle Modal */}
+      {completingCycle && (
+        <Dialog open={!!completingCycle} onOpenChange={open => { if (!open) setCompletingCycle(null) }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Complete Survey Cycle</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center gap-2 mt-4 text-blue-600">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-semibold">Confirmation:</span>
+            </div>
+            <div className="mt-2 text-gray-700">
+              Are you sure you want to mark <b>{completingCycle.name || completingCycle.year}</b> as completed?
+              <br /><br />
+              <span className="text-amber-600">
+                This will deactivate the cycle and preserve all collected data ({(completingCycle.responses || 0).toLocaleString()} responses). You can create a new cycle to continue data collection.
+              </span>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setCompletingCycle(null)} disabled={saving}>Cancel</Button>
+              <Button onClick={handleCompleteCycleConfirm} disabled={saving} className="bg-blue-600 text-white">
+                {saving ? 'Completing...' : 'Complete Cycle'}
               </Button>
             </div>
           </DialogContent>

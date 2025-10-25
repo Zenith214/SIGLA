@@ -10,6 +10,7 @@ import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, Users, MapPin, Eye 
 import Link from 'next/link';
 import { CycleDisplay } from '@/components/survey-cycle';
 import { useActiveCycle } from '@/hooks/useSurveyCycle';
+import { getCurrentUser, User } from '@/lib/auth';
 import './print.css';
 
 function AIInsightsSection({ barangayId }: { barangayId: string }) {
@@ -109,6 +110,14 @@ function ReportCardContent() {
   const [showResponsesModal, setShowResponsesModal] = useState(false);
   const [selectedServiceArea, setSelectedServiceArea] = useState<any>(null);
   const [showServiceModal, setShowServiceModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Fetch current user for role-based display
+    getCurrentUser().then(user => {
+      setCurrentUser(user);
+    });
+  }, []);
 
   useEffect(() => {
     // Get data from URL parameters
@@ -199,6 +208,32 @@ function ReportCardContent() {
     console.log('🔍 Processing funnel data:', funnelData);
     console.log('🔍 Service scores:', funnelData.service_scores);
     
+    // Update overall satisfaction and service scores from actual funnel data
+    if (funnelData.overall_satisfaction !== undefined && funnelData.overall_satisfaction > 0) {
+      console.log(`📊 [SATISFACTION] Updating overall satisfaction to ${funnelData.overall_satisfaction}%`);
+      
+      // Also update individual service scores
+      const updatedServiceScores: any = {};
+      Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
+        updatedServiceScores[serviceKey] = scores.satisfaction || 0;
+        console.log(`📊 [SERVICE SCORE] ${serviceKey}: ${scores.satisfaction}%`);
+      });
+      
+      setBarangayData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          satisfaction: funnelData.overall_satisfaction,
+          financial: updatedServiceScores.financial || prev.financial,
+          disaster: updatedServiceScores.disaster || prev.disaster,
+          safety: updatedServiceScores.safety || prev.safety,
+          social: updatedServiceScores.social || prev.social,
+          business: updatedServiceScores.business || prev.business,
+          environmental: updatedServiceScores.environmental || prev.environmental
+        };
+      });
+    }
+    
     const processedFunnel: any = {};
     const processedTrends: any = {};
 
@@ -221,10 +256,13 @@ function ReportCardContent() {
 
       // Extract trends from action grid
       if (funnelData.action_grid && funnelData.action_grid[serviceKey]) {
-        processedTrends[serviceKey] = funnelData.action_grid[serviceKey].trend || { change: 0, direction: 'up' };
+        const trend = funnelData.action_grid[serviceKey].trend || { change: 0, direction: 'baseline' };
+        console.log(`📈 [TREND UI] Extracted trend for ${serviceKey}:`, trend);
+        processedTrends[serviceKey] = trend;
       }
     });
 
+    console.log(`📈 [TREND UI] All processed trends:`, processedTrends);
     setFunnelData(processedFunnel);
     setTrendsData(processedTrends);
 
@@ -738,9 +776,27 @@ function ReportCardContent() {
                       <div className="mb-3 print:metric-label flex items-center justify-between">
                         <span className="font-medium text-gray-900">{category.label}</span>
                         <div className="flex items-center gap-2 print:hidden">
-                          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
-                            📊 Baseline Survey
-                          </span>
+                          {(() => {
+                            const trend = trendsData[category.key];
+                            if (trend && trend.available && trend.direction !== 'baseline') {
+                              const isUp = trend.direction === 'up';
+                              const isDown = trend.direction === 'down';
+                              return (
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  isUp ? 'bg-green-100 text-green-700' : 
+                                  isDown ? 'bg-red-100 text-red-700' : 
+                                  'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
+                                📊 Baseline Survey
+                              </span>
+                            );
+                          })()}
                           <span className="text-xs text-gray-400">Click for details</span>
                         </div>
                       </div>
@@ -975,9 +1031,27 @@ function ReportCardContent() {
                             <span className="mr-2">★</span>
                             <span className="font-medium">{category.label}</span>
                           </div>
-                          <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
-                            Baseline
-                          </span>
+                          {(() => {
+                            const trend = trendsData[category.key];
+                            if (trend && trend.available && trend.direction !== 'baseline') {
+                              const isUp = trend.direction === 'up';
+                              const isDown = trend.direction === 'down';
+                              return (
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
+                                  isUp ? 'bg-green-200 text-green-800' : 
+                                  isDown ? 'bg-red-200 text-red-800' : 
+                                  'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                                Baseline
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -1003,9 +1077,27 @@ function ReportCardContent() {
                             <span className="mr-2">★</span>
                             <span className="font-medium">{category.label}</span>
                           </div>
-                          <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
-                            Baseline
-                          </span>
+                          {(() => {
+                            const trend = trendsData[category.key];
+                            if (trend && trend.available && trend.direction !== 'baseline') {
+                              const isUp = trend.direction === 'up';
+                              const isDown = trend.direction === 'down';
+                              return (
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
+                                  isUp ? 'bg-green-200 text-green-800' : 
+                                  isDown ? 'bg-red-200 text-red-800' : 
+                                  'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                                Baseline
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -1031,9 +1123,27 @@ function ReportCardContent() {
                             <span className="mr-2">★</span>
                             <span className="font-medium">{category.label}</span>
                           </div>
-                          <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
-                            Baseline
-                          </span>
+                          {(() => {
+                            const trend = trendsData[category.key];
+                            if (trend && trend.available && trend.direction !== 'baseline') {
+                              const isUp = trend.direction === 'up';
+                              const isDown = trend.direction === 'down';
+                              return (
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
+                                  isUp ? 'bg-green-200 text-green-800' : 
+                                  isDown ? 'bg-red-200 text-red-800' : 
+                                  'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                                Baseline
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -1059,9 +1169,27 @@ function ReportCardContent() {
                             <span className="mr-2">★</span>
                             <span className="font-medium">{category.label}</span>
                           </div>
-                          <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
-                            Baseline
-                          </span>
+                          {(() => {
+                            const trend = trendsData[category.key];
+                            if (trend && trend.available && trend.direction !== 'baseline') {
+                              const isUp = trend.direction === 'up';
+                              const isDown = trend.direction === 'down';
+                              return (
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
+                                  isUp ? 'bg-green-200 text-green-800' : 
+                                  isDown ? 'bg-red-200 text-red-800' : 
+                                  'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                                Baseline
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
@@ -1092,9 +1220,11 @@ function ReportCardContent() {
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="font-medium">Survey #{response.surveyNumber}</div>
-                          <div className="text-sm text-gray-500">
-                            Interviewer: {response.interviewer?.name || 'Unknown Interviewer'}
-                          </div>
+                          {currentUser && currentUser.role !== 'view' && currentUser.role !== 'viewer' && (
+                            <div className="text-sm text-gray-500">
+                              Interviewer: {response.interviewer?.name || 'Unknown Interviewer'}
+                            </div>
+                          )}
                         </div>
                         <Badge variant={response.progress === 100 ? 'default' : 'secondary'}>
                           {response.progress}% Complete
@@ -1130,9 +1260,27 @@ function ReportCardContent() {
               <DialogTitle className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
                 {selectedServiceArea?.label} - Detailed Analysis
-                <span className="text-sm px-2 py-1 rounded ml-2 bg-gray-100 text-gray-700">
-                  📊 Baseline Survey Data
-                </span>
+                {(() => {
+                  const trend = selectedServiceArea?.trend;
+                  if (trend && trend.available && trend.direction !== 'baseline') {
+                    const isUp = trend.direction === 'up';
+                    const isDown = trend.direction === 'down';
+                    return (
+                      <span className={`text-sm px-2 py-1 rounded ml-2 ${
+                        isUp ? 'bg-green-100 text-green-700' : 
+                        isDown ? 'bg-red-100 text-red-700' : 
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="text-sm px-2 py-1 rounded ml-2 bg-gray-100 text-gray-700">
+                      📊 Baseline Survey Data
+                    </span>
+                  );
+                })()}
               </DialogTitle>
             </DialogHeader>
 
