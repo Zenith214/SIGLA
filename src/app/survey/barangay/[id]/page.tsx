@@ -385,34 +385,25 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
           {/* Action Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-[#111827] mb-4">Survey Actions</h2>
-            <div className="space-y-3 sm:space-y-4">
-              {user?.role?.toLowerCase() !== 'admin' && (
-                <Link href={`/survey/forms?barangayId=${barangayId}`} className="block w-full">
-                  <button className="w-full bg-[#16a34a] hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base">
-                    {progress === 0 ? "Start Survey" : "Continue Survey"}
-                  </button>
-                </Link>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <button
-                  onClick={handleViewResponses}
-                  disabled={isLoadingResponses}
-                  className="bg-[#3b82f6] hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base"
-                >
-                  {isLoadingResponses ? "Loading..." : "View Responses"}
-                </button>
-                <button 
-                  className={`font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
-                    hasActiveCycle 
-                      ? 'bg-gray-100 hover:bg-gray-200 text-[#111827]' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                  disabled={!hasActiveCycle}
-                  title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}
-                >
-                  Export Data {hasActiveCycle && `(${activeCycle?.name})`}
-                </button>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <button
+                onClick={handleViewResponses}
+                disabled={isLoadingResponses}
+                className="bg-[#3b82f6] hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base"
+              >
+                {isLoadingResponses ? "Loading..." : "View Responses"}
+              </button>
+              <button 
+                className={`font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm sm:text-base ${
+                  hasActiveCycle 
+                    ? 'bg-gray-100 hover:bg-gray-200 text-[#111827]' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={!hasActiveCycle}
+                title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}
+              >
+                Export Data {hasActiveCycle && `(${activeCycle?.name})`}
+              </button>
             </div>
           </div>
 

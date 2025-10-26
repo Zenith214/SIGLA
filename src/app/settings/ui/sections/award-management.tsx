@@ -739,24 +739,6 @@ export function AwardManagement() {
         <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
-            className="border-green-600 text-green-600 hover:bg-green-50"
-            disabled={selectedBarangays.size === 0 || updating}
-            onClick={() => handleBulkAwardOperationRequest(true)}
-          >
-            <Award className="w-4 h-4 mr-2" />
-            Grant Awards ({selectedBarangays.size})
-          </Button>
-          <Button
-            variant="outline"
-            className="border-red-600 text-red-600 hover:bg-red-50"
-            disabled={selectedBarangays.size === 0 || updating}
-            onClick={() => handleBulkAwardOperationRequest(false)}
-          >
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Remove Awards ({selectedBarangays.size})
-          </Button>
-          <Button
-            variant="outline"
             className="border-blue-600 text-blue-600 hover:bg-blue-50"
           >
             <Download className="w-4 h-4 mr-2" />

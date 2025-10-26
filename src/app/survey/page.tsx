@@ -1,8 +1,7 @@
 "use client"
 import Link from "next/link"
-import { User, Settings, LogOut, ChevronDown } from "lucide-react"
+import { User, Settings, LogOut, ChevronDown, PlayCircle, CheckCircle } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { CycleDisplay } from "@/components/survey-cycle"
@@ -66,12 +65,13 @@ function calculateOverallProgress(barangays: Barangay[]): number {
 
 function SurveyDashboardContent() {
   const { user, logout } = useAuth() // Add logout from useAuth
-  const router = useRouter()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState<string>('')
   const [barangays, setBarangays] = useState<Barangay[]>([])
+  const [myAssignments, setMyAssignments] = useState<Barangay[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'overview' | 'assignments'>('overview')
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   // Logout handler function
@@ -116,17 +116,28 @@ function SurveyDashboardContent() {
         }
         const data = await response.json();
         setBarangays(data);
+
+        // Filter assignments for current user if they're an interviewer
+        if (user?.id && user?.role?.toLowerCase() === 'interviewer') {
+          const userAssignments = data.filter((b: Barangay) => 
+            b.assignment && b.assignment.interviewer.email === user.email
+          );
+          setMyAssignments(userAssignments);
+        }
       } catch (error) {
         console.error('Error fetching barangays with assignments:', error);
         // Fallback to empty array if fetch fails
         setBarangays([]);
+        setMyAssignments([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBarangays();
-  }, []);
+    if (user) {
+      fetchBarangays();
+    }
+  }, [user]);
 
   // Update time display
   useEffect(() => {
@@ -264,178 +275,319 @@ function SurveyDashboardContent() {
             </p>
           </div>
 
-          {/* Overall Assignment Progress Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-[#111827]">
-                {hasActiveCycle ? `${activeCycle?.name} - Survey Progress Overview` : 'Survey Progress Overview'}
-              </h3>
-              <div className="text-sm text-gray-600">
-                {hasActiveCycle ? (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Survey Cycle:</span>
-                    <CycleDisplay />
-                  </div>
-                ) : (
-                  <div className="text-amber-600 font-medium">
-                    ⚠️ No active survey cycle
-                  </div>
+          {/* Tabs Navigation */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Tab Headers */}
+            <div className="border-b border-gray-200">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors ${
+                    activeTab === 'overview'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  Overall Progress
+                </button>
+                {user?.role?.toLowerCase() === 'interviewer' && (
+                  <button
+                    onClick={() => setActiveTab('assignments')}
+                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors relative ${
+                      activeTab === 'assignments'
+                        ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                    }`}
+                  >
+                    My Assignments
+                    {myAssignments.length > 0 && (
+                      <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
+                        {myAssignments.length}
+                      </span>
+                    )}
+                  </button>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {loading ? "..." : barangays.length}
-                </div>
-                <div className="text-sm text-gray-600">Survey Targets</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {loading ? "..." : barangays.filter(b => b.assignment).length}
-                </div>
-                <div className="text-sm text-gray-600">With Assignments</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {loading ? "..." : barangays.filter(b => b.status === 'Completed').length}
-                </div>
-                <div className="text-sm text-gray-600">Completed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {loading ? "..." : barangays.filter(b => b.status === 'In Progress').length}
-                </div>
-                <div className="text-sm text-gray-600">In Progress</div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#6b7280]">Overall Progress</span>
-                <span className="text-[#111827] font-medium">
-                  {loading ? "Loading..." : `${calculateOverallProgress(barangays)}%`}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-[#16a34a] h-3 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: loading ? "0%" : `${calculateOverallProgress(barangays)}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
-          </div>
 
-          {/* Barangay Progress Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-                      <div className="h-6 bg-gray-200 rounded-full w-16 animate-pulse"></div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
-                        <div className="h-3 bg-gray-200 rounded w-8 animate-pulse"></div>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : barangays.length === 0 ? (
-              <div className="col-span-full text-center py-8">
-                <div className="text-gray-500">
-                  <p className="mb-2">No survey targets found.</p>
-                  {!hasActiveCycle && !cycleLoading && (
-                    <p className="text-amber-600 font-medium">
-                      ⚠️ No active survey cycle is set. Contact your administrator to set up a survey cycle.
-                    </p>
-                  )}
-                  {hasActiveCycle && (
-                    <p>Please check with your administrator to create survey targets for the current cycle.</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              barangays.map((barangay) => (
-                <Link key={barangay.id} href={`/survey/barangay/${barangay.id}`} className="block">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            barangay.status === "Completed"
-                              ? "bg-green-100 text-green-800"
-                              : barangay.status === "In Progress"
-                                ? "bg-blue-100 text-blue-800"
-                                : barangay.status === "Assigned"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-gray-100 text-gray-800"
-                            }`}
-                        >
-                          {barangay.status}
-                        </span>
-                      </div>
-
-                      {/* Assignment Information */}
-                      <div className="text-xs text-gray-600">
-                        {barangay.assignment ? (
-                          <>
-                            <div className="flex justify-between">
-                              <span>Interviewer:</span>
-                              <span className="font-medium">
-                                {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
-                              </span>
-                            </div>
-                            <div className="flex justify-between mt-1">
-                              <span>Assignment:</span>
-                              <span className="font-medium">{barangay.assignment.status}</span>
-                            </div>
-                          </>
+            {/* Tab Content */}
+            <div className="p-4 sm:p-6">
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Overall Assignment Progress Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-[#111827]">
+                        {hasActiveCycle ? `${activeCycle?.name} - Survey Progress Overview` : 'Survey Progress Overview'}
+                      </h3>
+                      <div className="text-sm text-gray-600">
+                        {hasActiveCycle ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Survey Cycle:</span>
+                            <CycleDisplay />
+                          </div>
                         ) : (
-                          <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-amber-600">No assignment yet</span>
+                          <div className="text-amber-600 font-medium">
+                            ⚠️ No active survey cycle
                           </div>
                         )}
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-[#6b7280]">Survey Progress</span>
-                          <span className="text-[#111827] font-medium">{barangay.progress}%</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {loading ? "..." : barangays.length}
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              barangay.progress === 100 ? 'bg-green-500' :
-                              barangay.progress >= 75 ? 'bg-blue-600' :
-                              barangay.progress >= 50 ? 'bg-blue-500' :
-                              barangay.progress >= 25 ? 'bg-blue-400' :
-                              barangay.progress > 0 ? 'bg-orange-500' : 'bg-gray-400'
-                            }`}
-                            style={{ width: `${barangay.progress}%` }}
-                          ></div>
-                        </div>
+                        <div className="text-sm text-gray-600">Survey Targets</div>
                       </div>
-
-                      {/* Population info */}
-                      <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-                        <span>Pop: {barangay.population?.toLocaleString() || 'N/A'}</span>
-                        <span>HH: {barangay.households?.toLocaleString() || 'N/A'}</span>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {loading ? "..." : barangays.filter(b => b.assignment).length}
+                        </div>
+                        <div className="text-sm text-gray-600">With Assignments</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {loading ? "..." : barangays.filter(b => b.status === 'Completed').length}
+                        </div>
+                        <div className="text-sm text-gray-600">Completed</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {loading ? "..." : barangays.filter(b => b.status === 'In Progress').length}
+                        </div>
+                        <div className="text-sm text-gray-600">In Progress</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#6b7280]">Overall Progress</span>
+                        <span className="text-[#111827] font-medium">
+                          {loading ? "Loading..." : `${calculateOverallProgress(barangays)}%`}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-[#16a34a] h-3 rounded-full transition-all duration-300"
+                          style={{ 
+                            width: loading ? "0%" : `${calculateOverallProgress(barangays)}%` 
+                          }}
+                        ></div>
                       </div>
                     </div>
                   </div>
-                </Link>
-              ))
-            )}
+
+                  {/* All Barangays Progress Cards Grid */}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
+                      All Survey Targets
+                    </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {loading ? (
+                // Loading skeleton
+                Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                        <div className="h-6 bg-gray-200 rounded-full w-16 animate-pulse"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs sm:text-sm">
+                          <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : barangays.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <div className="text-gray-500">
+                    <p className="mb-2">No survey targets found.</p>
+                    {!hasActiveCycle && !cycleLoading && (
+                      <p className="text-amber-600 font-medium">
+                        ⚠️ No active survey cycle is set. Contact your administrator to set up a survey cycle.
+                      </p>
+                    )}
+                    {hasActiveCycle && (
+                      <p>Please check with your administrator to create survey targets for the current cycle.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                barangays.map((barangay) => (
+                  <Link key={barangay.id} href={`/survey/barangay/${barangay.id}`} className="block">
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-semibold text-[#111827] text-sm">{barangay.name}</h4>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full font-medium ${
+                              barangay.status === "Completed"
+                                ? "bg-green-100 text-green-800"
+                                : barangay.status === "In Progress"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : barangay.status === "Assigned"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }`}
+                          >
+                            {barangay.status}
+                          </span>
+                        </div>
+
+                        {/* Assignment Information */}
+                        <div className="text-xs text-gray-600">
+                          {barangay.assignment ? (
+                            <>
+                              <div className="flex justify-between">
+                                <span>Interviewer:</span>
+                                <span className="font-medium truncate ml-1">
+                                  {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex justify-between">
+                              <span>Status:</span>
+                              <span className="font-medium text-amber-600">No assignment</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-[#6b7280]">Progress</span>
+                            <span className="text-[#111827] font-medium">{barangay.progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                barangay.progress === 100 ? 'bg-green-500' :
+                                barangay.progress >= 75 ? 'bg-blue-600' :
+                                barangay.progress >= 50 ? 'bg-blue-500' :
+                                barangay.progress >= 25 ? 'bg-blue-400' :
+                                barangay.progress > 0 ? 'bg-orange-500' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${barangay.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Population info */}
+                        <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                          <span>Pop: {barangay.population?.toLocaleString() || 'N/A'}</span>
+                          <span>HH: {barangay.households?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'assignments' && user?.role?.toLowerCase() === 'interviewer' && (
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
+                    My Assignments
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {loading ? (
+                      // Loading skeleton
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="bg-white rounded-lg border-2 border-blue-200 p-4 sm:p-6">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                          </div>
+                        </div>
+                      ))
+                    ) : myAssignments.length === 0 ? (
+                      <div className="col-span-full text-center py-8">
+                        <div className="text-gray-500">
+                          <p className="mb-2">You have no assignments yet.</p>
+                          <p className="text-sm">Contact your administrator to get assigned to survey targets.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      myAssignments.map((barangay) => (
+                        <div key={barangay.id} className="bg-white rounded-lg border-2 border-blue-200 p-4 sm:p-6 hover:shadow-md transition-shadow duration-200">
+                          <div className="space-y-3 sm:space-y-4">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                  barangay.status === "Completed"
+                                    ? "bg-green-100 text-green-800"
+                                    : barangay.status === "In Progress"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : barangay.status === "Assigned"
+                                        ? "bg-orange-100 text-orange-800"
+                                        : "bg-gray-100 text-gray-800"
+                                  }`}
+                              >
+                                {barangay.status}
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs sm:text-sm">
+                                <span className="text-[#6b7280]">Survey Progress</span>
+                                <span className="text-[#111827] font-medium">{barangay.progress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    barangay.progress === 100 ? 'bg-green-500' :
+                                    barangay.progress >= 75 ? 'bg-blue-600' :
+                                    barangay.progress >= 50 ? 'bg-blue-500' :
+                                    barangay.progress >= 25 ? 'bg-blue-400' :
+                                    barangay.progress > 0 ? 'bg-orange-500' : 'bg-gray-400'
+                                  }`}
+                                  style={{ width: `${barangay.progress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Population info */}
+                            <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                              <span>Pop: {barangay.population?.toLocaleString() || 'N/A'}</span>
+                              <span>HH: {barangay.households?.toLocaleString() || 'N/A'}</span>
+                            </div>
+
+                            {/* Action Button */}
+                            <div className="pt-2">
+                              {barangay.status === "Completed" ? (
+                                <button
+                                  disabled
+                                  className="w-full px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium text-sm flex items-center justify-center gap-2 cursor-not-allowed"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  Survey Completed
+                                </button>
+                              ) : (
+                                <Link
+                                  href={`/survey/forms?barangayId=${barangay.id}`}
+                                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <PlayCircle className="w-4 h-4" />
+                                  {barangay.progress > 0 ? 'Continue Survey' : 'Start Survey'}
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
