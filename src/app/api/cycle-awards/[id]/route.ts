@@ -10,7 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const authError = requireAuth(request);
@@ -22,7 +22,8 @@ export async function GET(
   }
 
   try {
-    const awardId = parseInt(params.id, 10);
+    const { id } = await params;
+    const awardId = parseInt(id, 10);
 
     // Validate award ID
     if (isNaN(awardId) || awardId <= 0) {
@@ -97,7 +98,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify admin authentication
   const authError = requireAdmin(request);
@@ -109,7 +110,8 @@ export async function PUT(
   }
 
   try {
-    const awardId = parseInt(params.id, 10);
+    const { id } = await params;
+    const awardId = parseInt(id, 10);
 
     // Validate award ID
     if (isNaN(awardId) || awardId <= 0) {

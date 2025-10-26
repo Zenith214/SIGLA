@@ -10,7 +10,7 @@ import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { barangayId: string } }
+  { params }: { params: Promise<{ barangayId: string }> }
 ) {
   // Verify authentication
   const authError = requireAuth(request);
@@ -22,7 +22,8 @@ export async function GET(
   }
 
   try {
-    const barangayId = parseInt(params.barangayId, 10);
+    const { barangayId: barangayIdStr } = await params;
+    const barangayId = parseInt(barangayIdStr, 10);
 
     // Validate barangay ID
     if (isNaN(barangayId) || barangayId <= 0) {

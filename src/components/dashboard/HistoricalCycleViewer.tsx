@@ -32,6 +32,26 @@ interface CycleDashboardData {
   };
 }
 
+interface BarangayPerformance {
+  barangay_id: number;
+  barangay_name: string;
+  overall_satisfaction: number;
+  total_responses: number;
+  service_scores: {
+    [key: string]: {
+      satisfaction: number;
+      need_action: number;
+      category: string;
+    };
+  };
+  action_grid: {
+    maintain: string[];
+    opportunities: string[];
+    monitor: string[];
+    fix_now: string[];
+  };
+}
+
 interface HistoricalCycleViewerProps {
   selectedCycleId?: number;
   onCycleChange?: (cycleId: number) => void;
@@ -44,8 +64,11 @@ export default function HistoricalCycleViewer({
   const [cycles, setCycles] = useState<SurveyCycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<SurveyCycle | null>(null);
   const [dashboardData, setDashboardData] = useState<CycleDashboardData | null>(null);
+  const [barangayPerformance, setBarangayPerformance] = useState<BarangayPerformance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBarangayId, setSelectedBarangayId] = useState<number | null>(null);
 
   // Fetch all cycles on component mount
   useEffect(() => {
@@ -99,6 +122,8 @@ export default function HistoricalCycleViewer({
       
       if (result.success) {
         setDashboardData(result.data.dashboard);
+        // Fetch performance data for barangays with responses
+        await fetchBarangayPerformance(cycleId, result.data.dashboard);
       } else {
         setError('Failed to fetch cycle dashboard data');
       }
@@ -107,6 +132,79 @@ export default function HistoricalCycleViewer({
       console.error('Error fetching dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBarangayPerformance = async (cycleId: number, dashboard: CycleDashboardData) => {
+    try {
+      setLoadingPerformance(true);
+      const performanceData: BarangayPerformance[] = [];
+
+      // Get unique barangays from targets
+      const barangaysWithData = dashboard.targets.filter(t => (t.achieved_count || 0) > 0);
+
+      // Fetch funnel analysis for each barangay
+      for (const target of barangaysWithData) {
+        try {
+          const response = await fetch(`/api/ml/funnel-analysis?barangayId=${target.barangay_id}&cycleId=${cycleId}`);
+          if (response.ok) {
+            const funnelData = await response.json();
+            
+            // Transform to performance data
+            const serviceScores: any = {};
+            const actionGrid = {
+              maintain: [] as string[],
+              opportunities: [] as string[],
+              monitor: [] as string[],
+              fix_now: [] as string[]
+            };
+
+            Object.entries(funnelData.service_scores || {}).forEach(([key, scores]: [string, any]) => {
+              const satisfaction = scores.satisfaction_score || 0;
+              const needAction = scores.need_action_score || 0;
+              
+              // Determine category using 70%/30% thresholds
+              let category = 'monitor';
+              if (satisfaction >= 70 && needAction <= 30) {
+                category = 'maintain';
+                actionGrid.maintain.push(key);
+              } else if (satisfaction >= 70 && needAction > 30) {
+                category = 'opportunities';
+                actionGrid.opportunities.push(key);
+              } else if (satisfaction < 70 && needAction <= 30) {
+                category = 'monitor';
+                actionGrid.monitor.push(key);
+              } else if (satisfaction < 70 && needAction > 30) {
+                category = 'fix_now';
+                actionGrid.fix_now.push(key);
+              }
+
+              serviceScores[key] = {
+                satisfaction,
+                need_action: needAction,
+                category
+              };
+            });
+
+            performanceData.push({
+              barangay_id: target.barangay_id,
+              barangay_name: target.barangay?.barangay_name || `Barangay ${target.barangay_id}`,
+              overall_satisfaction: funnelData.overall_satisfaction || 0,
+              total_responses: funnelData.total_responses || 0,
+              service_scores: serviceScores,
+              action_grid: actionGrid
+            });
+          }
+        } catch (err) {
+          console.error(`Error fetching performance for barangay ${target.barangay_id}:`, err);
+        }
+      }
+
+      setBarangayPerformance(performanceData);
+    } catch (err) {
+      console.error('Error fetching barangay performance:', err);
+    } finally {
+      setLoadingPerformance(false);
     }
   };
 
@@ -235,6 +333,84 @@ export default function HistoricalCycleViewer({
             </Card>
           </div>
 
+          {/* Barangay Performance Overview */}
+          {loadingPerformance ? (
+            <Card>
+              <div className="p-8 text-center">
+                <div className="text-gray-500">Loading barangay performance data...</div>
+              </div>
+            </Card>
+          ) : barangayPerformance.length > 0 ? (
+            <Card>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-4">Barangay Performance Overview</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2">Barangay</th>
+                        <th className="text-right py-2">Responses</th>
+                        <th className="text-right py-2">Satisfaction</th>
+                        <th className="text-center py-2">Action Grid</th>
+                        <th className="text-center py-2">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {barangayPerformance.map((perf) => {
+                        const isHighSatisfaction = perf.overall_satisfaction >= 70;
+                        return (
+                          <tr key={perf.barangay_id} className="border-b hover:bg-gray-50">
+                            <td className="py-3 font-medium">{perf.barangay_name}</td>
+                            <td className="text-right py-3">{perf.total_responses}</td>
+                            <td className="text-right py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                isHighSatisfaction ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {perf.overall_satisfaction}%
+                              </span>
+                            </td>
+                            <td className="text-center py-3">
+                              <div className="flex justify-center gap-1">
+                                {perf.action_grid.maintain.length > 0 && (
+                                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs" title="Maintain">
+                                    M: {perf.action_grid.maintain.length}
+                                  </span>
+                                )}
+                                {perf.action_grid.opportunities.length > 0 && (
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs" title="Opportunities">
+                                    O: {perf.action_grid.opportunities.length}
+                                  </span>
+                                )}
+                                {perf.action_grid.monitor.length > 0 && (
+                                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs" title="Monitor">
+                                    Mo: {perf.action_grid.monitor.length}
+                                  </span>
+                                )}
+                                {perf.action_grid.fix_now.length > 0 && (
+                                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs" title="Fix Now">
+                                    F: {perf.action_grid.fix_now.length}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="text-center py-3">
+                              <button
+                                onClick={() => setSelectedBarangayId(perf.barangay_id)}
+                                className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
           {/* Targets Breakdown */}
           {dashboardData.targets.length > 0 && (
             <Card>
@@ -280,8 +456,195 @@ export default function HistoricalCycleViewer({
               </div>
             </Card>
           )}
+
+          {/* Barangay Detail Modal */}
+          {selectedBarangayId && (
+            <BarangayDetailModal
+              barangay={barangayPerformance.find(p => p.barangay_id === selectedBarangayId)!}
+              cycleId={selectedCycle.cycle_id}
+              cycleName={selectedCycle.name}
+              onClose={() => setSelectedBarangayId(null)}
+            />
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Barangay Detail Modal Component
+interface BarangayDetailModalProps {
+  barangay: BarangayPerformance;
+  cycleId: number;
+  cycleName: string;
+  onClose: () => void;
+}
+
+function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: BarangayDetailModalProps) {
+  const serviceNames: { [key: string]: string } = {
+    financial: 'Financial Administration',
+    disaster: 'Disaster Preparedness',
+    safety: 'Safety & Peace Order',
+    social: 'Social Protection',
+    business: 'Business Friendliness',
+    environmental: 'Environmental Management'
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{barangay.barangay_name}</h2>
+            <p className="text-sm text-gray-600">{cycleName} - Historical Data</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Overall Satisfaction */}
+          <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+            <div className="text-sm text-gray-600 mb-1">Overall Satisfaction</div>
+            <div className={`text-4xl font-bold ${
+              barangay.overall_satisfaction >= 70 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {barangay.overall_satisfaction}%
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Based on {barangay.total_responses} responses
+            </div>
+          </div>
+
+          {/* Action Grid */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Action Priority Matrix</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Maintain */}
+              <div className="bg-green-100 border-2 border-green-300 rounded-lg p-4">
+                <div className="text-center mb-2">
+                  <h4 className="text-green-800 font-bold">MAINTAIN</h4>
+                  <p className="text-xs text-green-600">High Satisfaction, Low Need</p>
+                </div>
+                <div className="space-y-1">
+                  {barangay.action_grid.maintain.length > 0 ? (
+                    barangay.action_grid.maintain.map(key => (
+                      <div key={key} className="text-sm text-green-800 bg-green-50 px-2 py-1 rounded">
+                        • {serviceNames[key] || key}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-green-600 italic text-center">No services</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Opportunities */}
+              <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-4">
+                <div className="text-center mb-2">
+                  <h4 className="text-blue-800 font-bold">OPPORTUNITIES</h4>
+                  <p className="text-xs text-blue-600">High Satisfaction, High Need</p>
+                </div>
+                <div className="space-y-1">
+                  {barangay.action_grid.opportunities.length > 0 ? (
+                    barangay.action_grid.opportunities.map(key => (
+                      <div key={key} className="text-sm text-blue-800 bg-blue-50 px-2 py-1 rounded">
+                        • {serviceNames[key] || key}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-blue-600 italic text-center">No services</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Monitor */}
+              <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-4">
+                <div className="text-center mb-2">
+                  <h4 className="text-yellow-800 font-bold">MONITOR</h4>
+                  <p className="text-xs text-yellow-600">Low Satisfaction, Low Need</p>
+                </div>
+                <div className="space-y-1">
+                  {barangay.action_grid.monitor.length > 0 ? (
+                    barangay.action_grid.monitor.map(key => (
+                      <div key={key} className="text-sm text-yellow-800 bg-yellow-50 px-2 py-1 rounded">
+                        • {serviceNames[key] || key}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-yellow-600 italic text-center">No services</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Fix Now */}
+              <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4">
+                <div className="text-center mb-2">
+                  <h4 className="text-red-800 font-bold">FIX NOW</h4>
+                  <p className="text-xs text-red-600">Low Satisfaction, High Need</p>
+                </div>
+                <div className="space-y-1">
+                  {barangay.action_grid.fix_now.length > 0 ? (
+                    barangay.action_grid.fix_now.map(key => (
+                      <div key={key} className="text-sm text-red-800 bg-red-50 px-2 py-1 rounded">
+                        • {serviceNames[key] || key}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-red-600 italic text-center">No services</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Service Area Breakdown */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Service Area Performance</h3>
+            <div className="space-y-2">
+              {Object.entries(barangay.service_scores).map(([key, scores]) => (
+                <div key={key} className="border rounded-lg p-3 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{serviceNames[key] || key}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm">
+                        <span className="text-gray-600">Satisfaction:</span>
+                        <span className={`ml-1 font-semibold ${
+                          scores.satisfaction >= 70 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {scores.satisfaction}%
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-gray-600">Need Action:</span>
+                        <span className={`ml-1 font-semibold ${
+                          scores.need_action > 30 ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {scores.need_action}%
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        scores.category === 'maintain' ? 'bg-green-100 text-green-800' :
+                        scores.category === 'opportunities' ? 'bg-blue-100 text-blue-800' :
+                        scores.category === 'monitor' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {scores.category.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const authError = requireAuth(request);
@@ -22,7 +22,8 @@ export async function GET(
   }
 
   try {
-    const cycleId = parseInt(params.id);
+    const { id } = await params;
+    const cycleId = parseInt(id);
     
     if (isNaN(cycleId)) {
       return NextResponse.json(

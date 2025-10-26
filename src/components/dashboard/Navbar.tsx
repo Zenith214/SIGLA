@@ -86,18 +86,6 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
             </button>
           </div>
           
-          {/* Historical Dashboard Link */}
-          <a
-            href="/historical-dashboard"
-            className="text-white hover:text-blue-300 text-sm font-medium transition-colors"
-            title="View Historical Dashboard"
-          >
-            📊 Historical
-          </a>
-          
-          {/* Separator */}
-          <div className="text-gray-400">|</div>
-          
           {/* User Menu */}
           <UserDropdown />
         </div>

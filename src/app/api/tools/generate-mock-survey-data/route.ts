@@ -788,6 +788,41 @@ function generateRealisticTextareaResponse(type: string, score: number): string 
   return score > 0.7 ? selectedResponse : variations[variationIndex];
 }
 
+// Ensure assignment exists for the barangay and interviewer
+async function ensureAssignmentExists(client: any, barangayId: number, interviewerId: number, cycleId: number, progress: number) {
+  try {
+    // Check if assignment already exists
+    const checkQuery = `
+      SELECT assignment_id, progress, status 
+      FROM assignment 
+      WHERE barangay_id = $1 AND user_id = $2 AND survey_cycle_id = $3
+    `;
+    const checkResult = await client.query(checkQuery, [barangayId, interviewerId, cycleId]);
+
+    if (checkResult.rows.length > 0) {
+      // Update existing assignment
+      const assignment = checkResult.rows[0];
+      const newStatus = progress >= 100 ? 'completed' : 'in_progress';
+      
+      await client.query(
+        'UPDATE assignment SET progress = $1, status = $2, updated_at = NOW() WHERE assignment_id = $3',
+        [progress, newStatus, assignment.assignment_id]
+      );
+    } else {
+      // Create new assignment
+      const newStatus = progress >= 100 ? 'completed' : 'in_progress';
+      
+      await client.query(`
+        INSERT INTO assignment (barangay_id, user_id, survey_cycle_id, status, progress, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      `, [barangayId, interviewerId, cycleId, newStatus, progress]);
+    }
+  } catch (error) {
+    console.error('Error ensuring assignment exists:', error);
+    // Don't throw - assignment creation is supplementary
+  }
+}
+
 // Submit survey response to database
 async function submitSurveyResponse(client: any, barangayId: number, responseData: any) {
   try {
@@ -905,6 +940,9 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
         'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
         [newAchieved, newPercentage, surveyTarget.target_id]
       );
+
+      // Create or update assignment for this barangay
+      await ensureAssignmentExists(client, barangayId, responseData.interviewerId, activeCycle.cycle_id, newPercentage);
     }
 
     return { success: true, responseId };
