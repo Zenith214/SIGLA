@@ -373,6 +373,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       {/* Large Modal */}
       {showLargeModal && selectedBarangay && (
         <BarangaySatisfactionIndex
+          key={`${selectedBarangay}-${selectedCycleId || 'active'}`}
           barangay={barangays[selectedBarangay] || {
             id: 0,
             name: selectedBarangay,
@@ -394,6 +395,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
           }}
           isOpen={showLargeModal}
           onClose={handleCloseLargeModal}
+          selectedCycleId={selectedCycleId}
         />
       )}
     </div>

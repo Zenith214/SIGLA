@@ -6,22 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
+import { useActiveCycle, useSurveyCycle } from "@/hooks/useSurveyCycle";
 
 interface BarangaySatisfactionIndexProps {
   barangay: ApiBarangayData;
   isOpen: boolean;
   onClose: () => void;
+  selectedCycleId?: number | null;
 }
 
 export default function BarangaySatisfactionIndex({
   barangay,
   isOpen,
   onClose,
+  selectedCycleId,
 }: BarangaySatisfactionIndexProps) {
   const router = useRouter();
+  const { activeCycle } = useActiveCycle();
+  const { allCycles } = useSurveyCycle();
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Determine which cycle we're viewing
+  const effectiveCycleId = selectedCycleId || activeCycle?.cycle_id;
+  const viewingCycle = allCycles.find(c => c.cycle_id === effectiveCycleId) || activeCycle;
+  const isHistorical = viewingCycle && activeCycle && viewingCycle.cycle_id !== activeCycle.cycle_id;
   const [satisfactionData, setSatisfactionData] = useState<{
     overall: number;
     categories: { [key: string]: any };
@@ -57,7 +67,7 @@ export default function BarangaySatisfactionIndex({
   // Fetch funnel analysis data for this barangay
   useEffect(() => {
     if (isOpen && barangay) {
-      console.log('📊 Loading funnel analysis data for:', barangay.name);
+      console.log('📊 Loading funnel analysis data for:', barangay.name, 'Cycle:', effectiveCycleId);
       // Only fetch data if barangay has an ID (not a "No data" placeholder)
       if (barangay.id > 0) {
         fetchFunnelAnalysis();
@@ -66,32 +76,24 @@ export default function BarangaySatisfactionIndex({
         setNoDataState();
       }
     }
-  }, [isOpen, barangay?.id]);
+  }, [isOpen, barangay?.id, effectiveCycleId]); // Added effectiveCycleId to dependencies
 
   const fetchFunnelAnalysis = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // First, get the active cycle ID
-      const cycleResponse = await fetch('/api/survey-cycles/active');
-      let cycleId = null;
-      
-      if (cycleResponse.ok) {
-        const cycleData = await cycleResponse.json();
-        // The API returns { success: true, data: { cycle_id, ... } }
-        cycleId = cycleData.data?.cycle_id;
-        console.log('📊 Active cycle ID:', cycleId);
-      } else {
-        console.warn('Failed to fetch active cycle:', cycleResponse.status);
-      }
+      // Use the effective cycle ID (selected cycle or active cycle)
+      const cycleId = effectiveCycleId;
 
       if (!cycleId) {
-        console.error('No active cycle found');
-        setError('No active survey cycle found');
+        console.error('No cycle ID available');
+        setError('No survey cycle available');
         setFallbackData();
         return;
       }
+
+      console.log('📊 Using cycle ID:', cycleId, 'for barangay:', barangay.id);
 
       // Fetch ML-enhanced funnel analysis with cycle ID
       const url = `/api/ml/funnel-analysis?barangayId=${barangay.id}&cycleId=${cycleId}`;
@@ -102,9 +104,15 @@ export default function BarangaySatisfactionIndex({
       if (response.ok) {
         const data = await response.json();
         console.log('📊 Received funnel data:', data);
+        console.log('📊 Service scores from API:', data.service_scores);
 
         // Transform funnel analysis data to match component expectations
         const transformedData = transformFunnelData(data);
+        console.log('📊 Transformed data for Action Grid:', transformedData);
+        console.log('📊 Categories:', Object.keys(transformedData.categories).length, 'services');
+        Object.entries(transformedData.categories).forEach(([key, cat]: [string, any]) => {
+          console.log(`  - ${key}: ${cat.satisfaction}% satisfaction, ${cat.needForAction}% need action → ${cat.category}`);
+        });
         setSatisfactionData(transformedData);
         setAnalyticsData({
           totalResponses: data.total_responses,
@@ -143,8 +151,11 @@ export default function BarangaySatisfactionIndex({
     // Transform each service score and recalculate category based on Report Card thresholds
     Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
       const displayName = sectionNames[serviceKey] || serviceKey;
-      const satisfaction = scores.satisfaction_score || 0;
-      const needForAction = scores.need_action_score || 0;
+      console.log(`🔍 Processing ${serviceKey}:`, scores);
+      // API returns 'satisfaction' and 'need_action', not 'satisfaction_score' and 'need_action_score'
+      const satisfaction = scores.satisfaction || 0;
+      const needForAction = scores.need_action || 0;
+      console.log(`  → satisfaction: ${satisfaction}, needForAction: ${needForAction}`);
 
       // Use Report Card thresholds: 70% satisfaction, 30% need-for-action
       let category = 'monitor';
@@ -366,16 +377,34 @@ export default function BarangaySatisfactionIndex({
         {/* Modal */}
         <div className="relative bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-auto border border-gray-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50">
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{barangay.name}</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-10 w-10 p-0 hover:bg-gray-200 rounded-full transition-colors"
-          >
-            <span className="text-2xl text-gray-600">×</span>
-          </Button>
+        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{barangay.name}</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-10 w-10 p-0 hover:bg-gray-200 rounded-full transition-colors"
+            >
+              <span className="text-2xl text-gray-600">×</span>
+            </Button>
+          </div>
+          {/* Currently Viewing Indicator */}
+          {viewingCycle && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
+              <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs font-medium text-blue-900">
+                Currently viewing: <span className="font-semibold">{viewingCycle.name} ({viewingCycle.year})</span>
+              </span>
+              {isHistorical && (
+                <Badge variant="outline" className="text-xs bg-white">
+                  Historical Data
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Content - Two Column Layout */}

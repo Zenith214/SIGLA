@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import InteractiveSVGMap from "./InteractiveSVGMap";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
@@ -9,15 +9,12 @@ import { HistoricalCycleSelector } from "@/components/survey-cycle";
 
 interface MapCardProps {
   onBarangaySelect?: (barangay: ApiBarangayData) => void;
+  selectedCycleId: number | null;
+  onCycleChange: (cycleId: number | null) => void;
 }
 
-export default function MapCard({ onBarangaySelect }: MapCardProps) {
-  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+export default function MapCard({ onBarangaySelect, selectedCycleId, onCycleChange }: MapCardProps) {
   const { activeCycle, hasActiveCycle } = useActiveCycle();
-
-  const handleCycleChange = (cycleId: number | null) => {
-    setSelectedCycleId(cycleId);
-  };
 
   return (
     <Card className="w-full h-full flex flex-col">
@@ -40,7 +37,7 @@ export default function MapCard({ onBarangaySelect }: MapCardProps) {
         </div>
         <div className="min-w-[250px]">
           <HistoricalCycleSelector
-            onCycleChange={handleCycleChange}
+            onCycleChange={onCycleChange}
             placeholder="Current cycle data"
           />
         </div>

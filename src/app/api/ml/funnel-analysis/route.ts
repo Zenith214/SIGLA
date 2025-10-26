@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import path from 'path';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getCachedOrCompute } from '@/lib/ml-cache';
+import { calculateServiceFunnelMetrics, ServiceFunnelMetrics } from '@/lib/funnel-calculations';
 
 const execAsync = promisify(exec);
 
@@ -38,9 +39,9 @@ export async function GET(request: NextRequest) {
       async () => {
         // This is the expensive computation that will be cached
         const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-        const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+        const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId} --cycle_id ${cycleId}`;
 
-        console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}...`);
+        console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}, cycle ${cycleId}...`);
 
         const { stdout, stderr } = await execAsync(pythonCommand);
 
@@ -116,12 +117,32 @@ async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cyc
       // Map ML service keys to our standard service areas
       const mappedKey = mapServiceKey(serviceKey);
       if (mappedKey && serviceAreas.includes(mappedKey)) {
-        const serviceScores = {
-          awareness: scores.awareness_score || 0,
-          availment: scores.availment_score || 0,
-          satisfaction: scores.satisfaction_score || 0,
-          need_action: scores.need_action_score || 0
-        };
+        // Check if scores are in new structured format (with count, total, percentage)
+        // or old format (just percentages)
+        const isStructuredFormat = scores.awareness && typeof scores.awareness === 'object' && 'percentage' in scores.awareness;
+        
+        let serviceScores;
+        if (isStructuredFormat) {
+          // New structured format from Python ML
+          serviceScores = {
+            awareness: scores.awareness.percentage || 0,
+            availment: scores.availment.percentage || 0,
+            satisfaction: scores.satisfaction.percentage || 0,
+            need_action: scores.need_action_score || 0,
+            // Include structured data for detailed analysis
+            awareness_metrics: scores.awareness,
+            availment_metrics: scores.availment,
+            satisfaction_metrics: scores.satisfaction
+          };
+        } else {
+          // Old format (backward compatibility)
+          serviceScores = {
+            awareness: scores.awareness_score || 0,
+            availment: scores.availment_score || 0,
+            satisfaction: scores.satisfaction_score || 0,
+            need_action: scores.need_action_score || 0
+          };
+        }
 
         // Collect satisfaction scores for overall calculation
         satisfactionScores.push(serviceScores.satisfaction);
@@ -187,9 +208,10 @@ function mapServiceKey(mlServiceKey: string): string | null {
 }
 
 function identifyBottleneck(scores: any): string {
-  const awareness = scores.awareness_score || 0;
-  const availment = scores.availment_score || 0;
-  const satisfaction = scores.satisfaction_score || 0;
+  // Handle both structured format (with percentage field) and old format
+  const awareness = scores.awareness?.percentage ?? scores.awareness_score ?? 0;
+  const availment = scores.availment?.percentage ?? scores.availment_score ?? 0;
+  const satisfaction = scores.satisfaction?.percentage ?? scores.satisfaction_score ?? 0;
 
   // Find the lowest score to identify bottleneck
   if (awareness < availment && awareness < satisfaction) {
@@ -639,9 +661,9 @@ async function calculateTrend(
       };
     }
 
-    // Calculate change in satisfaction score
-    const currentSatisfaction = currentScores.satisfaction || 0;
-    const previousSatisfaction = previousScores.satisfaction || 0;
+    // Calculate change in satisfaction score using the new structured format
+    const currentSatisfaction = currentScores.satisfaction?.percentage || 0;
+    const previousSatisfaction = previousScores.satisfaction?.percentage || 0;
     const change = currentSatisfaction - previousSatisfaction;
 
     console.log(`✅ [TREND] Trend calculated successfully:`, {
@@ -675,82 +697,17 @@ async function calculateTrend(
   }
 }
 
-// Helper function to calculate scores from raw survey responses
-function calculateScoresFromResponses(responses: any[], serviceArea: string): any {
-  let awarenessCount = 0;
-  let availmentCount = 0;
-  let satisfactionSum = 0;
-  let totalAwarenessQuestions = 0;
-  let totalAvailmentQuestions = 0;
-  let totalSatisfactionQuestions = 0;
-
-  responses.forEach((response: any) => {
-    const sections = Array.isArray(response.survey_section) ? response.survey_section : [response.survey_section];
-
-    sections.forEach((section: any) => {
-      if (section.section_key !== serviceArea) return;
-
-      let data: any = {};
-      try {
-        data = typeof section.data === 'string' ? JSON.parse(section.data) : section.data;
-      } catch (e) {
-        return;
-      }
-
-      // Count awareness questions
-      Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('aware')) {
-          totalAwarenessQuestions++;
-          const stringValue = String(value).toLowerCase();
-          if (value === 1 || value === true || value === '1' ||
-            stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
-            awarenessCount++;
-          }
-        }
-      });
-
-      // Count availment questions
-      const availmentKeywords = ['avail', 'experience', 'benefited', 'participated', 'used', 'accessed', 'utilized', 'received'];
-      Object.entries(data).forEach(([key, value]: [string, any]) => {
-        const keyLower = key.toLowerCase();
-        if (availmentKeywords.some(keyword => keyLower.includes(keyword))) {
-          totalAvailmentQuestions++;
-          const stringValue = String(value).toLowerCase();
-          if (value === 1 || value === true || value === '1' ||
-            stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
-            availmentCount++;
-          }
-        }
-      });
-
-      // Count satisfaction questions
-      Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('satisf')) {
-          totalSatisfactionQuestions++;
-          const numValue = typeof value === 'string' ? parseInt(value) : value;
-          if (typeof numValue === 'number' && numValue >= 1 && numValue <= 5) {
-            satisfactionSum += numValue;
-          }
-        }
-      });
-    });
-  });
-
-  const awarenessScore = totalAwarenessQuestions > 0
-    ? Math.round((awarenessCount / totalAwarenessQuestions) * 100)
-    : 0;
-
-  const availmentScore = totalAvailmentQuestions > 0
-    ? Math.round((availmentCount / totalAvailmentQuestions) * 100)
-    : 0;
-
-  const satisfactionScore = totalSatisfactionQuestions > 0
-    ? Math.round(((satisfactionSum / totalSatisfactionQuestions) / 5) * 100)
-    : 0;
-
-  return {
-    awareness: awarenessScore,
-    availment: availmentScore,
-    satisfaction: satisfactionScore
-  };
+// Helper function to calculate scores from raw survey responses using cascading funnel
+function calculateScoresFromResponses(responses: any[], serviceArea: string): ServiceFunnelMetrics | null {
+  try {
+    // Use the shared funnel calculation utility
+    const funnelMetrics = calculateServiceFunnelMetrics(responses, serviceArea);
+    
+    console.log(`📊 [FUNNEL] Calculated funnel metrics for ${serviceArea}:`, funnelMetrics);
+    
+    return funnelMetrics;
+  } catch (error) {
+    console.error(`❌ [FUNNEL] Error calculating funnel metrics for ${serviceArea}:`, error);
+    return null;
+  }
 }

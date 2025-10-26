@@ -22,6 +22,7 @@ export async function DELETE(request: NextRequest) {
     client = await pool.connect();
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
+    const cycleIdParam = searchParams.get('cycleId');
     const confirmWord = searchParams.get('confirmWord');
 
     if (!barangayId) {
@@ -53,14 +54,31 @@ export async function DELETE(request: NextRequest) {
 
     const barangayName = barangayResult.rows[0].barangay_name;
 
-    // Get active cycle for cycle-scoped deletion
-    const activeCycle = await getActiveCycle();
-    if (!activeCycle) {
-      return NextResponse.json(
-        { error: "No active survey cycle found" },
-        { status: 400 }
+    // Get cycle for deletion - use provided cycleId or active cycle
+    let targetCycle;
+    if (cycleIdParam) {
+      const cycleResult = await client.query(
+        'SELECT * FROM survey_cycle WHERE cycle_id = $1',
+        [parseInt(cycleIdParam)]
       );
+      if (cycleResult.rows.length === 0) {
+        return NextResponse.json(
+          { error: `Survey cycle with ID ${cycleIdParam} not found` },
+          { status: 404 }
+        );
+      }
+      targetCycle = cycleResult.rows[0];
+    } else {
+      targetCycle = await getActiveCycle();
+      if (!targetCycle) {
+        return NextResponse.json(
+          { error: "No active survey cycle found" },
+          { status: 400 }
+        );
+      }
     }
+    
+    const activeCycle = targetCycle; // Keep variable name for compatibility
 
     console.log(`🗑️ Deleting all survey responses for Barangay ${barangayId} (${barangayName}) in cycle ${activeCycle.name}`);
 

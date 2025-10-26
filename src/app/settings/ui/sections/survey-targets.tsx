@@ -80,15 +80,38 @@ export function SurveyTargets() {
     setAddForm({ ...addForm, [e.target.name]: e.target.value })
   }
   const handleAddSave = async () => {
+    // Validation
+    if (!addForm.barangay_id) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a barangay.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const targetValue = Number(addForm.target);
+    if (targetValue <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Target responses must be greater than zero.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSaving(true)
     try {
-      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: Number(addForm.target), achieved: Number(addForm.achieved), percentage: Number(addForm.percentage) }
+      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: targetValue, achieved: Number(addForm.achieved), percentage: Number(addForm.percentage) }
       const res = await fetch("/api/survey-targets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error("Failed to add target")
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to add target");
+      }
       const created = await res.json()
       setTargets([...targets, created])
       setAddModal(false)
@@ -117,15 +140,36 @@ export function SurveyTargets() {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
   const handleEditSave = async () => {
+    // Validation
+    const targetValue = Number(editForm.target);
+    if (targetValue <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Target responses must be greater than zero.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSaving(true)
     try {
-      const payload = { ...editForm, target_id: Number(editForm.target_id), barangay_id: Number(editForm.barangay_id), target: Number(editForm.target), achieved: Number(editForm.achieved), percentage: Number(editForm.percentage) }
+      // Only send fields that should be updated (exclude survey_cycle_id)
+      const payload = { 
+        target_id: Number(editForm.target_id), 
+        barangay_id: Number(editForm.barangay_id), 
+        target: targetValue, 
+        achieved: Number(editForm.achieved), 
+        percentage: Number(editForm.percentage) 
+      }
       const res = await fetch("/api/survey-targets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error("Failed to update target")
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update target");
+      }
       const updated = await res.json()
       setTargets(targets.map(t => (t.target_id === updated.target_id ? updated : t)))
       setEditingTarget(null)
@@ -216,7 +260,8 @@ export function SurveyTargets() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Target Responses</label>
-                <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={0} />
+                <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={1} />
+                <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Achieved</label>
@@ -253,7 +298,8 @@ export function SurveyTargets() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Target Responses</label>
-                <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={0} />
+                <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={1} />
+                <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Achieved</label>

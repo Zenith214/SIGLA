@@ -171,11 +171,12 @@ class SiglaMLAPI:
         
         return result
     
-    def analyze_barangay(self, barangay_id: int, save_to_db: bool = True) -> Dict:
+    def analyze_barangay(self, barangay_id: int, cycle_id: Optional[int] = None, save_to_db: bool = True) -> Dict:
         """Analyze survey data for a specific barangay and optionally save results to database.
         
         Args:
             barangay_id: ID of the barangay to analyze
+            cycle_id: ID of the survey cycle to analyze (optional, if None will use all cycles)
             save_to_db: Whether to save analysis results to database (default: True)
             
         Returns:
@@ -183,6 +184,8 @@ class SiglaMLAPI:
         """
         # Extract survey data for the barangay
         filters = {'barangay_id': barangay_id}
+        if cycle_id is not None:
+            filters['survey_cycle_id'] = cycle_id
         survey_data = self.data_extractor.extract_survey_responses(filters)
         
         if len(survey_data) == 0:

@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3, HelpCircle, Terminal } from "lucide-react";
 import { useEffect } from "react";
 import { CycleDisplay } from "@/components/survey-cycle";
@@ -53,6 +54,8 @@ export default function ToolsPage() {
   const [databaseStatus, setDatabaseStatus] = useState<any>(null);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [communityVoiceResults, setCommunityVoiceResults] = useState<any>(null);
+  const [cacheStats, setCacheStats] = useState<any>(null);
+  const [isInvalidatingCache, setIsInvalidatingCache] = useState(false);
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle();
 
   // Fetch barangays from database on component mount
@@ -108,6 +111,29 @@ export default function ToolsPage() {
 
   const generateMockData = async () => {
     const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
+    
+    // Check if target is already reached
+    if (selectedBarangay && selectedBarangay.target && selectedBarangay.achieved) {
+      if (selectedBarangay.achieved >= selectedBarangay.target) {
+        addResult({
+          success: false,
+          message: `❌ Cannot generate: ${selectedBarangay.name} has already reached its target (${selectedBarangay.achieved}/${selectedBarangay.target})`
+        });
+        return;
+      }
+      
+      // Check if new responses would exceed target
+      const newTotal = selectedBarangay.achieved + parseInt(responseCount);
+      if (newTotal > selectedBarangay.target) {
+        const remaining = selectedBarangay.target - selectedBarangay.achieved;
+        addResult({
+          success: false,
+          message: `⚠️ Cannot generate ${responseCount} responses: Would exceed target. Only ${remaining} responses remaining for ${selectedBarangay.name}`
+        });
+        return;
+      }
+    }
+    
     console.log('Generating mock data for:', {
       selectedBarangayId: barangayId,
       selectedBarangay: selectedBarangay,
@@ -256,19 +282,29 @@ export default function ToolsPage() {
   };
 
   const deleteAllResponses = async () => {
-    const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
-    const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
+    if (!activeCycle) {
+      addResult({
+        success: false,
+        message: 'No active cycle found. Cannot delete responses.'
+      });
+      return;
+    }
     
-    if (!confirm(`Are you sure you want to delete ALL survey responses (including real data) for ${barangayName} (Barangay ${barangayId})? This action cannot be undone.`)) {
+    if (!confirm(`⚠️ DANGER: Delete ALL responses across ALL barangays in ${activeCycle.name}?\n\nThis will permanently delete ALL survey data (mock and real) for EVERY barangay in the active cycle.\n\nThis action cannot be undone!`)) {
+      return;
+    }
+
+    // Double confirmation for safety
+    if (!confirm(`Final confirmation: Type "DELETE ALL" to confirm you want to delete ALL responses in ${activeCycle.name}`)) {
       return;
     }
 
     setIsDeleting(true);
     setProgress(0);
-    setCurrentAction("Deleting all survey responses...");
+    setCurrentAction(`Deleting ALL responses in ${activeCycle.name}...`);
 
     try {
-      const response = await fetch(`/api/survey-responses/delete-by-barangay?barangayId=${barangayId}&confirmWord=DELETE`, {
+      const response = await fetch(`/api/survey-responses/delete-by-cycle?cycleId=${activeCycle.cycle_id}&confirmWord=DELETE`, {
         method: 'DELETE'
       });
 
@@ -277,10 +313,13 @@ export default function ToolsPage() {
       if (response.ok) {
         addResult({
           success: true,
-          message: `Successfully deleted ${data.deletedCount || 0} responses for ${barangayName} (Barangay ${barangayId})`,
+          message: `Successfully deleted ${data.deletedCount || 0} responses across ${data.barangaysAffected || 0} barangays in ${activeCycle.name}`,
           data: data
         });
 
+        // Refresh barangays list to update counts
+        await fetchBarangays();
+        
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
@@ -453,6 +492,120 @@ export default function ToolsPage() {
     }
   };
 
+  const fetchCacheStats = async () => {
+    setCurrentAction("Fetching cache statistics...");
+    try {
+      const response = await fetch('/api/tools/invalidate-ml-cache');
+      if (response.ok) {
+        const data = await response.json();
+        setCacheStats(data);
+        addResult({
+          success: true,
+          message: `Cache stats: ${data.totalEntries} entries (${data.freshEntries} fresh, ${data.staleEntries} stale)`
+        });
+      } else {
+        addResult({
+          success: false,
+          message: 'Failed to fetch cache statistics'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  };
+
+  const invalidateAllCache = async () => {
+    if (!confirm('Are you sure you want to clear ALL ML cache entries? This will force recalculation of all analytics.')) {
+      return;
+    }
+
+    setIsInvalidatingCache(true);
+    setCurrentAction("Invalidating all ML cache...");
+    
+    try {
+      const response = await fetch('/api/tools/invalidate-ml-cache', {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        addResult({
+          success: true,
+          message: `Successfully cleared ${data.entriesDeleted} cache entries`
+        });
+        // Refresh stats
+        await fetchCacheStats();
+      } else {
+        const errorData = await response.json();
+        addResult({
+          success: false,
+          message: errorData.error || 'Failed to invalidate cache'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsInvalidatingCache(false);
+    }
+  };
+
+  const invalidateBarangayCache = async () => {
+    if (!barangayId) {
+      addResult({
+        success: false,
+        message: 'Please select a barangay first'
+      });
+      return;
+    }
+
+    const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
+    const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
+
+    if (!confirm(`Clear cache for ${barangayName}?`)) {
+      return;
+    }
+
+    setIsInvalidatingCache(true);
+    setCurrentAction(`Invalidating cache for ${barangayName}...`);
+    
+    try {
+      const response = await fetch('/api/tools/invalidate-ml-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barangayId: parseInt(barangayId) })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        addResult({
+          success: true,
+          message: `Cleared ${data.entriesDeleted} cache entries for ${barangayName}`
+        });
+        // Refresh stats
+        await fetchCacheStats();
+      } else {
+        const errorData = await response.json();
+        addResult({
+          success: false,
+          message: errorData.error || 'Failed to invalidate cache'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsInvalidatingCache(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -478,8 +631,336 @@ export default function ToolsPage() {
           )}
         </div>
 
-        {/* Community Voice Analysis */}
-        <Card>
+        {/* Tabbed Tools Interface */}
+        <Tabs defaultValue="mock-data" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="mock-data">Mock Data</TabsTrigger>
+            <TabsTrigger value="cache">ML Cache</TabsTrigger>
+            <TabsTrigger value="community">Community Voice</TabsTrigger>
+            <TabsTrigger value="database">Database</TabsTrigger>
+          </TabsList>
+
+          {/* Mock Data Tab */}
+          <TabsContent value="mock-data">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Mock Survey Data Generator
+                </CardTitle>
+                <CardDescription>
+                  Generate realistic survey responses for testing funnel analysis and Action Grid calculations. 
+                  {barangays.length > 0 ? `Works with ${barangays.length} barangays that have survey targets` : 'Loading survey targets'} for the active cycle.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="barangayId">Barangay</Label>
+                    <Select value={barangayId} onValueChange={(value) => {
+                      setBarangayId(value);
+                      setBarangayInfo(null);
+                      setFunnelAnalysis(null);
+                    }} disabled={loadingBarangays}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingBarangays ? "Loading barangays..." : "Select a barangay"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(barangays) ? barangays.map((barangay) => (
+                          <SelectItem key={barangay.id} value={barangay.id.toString()}>
+                            {barangay.name} - Target: {barangay.target || 0} ({barangay.achieved || 0}/{barangay.target || 0} completed)
+                          </SelectItem>
+                        )) : null}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="responseCount">Response Count</Label>
+                    <Select value={responseCount} onValueChange={setResponseCount}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Response (Quick Test)</SelectItem>
+                        <SelectItem value="25">25 Responses</SelectItem>
+                        <SelectItem value="50">50 Responses</SelectItem>
+                        <SelectItem value="75">75 Responses (Half Target)</SelectItem>
+                        <SelectItem value="100">100 Responses</SelectItem>
+                        <SelectItem value="150">150 Responses (Full Target)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="profile">Response Profile</Label>
+                    <Select value={profile} onValueChange={setProfile}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="balanced">Balanced (All Quadrants)</SelectItem>
+                        <SelectItem value="high-performer">High Performer (MAINTAIN)</SelectItem>
+                        <SelectItem value="needs-improvement">Needs Improvement (FIX NOW)</SelectItem>
+                        <SelectItem value="mixed">Mixed Responses (Realistic)</SelectItem>
+                        <SelectItem value="extreme-mixed">Extreme Mixed (Edge Cases)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Barangay Info Display */}
+                {barangayInfo && (
+                  <div className={`p-3 rounded-lg border ${
+                    barangayInfo.currentData.target && 
+                    barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className={`font-semibold ${
+                          barangayInfo.currentData.target && 
+                          barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target
+                            ? 'text-green-900'
+                            : 'text-blue-900'
+                        }`}>
+                          {barangayInfo.barangayInfo.name} (Barangay {barangayInfo.barangayId})
+                          {barangayInfo.currentData.target && 
+                           barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target && (
+                            <Badge className="ml-2" variant="default">✓ Target Reached</Badge>
+                          )}
+                        </h4>
+                        <p className={`text-sm ${
+                          barangayInfo.currentData.target && 
+                          barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target
+                            ? 'text-green-700'
+                            : 'text-blue-700'
+                        }`}>
+                          Population: {barangayInfo.barangayInfo.population.toLocaleString()} | 
+                          Households: {barangayInfo.barangayInfo.households.toLocaleString()} | 
+                          Area: {barangayInfo.barangayInfo.area} km²
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${
+                          barangayInfo.currentData.target && 
+                          barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target
+                            ? 'text-green-900'
+                            : 'text-blue-900'
+                        }`}>
+                          {barangayInfo.currentData.responseCount} responses
+                        </div>
+                        {barangayInfo.currentData.target && (
+                          <div className={`text-sm ${
+                            barangayInfo.currentData.target.achieved >= barangayInfo.currentData.target.target
+                              ? 'text-green-700'
+                              : 'text-blue-700'
+                          }`}>
+                            Target: {barangayInfo.currentData.target.target} ({barangayInfo.currentData.target.percentage}%)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Warning */}
+                {barangayId && barangays.find(b => b.id.toString() === barangayId) && (
+                  <>
+                    {(() => {
+                      const selected = barangays.find(b => b.id.toString() === barangayId);
+                      const achieved = selected?.achieved || 0;
+                      const target = selected?.target || 0;
+                      const remaining = target - achieved;
+                      const requestedCount = parseInt(responseCount);
+
+                      if (achieved >= target) {
+                        return (
+                          <Alert className="border-green-500 bg-green-50">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-800">
+                              <strong>Target Reached!</strong> {selected?.name} has completed its survey target ({achieved}/{target}). 
+                              Delete existing responses to generate new ones.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      } else if (requestedCount > remaining) {
+                        return (
+                          <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>Warning:</strong> Generating {requestedCount} responses would exceed the target. 
+                              Only {remaining} responses remaining for {selected?.name}. 
+                              Adjust the response count to {remaining} or less.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      } else if (remaining <= 10 && remaining > 0) {
+                        return (
+                          <Alert className="border-yellow-500 bg-yellow-50">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                            <AlertDescription className="text-yellow-800">
+                              <strong>Almost There!</strong> Only {remaining} responses remaining to reach target for {selected?.name}.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </>
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={generateMockData}
+                    disabled={
+                      isGenerating || 
+                      isDeleting || 
+                      loadingBarangays || 
+                      !barangayId ||
+                      (barangays.find(b => b.id.toString() === barangayId)?.achieved || 0) >= 
+                      (barangays.find(b => b.id.toString() === barangayId)?.target || Infinity)
+                    }
+                    className="flex-1 min-w-[200px]"
+                  >
+                    {isGenerating ? 'Generating...' : 
+                     (barangays.find(b => b.id.toString() === barangayId)?.achieved || 0) >= 
+                     (barangays.find(b => b.id.toString() === barangayId)?.target || Infinity)
+                       ? 'Target Reached' 
+                       : 'Generate Mock Data'}
+                  </Button>
+                  <Button
+                    onClick={deleteMockData}
+                    disabled={isGenerating || isDeleting || loadingBarangays || !barangayId}
+                    variant="outline"
+                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {isDeleting ? 'Deleting...' : 'Delete Mock Data'}
+                  </Button>
+                  <Button
+                    onClick={deleteAllResponses}
+                    disabled={isGenerating || isDeleting || !hasActiveCycle}
+                    variant="destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {isDeleting ? 'Deleting...' : 'Delete All Cycle Data'}
+                  </Button>
+                  <Button
+                    onClick={fetchBarangayInfo}
+                    disabled={isGenerating || isDeleting || loadingBarangays || !barangayId}
+                    variant="outline"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Check Status
+                  </Button>
+                  <Button
+                    onClick={testFunnelAnalysis}
+                    disabled={isGenerating || isDeleting || loadingBarangays || !barangayId}
+                    variant="outline"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Test Analysis
+                  </Button>
+                </div>
+
+                {/* Progress Bar */}
+                {(isGenerating || isDeleting) && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{currentAction}</span>
+                      <span>{Math.round(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="w-full" />
+                    {isGenerating && (
+                      <div className="text-xs text-gray-500 text-center">
+                        {progress < 20 ? "Starting generation..." :
+                         progress < 40 ? "20% complete - Creating survey responses..." :
+                         progress < 60 ? "40% complete - Processing data..." :
+                         progress < 80 ? "60% complete - Saving to database..." :
+                         progress < 95 ? "80% complete - Finalizing..." :
+                         "Almost done..."}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Funnel Analysis Results */}
+            {funnelAnalysis && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Funnel Analysis Results
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time analysis of generated survey data for Barangay {barangayId}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Service Scores</h4>
+                      {Object.entries(funnelAnalysis.service_scores || {}).map(([service, scores]: [string, any]) => (
+                        <div key={service} className="mb-3 p-3 bg-gray-50 rounded">
+                          <div className="font-medium capitalize mb-1">
+                            {service === 'financial' ? 'Financial Administration' :
+                             service === 'disaster' ? 'Disaster Preparedness' :
+                             service === 'safety' ? 'Safety & Peace Order' :
+                             service === 'social' ? 'Social Protection' :
+                             service === 'business' ? 'Business Friendliness' :
+                             service === 'environmental' ? 'Environmental Management' :
+                             service.replace('_', ' ')}
+                          </div>
+                          <div className="text-sm space-y-1">
+                            <div>Awareness: {scores.awareness_score}%</div>
+                            <div>Availment: {scores.availment_score}%</div>
+                            <div>Satisfaction: {scores.satisfaction_score}%</div>
+                            <div>Need Action: {scores.need_action_score}%</div>
+                            <div className="text-xs text-gray-500">Sample: {scores.sample_size} responses</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Action Grid</h4>
+                      {Object.entries(funnelAnalysis.action_grid || {}).map(([service, grid]: [string, any]) => (
+                        <div key={service} className="mb-3 p-3 bg-gray-50 rounded">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium capitalize">
+                              {service === 'financial' ? 'Financial Administration' :
+                               service === 'disaster' ? 'Disaster Preparedness' :
+                               service === 'safety' ? 'Safety & Peace Order' :
+                               service === 'social' ? 'Social Protection' :
+                               service === 'business' ? 'Business Friendliness' :
+                               service === 'environmental' ? 'Environmental Management' :
+                               service.replace('_', ' ')}
+                            </span>
+                            <Badge variant={
+                              grid.quadrant === 'MAINTAIN' ? 'default' :
+                              grid.quadrant === 'OPPORTUNITIES' ? 'secondary' :
+                              grid.quadrant === 'MONITOR' ? 'outline' :
+                              'destructive'
+                            }>
+                              {grid.quadrant}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Satisfaction: {grid.satisfaction_score}% | Need: {grid.need_action_score}%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ML Cache Tab */}
+          <TabsContent value="cache">
+            <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
@@ -607,8 +1088,119 @@ export default function ToolsPage() {
           </CardContent>
         </Card>
 
-        {/* Mock Data Generator */}
+        {/* ML Cache Management */}
         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              ML Cache Management
+            </CardTitle>
+            <CardDescription>
+              Manage and invalidate ML analytics cache. Clear cache after deploying calculation changes or when testing with fresh data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-end">
+                <Button
+                  onClick={fetchCacheStats}
+                  disabled={isInvalidatingCache || isGenerating || isDeleting}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Get Cache Statistics
+                </Button>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={invalidateBarangayCache}
+                  disabled={isInvalidatingCache || isGenerating || isDeleting || !barangayId}
+                  variant="outline"
+                  className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Barangay Cache
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={invalidateAllCache}
+                disabled={isInvalidatingCache || isGenerating || isDeleting}
+                variant="destructive"
+                className="flex-1"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isInvalidatingCache ? 'Clearing...' : 'Clear All Cache'}
+              </Button>
+            </div>
+
+            {/* Cache Statistics Display */}
+            {cacheStats && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-3">Cache Statistics</h4>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <div className="text-sm text-blue-700">Total Entries</div>
+                    <div className="text-2xl font-bold text-blue-900">{cacheStats.totalEntries}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-green-700">Fresh</div>
+                    <div className="text-2xl font-bold text-green-900">{cacheStats.freshEntries}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-orange-700">Stale</div>
+                    <div className="text-2xl font-bold text-orange-900">{cacheStats.staleEntries}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-700">Total Hits</div>
+                    <div className="text-2xl font-bold text-blue-900">{cacheStats.totalHits}</div>
+                  </div>
+                </div>
+
+                {cacheStats.byEndpoint && Object.keys(cacheStats.byEndpoint).length > 0 && (
+                  <div>
+                    <h5 className="font-medium text-blue-800 mb-2">By Endpoint:</h5>
+                    <div className="space-y-1">
+                      {Object.entries(cacheStats.byEndpoint).map(([endpoint, data]: [string, any]) => (
+                        <div key={endpoint} className="flex justify-between text-sm p-2 bg-white rounded border border-blue-100">
+                          <span className="font-mono text-xs">{endpoint}</span>
+                          <div className="flex gap-4">
+                            <span>{data.count} entries</span>
+                            <span className="text-gray-500">{data.hits} hits</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {cacheStats.totalEntries === 0 && (
+                  <div className="text-center text-blue-700 py-4">
+                    ✅ Cache is empty
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Note:</strong> Clearing cache will force recalculation of analytics on next request. 
+                Use after deploying new funnel calculation methodology or fixing calculation bugs.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+          </TabsContent>
+
+          {/* Community Voice Tab */}
+          <TabsContent value="community">
+            <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -742,33 +1334,6 @@ export default function ToolsPage() {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Test Analysis
               </Button>
-              <Button
-                onClick={checkDatabase}
-                disabled={isGenerating || isDeleting}
-                variant="outline"
-                className="border-blue-300 text-blue-600 hover:bg-blue-50"
-              >
-                <Database className="w-4 h-4 mr-2" />
-                Check Database
-              </Button>
-              <Button
-                onClick={checkSurveyTargets}
-                disabled={isGenerating || isDeleting}
-                variant="outline"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Check Survey Targets
-              </Button>
-              <Button
-                onClick={checkBarangayIds}
-                disabled={isGenerating || isDeleting}
-                variant="outline"
-                className="border-green-300 text-green-600 hover:bg-green-50"
-              >
-                <Database className="w-4 h-4 mr-2" />
-                Check Barangay IDs
-              </Button>
             </div>
 
             {/* Progress Bar */}
@@ -841,76 +1406,96 @@ export default function ToolsPage() {
           </Card>
         )}
 
-        {/* Funnel Analysis Results */}
-        {funnelAnalysis && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Funnel Analysis Results
-              </CardTitle>
-              <CardDescription>
-                Real-time analysis of generated survey data for Barangay {barangayId}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Service Scores</h4>
-                  {Object.entries(funnelAnalysis.service_scores || {}).map(([service, scores]: [string, any]) => (
-                    <div key={service} className="mb-3 p-3 bg-gray-50 rounded">
-                      <div className="font-medium capitalize mb-1">
-                        {service === 'financial' ? 'Financial Administration' :
-                         service === 'disaster' ? 'Disaster Preparedness' :
-                         service === 'safety' ? 'Safety & Peace Order' :
-                         service === 'social' ? 'Social Protection' :
-                         service === 'business' ? 'Business Friendliness' :
-                         service === 'environmental' ? 'Environmental Management' :
-                         service.replace('_', ' ')}
-                      </div>
-                      <div className="text-sm space-y-1">
-                        <div>Awareness: {scores.awareness_score}%</div>
-                        <div>Availment: {scores.availment_score}%</div>
-                        <div>Satisfaction: {scores.satisfaction_score}%</div>
-                        <div>Need Action: {scores.need_action_score}%</div>
-                        <div className="text-xs text-gray-500">Sample: {scores.sample_size} responses</div>
+          </TabsContent>
+
+          {/* Database Tab */}
+          <TabsContent value="database">
+            {/* Database Status */}
+            {databaseStatus && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Database Status
+                  </CardTitle>
+                  <CardDescription>
+                    Current state of survey responses in Supabase database
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Summary</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>Total Responses: <span className="font-mono">{databaseStatus.total_counts.total_responses}</span></div>
+                        <div>Total Sections: <span className="font-mono">{databaseStatus.total_counts.total_sections}</span></div>
+                        <div>Active Barangays: <span className="font-mono">{databaseStatus.total_counts.total_barangays}</span></div>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Action Grid</h4>
-                  {Object.entries(funnelAnalysis.action_grid || {}).map(([service, grid]: [string, any]) => (
-                    <div key={service} className="mb-3 p-3 bg-gray-50 rounded">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium capitalize">
-                          {service === 'financial' ? 'Financial Administration' :
-                           service === 'disaster' ? 'Disaster Preparedness' :
-                           service === 'safety' ? 'Safety & Peace Order' :
-                           service === 'social' ? 'Social Protection' :
-                           service === 'business' ? 'Business Friendliness' :
-                           service === 'environmental' ? 'Environmental Management' :
-                           service.replace('_', ' ')}
-                        </span>
-                        <Badge variant={
-                          grid.quadrant === 'MAINTAIN' ? 'default' :
-                          grid.quadrant === 'OPPORTUNITIES' ? 'secondary' :
-                          grid.quadrant === 'MONITOR' ? 'outline' :
-                          'destructive'
-                        }>
-                          {grid.quadrant}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Satisfaction: {grid.satisfaction_score}% | Need: {grid.need_action_score}%
+                    <div>
+                      <h4 className="font-semibold mb-2">Responses by Barangay</h4>
+                      <div className="max-h-32 overflow-y-auto space-y-1 text-sm">
+                        {databaseStatus.responses_by_barangay.map((item: any) => (
+                          <div key={item.barangay_id} className="flex justify-between">
+                            <span>Barangay {item.barangay_id}:</span>
+                            <span className="font-mono">{item.response_count}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  
+                  {databaseStatus.sample_section_data.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-2">Sample JSON Data</h4>
+                      <div className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+                        <pre>{JSON.stringify(databaseStatus.sample_section_data[0], null, 2)}</pre>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Database Tools</CardTitle>
+                <CardDescription>Check database status and survey targets</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={checkDatabase}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Check Database
+                  </Button>
+                  <Button
+                    onClick={checkSurveyTargets}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-purple-300 text-purple-600 hover:bg-purple-50"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Check Survey Targets
+                  </Button>
+                  <Button
+                    onClick={checkBarangayIds}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-green-300 text-green-600 hover:bg-green-50"
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Check Barangay IDs
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Terminal Output - Always Visible */}
         <Card className="bg-black border-gray-700">

@@ -13,86 +13,155 @@ import { useActiveCycle } from '@/hooks/useSurveyCycle';
 import { getCurrentUser, User } from '@/lib/auth';
 import './print.css';
 
-function AIInsightsSection({ barangayId }: { barangayId: string }) {
-  const [insights, setInsights] = useState<any>(null);
+function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; cycleId: number }) {
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    if (barangayId) {
-      fetchMLInsights(barangayId);
+    if (barangayId && cycleId) {
+      fetchExecutiveSummary();
     }
-  }, [barangayId]);
+  }, [barangayId, cycleId]);
 
-  const fetchMLInsights = async (id: string) => {
+  const fetchExecutiveSummary = async () => {
     try {
-      const response = await fetch(`/api/ml/insights?barangayId=${id}`);
+      const response = await fetch('/api/ai/executive-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barangayId: parseInt(barangayId),
+          cycleId: cycleId,
+          forceRefresh: false
+        })
+      });
+
       if (response.ok) {
-        const data = await response.json();
-        setInsights(data);
+        const result = await response.json();
+        setSummary(result.data);
       }
     } catch (error) {
-      console.error('Failed to fetch ML insights:', error);
+      console.error('Failed to fetch executive summary:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const regenerateSummary = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/ai/executive-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barangayId: parseInt(barangayId),
+          cycleId: cycleId,
+          forceRefresh: true
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSummary(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to regenerate summary:', error);
+    } finally {
+      setGenerating(false);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-blue-700">Generating AI insights...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <span className="ml-2 text-purple-700">Loading executive summary...</span>
       </div>
     );
   }
 
-  if (!insights) {
+  if (!summary) {
     return (
       <div className="text-gray-700 leading-relaxed">
         <p className="mb-4">
-          AI-powered analysis is currently unavailable. Please try again later.
+          Executive summary is not available yet. This will be automatically generated when the survey is completed.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="text-gray-700 leading-relaxed">
-      <div className="mb-4">
-        <h4 className="font-semibold text-blue-900 mb-2">Executive Summary</h4>
-        <p className="text-sm">{insights.executive_summary}</p>
+    <div className="space-y-6">
+      {/* Executive Summary */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-semibold text-blue-900">Executive Summary</h4>
+          <Button
+            onClick={regenerateSummary}
+            disabled={generating}
+            variant="outline"
+            size="sm"
+            className="no-print"
+          >
+            {generating ? 'Regenerating...' : 'Regenerate'}
+          </Button>
+        </div>
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+          {summary.executiveSummary}
+        </p>
       </div>
 
-      {insights.key_insights && insights.key_insights.length > 0 && (
-        <div className="mb-4">
-          <h4 className="font-semibold text-blue-900 mb-2">Key Insights</h4>
-          <div className="space-y-2">
-            {insights.key_insights.map((insight: any, index: number) => (
-              <div key={index} className={`p-3 rounded-lg border-l-4 ${insight.type === 'warning' ? 'bg-yellow-50 border-yellow-400' :
-                insight.type === 'success' ? 'bg-green-50 border-green-400' :
-                  insight.type === 'urgent' ? 'bg-red-50 border-red-400' :
-                    'bg-blue-50 border-blue-400'
-                }`}>
-                <div className="font-medium text-sm">{insight.title}</div>
-                <div className="text-xs mt-1">{insight.message}</div>
+      {/* Key Findings */}
+      {summary.keyFindings && summary.keyFindings.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-blue-900 mb-2">Key Findings</h4>
+          <ul className="space-y-2">
+            {summary.keyFindings.map((finding: string, index: number) => (
+              <li key={index} className="flex items-start gap-2 text-sm">
+                <Badge variant="outline" className="mt-0.5">{index + 1}</Badge>
+                <span className="text-gray-700">{finding}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Critical Issues */}
+      {summary.criticalIssues && summary.criticalIssues.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-red-900 mb-2">Critical Issues</h4>
+          <div className="space-y-3">
+            {summary.criticalIssues.slice(0, 3).map((issue: any, index: number) => (
+              <div key={index} className="border-l-4 border-red-500 pl-3 py-1">
+                <div className="font-medium text-sm text-gray-900">{issue.issue}</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  <strong>Impact:</strong> {issue.impact} | <strong>Area:</strong> {issue.affectedArea}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="bg-white/60 rounded-lg p-4 border border-blue-100">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-blue-800">
-            ML Confidence: {insights.ml_confidence?.toUpperCase() || 'MEDIUM'}
-          </span>
-          <span className="text-xs text-blue-600">
-            Based on {insights.overall_assessment?.total_responses || 0} residents
-          </span>
+      {/* Top Priority Actions */}
+      {summary.actionPlan?.immediate && summary.actionPlan.immediate.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-orange-900 mb-2">Immediate Actions Required</h4>
+          <ul className="space-y-2">
+            {summary.actionPlan.immediate.slice(0, 3).map((action: any, index: number) => (
+              <li key={index} className="flex items-start gap-2 text-sm">
+                <Badge variant={action.priority === 'High' ? 'destructive' : 'default'} className="mt-0.5">
+                  {action.priority}
+                </Badge>
+                <span className="text-gray-700">{action.action}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="text-xs text-blue-700">
-          Analysis generated on {new Date(insights.timestamp).toLocaleDateString()}
-        </div>
+      )}
+
+      <div className="bg-purple-50 rounded-lg p-3 border border-purple-100 text-xs text-purple-700">
+        Generated by AI on {new Date(summary.generated_at).toLocaleDateString()} at {new Date(summary.generated_at).toLocaleTimeString()}
       </div>
     </div>
   );
@@ -147,32 +216,38 @@ function ReportCardContent() {
 
     setBarangayData(data);
 
-    // Fetch detailed analytics if barangayId is available
-    if (data.barangayId) {
+    // Fetch detailed analytics if barangayId and activeCycle are available
+    if (data.barangayId && !cycleLoading && activeCycle) {
       fetchDetailedAnalytics(data.barangayId);
-    } else {
+    } else if (data.barangayId && !cycleLoading && !activeCycle) {
+      console.warn('⚠️ [REPORT CARD] No active cycle available');
       setLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParams, activeCycle, cycleLoading]);
 
   const [communityVoiceData, setCommunityVoiceData] = useState<any>(null);
 
   const fetchDetailedAnalytics = async (barangayId: string) => {
     try {
-      // First try to get ML-enhanced funnel analysis
-      const funnelResponse = await fetch(`/api/funnel-analysis?barangayId=${barangayId}&useML=true`);
+      // Get the active cycle ID first
+      const cycleId = activeCycle?.cycle_id;
+      if (!cycleId) {
+        console.warn('No active cycle found, skipping funnel analysis');
+        setLoading(false);
+        return;
+      }
+
+      // Get ML-enhanced funnel analysis directly from the ML API
+      const funnelResponse = await fetch(`/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}`);
       if (funnelResponse.ok) {
         const funnelData = await funnelResponse.json();
-        console.log('Funnel analysis data:', funnelData);
+        console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
+        console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
 
         // Process ML-enhanced funnel data
-        if (funnelData.ml_enhanced) {
-          console.log('Using ML-enhanced funnel analysis');
-          processFunnelData(funnelData);
-        } else {
-          console.log('Using basic funnel analysis');
-          processBasicFunnelData(funnelData);
-        }
+        processFunnelData(funnelData);
+      } else {
+        console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
       }
 
       // Get community voice analysis
@@ -207,18 +282,18 @@ function ReportCardContent() {
     // Process ML-enhanced funnel data
     console.log('🔍 Processing funnel data:', funnelData);
     console.log('🔍 Service scores:', funnelData.service_scores);
-    
+
     // Update overall satisfaction and service scores from actual funnel data
     if (funnelData.overall_satisfaction !== undefined && funnelData.overall_satisfaction > 0) {
       console.log(`📊 [SATISFACTION] Updating overall satisfaction to ${funnelData.overall_satisfaction}%`);
-      
+
       // Also update individual service scores
       const updatedServiceScores: any = {};
       Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
         updatedServiceScores[serviceKey] = scores.satisfaction || 0;
         console.log(`📊 [SERVICE SCORE] ${serviceKey}: ${scores.satisfaction}%`);
       });
-      
+
       setBarangayData((prev: any) => {
         if (!prev) return prev;
         return {
@@ -233,7 +308,7 @@ function ReportCardContent() {
         };
       });
     }
-    
+
     const processedFunnel: any = {};
     const processedTrends: any = {};
 
@@ -242,7 +317,7 @@ function ReportCardContent() {
       console.log(`  - Concerns:`, scores.concerns);
       console.log(`  - Quotes:`, scores.quotes);
       console.log(`  - Recommendations:`, scores.recommendations);
-      
+
       processedFunnel[serviceKey] = {
         awareness: scores.awareness_score || scores.awareness || 0,
         availment: scores.availment_score || scores.availment || 0,
@@ -478,8 +553,8 @@ function ReportCardContent() {
             <div className="print:logo-container">
               <div className="print:logo-placeholder">
                 {barangayData.logo_url ? (
-                  <img 
-                    src={barangayData.logo_url} 
+                  <img
+                    src={barangayData.logo_url}
                     alt={`${barangayData.barangay} logo`}
                     className="max-w-full max-h-full object-contain"
                     onError={(e) => {
@@ -652,8 +727,8 @@ function ReportCardContent() {
               <CardContent className="p-8">
                 <div className="border-2 border-gray-200 rounded-xl p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-32">
                   {barangayData.logo_url ? (
-                    <img 
-                      src={barangayData.logo_url} 
+                    <img
+                      src={barangayData.logo_url}
                       alt={`${barangayData.barangay} logo`}
                       className="max-w-full max-h-full object-contain"
                       onError={(e) => {
@@ -735,17 +810,20 @@ function ReportCardContent() {
 
           {/* Right Column - Detailed Analysis */}
           <div className="lg:col-span-2 space-y-6 print:full-width">
-            {/* AI Generative Insight */}
-            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 print:section">
+            {/* Executive Summary */}
+            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 print:section">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-blue-900">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full print:hidden"></div>
-                  <h2 className="hidden print:show">Key Insights and Recommendations</h2>
-                  <span className="print:hidden">🤖 AI-Generated Insights</span>
+                <CardTitle className="flex items-center gap-2 text-purple-900">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
+                  <h2 className="hidden print:show">Executive Summary & Action Plan</h2>
+                  <span className="print:hidden">📋 Executive Summary & Action Plan</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <AIInsightsSection barangayId={barangayData.barangayId} />
+                <ExecutiveSummarySection
+                  barangayId={barangayData.barangayId}
+                  cycleId={activeCycle?.cycle_id || 0}
+                />
               </CardContent>
             </Card>
 
@@ -782,11 +860,10 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-2 py-1 rounded ${
-                                  isUp ? 'bg-green-100 text-green-700' : 
-                                  isDown ? 'bg-red-100 text-red-700' : 
-                                  'bg-gray-100 text-gray-600'
-                                }`}>
+                                <span className={`text-xs px-2 py-1 rounded ${isUp ? 'bg-green-100 text-green-700' :
+                                  isDown ? 'bg-red-100 text-red-700' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>
                                   {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
                                 </span>
                               );
@@ -925,33 +1002,29 @@ function ReportCardContent() {
                     {communityVoiceData.insights && communityVoiceData.insights.length > 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {communityVoiceData.insights.slice(0, 3).map((insight: any, index: number) => (
-                          <div 
-                            key={index} 
-                            className={`p-4 rounded-lg border-l-4 ${
-                              insight.priority === 'high' ? 'bg-red-50 border-red-400' :
+                          <div
+                            key={index}
+                            className={`p-4 rounded-lg border-l-4 ${insight.priority === 'high' ? 'bg-red-50 border-red-400' :
                               insight.priority === 'medium' ? 'bg-yellow-50 border-yellow-400' :
-                              'bg-blue-50 border-blue-400'
-                            }`}
+                                'bg-blue-50 border-blue-400'
+                              }`}
                           >
-                            <h4 className={`font-semibold mb-2 ${
-                              insight.priority === 'high' ? 'text-red-800' :
+                            <h4 className={`font-semibold mb-2 ${insight.priority === 'high' ? 'text-red-800' :
                               insight.priority === 'medium' ? 'text-yellow-800' :
-                              'text-blue-800'
-                            }`}>
+                                'text-blue-800'
+                              }`}>
                               {insight.title}
                             </h4>
-                            <p className={`text-sm mb-2 ${
-                              insight.priority === 'high' ? 'text-red-700' :
+                            <p className={`text-sm mb-2 ${insight.priority === 'high' ? 'text-red-700' :
                               insight.priority === 'medium' ? 'text-yellow-700' :
-                              'text-blue-700'
-                            }`}>
+                                'text-blue-700'
+                              }`}>
                               {insight.description}
                             </p>
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              insight.priority === 'high' ? 'bg-red-100 text-red-600' :
+                            <span className={`text-xs px-2 py-1 rounded ${insight.priority === 'high' ? 'bg-red-100 text-red-600' :
                               insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                              'bg-blue-100 text-blue-600'
-                            }`}>
+                                'bg-blue-100 text-blue-600'
+                              }`}>
                               {insight.priority} priority
                             </span>
                           </div>
@@ -1037,11 +1110,10 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
-                                  isUp ? 'bg-green-200 text-green-800' : 
-                                  isDown ? 'bg-red-200 text-red-800' : 
-                                  'bg-gray-200 text-gray-600'
-                                }`}>
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                  isDown ? 'bg-red-200 text-red-800' :
+                                    'bg-gray-200 text-gray-600'
+                                  }`}>
                                   {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
                                 </span>
                               );
@@ -1083,11 +1155,10 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
-                                  isUp ? 'bg-green-200 text-green-800' : 
-                                  isDown ? 'bg-red-200 text-red-800' : 
-                                  'bg-gray-200 text-gray-600'
-                                }`}>
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                  isDown ? 'bg-red-200 text-red-800' :
+                                    'bg-gray-200 text-gray-600'
+                                  }`}>
                                   {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
                                 </span>
                               );
@@ -1129,11 +1200,10 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
-                                  isUp ? 'bg-green-200 text-green-800' : 
-                                  isDown ? 'bg-red-200 text-red-800' : 
-                                  'bg-gray-200 text-gray-600'
-                                }`}>
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                  isDown ? 'bg-red-200 text-red-800' :
+                                    'bg-gray-200 text-gray-600'
+                                  }`}>
                                   {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
                                 </span>
                               );
@@ -1175,11 +1245,10 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${
-                                  isUp ? 'bg-green-200 text-green-800' : 
-                                  isDown ? 'bg-red-200 text-red-800' : 
-                                  'bg-gray-200 text-gray-600'
-                                }`}>
+                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                  isDown ? 'bg-red-200 text-red-800' :
+                                    'bg-gray-200 text-gray-600'
+                                  }`}>
                                   {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}%
                                 </span>
                               );
@@ -1266,11 +1335,10 @@ function ReportCardContent() {
                     const isUp = trend.direction === 'up';
                     const isDown = trend.direction === 'down';
                     return (
-                      <span className={`text-sm px-2 py-1 rounded ml-2 ${
-                        isUp ? 'bg-green-100 text-green-700' : 
-                        isDown ? 'bg-red-100 text-red-700' : 
-                        'bg-gray-100 text-gray-600'
-                      }`}>
+                      <span className={`text-sm px-2 py-1 rounded ml-2 ${isUp ? 'bg-green-100 text-green-700' :
+                        isDown ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
                         {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
                       </span>
                     );
@@ -1391,10 +1459,10 @@ function ReportCardContent() {
                 {/* Action Recommendations */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">🎯 AI-Generated Action Roadmap</h3>
-                  {selectedServiceArea.funnel?.recommendations && 
-                   (selectedServiceArea.funnel.recommendations.shortTerm?.length > 0 || 
-                    selectedServiceArea.funnel.recommendations.mediumTerm?.length > 0 || 
-                    selectedServiceArea.funnel.recommendations.longTerm?.length > 0) ? (
+                  {selectedServiceArea.funnel?.recommendations &&
+                    (selectedServiceArea.funnel.recommendations.shortTerm?.length > 0 ||
+                      selectedServiceArea.funnel.recommendations.mediumTerm?.length > 0 ||
+                      selectedServiceArea.funnel.recommendations.longTerm?.length > 0) ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                         <h4 className="font-semibold text-green-800 mb-2">Short-term (0-3 months)</h4>
@@ -1462,8 +1530,8 @@ function ReportCardContent() {
                       <Share2 className="w-4 h-4 mr-2" />
                       Share Infographic
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       disabled={!hasActiveCycle}
                       title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}

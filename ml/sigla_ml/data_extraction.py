@@ -105,6 +105,10 @@ class DataExtractor:
                     sql_query += " AND sr.barangay_id = %s"
                     params.append(filters['barangay_id'])
                 
+                if 'survey_cycle_id' in filters:
+                    sql_query += " AND sr.survey_cycle_id = %s"
+                    params.append(filters['survey_cycle_id'])
+                
                 if 'date_from' in filters:
                     sql_query += " AND sr.created_at >= %s"
                     params.append(filters['date_from'])

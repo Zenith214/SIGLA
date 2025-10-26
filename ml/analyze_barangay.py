@@ -43,15 +43,16 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Analyze survey data for a specific barangay')
     parser.add_argument('--barangay_id', type=int, required=True, help='ID of the barangay to analyze')
+    parser.add_argument('--cycle_id', type=int, required=False, help='ID of the survey cycle to analyze')
     args = parser.parse_args()
     
     try:
         # Initialize the ML API
         api = SiglaMLAPI()
-        logger.info(f"Analyzing barangay ID: {args.barangay_id}")
+        logger.info(f"Analyzing barangay ID: {args.barangay_id}, Cycle ID: {args.cycle_id}")
         
         # Analyze the barangay (disable DB saves for now to avoid permission errors)
-        result = api.analyze_barangay(barangay_id=args.barangay_id, save_to_db=True)
+        result = api.analyze_barangay(barangay_id=args.barangay_id, cycle_id=args.cycle_id, save_to_db=True)
         
         # Output the result as JSON
         print(json.dumps(result))

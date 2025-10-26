@@ -23,6 +23,7 @@ import { SurveyTargets } from "./ui/sections/survey-targets"
 import { UsersRoles } from "./ui/sections/users-roles"
 import { Assignments } from "./ui/sections/assignments"
 import { Backup } from "./ui/sections/backup"
+import { GeminiSettings } from "./ui/sections/gemini-settings"
 import { Menu, X } from "lucide-react"
 import { ToastProvider } from "@/hooks/use-toast"
 import { CycleDisplay } from "@/components/survey-cycle"
@@ -35,6 +36,7 @@ const sectionTitles = {
   targets: "Survey Targets",
   users: "Users & Roles",
   assignments: "Assignments",
+  "gemini-ai": "Gemini AI Settings",
   dashboard: "Dashboard Settings",
   backup: "Backup",
 }
@@ -87,6 +89,8 @@ export default function AdminSettingsPanel() {
         return <UsersRoles />
       case "assignments":
         return <Assignments />
+      case "gemini-ai":
+        return <GeminiSettings />
       case "backup":
         return <Backup />
       default:

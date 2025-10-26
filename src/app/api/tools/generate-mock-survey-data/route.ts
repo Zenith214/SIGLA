@@ -377,11 +377,18 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
   // Part A: Barangay Projects
   // Use threshold of 0.3 instead of 0.5 to ensure high-performer profiles get "Oo" responses
   sectionData['awarenessProjects'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
-  sectionData['benefitedProjects'] = availmentScore > 0.3 ? "Oo" : "Hindi";
   
-  // Always generate satisfaction rating for high performers
-  const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionProjects'] = satisfactionRating.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessProjects'] === "Oo") {
+    sectionData['benefitedProjects'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['benefitedProjects'] === "Oo") {
+      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionProjects'] = satisfactionRating.toString();
+    }
+  }
+  
   sectionData['suggestionsProjects'] = generateRealisticTextareaResponse('projects', needActionScore);
 
   // Debug logging for first response
@@ -392,7 +399,6 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
       availmentScore: availmentScore.toFixed(2),
       satisfactionScore: satisfactionScore.toFixed(2),
       needActionScore: needActionScore.toFixed(2),
-      satisfactionRating,
       sampleData: {
         awarenessProjects: sectionData['awarenessProjects'],
         benefitedProjects: sectionData['benefitedProjects'],
@@ -405,21 +411,35 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
   // Part B: Financial Transparency
   // Use threshold of 0.3 instead of 0.6 to ensure high-performer profiles get "Oo" responses
   sectionData['awarenessFinancial'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
-  sectionData['usedFinancialInfo'] = availmentScore > 0.3 ? "Oo" : "Hindi";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingFinancial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionFinancial'] = satisfactionRatingFinancial.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessFinancial'] === "Oo") {
+    sectionData['usedFinancialInfo'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['usedFinancialInfo'] === "Oo") {
+      const satisfactionRatingFinancial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionFinancial'] = satisfactionRatingFinancial.toString();
+    }
+  }
+  
   sectionData['suggestionsFinancial'] = generateRealisticTextareaResponse('financial', needActionScore);
 
   // Part C: Social Programs
   // Use threshold of 0.3 instead of 0.55 to ensure high-performer profiles get "Oo" responses
   sectionData['awarenessSocialPrograms'] = awarenessScore > 0.3 ? "Oo" : "Hindi";
-  sectionData['participatedSocialPrograms'] = availmentScore > 0.3 ? "Oo" : "Hindi";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingSocial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionSocialPrograms'] = satisfactionRatingSocial.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessSocialPrograms'] === "Oo") {
+    sectionData['participatedSocialPrograms'] = availmentScore > 0.3 ? "Oo" : "Hindi";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['participatedSocialPrograms'] === "Oo") {
+      const satisfactionRatingSocial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionSocialPrograms'] = satisfactionRatingSocial.toString();
+    }
+  }
+  
   sectionData['suggestionsSocialPrograms'] = generateRealisticTextareaResponse('socialPrograms', needActionScore);
 
   // Part D: Corruption Perception
@@ -466,21 +486,35 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
   // Part A: Disaster Information
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessDisasterInfo'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentDisasterInfo'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingDisaster = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionDisasterInfo'] = satisfactionRatingDisaster.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessDisasterInfo'] === "Yes") {
+    sectionData['availmentDisasterInfo'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentDisasterInfo'] === "Yes") {
+      const satisfactionRatingDisaster = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionDisasterInfo'] = satisfactionRatingDisaster.toString();
+    }
+  }
+  
   sectionData['suggestionsDisasterInfo'] = generateRealisticTextareaResponse('disasterInfo', satisfactionScore);
 
   // Part B: Evacuation Resources
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessEvacuation'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['locationEvacuation'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingEvacuation = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionEvacuation'] = satisfactionRatingEvacuation.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessEvacuation'] === "Yes") {
+    sectionData['locationEvacuation'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['locationEvacuation'] === "Yes") {
+      const satisfactionRatingEvacuation = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionEvacuation'] = satisfactionRatingEvacuation.toString();
+    }
+  }
+  
   sectionData['suggestionsEvacuation'] = generateRealisticTextareaResponse('evacuation', satisfactionScore);
 
   // Add need for action questions for proper scoring
@@ -505,31 +539,52 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
   // Part A: Barangay Tanods
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessTanods'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['experienceTanods'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingTanods = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionTanods'] = satisfactionRatingTanods.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessTanods'] === "Yes") {
+    sectionData['experienceTanods'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['experienceTanods'] === "Yes") {
+      const satisfactionRatingTanods = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionTanods'] = satisfactionRatingTanods.toString();
+    }
+  }
+  
   sectionData['suggestionsTanods'] = generateRealisticTextareaResponse('tanods', satisfactionScore);
 
   // Part B: Lupon (Dispute Resolution)
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessLupon'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['experienceLupon'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingLupon = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionLupon'] = satisfactionRatingLupon.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessLupon'] === "Yes") {
+    sectionData['experienceLupon'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['experienceLupon'] === "Yes") {
+      const satisfactionRatingLupon = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionLupon'] = satisfactionRatingLupon.toString();
+    }
+  }
+  
   sectionData['suggestionsLupon'] = generateRealisticTextareaResponse('lupon', satisfactionScore);
 
   // Part C: Anti-Drug Programs
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessAntiDrug'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['experienceAntiDrug'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingAntiDrug = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionAntiDrug'] = satisfactionRatingAntiDrug.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessAntiDrug'] === "Yes") {
+    sectionData['experienceAntiDrug'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['experienceAntiDrug'] === "Yes") {
+      const satisfactionRatingAntiDrug = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionAntiDrug'] = satisfactionRatingAntiDrug.toString();
+    }
+  }
+  
   sectionData['suggestionsAntiDrug'] = generateRealisticTextareaResponse('antiDrug', satisfactionScore);
 
   // Add need for action questions for proper scoring
@@ -555,31 +610,52 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
   // Part A: Health Services
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessHealthServices'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentHealthServices'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingHealth = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionHealthServices'] = satisfactionRatingHealth.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessHealthServices'] === "Yes") {
+    sectionData['availmentHealthServices'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentHealthServices'] === "Yes") {
+      const satisfactionRatingHealth = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionHealthServices'] = satisfactionRatingHealth.toString();
+    }
+  }
+  
   sectionData['suggestionsHealthServices'] = generateRealisticTextareaResponse('health', satisfactionScore);
 
   // Part B: Women & Children Protection
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessWomenChildrenProtection'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentWomenChildrenProtection'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingWomen = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionWomenChildrenProtection'] = satisfactionRatingWomen.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessWomenChildrenProtection'] === "Yes") {
+    sectionData['availmentWomenChildrenProtection'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentWomenChildrenProtection'] === "Yes") {
+      const satisfactionRatingWomen = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionWomenChildrenProtection'] = satisfactionRatingWomen.toString();
+    }
+  }
+  
   sectionData['suggestionsWomenChildrenProtection'] = generateRealisticTextareaResponse('womenChildren', satisfactionScore);
 
   // Part C: Community Participation
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessCommunityParticipation'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentCommunityParticipation'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingCommunity = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionCommunityParticipation'] = satisfactionRatingCommunity.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessCommunityParticipation'] === "Yes") {
+    sectionData['availmentCommunityParticipation'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentCommunityParticipation'] === "Yes") {
+      const satisfactionRatingCommunity = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionCommunityParticipation'] = satisfactionRatingCommunity.toString();
+    }
+  }
+  
   sectionData['suggestionsCommunityParticipation'] = generateRealisticTextareaResponse('community', satisfactionScore);
 
   // Add need for action questions for proper scoring
@@ -605,11 +681,18 @@ function generateBusinessSectionData(sectionData: { [key: string]: any }, profil
   // Business Clearance
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessBusinessClearance'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentBusinessClearance'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingBusiness = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionBusinessClearance'] = satisfactionRatingBusiness.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessBusinessClearance'] === "Yes") {
+    sectionData['availmentBusinessClearance'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentBusinessClearance'] === "Yes") {
+      const satisfactionRatingBusiness = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionBusinessClearance'] = satisfactionRatingBusiness.toString();
+    }
+  }
+  
   sectionData['suggestionsBusinessClearance'] = generateRealisticTextareaResponse('business', satisfactionScore);
 
   // Add need for action questions for proper scoring
@@ -633,11 +716,18 @@ function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, p
   // Waste Management
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
   sectionData['awarenessWasteManagement'] = awarenessScore > 0.3 ? "Yes" : "No";
-  sectionData['availmentWasteManagement'] = availmentScore > 0.3 ? "Yes" : "No";
   
-  // Always generate satisfaction rating
-  const satisfactionRatingWaste = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-  sectionData['satisfactionWasteManagement'] = satisfactionRatingWaste.toString();
+  // Only ask availment if aware
+  if (sectionData['awarenessWasteManagement'] === "Yes") {
+    sectionData['availmentWasteManagement'] = availmentScore > 0.3 ? "Yes" : "No";
+    
+    // Only generate satisfaction rating if they availed
+    if (sectionData['availmentWasteManagement'] === "Yes") {
+      const satisfactionRatingWaste = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
+      sectionData['satisfactionWasteManagement'] = satisfactionRatingWaste.toString();
+    }
+  }
+  
   sectionData['suggestionsWasteManagement'] = generateRealisticTextareaResponse('waste', satisfactionScore);
 
   // Add need for action questions for proper scoring
@@ -802,20 +892,18 @@ async function ensureAssignmentExists(client: any, barangayId: number, interview
     if (checkResult.rows.length > 0) {
       // Update existing assignment
       const assignment = checkResult.rows[0];
-      const newStatus = progress >= 100 ? 'completed' : 'in_progress';
-      
+      // Don't update status - let it remain as is (pending or in_progress)
+      // Just update progress
       await client.query(
-        'UPDATE assignment SET progress = $1, status = $2, updated_at = NOW() WHERE assignment_id = $3',
-        [progress, newStatus, assignment.assignment_id]
+        'UPDATE assignment SET progress = $1, updated_at = NOW() WHERE assignment_id = $2',
+        [progress, assignment.assignment_id]
       );
     } else {
-      // Create new assignment
-      const newStatus = progress >= 100 ? 'completed' : 'in_progress';
-      
+      // Create new assignment with in_progress status
       await client.query(`
         INSERT INTO assignment (barangay_id, user_id, survey_cycle_id, status, progress, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      `, [barangayId, interviewerId, cycleId, newStatus, progress]);
+      `, [barangayId, interviewerId, cycleId, 'in_progress', progress]);
     }
   } catch (error) {
     console.error('Error ensuring assignment exists:', error);
