@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getCachedOrCompute } from '@/lib/ml-cache';
 
 const execAsync = promisify(exec);
 
@@ -11,8 +12,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
     const cycleId = searchParams.get('cycleId');
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    console.log(`🚀 [ML FUNNEL] Request received - Barangay: ${barangayId}, Cycle: ${cycleId}`);
+    console.log(`🚀 [ML FUNNEL] Request received - Barangay: ${barangayId}, Cycle: ${cycleId}, Refresh: ${forceRefresh}`);
 
     if (!barangayId) {
       return NextResponse.json(
@@ -29,34 +31,55 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Call the ML analysis Python script
-    const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+    // Use caching with 12-hour TTL for funnel analysis
+    const result = await getCachedOrCompute(
+      'ml-funnel-analysis',
+      { barangayId: parseInt(barangayId), cycleId: parseInt(cycleId) },
+      async () => {
+        // This is the expensive computation that will be cached
+        const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+        const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
 
-    console.log(`Running ML analysis for barangay ${barangayId}...`);
+        console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}...`);
 
-    const { stdout, stderr } = await execAsync(pythonCommand);
+        const { stdout, stderr } = await execAsync(pythonCommand);
 
-    if (stderr) {
-      console.error('ML Analysis Error:', stderr);
-      // Don't fail completely, try to parse stdout anyway
-    }
+        if (stderr) {
+          console.error('ML Analysis Error:', stderr);
+        }
 
-    let mlResults;
-    try {
-      mlResults = JSON.parse(stdout);
-    } catch (parseError) {
-      console.error('Failed to parse ML results:', parseError);
-      return NextResponse.json(
-        { error: "Failed to parse ML analysis results" },
-        { status: 500 }
-      );
-    }
+        let mlResults;
+        try {
+          mlResults = JSON.parse(stdout);
+        } catch (parseError) {
+          console.error('Failed to parse ML results:', parseError);
+          throw new Error("Failed to parse ML analysis results");
+        }
 
-    // Transform ML results into funnel analysis format
-    const funnelAnalysis = await transformMLToFunnelFormat(mlResults, parseInt(barangayId), parseInt(cycleId));
+        // Transform ML results into funnel analysis format
+        return await transformMLToFunnelFormat(mlResults, parseInt(barangayId), parseInt(cycleId));
+      },
+      {
+        ttl: 43200, // 12 hours
+        staleWhileRevalidate: true,
+        forceRefresh
+      }
+    );
 
-    return NextResponse.json(funnelAnalysis);
+    // Add cache metadata to response
+    const response = {
+      ...result.data,
+      _cache: {
+        cached: result.cached,
+        stale: result.stale,
+        computedAt: result.computedAt,
+        expiresAt: result.expiresAt
+      }
+    };
+
+    console.log(`✅ [ML FUNNEL] Returned ${result.cached ? (result.stale ? 'stale cached' : 'fresh cached') : 'newly computed'} data for barangay ${barangayId}`);
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error("Error in ML funnel analysis:", error);

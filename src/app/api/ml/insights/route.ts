@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import path from 'path';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
+import { getCachedOrCompute } from '@/lib/ml-cache';
 
 const execAsync = promisify(exec);
 
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const barangayId = searchParams.get('barangayId');
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
     if (!barangayId) {
       return NextResponse.json(
@@ -32,55 +34,78 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Call the ML analysis to get insights
-    const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
-
-    console.log(`Generating ML insights for barangay ${barangayId}...`);
-    
-    const { stdout, stderr } = await execAsync(pythonCommand);
-
-    if (stderr) {
-      console.error('ML Insights Error:', stderr);
-    }
-
-    let mlResults;
-    try {
-      mlResults = JSON.parse(stdout);
-    } catch (parseError) {
-      console.error('Failed to parse ML insights:', parseError);
-      return NextResponse.json(
-        { error: "Failed to parse ML insights" },
-        { status: 500 }
-      );
-    }
-
-    // Get actual unique respondent count from database
     const activeCycleId = await getActiveCycleId();
-    let actualRespondentCount = mlResults.total_responses || 0;
-    
-    if (activeCycleId) {
-      try {
-        const { count, error } = await supabaseAdmin
-          .from('survey_response')
-          .select('response_id', { count: 'exact', head: true })
-          .eq('barangay_id', parseInt(barangayId))
-          .eq('survey_cycle_id', activeCycleId)
-          .in('status', ['completed', 'submitted']);
+
+    // Use caching with 24-hour TTL
+    const result = await getCachedOrCompute(
+      'ml-insights',
+      { barangayId: parseInt(barangayId), cycleId: activeCycleId },
+      async () => {
+        // This is the expensive computation that will be cached
+        const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+        const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+
+        console.log(`🔄 [ML INSIGHTS] Computing insights for barangay ${barangayId}...`);
         
-        if (!error && count !== null) {
-          actualRespondentCount = count;
-          console.log(`📊 [ML INSIGHTS] Corrected respondent count from ${mlResults.total_responses} to ${actualRespondentCount}`);
+        const { stdout, stderr } = await execAsync(pythonCommand);
+
+        if (stderr) {
+          console.error('ML Insights Error:', stderr);
         }
-      } catch (error) {
-        console.error('Error fetching actual respondent count:', error);
+
+        let mlResults;
+        try {
+          mlResults = JSON.parse(stdout);
+        } catch (parseError) {
+          console.error('Failed to parse ML insights:', parseError);
+          throw new Error("Failed to parse ML insights");
+        }
+
+        // Get actual unique respondent count from database
+        let actualRespondentCount = mlResults.total_responses || 0;
+        
+        if (activeCycleId) {
+          try {
+            const { count, error } = await supabaseAdmin
+              .from('survey_response')
+              .select('response_id', { count: 'exact', head: true })
+              .eq('barangay_id', parseInt(barangayId))
+              .eq('survey_cycle_id', activeCycleId)
+              .in('status', ['completed', 'submitted']);
+            
+            if (!error && count !== null) {
+              actualRespondentCount = count;
+              console.log(`📊 [ML INSIGHTS] Corrected respondent count from ${mlResults.total_responses} to ${actualRespondentCount}`);
+            }
+          } catch (error) {
+            console.error('Error fetching actual respondent count:', error);
+          }
+        }
+
+        // Generate comprehensive insights with corrected count
+        return generateComprehensiveInsights(mlResults, parseInt(barangayId), actualRespondentCount);
+      },
+      {
+        ttl: 86400, // 24 hours
+        staleWhileRevalidate: true,
+        forceRefresh
       }
-    }
+    );
 
-    // Generate comprehensive insights with corrected count
-    const insights = generateComprehensiveInsights(mlResults, parseInt(barangayId), actualRespondentCount);
+    // Add cache metadata to response
+    const response = {
+      ...result.data,
+      _cache: {
+        cached: result.cached,
+        stale: result.stale,
+        computedAt: result.computedAt,
+        expiresAt: result.expiresAt
+      }
+    };
 
-    return NextResponse.json(insights);
+    console.log(`✅ [ML INSIGHTS] Returned ${result.cached ? (result.stale ? 'stale cached' : 'fresh cached') : 'newly computed'} data for barangay ${barangayId}`);
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error("Error generating ML insights:", error);
