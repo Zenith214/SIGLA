@@ -32,6 +32,12 @@ export default function BarangaySatisfactionIndex({
   const effectiveCycleId = selectedCycleId || activeCycle?.cycle_id;
   const viewingCycle = allCycles.find(c => c.cycle_id === effectiveCycleId) || activeCycle;
   const isHistorical = viewingCycle && activeCycle && viewingCycle.cycle_id !== activeCycle.cycle_id;
+
+  // Format percentage to 2 decimal places for display
+  const formatPercentage = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) return '0.00';
+    return Number(value).toFixed(2);
+  };
   const [satisfactionData, setSatisfactionData] = useState<{
     overall: number;
     categories: { [key: string]: any };
@@ -334,6 +340,7 @@ export default function BarangaySatisfactionIndex({
     const params = new URLSearchParams({
       barangay: barangay.name,
       barangayId: barangay.id.toString(),
+      cycleId: effectiveCycleId?.toString() || '', // Add cycle ID
       population: barangay.population.toString(),
       households: barangay.households.toString(),
       area: (barangay.area || 0).toString(),
@@ -474,7 +481,7 @@ export default function BarangaySatisfactionIndex({
                     <span className="text-xl font-bold text-gray-500">No data</span>
                   ) : (
                     <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                      {satisfactionData.overall}%
+                      {formatPercentage(satisfactionData.overall)}%
                     </span>
                   )}
                   {loading && <span className="text-sm text-gray-500">(Loading...)</span>}

@@ -587,12 +587,21 @@ async function calculateTrend(
 
     console.log(`🔍 [TREND] No ML trends, fetching previous cycle...`);
 
-    // Get the previous completed cycle
+    // Get the current cycle info first to compare years
+    const { data: currentCycleInfo } = await supabaseAdmin
+      .from('survey_cycle')
+      .select('cycle_id, name, year, is_active')
+      .eq('cycle_id', currentCycleId)
+      .single();
+
+    console.log(`🔍 [TREND] Current cycle info:`, currentCycleInfo);
+
+    // Get the previous completed cycle (different year to avoid comparing same cycle)
     const { data: previousCycle, error: cycleError } = await supabaseAdmin
       .from('survey_cycle')
       .select('cycle_id, name, year, is_active')
-      .eq('is_active', false)
       .lt('cycle_id', currentCycleId)
+      .neq('year', currentCycleInfo?.year || 9999) // Exclude same year
       .order('cycle_id', { ascending: false })
       .limit(1)
       .single();
@@ -661,13 +670,22 @@ async function calculateTrend(
       };
     }
 
-    // Calculate change in satisfaction score using the new structured format
-    const currentSatisfaction = currentScores.satisfaction?.percentage || 0;
-    const previousSatisfaction = previousScores.satisfaction?.percentage || 0;
+    // Calculate change in satisfaction score
+    // Handle both formats: number or object with percentage
+    const currentSatisfaction = typeof currentScores.satisfaction === 'number' 
+      ? currentScores.satisfaction 
+      : (currentScores.satisfaction?.percentage || 0);
+    
+    const previousSatisfaction = typeof previousScores.satisfaction === 'number'
+      ? previousScores.satisfaction
+      : (previousScores.satisfaction?.percentage || 0);
+    
     const change = currentSatisfaction - previousSatisfaction;
 
     console.log(`✅ [TREND] Trend calculated successfully:`, {
+      currentScores_satisfaction: currentScores.satisfaction,
       currentSatisfaction,
+      previousScores_satisfaction: previousScores.satisfaction,
       previousSatisfaction,
       change,
       direction: change > 0 ? 'up' : change < 0 ? 'down' : 'stable'

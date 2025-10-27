@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, Users, MapPin, Eye } from 'lucide-react';
+import { ArrowLeft, Download, Share2, BarChart3, TrendingUp, Users, MapPin, Eye, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { CycleDisplay } from '@/components/survey-cycle';
 import { useActiveCycle } from '@/hooks/useSurveyCycle';
 import { getCurrentUser, User } from '@/lib/auth';
+import { reportCardCache } from '@/utils/reportCardCache';
 import './print.css';
 
 function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; cycleId: number }) {
@@ -178,8 +179,15 @@ function ReportCardContent() {
   const [loading, setLoading] = useState(true);
   const [showResponsesModal, setShowResponsesModal] = useState(false);
   const [selectedServiceArea, setSelectedServiceArea] = useState<any>(null);
+
+  // Format percentage to 2 decimal places for display
+  const formatPercentage = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) return '0.00';
+    return Number(value).toFixed(2);
+  };
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     // Fetch current user for role-based display
@@ -188,11 +196,32 @@ function ReportCardContent() {
     });
   }, []);
 
+  const handleForceRefresh = async () => {
+    if (!barangayData?.barangayId) return;
+
+    const effectiveCycleId = barangayData.cycleId || activeCycle?.cycle_id;
+    if (!effectiveCycleId) return;
+
+    setIsRefreshing(true);
+    console.log('🔄 [REPORT CARD] Force refreshing data...');
+
+    // Clear cache for this barangay/cycle
+    reportCardCache.clearForBarangay(barangayData.barangayId, effectiveCycleId);
+
+    // Fetch fresh data
+    await fetchDetailedAnalytics(barangayData.barangayId, effectiveCycleId, true);
+
+    setIsRefreshing(false);
+    console.log('✅ [REPORT CARD] Force refresh complete');
+  };
+
   useEffect(() => {
     // Get data from URL parameters
+    const cycleIdParam = searchParams.get('cycleId');
     const data = {
       barangay: searchParams.get('barangay') || '',
       barangayId: searchParams.get('barangayId') || '',
+      cycleId: cycleIdParam ? parseInt(cycleIdParam) : null, // Add cycle ID from URL
       logo_url: searchParams.get('logo_url') || '',
       population: parseInt(searchParams.get('population') || '0'),
       households: parseInt(searchParams.get('households') || '0'),
@@ -216,60 +245,96 @@ function ReportCardContent() {
 
     setBarangayData(data);
 
-    // Fetch detailed analytics if barangayId and activeCycle are available
-    if (data.barangayId && !cycleLoading && activeCycle) {
-      fetchDetailedAnalytics(data.barangayId);
-    } else if (data.barangayId && !cycleLoading && !activeCycle) {
-      console.warn('⚠️ [REPORT CARD] No active cycle available');
+    // Determine which cycle to use: URL parameter or active cycle
+    const effectiveCycleId = data.cycleId || activeCycle?.cycle_id;
+
+    // Fetch detailed analytics if barangayId and cycle are available
+    if (data.barangayId && !cycleLoading && effectiveCycleId) {
+      fetchDetailedAnalytics(data.barangayId, effectiveCycleId);
+    } else if (data.barangayId && !cycleLoading && !effectiveCycleId) {
+      console.warn('⚠️ [REPORT CARD] No cycle available');
       setLoading(false);
     }
   }, [searchParams, activeCycle, cycleLoading]);
 
   const [communityVoiceData, setCommunityVoiceData] = useState<any>(null);
 
-  const fetchDetailedAnalytics = async (barangayId: string) => {
+  const fetchDetailedAnalytics = async (barangayId: string, cycleId: number, forceRefresh: boolean = false) => {
     try {
-      // Get the active cycle ID first
-      const cycleId = activeCycle?.cycle_id;
-      if (!cycleId) {
-        console.warn('No active cycle found, skipping funnel analysis');
-        setLoading(false);
-        return;
-      }
+      console.log(`📊 [REPORT CARD] Fetching analytics for barangay ${barangayId}, cycle ${cycleId}, forceRefresh: ${forceRefresh}`);
 
-      // Get ML-enhanced funnel analysis directly from the ML API
-      const funnelResponse = await fetch(`/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}`);
-      if (funnelResponse.ok) {
-        const funnelData = await funnelResponse.json();
-        console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
-        console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
-
-        // Process ML-enhanced funnel data
-        processFunnelData(funnelData);
+      // Check cache for funnel data (skip if force refresh)
+      const cachedFunnelData = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'funnel') : null;
+      if (cachedFunnelData && !forceRefresh) {
+        console.log('✅ [REPORT CARD] Using cached funnel data');
+        console.log('📦 [REPORT CARD] Cached action_grid:', (cachedFunnelData as any).action_grid);
+        processFunnelData(cachedFunnelData);
       } else {
-        console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
-      }
+        if (forceRefresh) {
+          console.log('🔄 [REPORT CARD] Force refresh - bypassing cache...');
+        } else {
+          console.log('🔄 [REPORT CARD] No cache found, fetching from API...');
+        }
+        // Get ML-enhanced funnel analysis directly from the ML API
+        // Add refresh parameter if force refresh is requested
+        const apiUrl = forceRefresh
+          ? `/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}&refresh=true`
+          : `/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}`;
 
-      // Get community voice analysis
-      const communityVoiceResponse = await fetch(`/api/community-voice?barangayId=${barangayId}`);
-      if (communityVoiceResponse.ok) {
-        const cvData = await communityVoiceResponse.json();
-        console.log('Community voice data:', cvData);
-        if (cvData.success && cvData.data) {
-          setCommunityVoiceData(cvData.data);
+        console.log(`🔄 [REPORT CARD] Fetching from: ${apiUrl}`);
+        const funnelResponse = await fetch(apiUrl);
+        if (funnelResponse.ok) {
+          const funnelData = await funnelResponse.json();
+          console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
+          console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
+          console.log('📊 [REPORT CARD] Action grid with trends:', funnelData.action_grid);
+
+          // Cache the funnel data
+          reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
+
+          // Process ML-enhanced funnel data
+          processFunnelData(funnelData);
+        } else {
+          console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
         }
       }
 
-      // Get detailed survey analytics
-      const response = await fetch(`/api/survey-analytics?format=detailed&barangayId=${barangayId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setAnalyticsData(data.detailed);
+      // Check cache for community voice data (skip if force refresh)
+      const cachedCommunityVoice = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'community-voice') : null;
+      if (cachedCommunityVoice && !forceRefresh) {
+        console.log('✅ [REPORT CARD] Using cached community voice data');
+        setCommunityVoiceData(cachedCommunityVoice);
+      } else {
+        // Get community voice analysis
+        const communityVoiceResponse = await fetch(`/api/community-voice?barangayId=${barangayId}`);
+        if (communityVoiceResponse.ok) {
+          const cvData = await communityVoiceResponse.json();
+          console.log('Community voice data:', cvData);
+          if (cvData.success && cvData.data) {
+            // Cache the community voice data
+            reportCardCache.set(barangayId, cycleId, 'community-voice', cvData.data);
+            setCommunityVoiceData(cvData.data);
+          }
+        }
+      }
 
-        // Only generate fallback data if we don't have funnel data from API
-        // Check if funnelData state is empty (not the variable from fetch)
-        // Since we already processed funnel data above, we don't need this fallback
-        console.log('Survey analytics loaded, funnel data already processed from API');
+      // Check cache for survey analytics (skip if force refresh)
+      const cachedAnalytics = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'analytics') : null;
+      if (cachedAnalytics && !forceRefresh) {
+        console.log('✅ [REPORT CARD] Using cached analytics data');
+        setAnalyticsData(cachedAnalytics);
+      } else {
+        // Get detailed survey analytics
+        const response = await fetch(`/api/survey-analytics?format=detailed&barangayId=${barangayId}`);
+        if (response.ok) {
+          const data = await response.json();
+
+          // Cache the analytics data
+          reportCardCache.set(barangayId, cycleId, 'analytics', data.detailed);
+          setAnalyticsData(data.detailed);
+
+          console.log('Survey analytics loaded, funnel data already processed from API');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch detailed analytics:', error);
@@ -282,6 +347,7 @@ function ReportCardContent() {
     // Process ML-enhanced funnel data
     console.log('🔍 Processing funnel data:', funnelData);
     console.log('🔍 Service scores:', funnelData.service_scores);
+    console.log('🔍 Action grid (RAW):', JSON.stringify(funnelData.action_grid, null, 2));
 
     // Update overall satisfaction and service scores from actual funnel data
     if (funnelData.overall_satisfaction !== undefined && funnelData.overall_satisfaction > 0) {
@@ -333,7 +399,26 @@ function ReportCardContent() {
       if (funnelData.action_grid && funnelData.action_grid[serviceKey]) {
         const trend = funnelData.action_grid[serviceKey].trend || { change: 0, direction: 'baseline' };
         console.log(`📈 [TREND UI] Extracted trend for ${serviceKey}:`, trend);
-        processedTrends[serviceKey] = trend;
+        console.log(`📈 [TREND UI] Full action_grid entry:`, funnelData.action_grid[serviceKey]);
+
+        // Validate trend change - if it's unrealistic (> 100% or < -100%), mark as unavailable
+        if (Math.abs(trend.change) > 100) {
+          console.warn(`⚠️ [TREND UI] Unrealistic trend change for ${serviceKey}: ${trend.change}%. Marking as baseline.`);
+          processedTrends[serviceKey] = {
+            ...trend,
+            available: false,
+            direction: 'baseline',
+            change: 0
+          };
+        } else {
+          console.log(`✅ [TREND UI] Trend validated for ${serviceKey}: ${trend.change}% ${trend.direction}`);
+          processedTrends[serviceKey] = {
+            ...trend,
+            available: true
+          };
+        }
+      } else {
+        console.warn(`⚠️ [TREND UI] No action_grid data for ${serviceKey}`);
       }
     });
 
@@ -670,12 +755,32 @@ function ReportCardContent() {
               </div>
             </div>
             <div className="flex gap-2 print:hidden">
+              <Button
+                variant="outline"
+                onClick={handleForceRefresh}
+                disabled={isRefreshing}
+                className="bg-white text-slate-800 hover:bg-gray-100"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
               <Button variant="outline" onClick={() => setShowResponsesModal(true)}>
                 <Eye className="w-4 h-4 mr-2" />
                 View Participants
               </Button>
               <div className="flex items-center gap-2 text-sm text-white">
-                {hasActiveCycle ? (
+                {barangayData.cycleId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                      Cycle {barangayData.cycleId}
+                    </span>
+                    {barangayData.cycleId !== activeCycle?.cycle_id && (
+                      <Badge variant="outline" className="text-xs bg-amber-100 text-amber-800 border-amber-300">
+                        Historical Data
+                      </Badge>
+                    )}
+                  </div>
+                ) : hasActiveCycle ? (
                   <CycleDisplay className="text-white" />
                 ) : (
                   <span className="text-amber-300 font-medium">⚠️ No Active Cycle</span>
@@ -755,7 +860,7 @@ function ReportCardContent() {
               <CardContent>
                 <div className="text-center">
                   <div className={`text-4xl font-bold mb-2 ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                    {barangayData.satisfaction}%
+                    {formatPercentage(barangayData.satisfaction)}%
                   </div>
                   <Badge variant={isHighSatisfaction ? 'default' : 'destructive'} className="mb-4">
                     {isHighSatisfaction ? 'Good Performance' : 'Needs Improvement'}
@@ -822,7 +927,7 @@ function ReportCardContent() {
               <CardContent className="pt-0">
                 <ExecutiveSummarySection
                   barangayId={barangayData.barangayId}
-                  cycleId={activeCycle?.cycle_id || 0}
+                  cycleId={barangayData.cycleId || activeCycle?.cycle_id || 0}
                 />
               </CardContent>
             </Card>
@@ -907,7 +1012,7 @@ function ReportCardContent() {
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                               <span className={`text-sm font-bold ${category.score > 57 ? 'text-green-600' : 'text-red-600'}`}>
-                                {category.score}%
+                                {formatPercentage(category.score)}%
                               </span>
                             </div>
                           </div>
@@ -920,7 +1025,7 @@ function ReportCardContent() {
                             ? 'bg-blue-100 text-blue-800 border border-blue-300'
                             : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                             }`}>
-                            {category.need}%
+                            {formatPercentage(category.need)}%
                           </div>
                           <span className="text-xs text-gray-500 mt-1">Need for Action</span>
                         </div>
@@ -948,13 +1053,13 @@ function ReportCardContent() {
                         <div className="flex justify-center space-x-8 mb-4">
                           <div className="text-center">
                             <div className="print:metric-value text-2xl font-bold mb-1">
-                              {category.score}%
+                              {formatPercentage(category.score)}%
                             </div>
                             <div className="print:text-sm">Satisfaction</div>
                           </div>
                           <div className="text-center">
                             <div className="print:metric-value text-2xl font-bold mb-1">
-                              {category.need}%
+                              {formatPercentage(category.need)}%
                             </div>
                             <div className="print:text-sm">Need for Action</div>
                           </div>

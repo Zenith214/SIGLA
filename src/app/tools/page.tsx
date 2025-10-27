@@ -16,6 +16,7 @@ import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3, Help
 import { useEffect } from "react";
 import { CycleDisplay } from "@/components/survey-cycle";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
+import { reportCardCache } from "@/utils/reportCardCache";
 
 interface GenerationResult {
   success: boolean;
@@ -56,6 +57,7 @@ export default function ToolsPage() {
   const [communityVoiceResults, setCommunityVoiceResults] = useState<any>(null);
   const [cacheStats, setCacheStats] = useState<any>(null);
   const [isInvalidatingCache, setIsInvalidatingCache] = useState(false);
+  const [trendsDebug, setTrendsDebug] = useState<any>(null);
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle();
 
   // Fetch barangays from database on component mount
@@ -532,9 +534,13 @@ export default function ToolsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Also clear client-side report card cache
+        reportCardCache.clear();
+        
         addResult({
           success: true,
-          message: `Successfully cleared ${data.entriesDeleted} cache entries`
+          message: `Successfully cleared ${data.entriesDeleted} server cache entries + client-side report card cache`
         });
         // Refresh stats
         await fetchCacheStats();
@@ -583,9 +589,16 @@ export default function ToolsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Also clear client-side report card cache for this barangay
+        // Clear for all cycles since we don't know which cycle the user is viewing
+        if (activeCycle) {
+          reportCardCache.clearForBarangay(parseInt(barangayId), activeCycle.cycle_id);
+        }
+        
         addResult({
           success: true,
-          message: `Cleared ${data.entriesDeleted} cache entries for ${barangayName}`
+          message: `Cleared ${data.entriesDeleted} server cache entries + client-side report card cache for ${barangayName}`
         });
         // Refresh stats
         await fetchCacheStats();
@@ -603,6 +616,48 @@ export default function ToolsPage() {
       });
     } finally {
       setIsInvalidatingCache(false);
+    }
+  };
+
+  const debugTrends = async () => {
+    if (!barangayId || !activeCycle) {
+      addResult({
+        success: false,
+        message: 'Please select a barangay and ensure active cycle is set'
+      });
+      return;
+    }
+
+    setCurrentAction("Debugging trends calculation...");
+    setTrendsDebug(null);
+    
+    try {
+      const response = await fetch(`/api/debug/trends?barangayId=${barangayId}&cycleId=${activeCycle.cycle_id}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setTrendsDebug(data);
+        
+        const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
+        const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
+        
+        addResult({
+          success: true,
+          message: `Trends debug completed for ${barangayName}. Check results below.`,
+          data: data
+        });
+      } else {
+        const errorData = await response.json();
+        addResult({
+          success: false,
+          message: errorData.error || 'Failed to debug trends'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     }
   };
 
@@ -1100,7 +1155,7 @@ export default function ToolsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-end">
                 <Button
                   onClick={fetchCacheStats}
@@ -1121,6 +1176,17 @@ export default function ToolsPage() {
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Clear Barangay Cache
+                </Button>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={debugTrends}
+                  disabled={isGenerating || isDeleting || !barangayId || !hasActiveCycle}
+                  variant="outline"
+                  className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
+                >
+                  <Terminal className="w-4 h-4 mr-2" />
+                  Debug Trends
                 </Button>
               </div>
             </div>
@@ -1186,11 +1252,88 @@ export default function ToolsPage() {
               </div>
             )}
 
+            {/* Trends Debug Display */}
+            {trendsDebug && (
+              <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h4 className="font-semibold text-purple-900 mb-3">Trends Debug Information</h4>
+                
+                <div className="space-y-4">
+                  {/* Cycle Information */}
+                  <div>
+                    <h5 className="font-medium text-purple-800 mb-2">Cycle Information</h5>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="p-2 bg-white rounded border border-purple-100">
+                        <div className="font-medium">Current Cycle</div>
+                        <div>{trendsDebug.currentCycle?.name} (ID: {trendsDebug.currentCycle?.cycle_id})</div>
+                        <div className="text-xs text-gray-600">
+                          {trendsDebug.currentResponseCount} responses
+                        </div>
+                      </div>
+                      <div className="p-2 bg-white rounded border border-purple-100">
+                        <div className="font-medium">Previous Cycle</div>
+                        {trendsDebug.previousCycle ? (
+                          <>
+                            <div>{trendsDebug.previousCycle.name} (ID: {trendsDebug.previousCycle.cycle_id})</div>
+                            <div className="text-xs text-gray-600">
+                              {trendsDebug.previousResponseCount} responses
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-gray-500">No previous cycle found</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Comparison */}
+                  {trendsDebug.serviceComparison && (
+                    <div>
+                      <h5 className="font-medium text-purple-800 mb-2">Service Area Trends</h5>
+                      <div className="space-y-2">
+                        {Object.entries(trendsDebug.serviceComparison).map(([service, data]: [string, any]) => (
+                          <div key={service} className="p-3 bg-white rounded border border-purple-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium capitalize">{service}</span>
+                              <Badge variant={
+                                data.direction === 'up' ? 'default' :
+                                data.direction === 'down' ? 'destructive' : 'outline'
+                              }>
+                                {data.direction === 'up' ? '↑' : data.direction === 'down' ? '↓' : '→'} {data.change}%
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <div className="text-gray-600">Current Satisfaction</div>
+                                <div className="font-mono">{data.currentScores?.satisfaction?.toFixed(2) || 'N/A'}%</div>
+                                <div className="text-gray-500">({data.currentResponseCount} responses)</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600">Previous Satisfaction</div>
+                                <div className="font-mono">{data.previousScores?.satisfaction?.toFixed(2) || 'N/A'}%</div>
+                                <div className="text-gray-500">({data.previousResponseCount} responses)</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {trendsDebug.message && (
+                    <div className="text-center text-purple-700 py-2">
+                      {trendsDebug.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Note:</strong> Clearing cache will force recalculation of analytics on next request. 
                 Use after deploying new funnel calculation methodology or fixing calculation bugs.
+                Use "Debug Trends" to see how trends are being calculated.
               </AlertDescription>
             </Alert>
           </CardContent>
