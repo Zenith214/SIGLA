@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
     // Calculate trends and insights
     const trends = calculateTrends(comparisonData, metrics);
 
+    console.log('[COMPARE] Final trends object:', trends);
+    console.log('[COMPARE] Comparison data summary:', comparisonData.map(d => ({
+      cycle: d.cycle.name,
+      responses: d.data.responses.total,
+      assignments: `${d.data.assignments.completed}/${d.data.assignments.total} (${d.data.assignments.completion_rate}%)`,
+      targets: `${d.data.targets.achieved}/${d.data.targets.total} (${d.data.targets.progress_rate}%)`
+    })));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -135,7 +143,7 @@ async function getCycleComparisonData(cycleId: number, includeNonAwardees: boole
     
     const targetsQuery = supabaseAdmin
       .from('survey_target')
-      .select('target_count, achieved_count')
+      .select('target, achieved')
       .eq('survey_cycle_id', cycleId);
 
     // Apply awardee filtering if needed
@@ -151,19 +159,26 @@ async function getCycleComparisonData(cycleId: number, includeNonAwardees: boole
       targetsQuery
     ]);
 
+    // Log any errors
+    if (targetsResult.error) {
+      console.error(`[COMPARE] Error fetching targets for cycle ${cycleId}:`, targetsResult.error);
+    }
+
     const responsesCount = responsesResult.count || 0;
     
-    // Calculate assignment metrics
+    // Calculate assignment metrics (case-insensitive status matching)
     const assignments = assignmentsResult.data || [];
     const totalAssignments = assignments.length;
-    const completedAssignments = assignments.filter(a => a.status === 'completed').length;
+    const completedAssignments = assignments.filter(a => a.status?.toLowerCase() === 'completed').length;
     const assignmentCompletionRate = totalAssignments > 0 ? (completedAssignments / totalAssignments) * 100 : 0;
 
-    // Calculate target metrics
+    // Calculate target metrics (handle both column naming conventions)
     const targets = targetsResult.data || [];
-    const totalTargets = targets.reduce((sum, target) => sum + target.target_count, 0);
-    const totalAchieved = targets.reduce((sum, target) => sum + (target.achieved_count || 0), 0);
+    console.log(`[COMPARE] Cycle ${cycleId} targets data:`, targets);
+    const totalTargets = targets.reduce((sum, target) => sum + (target.target || target.target_count || 0), 0);
+    const totalAchieved = targets.reduce((sum, target) => sum + (target.achieved || target.achieved_count || 0), 0);
     const targetProgressRate = totalTargets > 0 ? (totalAchieved / totalTargets) * 100 : 0;
+    console.log(`[COMPARE] Cycle ${cycleId} targets: ${totalAchieved}/${totalTargets} (${targetProgressRate}%)`);
 
     // Get satisfaction data (simplified - would need actual satisfaction calculation)
     let satisfactionQuery = supabaseAdmin
@@ -221,14 +236,24 @@ function calculateTrends(comparisonData: any[], requestedMetrics: string[] = [])
   // Sort by year for trend calculation
   const sortedData = comparisonData.sort((a, b) => a.cycle.year - b.cycle.year);
 
+  console.log('[TRENDS] Sorted comparison data:', sortedData.map(d => ({
+    cycle: d.cycle.name,
+    year: d.cycle.year,
+    responses: d.data.responses.total,
+    assignments: d.data.assignments.completion_rate,
+    targets: d.data.targets.progress_rate
+  })));
+
   // Calculate response trends
   if (!requestedMetrics.length || requestedMetrics.includes('responses')) {
     const responseCounts = sortedData.map(d => d.data.responses.total);
+    console.log('[TRENDS] Response counts:', responseCounts);
     trends.responses = {
       direction: getDirection(responseCounts),
       change_percentage: getPercentageChange(responseCounts),
       values: responseCounts
     };
+    console.log('[TRENDS] Response trend:', trends.responses);
   }
 
   // Calculate assignment completion trends

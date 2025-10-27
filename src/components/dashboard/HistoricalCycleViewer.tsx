@@ -428,16 +428,19 @@ export default function HistoricalCycleViewer({
                     </thead>
                     <tbody>
                       {dashboardData.targets.map((target, index) => {
-                        const progress = target.target_count > 0 
-                          ? Math.round((target.achieved_count / target.target_count) * 100) 
+                        // Handle both column naming conventions
+                        const targetCount = target.target_count || target.target || 0;
+                        const achievedCount = target.achieved_count || target.achieved || 0;
+                        const progress = targetCount > 0 
+                          ? Math.round((achievedCount / targetCount) * 100) 
                           : 0;
                         return (
                           <tr key={index} className="border-b">
                             <td className="py-2">
                               {target.barangay?.barangay_name || `Barangay ${target.barangay_id}`}
                             </td>
-                            <td className="text-right py-2">{target.target_count}</td>
-                            <td className="text-right py-2">{target.achieved_count || 0}</td>
+                            <td className="text-right py-2">{targetCount}</td>
+                            <td className="text-right py-2">{achievedCount}</td>
                             <td className="text-right py-2">
                               <span className={`px-2 py-1 rounded text-xs ${
                                 progress >= 100 ? 'bg-green-100 text-green-800' :

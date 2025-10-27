@@ -115,7 +115,11 @@ export default function CycleComparisonViewer() {
 
       const result = await response.json();
       
+      console.log('[CYCLE COMPARISON] API response:', result);
+      
       if (result.success) {
+        console.log('[CYCLE COMPARISON] Setting comparison data:', result.data);
+        console.log('[CYCLE COMPARISON] Trends:', result.data.trends);
         setComparisonData(result.data);
       } else {
         setError(result.error || 'Failed to compare cycles');
@@ -219,7 +223,7 @@ export default function CycleComparisonViewer() {
             <div className="p-4">
               <h3 className="text-lg font-semibold mb-4">Trends Analysis</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {comparisonData.trends.responses && (
+                {comparisonData.trends?.responses && (
                   <div className="text-center">
                     <div className="text-2xl mb-2">
                       {getTrendIcon(comparisonData.trends.responses.direction)}
@@ -232,7 +236,7 @@ export default function CycleComparisonViewer() {
                   </div>
                 )}
 
-                {comparisonData.trends.assignment_completion && (
+                {comparisonData.trends?.assignment_completion && (
                   <div className="text-center">
                     <div className="text-2xl mb-2">
                       {getTrendIcon(comparisonData.trends.assignment_completion.direction)}
@@ -245,7 +249,7 @@ export default function CycleComparisonViewer() {
                   </div>
                 )}
 
-                {comparisonData.trends.target_progress && (
+                {comparisonData.trends?.target_progress && (
                   <div className="text-center">
                     <div className="text-2xl mb-2">
                       {getTrendIcon(comparisonData.trends.target_progress.direction)}

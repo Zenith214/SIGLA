@@ -459,6 +459,108 @@ export default function ToolsPage() {
     }
   };
 
+  const checkCycleData = async () => {
+    setCurrentAction("Checking cycle data distribution...");
+    try {
+      const response = await fetch('/api/tools/check-cycle-data');
+      if (response.ok) {
+        const data = await response.json();
+        addResult({
+          success: true,
+          message: `Found ${data.summary.total_cycles} cycles, ${data.summary.cycles_with_data} with data. Active: ${data.summary.active_cycle?.name || 'None'}`,
+          data: data
+        });
+        
+        // Log detailed cycle info
+        data.cycles.forEach((cycle: any) => {
+          if (cycle.responses > 0 || cycle.assignments.total > 0 || cycle.targets.total > 0) {
+            const awardeeNames = cycle.awardees.barangays.map((b: any) => b.name).join(', ');
+            addResult({
+              success: true,
+              message: `📊 Cycle ${cycle.cycle_id} (${cycle.name}): ${cycle.responses} responses, ${cycle.assignments.completed}/${cycle.assignments.total} assignments, ${cycle.targets.achieved}/${cycle.targets.total} targets, ${cycle.awardees.count} awardees (${awardeeNames || 'none'})`
+            });
+          }
+        });
+      } else {
+        addResult({
+          success: false,
+          message: 'Failed to check cycle data'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  };
+
+  const checkAssignmentStatus = async () => {
+    setCurrentAction("Checking assignment status values...");
+    try {
+      const response = await fetch('/api/tools/check-assignment-status');
+      if (response.ok) {
+        const data = await response.json();
+        addResult({
+          success: true,
+          message: `Found ${data.total_assignments} assignments. Status breakdown: ${JSON.stringify(data.status_breakdown)}`,
+          data: data
+        });
+        
+        // Log each assignment
+        data.all_assignments?.forEach((assignment: any) => {
+          addResult({
+            success: true,
+            message: `📋 Assignment ${assignment.assignment_id}: ${assignment.barangay} in ${assignment.cycle} - Status: "${assignment.status}" (${assignment.progress}%)`
+          });
+        });
+      } else {
+        addResult({
+          success: false,
+          message: 'Failed to check assignment status'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  };
+
+  const checkSurveyTargetsData = async () => {
+    setCurrentAction("Checking survey targets data...");
+    try {
+      const response = await fetch('/api/tools/check-survey-targets');
+      if (response.ok) {
+        const data = await response.json();
+        addResult({
+          success: true,
+          message: `Found ${data.total_targets} survey targets across all cycles`,
+          data: data
+        });
+        
+        // Log each target
+        data.all_targets?.forEach((target: any) => {
+          addResult({
+            success: true,
+            message: `🎯 Target ${target.target_id}: ${target.barangay} in ${target.cycle} (Cycle ${target.cycle_id}) - ${target.achieved}/${target.target} (${target.percentage}%)`
+          });
+        });
+      } else {
+        addResult({
+          success: false,
+          message: 'Failed to check survey targets'
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    }
+  };
+
   const analyzeCommunityVoice = async () => {
     setCurrentAction("Analyzing community voice...");
     setCommunityVoiceResults(null);
@@ -1633,6 +1735,33 @@ export default function ToolsPage() {
                   >
                     <Database className="w-4 h-4 mr-2" />
                     Check Barangay IDs
+                  </Button>
+                  <Button
+                    onClick={checkCycleData}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Check Cycle Data
+                  </Button>
+                  <Button
+                    onClick={checkAssignmentStatus}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-amber-300 text-amber-600 hover:bg-amber-50"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Check Assignment Status
+                  </Button>
+                  <Button
+                    onClick={checkSurveyTargetsData}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="border-teal-300 text-teal-600 hover:bg-teal-50"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Check Survey Targets
                   </Button>
                 </div>
               </CardContent>

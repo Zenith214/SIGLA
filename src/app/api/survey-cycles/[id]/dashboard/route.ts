@@ -128,17 +128,22 @@ async function getCycleDashboardData(cycleId: number, includeNonAwardees: boolea
     }
 
     // Get completed assignments count (filtered by awardees if applicable)
-    let completedAssignmentsQuery = supabaseAdmin
+    // Note: Fetch all assignments and filter in-memory for case-insensitive status matching
+    let allAssignmentsQuery = supabaseAdmin
       .from('assignment')
-      .select('*', { count: 'exact', head: true })
-      .eq('survey_cycle_id', cycleId)
-      .eq('status', 'completed');
+      .select('assignment_id, status, barangay_id')
+      .eq('survey_cycle_id', cycleId);
     
     if (awardeeFilter) {
-      completedAssignmentsQuery = completedAssignmentsQuery.in('barangay_id', awardeeFilter);
+      allAssignmentsQuery = allAssignmentsQuery.in('barangay_id', awardeeFilter);
     }
 
-    const { count: completedAssignmentsCount, error: completedError } = await completedAssignmentsQuery;
+    const { data: allAssignments, error: completedError } = await allAssignmentsQuery;
+    
+    // Filter for completed status (case-insensitive)
+    const completedAssignmentsCount = allAssignments?.filter(a => 
+      a.status?.toLowerCase() === 'completed'
+    ).length || 0;
 
     if (completedError) {
       console.error('Error fetching completed assignments count:', completedError);
@@ -166,9 +171,13 @@ async function getCycleDashboardData(cycleId: number, includeNonAwardees: boolea
       console.error('Error fetching targets:', targetsError);
     }
 
+    // Debug logging for targets
+    console.log(`[DASHBOARD] Cycle ${cycleId}: Found ${targets?.length || 0} targets`, targets);
+
     // Calculate progress metrics
-    const totalTargets = targets?.reduce((sum, target) => sum + target.target_count, 0) || 0;
-    const totalAchieved = targets?.reduce((sum, target) => sum + (target.achieved_count || 0), 0) || 0;
+    // Note: Handle both column naming conventions (target/achieved and target_count/achieved_count)
+    const totalTargets = targets?.reduce((sum, target) => sum + (target.target || target.target_count || 0), 0) || 0;
+    const totalAchieved = targets?.reduce((sum, target) => sum + (target.achieved || target.achieved_count || 0), 0) || 0;
     const progressPercentage = totalTargets > 0 ? Math.round((totalAchieved / totalTargets) * 100) : 0;
 
     // Get barangays with data (filtered by awardees if applicable)
