@@ -146,7 +146,7 @@ export default function ServiceAreaDeepDive() {
             <h3 className="text-lg font-semibold text-gray-900">Service Area Deep Dive</h3>
             <HelpText
               title="Service Area Selection"
-              content="Select a service area to analyze. Use keyboard arrow keys to navigate between service areas."
+              content="Click on a service area below to view detailed analysis and trends."
             />
           </div>
           <p className="text-sm text-gray-600">
@@ -209,7 +209,7 @@ export default function ServiceAreaDeepDive() {
               <h4 className="text-lg font-semibold">Barangay Rankings</h4>
               <HelpText
                 title="Leaderboard"
-                content="Rankings of all barangays for this service area. Click column headers to sort. Top 3 performers are marked with medals."
+                content="Barangay rankings for this service. Click headers to sort."
               />
             </div>
             <ServiceLeaderboard

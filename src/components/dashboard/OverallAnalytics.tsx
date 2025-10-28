@@ -285,11 +285,11 @@ export default function OverallAnalytics() {
 
             <Card>
               <div className="p-4">
-                <div className="text-sm text-gray-600 mb-1">Participation</div>
+                <div className="text-sm text-gray-600 mb-1">Award Winners</div>
                 <div className="text-2xl font-bold text-teal-600">
-                  {Math.round((systemStats.total_awardees / systemStats.total_barangays) * 100)}%
+                  {systemStats.total_awardees}
                 </div>
-                <div className="text-xs text-gray-500">Awardee rate</div>
+                <div className="text-xs text-gray-500">of {systemStats.total_barangays} barangays</div>
               </div>
             </Card>
           </div>
@@ -601,7 +601,7 @@ export default function OverallAnalytics() {
                     <th className="text-left py-3 px-2">Rank</th>
                     <th className="text-left py-3 px-2">Barangay</th>
                     <th className="text-center py-3 px-2">Total Awards</th>
-                    <th className="text-center py-3 px-2">Win Rate</th>
+                    <th className="text-center py-3 px-2">Award Rate</th>
                     <th className="text-center py-3 px-2">Current Streak</th>
                     <th className="text-center py-3 px-2">Longest Streak</th>
                     <th className="text-center py-3 px-2">Last Award</th>
@@ -638,20 +638,24 @@ export default function OverallAnalytics() {
                         </span>
                       </td>
                       <td className="text-center py-3 px-2">
-                        <span className={`px-2 py-1 rounded font-semibold ${
-                          entry.win_rate >= 0.7 ? 'bg-green-100 text-green-800' :
-                          entry.win_rate >= 0.5 ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {Math.round(entry.win_rate * 100)}%
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`px-3 py-1 rounded font-semibold ${
+                            entry.win_rate >= 0.7 ? 'bg-green-100 text-green-800' :
+                            entry.win_rate >= 0.5 ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {Math.round(entry.win_rate * 100)}%
+                          </span>
+                          {entry.win_rate === 1.0 && (
+                            <span className="text-xs text-green-600 font-medium">Perfect</span>
+                          )}
+                        </div>
                       </td>
                       <td className="text-center py-3 px-2">
                         {entry.consecutive_streak > 0 ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="text-lg">🔥</span>
-                            <span className="font-bold text-orange-600">{entry.consecutive_streak}</span>
-                          </div>
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded font-semibold">
+                            {entry.consecutive_streak}
+                          </span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
@@ -679,9 +683,9 @@ export default function OverallAnalytics() {
               </table>
             </div>
 
-            {/* Award Win Rate Statistics Visualization */}
+            {/* Award Rate Statistics Visualization */}
             <div className="mt-6 border-t pt-6">
-              <h4 className="font-medium mb-3 text-gray-700">Award Win Rate Statistics</h4>
+              <h4 className="font-medium mb-3 text-gray-700">Award Rate Statistics</h4>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={awardLeaderboard}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -695,17 +699,17 @@ export default function OverallAnalytics() {
                   />
                   <YAxis 
                     domain={[0, 100]}
-                    label={{ value: 'Win Rate (%)', angle: -90, position: 'insideLeft' }}
+                    label={{ value: 'Award Rate (%)', angle: -90, position: 'insideLeft' }}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [`${Math.round(value * 100)}%`, 'Win Rate']}
+                    formatter={(value: number) => [`${Math.round(value * 100)}%`, 'Award Rate']}
                     labelFormatter={(label) => `Barangay: ${label}`}
                   />
                   <Legend />
                   <Bar 
                     dataKey="win_rate" 
                     fill="#fbbf24" 
-                    name="Win Rate"
+                    name="Award Rate"
                     radius={[8, 8, 0, 0]}
                   >
                     {awardLeaderboard.map((entry, index) => (
@@ -780,7 +784,7 @@ export default function OverallAnalytics() {
                 </div>
                 
                 <div className="text-center p-4 bg-amber-50 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">Avg Win Rate</div>
+                  <div className="text-sm text-gray-600 mb-1">Avg Award Rate</div>
                   <div className="text-2xl font-bold text-amber-600">
                     {Math.round((awardLeaderboard.reduce((sum, e) => sum + e.win_rate, 0) / awardLeaderboard.length) * 100)}%
                   </div>

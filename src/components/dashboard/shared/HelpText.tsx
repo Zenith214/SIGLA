@@ -127,14 +127,14 @@ export const metricExplanations = {
   },
   actionGrid: {
     title: 'Action Grid',
-    content: 'Categorizes services based on satisfaction and need-action scores: Maintain (high satisfaction, low need), Fix Now (low satisfaction, high need), Monitor (low satisfaction, low need), Low Priority (high satisfaction, high need).'
+    content: 'Service status: Maintain, Fix Now, Monitor, or Low Priority.'
   },
   radarChart: {
     title: 'Radar Chart',
-    content: 'Compares multiple barangays across all 6 service areas simultaneously. Each axis represents a service area, and the distance from center indicates the satisfaction score.'
+    content: 'Compare barangays across all 6 service areas.'
   },
   funnel: {
     title: 'Service Funnel',
-    content: 'Shows the progression from Awareness → Availment → Satisfaction. Conversion rates between stages help identify where improvements are needed.'
+    content: 'Progression: Awareness → Availment → Satisfaction.'
   }
 };

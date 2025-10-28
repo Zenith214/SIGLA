@@ -155,11 +155,6 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
               <strong>Survey #{data.surveyNumber}</strong> - You completed {surveyTabs.length - 1} assigned sections plus demographics
-              {data.surveyNumber && (
-                <span className="ml-2 text-blue-600">
-                  ({parseInt(data.surveyNumber) % 2 === 1 ? 'ODD' : 'EVEN'} survey assignment)
-                </span>
-              )}
             </p>
           </div>
         )}

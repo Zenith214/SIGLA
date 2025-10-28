@@ -143,16 +143,25 @@ export const validateRequest = <T>(
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       const zodError = error as any;
+      
+      // Safely access errors array
+      if (!zodError.errors || zodError.errors.length === 0) {
+        return {
+          success: false,
+          error: createValidationError('Validation failed'),
+        };
+      }
+      
       const firstError = zodError.errors[0];
-      const field = firstError.path.join('.');
-      const message = firstError.message;
+      const field = firstError.path?.join('.') || 'unknown';
+      const message = firstError.message || 'Validation error';
       
       return {
         success: false,
         error: createValidationError(
           message,
           field,
-          firstError.path.length > 0 ? (data as any)[firstError.path[0]] : undefined
+          firstError.path && firstError.path.length > 0 ? (data as any)[firstError.path[0]] : undefined
         ),
       };
     }

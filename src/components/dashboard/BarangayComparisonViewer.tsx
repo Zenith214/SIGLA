@@ -150,7 +150,7 @@ export default function BarangayComparisonViewer() {
             <h3 className="text-lg font-semibold">Select Barangays to Compare</h3>
             <HelpText
               title="Barangay Selection"
-              content="Select between 2 and 5 barangays to compare. Use keyboard arrow keys to navigate and Enter/Space to select."
+              content="Select 2-5 barangays to compare."
             />
           </div>
           <p className="text-sm text-gray-600 mb-4">

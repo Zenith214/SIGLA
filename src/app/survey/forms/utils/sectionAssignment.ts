@@ -94,15 +94,14 @@ export function getAssignmentType(surveyNumber: string | number): 'odd' | 'even'
  * Get section assignment description
  */
 export function getAssignmentDescription(surveyNumber: string | number): string {
-  const assignmentType = getAssignmentType(surveyNumber);
   const assignedSections = getAssignedSections(surveyNumber);
   
-  if (!assignmentType || assignedSections.length === 0) {
+  if (assignedSections.length === 0) {
     return '';
   }
 
   const sectionNames = assignedSections.map(s => s.name).join(', ');
-  return `Survey #${surveyNumber} (${assignmentType.toUpperCase()}) - You will complete: ${sectionNames}`;
+  return `Survey #${surveyNumber} - You will complete: ${sectionNames}`;
 }
 
 /**

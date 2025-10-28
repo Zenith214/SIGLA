@@ -352,9 +352,6 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
             <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Your Assigned Sections</h4>
               <p className="text-sm text-blue-800">{getAssignmentDescription(surveyNumber)}</p>
-              <div className="mt-2 text-xs text-blue-700">
-                <strong>Note:</strong> You will complete 3 out of 6 sections to reduce survey time while maintaining data quality.
-              </div>
             </div>
           )}
         </div>

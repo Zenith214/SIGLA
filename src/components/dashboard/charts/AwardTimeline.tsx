@@ -39,7 +39,7 @@ export default function AwardTimeline({ data }: AwardTimelineProps) {
   }
 
   // Check if any barangay has awards
-  const hasAnyAwards = data.some(b => b.awards && b.awards.length > 0);
+  const hasAnyAwards = data.some(b => b.awards && Array.isArray(b.awards) && b.awards.length > 0);
 
   if (!hasAnyAwards) {
     return (

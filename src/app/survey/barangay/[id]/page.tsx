@@ -53,6 +53,108 @@ type SurveyResponse = {
   }[]
 }
 
+type Assignment = {
+  assignment_id: number
+  status: string
+  progress: number
+  created_at: string
+  updated_at: string
+  interviewer: {
+    firstName: string
+    lastName: string
+    email: string
+  }
+}
+
+function AssignedInterviewersCard({ barangayId }: { barangayId: number }) {
+  const [assignments, setAssignments] = React.useState<Assignment[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await fetch(`/api/barangays/${barangayId}/assignments`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch assignments')
+        }
+        const data = await response.json()
+        setAssignments(data)
+      } catch (error) {
+        console.error('Error fetching assignments:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAssignments()
+  }, [barangayId])
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">Assigned Interviewers</h3>
+        <div className="text-center py-4 text-gray-500">Loading...</div>
+      </div>
+    )
+  }
+
+  if (assignments.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">Assigned Interviewers</h3>
+        <div className="text-center py-4 text-amber-600">
+          No interviewers assigned to this barangay yet.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+      <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
+        Assigned Interviewers ({assignments.length})
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Name</th>
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Email</th>
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Status</th>
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Assigned Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {assignments.map((assignment) => (
+              <tr key={assignment.assignment_id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="py-3 px-2 text-gray-900">
+                  {assignment.interviewer.firstName} {assignment.interviewer.lastName}
+                </td>
+                <td className="py-3 px-2 text-gray-600">{assignment.interviewer.email}</td>
+                <td className="py-3 px-2">
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full font-medium ${
+                      assignment.status === "Completed"
+                        ? "bg-green-100 text-green-800"
+                        : assignment.status === "In Progress"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-orange-100 text-orange-800"
+                    }`}
+                  >
+                    {assignment.status}
+                  </span>
+                </td>
+                <td className="py-3 px-2 text-gray-600">
+                  {new Date(assignment.created_at).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function BarangayDetailContent({ params }: { params: { id: string } }) {
   const { id } = params
   const barangayId = Number.parseInt(id)
@@ -440,6 +542,9 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
               </div>
             </div>
           </div>
+
+          {/* Assigned Interviewers Card */}
+          <AssignedInterviewersCard barangayId={barangayId} />
         </div>
       </main>
 

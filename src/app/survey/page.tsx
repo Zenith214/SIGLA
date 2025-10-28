@@ -30,6 +30,18 @@ interface Barangay {
       email: string;
     };
   };
+  assignments?: {
+    assignment_id: number;
+    status: string;
+    progress: number;
+    created_at: string;
+    updated_at: string;
+    interviewer: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }[];
 }
 
 // Helper function to calculate overall progress based on active assignments
@@ -300,9 +312,9 @@ function SurveyDashboardContent() {
                     }`}
                   >
                     My Assignments
-                    {myAssignments.length > 0 && (
+                    {myAssignments.filter(b => b.status === 'In Progress').length > 0 && (
                       <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
-                        {myAssignments.length}
+                        {myAssignments.filter(b => b.status === 'In Progress').length}
                       </span>
                     )}
                   </button>
@@ -446,6 +458,9 @@ function SurveyDashboardContent() {
                                 <span>Interviewer:</span>
                                 <span className="font-medium truncate ml-1">
                                   {barangay.assignment.interviewer.firstName} {barangay.assignment.interviewer.lastName}
+                                  {(barangay as any).assignments && (barangay as any).assignments.length > 1 && (
+                                    <span className="text-blue-600"> and {(barangay as any).assignments.length - 1} more</span>
+                                  )}
                                 </span>
                               </div>
                             </>

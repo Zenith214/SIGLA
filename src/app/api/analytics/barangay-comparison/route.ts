@@ -321,7 +321,7 @@ async function fetchAwardData(barangayId: number) {
   try {
     // Get total awards
     const { data: allAwards, error: awardsError } = await supabaseAdmin
-      .from('cycle_award')
+      .from('cycle_awards')
       .select('id, cycle_id, is_awardee, awarded_date, survey_cycle!inner(year)')
       .eq('barangay_id', barangayId)
       .eq('is_awardee', true)

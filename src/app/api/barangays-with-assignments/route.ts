@@ -73,7 +73,7 @@ export async function GET() {
     const result = await client.query(barangaysQuery, [activeCycleId]);
     const rows = result.rows;
 
-    // Group assignments by barangay (in case a barangay has multiple assignments)
+    // Group assignments by barangay (support multiple assignments per barangay)
     const barangayMap = new Map();
     
     rows.forEach((row: any) => {
@@ -96,7 +96,20 @@ export async function GET() {
           progress: row.calculated_progress || 0,
           // Determine status based on assignment status and calculated progress
           status: getBarangayStatus(row.assignment_status, row.calculated_progress),
-          // Assignment details (may be null if no assignment exists yet)
+          // Store ALL assignments as an array
+          assignments: row.assignment_id ? [{
+            assignment_id: row.assignment_id,
+            status: row.assignment_status,
+            progress: row.assignment_progress || 0,
+            created_at: row.assignment_created,
+            updated_at: row.assignment_updated,
+            interviewer: {
+              firstName: row.interviewer_first_name,
+              lastName: row.interviewer_last_name,
+              email: row.interviewer_email
+            }
+          }] : [],
+          // Keep first assignment for backward compatibility
           assignment: row.assignment_id ? {
             assignment_id: row.assignment_id,
             status: row.assignment_status,
@@ -113,11 +126,10 @@ export async function GET() {
           history: generateAssignmentHistory(row.assignment_status, row.calculated_progress)
         });
       } else {
-        // If barangay already exists, we might want to handle multiple assignments
-        // For now, we'll keep the most recent one (first in ORDER BY)
+        // If barangay already exists, add this assignment to the array
         const existing = barangayMap.get(barangayId);
-        if (!existing.assignment || new Date(row.assignment_created) > new Date(existing.assignment.created_at)) {
-          existing.assignment = {
+        if (row.assignment_id) {
+          existing.assignments.push({
             assignment_id: row.assignment_id,
             status: row.assignment_status,
             progress: row.assignment_progress || 0,
@@ -128,9 +140,7 @@ export async function GET() {
               lastName: row.interviewer_last_name,
               email: row.interviewer_email
             }
-          };
-          existing.progress = row.calculated_progress || 0;
-          existing.status = getBarangayStatus(row.assignment_status, row.calculated_progress);
+          });
         }
       }
     });
