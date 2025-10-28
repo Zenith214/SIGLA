@@ -50,6 +50,26 @@ interface BarangayPerformance {
     monitor: string[];
     fix_now: string[];
   };
+  is_awardee?: boolean;
+}
+
+interface ServiceAreaSummary {
+  name: string;
+  key: string;
+  average_satisfaction: number;
+  barangay_count: number;
+}
+
+interface SatisfactionSummary {
+  average: number;
+  top_performer: {
+    name: string;
+    score: number;
+  } | null;
+  bottom_performer: {
+    name: string;
+    score: number;
+  } | null;
 }
 
 interface HistoricalCycleViewerProps {
@@ -69,6 +89,9 @@ export default function HistoricalCycleViewer({
   const [loadingPerformance, setLoadingPerformance] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedBarangayId, setSelectedBarangayId] = useState<number | null>(null);
+  const [serviceAreaSummary, setServiceAreaSummary] = useState<ServiceAreaSummary[]>([]);
+  const [satisfactionSummary, setSatisfactionSummary] = useState<SatisfactionSummary | null>(null);
+  const [awardeeBarangayIds, setAwardeeBarangayIds] = useState<number[]>([]);
 
   // Fetch all cycles on component mount
   useEffect(() => {
@@ -140,6 +163,24 @@ export default function HistoricalCycleViewer({
       setLoadingPerformance(true);
       const performanceData: BarangayPerformance[] = [];
 
+      // Fetch awardee barangay IDs for this cycle via API
+      try {
+        const response = await fetch(`/api/cycle-awards/awardees?cycleId=${cycleId}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setAwardeeBarangayIds(result.data);
+          } else {
+            setAwardeeBarangayIds([]);
+          }
+        } else {
+          setAwardeeBarangayIds([]);
+        }
+      } catch (err) {
+        console.error('Error fetching awardee data:', err);
+        setAwardeeBarangayIds([]);
+      }
+
       // Get unique barangays from targets
       const barangaysWithData = dashboard.targets.filter(t => (t.achieved_count || 0) > 0);
 
@@ -186,13 +227,16 @@ export default function HistoricalCycleViewer({
               };
             });
 
+            const isAwardee = awardeeBarangayIds.includes(target.barangay_id);
+
             performanceData.push({
               barangay_id: target.barangay_id,
               barangay_name: target.barangay?.barangay_name || `Barangay ${target.barangay_id}`,
               overall_satisfaction: funnelData.overall_satisfaction || 0,
               total_responses: funnelData.total_responses || 0,
               service_scores: serviceScores,
-              action_grid: actionGrid
+              action_grid: actionGrid,
+              is_awardee: isAwardee
             });
           }
         } catch (err) {
@@ -201,11 +245,80 @@ export default function HistoricalCycleViewer({
       }
 
       setBarangayPerformance(performanceData);
+      
+      // Calculate service area summary
+      calculateServiceAreaSummary(performanceData);
+      
+      // Calculate satisfaction summary
+      calculateSatisfactionSummary(performanceData);
     } catch (err) {
       console.error('Error fetching barangay performance:', err);
     } finally {
       setLoadingPerformance(false);
     }
+  };
+
+  const calculateServiceAreaSummary = (performanceData: BarangayPerformance[]) => {
+    const serviceNames: { [key: string]: string } = {
+      financial: 'Financial Assistance',
+      disaster: 'Disaster Preparedness',
+      safety: 'Safety & Peace Order',
+      social: 'Social Protection',
+      business: 'Business Friendliness',
+      environmental: 'Environmental Management'
+    };
+
+    const serviceAreas = ['financial', 'disaster', 'safety', 'social', 'business', 'environmental'];
+    const summary: ServiceAreaSummary[] = [];
+
+    serviceAreas.forEach(key => {
+      let totalSatisfaction = 0;
+      let count = 0;
+
+      performanceData.forEach(perf => {
+        if (perf.service_scores[key]) {
+          totalSatisfaction += perf.service_scores[key].satisfaction;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        summary.push({
+          name: serviceNames[key] || key,
+          key,
+          average_satisfaction: Math.round(totalSatisfaction / count),
+          barangay_count: count
+        });
+      }
+    });
+
+    setServiceAreaSummary(summary);
+  };
+
+  const calculateSatisfactionSummary = (performanceData: BarangayPerformance[]) => {
+    if (performanceData.length === 0) {
+      setSatisfactionSummary(null);
+      return;
+    }
+
+    const totalSatisfaction = performanceData.reduce((sum, perf) => sum + perf.overall_satisfaction, 0);
+    const average = Math.round(totalSatisfaction / performanceData.length);
+
+    const sorted = [...performanceData].sort((a, b) => b.overall_satisfaction - a.overall_satisfaction);
+    const topPerformer = sorted[0];
+    const bottomPerformer = sorted[sorted.length - 1];
+
+    setSatisfactionSummary({
+      average,
+      top_performer: {
+        name: topPerformer.barangay_name,
+        score: topPerformer.overall_satisfaction
+      },
+      bottom_performer: {
+        name: bottomPerformer.barangay_name,
+        score: bottomPerformer.overall_satisfaction
+      }
+    });
   };
 
   const handleCycleSelect = (cycleId: number) => {
@@ -333,6 +446,115 @@ export default function HistoricalCycleViewer({
             </Card>
           </div>
 
+          {/* Satisfaction Summary */}
+          {!loadingPerformance && satisfactionSummary && (
+            <Card>
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Satisfaction Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-2">Average Satisfaction</div>
+                    <div className={`text-4xl font-bold ${
+                      satisfactionSummary.average >= 70 ? 'text-green-600' : 'text-orange-600'
+                    }`}>
+                      {satisfactionSummary.average}%
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-2">Top Performer</div>
+                    <div className="text-xl font-bold text-green-700">
+                      {satisfactionSummary.top_performer?.name}
+                    </div>
+                    <div className="text-2xl font-semibold text-green-600 mt-1">
+                      {satisfactionSummary.top_performer?.score}%
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-2">Needs Improvement</div>
+                    <div className="text-xl font-bold text-red-700">
+                      {satisfactionSummary.bottom_performer?.name}
+                    </div>
+                    <div className="text-2xl font-semibold text-red-600 mt-1">
+                      {satisfactionSummary.bottom_performer?.score}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Service Area Breakdown */}
+          {!loadingPerformance && serviceAreaSummary.length > 0 && (
+            <Card>
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Service Area Performance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {serviceAreaSummary.map((service) => (
+                    <div 
+                      key={service.key} 
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-900">{service.name}</h4>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          service.average_satisfaction >= 80 ? 'bg-green-100 text-green-800' :
+                          service.average_satisfaction >= 70 ? 'bg-blue-100 text-blue-800' :
+                          service.average_satisfaction >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {service.average_satisfaction}%
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {service.barangay_count} barangay{service.barangay_count !== 1 ? 's' : ''}
+                      </div>
+                      <div className="mt-2 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            service.average_satisfaction >= 80 ? 'bg-green-500' :
+                            service.average_satisfaction >= 70 ? 'bg-blue-500' :
+                            service.average_satisfaction >= 60 ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${service.average_satisfaction}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Award Status Indicators */}
+          {!loadingPerformance && awardeeBarangayIds.length > 0 && (
+            <Card>
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Award Winners</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🏆</span>
+                  <span className="text-gray-700">
+                    <span className="font-bold text-xl text-yellow-600">{awardeeBarangayIds.length}</span> barangay{awardeeBarangayIds.length !== 1 ? 's' : ''} received awards in this cycle
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {barangayPerformance
+                    .filter(perf => perf.is_awardee)
+                    .map(perf => (
+                      <div 
+                        key={perf.barangay_id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-100 to-yellow-200 border-2 border-yellow-400 rounded-lg"
+                      >
+                        <span className="text-xl">🥇</span>
+                        <span className="font-semibold text-yellow-900">{perf.barangay_name}</span>
+                        <span className="text-sm text-yellow-700">({perf.overall_satisfaction}%)</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Barangay Performance Overview */}
           {loadingPerformance ? (
             <Card>
@@ -349,6 +571,7 @@ export default function HistoricalCycleViewer({
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-2">Barangay</th>
+                        <th className="text-center py-2">Award</th>
                         <th className="text-right py-2">Responses</th>
                         <th className="text-right py-2">Satisfaction</th>
                         <th className="text-center py-2">Action Grid</th>
@@ -359,8 +582,19 @@ export default function HistoricalCycleViewer({
                       {barangayPerformance.map((perf) => {
                         const isHighSatisfaction = perf.overall_satisfaction >= 70;
                         return (
-                          <tr key={perf.barangay_id} className="border-b hover:bg-gray-50">
-                            <td className="py-3 font-medium">{perf.barangay_name}</td>
+                          <tr key={perf.barangay_id} className={`border-b hover:bg-gray-50 ${
+                            perf.is_awardee ? 'bg-yellow-50' : ''
+                          }`}>
+                            <td className="py-3 font-medium">
+                              <div className="flex items-center gap-2">
+                                {perf.barangay_name}
+                              </div>
+                            </td>
+                            <td className="text-center py-3">
+                              {perf.is_awardee && (
+                                <span className="text-xl" title="Award Winner">🏆</span>
+                              )}
+                            </td>
                             <td className="text-right py-3">{perf.total_responses}</td>
                             <td className="text-right py-3">
                               <span className={`px-2 py-1 rounded text-xs font-semibold ${
