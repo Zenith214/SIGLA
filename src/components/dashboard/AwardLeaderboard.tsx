@@ -205,7 +205,7 @@ export default function AwardLeaderboard() {
                   onClick={() => handleSort('win_rate')}
                 >
                   <div className="flex items-center gap-1">
-                    Win Rate
+                    Success Rate
                     {getSortIcon('win_rate')}
                   </div>
                 </th>
@@ -381,7 +381,7 @@ export default function AwardLeaderboard() {
                     {entry.total_awards} {entry.total_awards === 1 ? 'award' : 'awards'}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {(entry.win_rate * 100).toFixed(0)}% win rate
+                    {(entry.win_rate * 100).toFixed(0)}% success rate
                   </div>
                 </div>
               </div>

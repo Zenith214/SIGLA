@@ -105,7 +105,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
                   updatedAt: barangayData.awardStatus.updatedAt
                 } : undefined,
                 cycleId: cycleId || undefined,
-                isAwardee: barangayData.isAwardee,
+                isAwardee: barangayData.isAwardee || barangayData.awardStatus?.isAwardee || false,
                 history: [
                   {
                     year: cycleId ? 'cycle' : new Date().getFullYear().toString(),
@@ -212,6 +212,25 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       console.warn('❌ No barangay name found for path:', pathId);
       return;
     }
+
+    // Only allow clicks on awardee barangays when viewing any cycle data (including active cycle)
+    const viewingCycleData = selectedCycleId || (hasActiveCycle && activeCycle);
+    if (viewingCycleData && !barangay.isAwardee) {
+      console.log('🚫 Barangay is not an awardee for this cycle, ignoring click', {
+        barangayName: barangay.name,
+        isAwardee: barangay.isAwardee,
+        selectedCycleId,
+        hasActiveCycle,
+        barangayData: barangay
+      });
+      return;
+    }
+    
+    console.log('✅ Barangay click allowed:', {
+      barangayName: barangay.name,
+      isAwardee: barangay.isAwardee,
+      viewingCycleData
+    });
 
     setSelectedBarangay(barangayName);
     onBarangaySelect?.(barangay);

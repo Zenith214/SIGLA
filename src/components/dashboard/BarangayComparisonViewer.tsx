@@ -138,8 +138,8 @@ export default function BarangayComparisonViewer() {
         <ul className="list-disc list-inside mt-1 space-y-1">
           <li><strong>Radar Chart:</strong> Visual comparison across 6 service areas</li>
           <li><strong>Action Grid:</strong> Color-coded status for each service (Maintain, Fix Now, Monitor, Low Priority)</li>
-          <li><strong>Award Timeline:</strong> Historical award wins over time</li>
-          <li><strong>Award Statistics:</strong> Total awards, win rates, and consecutive streaks</li>
+          <li><strong>Award Timeline:</strong> Historical award achievements over time</li>
+          <li><strong>Award Statistics:</strong> Total awards, success rates, and consecutive streaks</li>
         </ul>
       </InfoCard>
 
@@ -357,7 +357,7 @@ export default function BarangayComparisonViewer() {
                       <th className="text-left py-2">Barangay</th>
                       <th className="text-right py-2">Total Awards</th>
                       <th className="text-right py-2">Consecutive Awards</th>
-                      <th className="text-right py-2">Win Rate</th>
+                      <th className="text-right py-2">Success Rate</th>
                     </tr>
                   </thead>
                   <tbody>

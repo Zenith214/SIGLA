@@ -36,30 +36,30 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
   };
 
   return (
-    <nav className="bg-slate-800 px-6 py-4">
+    <nav className="bg-slate-800 px-4 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center justify-between">
         {/* Left side - Project Name */}
         <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-white">PULSE</h1>
+          <h1 className="text-lg sm:text-xl font-semibold text-white">PULSE</h1>
         </div>
 
         {/* Right side - Date/Time, Cycle Selector, Toggle Button, User Menu */}
-        <div className="flex items-center gap-4">
-          {/* Philippine Date and Time */}
-          <div className="text-white text-sm font-mono">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Philippine Date and Time - Hidden on mobile */}
+          <div className="hidden lg:block text-white text-sm font-mono">
             {currentTime}
           </div>
           
-          {/* Separator */}
-          <div className="text-gray-400">|</div>
+          {/* Separator - Hidden on mobile */}
+          <div className="hidden lg:block text-gray-400">|</div>
           
-          {/* Active Survey Cycle Display */}
-          <div className="min-w-[200px]">
+          {/* Active Survey Cycle Display - Hidden on mobile */}
+          <div className="hidden md:block min-w-[200px]">
             <CycleDisplay className="text-white" />
           </div>
           
-          {/* Separator */}
-          <div className="text-gray-400">|</div>
+          {/* Separator - Hidden on mobile */}
+          <div className="hidden md:block text-gray-400">|</div>
           
           {/* Toggle Button with Pill Design */}
           <div className="relative bg-slate-600 rounded-full p-1 flex items-center">
@@ -70,7 +70,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
             />
             <button
               onClick={() => onViewChange("map")}
-              className={`relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-300 ${
+              className={`relative z-10 px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors duration-300 ${
                 activeView === "map" ? "text-slate-800" : "text-white"
               }`}
             >
@@ -78,7 +78,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
             </button>
             <button
               onClick={() => onViewChange("analytics")}
-              className={`relative z-10 px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-300 ${
+              className={`relative z-10 px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors duration-300 ${
                 activeView === "analytics" ? "text-slate-800" : "text-white"
               }`}
             >

@@ -114,8 +114,8 @@ export const metricExplanations = {
     content: 'Percentage of aware residents who have actually used or accessed the service.'
   },
   winRate: {
-    title: 'Win Rate',
-    content: 'Percentage of survey cycles in which the barangay won an award. Calculated as (total awards / total cycles participated) × 100.'
+    title: 'Award Success Rate',
+    content: 'Percentage of survey cycles in which the barangay received an award. Calculated as (total awards / total cycles participated) × 100.'
   },
   consecutiveStreak: {
     title: 'Consecutive Streak',
