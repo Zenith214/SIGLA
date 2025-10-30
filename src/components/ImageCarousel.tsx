@@ -26,7 +26,7 @@ export function ImageCarousel({
 }: ImageCarouselProps) {
   const plugin = React.useRef(
     autoplay
-      ? Autoplay({ delay: 4000, stopOnInteraction: false })
+      ? Autoplay({ delay: 5000, stopOnInteraction: false })
       : undefined
   );
 
