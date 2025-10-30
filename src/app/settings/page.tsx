@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-// import { Badge } from "@/components/ui/badge" // Unused import
 import { Button } from "@/components/ui/button"
 import {
   Breadcrumb,
@@ -16,18 +16,36 @@ import {
 } from "@/components/ui/breadcrumb"
 import { AdminSidebar } from "./ui/admin-sidebar"
 import { Skeleton, SkeletonSidebar } from "@/components/ui/skeleton"
-import { SurveyCycles } from "./ui/sections/survey-cycles"
-import { Barangays } from "./ui/sections/barangays"
-import { AwardManagement } from "./ui/sections/award-management"
-import { SurveyTargets } from "./ui/sections/survey-targets"
-import { UsersRoles } from "./ui/sections/users-roles"
-import { Assignments } from "./ui/sections/assignments"
-import { Backup } from "./ui/sections/backup"
-import { GeminiSettings } from "./ui/sections/gemini-settings"
 import { Menu, X } from "lucide-react"
 import { ToastProvider } from "@/hooks/use-toast"
 import { CycleDisplay } from "@/components/survey-cycle"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+
+// Dynamic imports for better performance - sections load only when needed
+const SurveyCycles = dynamic(() => import("./ui/sections/survey-cycles").then(mod => ({ default: mod.SurveyCycles })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const Barangays = dynamic(() => import("./ui/sections/barangays").then(mod => ({ default: mod.Barangays })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const AwardManagement = dynamic(() => import("./ui/sections/award-management").then(mod => ({ default: mod.AwardManagement })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const SurveyTargets = dynamic(() => import("./ui/sections/survey-targets").then(mod => ({ default: mod.SurveyTargets })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const UsersRoles = dynamic(() => import("./ui/sections/users-roles").then(mod => ({ default: mod.UsersRoles })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const Assignments = dynamic(() => import("./ui/sections/assignments").then(mod => ({ default: mod.Assignments })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const Backup = dynamic(() => import("./ui/sections/backup").then(mod => ({ default: mod.Backup })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
+const GeminiSettings = dynamic(() => import("./ui/sections/gemini-settings").then(mod => ({ default: mod.GeminiSettings })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
 
 const sectionTitles = {
   "survey-cycles": "Survey Cycles",
