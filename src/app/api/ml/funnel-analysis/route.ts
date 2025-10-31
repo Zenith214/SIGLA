@@ -39,7 +39,11 @@ export async function GET(request: NextRequest) {
       async () => {
         // This is the expensive computation that will be cached
         const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-        const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId} --cycle_id ${cycleId}`;
+        // Use the virtual environment's Python interpreter
+        const venvPython = process.platform === 'win32' 
+          ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+          : path.join(process.cwd(), '.venv', 'bin', 'python');
+        const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId} --cycle_id ${cycleId}`;
 
         console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}, cycle ${cycleId}...`);
 

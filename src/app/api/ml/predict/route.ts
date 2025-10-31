@@ -19,7 +19,12 @@ export async function POST(request: NextRequest) {
 
     // Call the ML analysis Python script
     const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+    
+    // Use the virtual environment's Python interpreter
+    const venvPython = process.platform === 'win32' 
+      ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+      : path.join(process.cwd(), '.venv', 'bin', 'python');
+    const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId}`;
 
     console.log(`Running ML analysis for barangay ${barangayId}...`);
     
@@ -70,7 +75,12 @@ export async function GET(request: NextRequest) {
 
     // Call the ML analysis Python script
     const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-    const pythonCommand = `python "${mlScriptPath}" --barangay_id ${barangayId}`;
+    
+    // Use the virtual environment's Python interpreter
+    const venvPython = process.platform === 'win32' 
+      ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+      : path.join(process.cwd(), '.venv', 'bin', 'python');
+    const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId}`;
 
     console.log(`Running ML analysis for barangay ${barangayId}...`);
     

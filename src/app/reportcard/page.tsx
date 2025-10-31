@@ -590,17 +590,307 @@ function ReportCardContent() {
     window.print();
   };
 
-  const handleShareReport = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: `${barangayData?.barangay} Satisfaction Report`,
-        text: `Satisfaction Index Report for ${barangayData?.barangay}`,
-        url: window.location.href
+  const handleShareReport = async () => {
+    const shareData = {
+      title: `${barangayData?.barangay} Satisfaction Report`,
+      text: `Satisfaction Index Report for ${barangayData?.barangay} - Overall Score: ${barangayData?.overall_satisfaction?.toFixed(2)}%`,
+      url: window.location.href
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.log('Share cancelled or failed');
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.textContent = 'Report URL copied to clipboard!';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 3000);
+      } catch (error) {
+        prompt('Copy this URL to share the report:', window.location.href);
+      }
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!barangayData) return;
+
+    const csvData = [
+      ['Barangay Report Data'],
+      [''],
+      ['Basic Information'],
+      ['Barangay', barangayData.barangay],
+      ['Population', barangayData.population],
+      ['Households', barangayData.households],
+      ['Survey Responses', barangayData.responses || 'N/A'],
+      ['Overall Satisfaction', `${barangayData.overall_satisfaction?.toFixed(2)}%`],
+      [''],
+      ['Service Area Scores'],
+      ['Service Area', 'Satisfaction Score', 'Need for Action', 'Action Grid Quadrant'],
+    ];
+
+    // Add service area data
+    const serviceAreas = [
+      { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
+      { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
+      { key: 'safety', label: 'Safety & Peace Order', score: barangayData.safety, need: barangayData.safety_need },
+      { key: 'social', label: 'Social Protection', score: barangayData.social, need: barangayData.social_need },
+      { key: 'business', label: 'Business Friendliness', score: barangayData.business, need: barangayData.business_need },
+      { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental, need: barangayData.environmental_need }
+    ];
+
+    serviceAreas.forEach(service => {
+      // Determine quadrant based on satisfaction and need scores
+      const satisfaction = Number(service.score || 0);
+      const need = Number(service.need || 0);
+      let quadrant = 'N/A';
+
+      if (satisfaction >= 60 && need < 60) quadrant = 'MAINTAIN';
+      else if (satisfaction >= 60 && need >= 60) quadrant = 'OPPORTUNITIES';
+      else if (satisfaction < 60 && need < 60) quadrant = 'MONITOR';
+      else if (satisfaction < 60 && need >= 60) quadrant = 'FIX NOW';
+
+      csvData.push([
+        service.label,
+        `${satisfaction.toFixed(2)}%`,
+        `${need.toFixed(2)}%`,
+        quadrant
+      ]);
+    });
+
+    // Convert to CSV string
+    const csvContent = csvData.map(row =>
+      row.map(cell => `"${cell}"`).join(',')
+    ).join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${barangayData.barangay}_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportServiceAreaCSV = (serviceArea: any) => {
+    if (!serviceArea || !barangayData) return;
+
+    // Use label property instead of name, with fallback
+    const serviceAreaName = serviceArea.label || serviceArea.name || 'Unknown Service Area';
+
+    const csvData = [
+      [`${serviceAreaName} - Detailed Analysis`],
+      [''],
+      ['Basic Information'],
+      ['Barangay', barangayData.barangay],
+      ['Service Area', serviceAreaName],
+      ['Survey Cycle', activeCycle?.name || 'N/A'],
+      ['Analysis Date', new Date().toLocaleDateString()],
+      [''],
+      ['Funnel Analysis'],
+      ['Metric', 'Percentage', 'Description'],
+      ['Awareness', `${Number(serviceArea.funnel?.awareness || 0).toFixed(2)}%`, 'Know about the service'],
+      ['Availment', `${Number(serviceArea.funnel?.availment || 0).toFixed(2)}%`, 'Actually used the service'],
+      ['Satisfaction', `${Number(serviceArea.score || 0).toFixed(2)}%`, 'Satisfied with service'],
+      ['Skipped', `${(100 - (serviceArea.funnel?.awareness || 0)).toFixed(2)}%`, 'No awareness'],
+      [''],
+      ['Action Grid Classification'],
+      ['Quadrant', serviceArea.quadrant || 'N/A'],
+      ['Satisfaction Score', `${Number(serviceArea.score || 0).toFixed(2)}%`],
+      ['Need for Action Score', `${Number(serviceArea.need || 0).toFixed(2)}%`],
+      [''],
+      ['Top Citizen Concerns'],
+    ];
+
+    // Add concerns if available
+    if (serviceArea.funnel?.concerns && serviceArea.funnel.concerns.length > 0) {
+      serviceArea.funnel.concerns.forEach((concern: string, index: number) => {
+        csvData.push([`${index + 1}`, concern, '']);
       });
     } else {
-      // Fallback: copy URL to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert('Report URL copied to clipboard!');
+      csvData.push(['No specific concerns identified', '', '']);
+    }
+
+    csvData.push(['']);
+    csvData.push(['AI Recommendations']);
+    csvData.push(['Term', 'Recommendation', 'Priority']);
+
+    // Add recommendations if available
+    if (serviceArea.funnel?.recommendations) {
+      const recs = serviceArea.funnel.recommendations;
+
+      if (recs.shortTerm && recs.shortTerm.length > 0) {
+        recs.shortTerm.forEach((rec: string) => {
+          csvData.push(['Short-term (0-3 months)', rec, 'High']);
+        });
+      }
+
+      if (recs.mediumTerm && recs.mediumTerm.length > 0) {
+        recs.mediumTerm.forEach((rec: string) => {
+          csvData.push(['Medium-term (6-12 months)', rec, 'Medium']);
+        });
+      }
+
+      if (recs.longTerm && recs.longTerm.length > 0) {
+        recs.longTerm.forEach((rec: string) => {
+          csvData.push(['Long-term (1+ year)', rec, 'Low']);
+        });
+      }
+    }
+
+    // Convert to CSV string
+    const csvContent = csvData.map(row =>
+      row.map(cell => `"${cell}"`).join(',')
+    ).join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    // Use safe filename with proper null checking
+    const safeFileName = serviceAreaName.replace(/[^a-zA-Z0-9]/g, '_');
+    link.setAttribute('download', `${barangayData.barangay}_${safeFileName}_Analysis_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShareServiceArea = async (serviceArea: any) => {
+    if (!serviceArea || !barangayData) return;
+
+    // Use label property instead of name, with fallback
+    const serviceAreaName = serviceArea.label || serviceArea.name || 'Unknown Service Area';
+
+    const shareData = {
+      title: `${serviceAreaName} Analysis - ${barangayData.barangay}`,
+      text: `${serviceAreaName} service analysis for ${barangayData.barangay}: ${Number(serviceArea.score || 0).toFixed(2)}% satisfaction, classified as ${serviceArea.quadrant || 'N/A'} in Action Grid`,
+      url: window.location.href
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        console.log('Share cancelled or failed');
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.textContent = 'Service area analysis copied to clipboard!';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          document.body.removeChild(toast);
+        }, 3000);
+      } catch (error) {
+        prompt('Copy this service area analysis:', `${shareData.title}\n${shareData.text}\n${shareData.url}`);
+      }
+    }
+  };
+
+  const handlePrintServiceArea = (serviceArea: any) => {
+    if (!serviceArea || !barangayData) return;
+
+    // Use label property instead of name, with fallback
+    const serviceAreaName = serviceArea.label || serviceArea.name || 'Unknown Service Area';
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const printContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+          <h1>${serviceAreaName} - Detailed Analysis</h1>
+          <h2>${barangayData.barangay}</h2>
+          <p><strong>Survey Cycle:</strong> ${activeCycle?.name || 'N/A'}</p>
+          <p><strong>Analysis Date:</strong> ${new Date().toLocaleDateString()}</p>
+          
+          <h3>Service Funnel Analysis</h3>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0;">
+            <div style="text-align: center; padding: 15px; background: #3b82f6; color: white; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold;">${Number(serviceArea.funnel?.awareness || 0).toFixed(2)}%</div>
+              <div>Awareness</div>
+            </div>
+            <div style="text-align: center; padding: 15px; background: #10b981; color: white; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold;">${Number(serviceArea.funnel?.availment || 0).toFixed(2)}%</div>
+              <div>Availment</div>
+            </div>
+            <div style="text-align: center; padding: 15px; background: #8b5cf6; color: white; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold;">${Number(serviceArea.score || 0).toFixed(2)}%</div>
+              <div>Satisfaction</div>
+            </div>
+            <div style="text-align: center; padding: 15px; background: #ef4444; color: white; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold;">${(100 - (serviceArea.funnel?.awareness || 0)).toFixed(2)}%</div>
+              <div>Skipped</div>
+            </div>
+          </div>
+          
+          <h3>Action Grid Classification</h3>
+          <p><strong>Quadrant:</strong> ${serviceArea.quadrant || 'N/A'}</p>
+          <p><strong>Satisfaction Score:</strong> ${Number(serviceArea.score || 0).toFixed(2)}%</p>
+          <p><strong>Need for Action Score:</strong> ${Number(serviceArea.need || 0).toFixed(2)}%</p>
+          
+          ${serviceArea.funnel?.concerns && serviceArea.funnel.concerns.length > 0 ? `
+            <h3>Top Citizen Concerns</h3>
+            <ol>
+              ${serviceArea.funnel.concerns.map((concern: string) => `<li>${concern}</li>`).join('')}
+            </ol>
+          ` : ''}
+          
+          ${serviceArea.funnel?.recommendations ? `
+            <h3>AI-Generated Action Roadmap</h3>
+            ${serviceArea.funnel.recommendations.shortTerm && serviceArea.funnel.recommendations.shortTerm.length > 0 ? `
+              <h4>Short-term (0-3 months)</h4>
+              <ul>
+                ${serviceArea.funnel.recommendations.shortTerm.map((rec: string) => `<li>${rec}</li>`).join('')}
+              </ul>
+            ` : ''}
+            ${serviceArea.funnel.recommendations.mediumTerm && serviceArea.funnel.recommendations.mediumTerm.length > 0 ? `
+              <h4>Medium-term (6-12 months)</h4>
+              <ul>
+                ${serviceArea.funnel.recommendations.mediumTerm.map((rec: string) => `<li>${rec}</li>`).join('')}
+              </ul>
+            ` : ''}
+            ${serviceArea.funnel.recommendations.longTerm && serviceArea.funnel.recommendations.longTerm.length > 0 ? `
+              <h4>Long-term (1+ year)</h4>
+              <ul>
+                ${serviceArea.funnel.recommendations.longTerm.map((rec: string) => `<li>${rec}</li>`).join('')}
+              </ul>
+            ` : ''}
+          ` : ''}
+        </div>
+      `;
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${serviceAreaName} Analysis - ${barangayData.barangay}</title>
+            <style>
+              body { margin: 0; padding: 20px; }
+              @media print { body { margin: 0; } }
+            </style>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
     }
   };
 
@@ -1487,7 +1777,7 @@ function ReportCardContent() {
                     <div className="text-center">
                       <div className="bg-red-500 text-white p-4 rounded-lg mb-2">
                         <div className="text-2xl font-bold">
-                          {100 - (selectedServiceArea.funnel?.awareness || 0)}%
+                          {(100 - (selectedServiceArea.funnel?.awareness || 0)).toFixed(2)}%
                         </div>
                         <div className="text-sm">Skipped</div>
                       </div>
@@ -1627,22 +1917,31 @@ function ReportCardContent() {
                 <div className="border-t pt-4">
                   <h3 className="text-lg font-semibold mb-3">Export & Share</h3>
                   <div className="flex gap-2 flex-wrap">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePrintServiceArea(selectedServiceArea)}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Export Detailed PDF
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share Infographic
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={!hasActiveCycle}
-                      title={hasActiveCycle ? `Export data for ${activeCycle?.name}` : 'No active cycle to export data from'}
+                      onClick={() => handleShareServiceArea(selectedServiceArea)}
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share Analysis
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExportServiceAreaCSV(selectedServiceArea)}
+                      disabled={!selectedServiceArea}
+                      title="Export detailed service area analysis as CSV"
                     >
                       <BarChart3 className="w-4 h-4 mr-2" />
-                      Export Data (CSV) {hasActiveCycle && `(${activeCycle?.name})`}
+                      Export Data (CSV)
                     </Button>
                   </div>
                 </div>

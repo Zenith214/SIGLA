@@ -157,9 +157,14 @@ export async function GET(request: NextRequest) {
       console.log(`Input file: ${tempInputFile}`)
       console.log(`Output file: ${tempOutputFile}`)
       
+      // Use the virtual environment's Python interpreter
+      const venvPython = process.platform === 'win32' 
+        ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+        : path.join(process.cwd(), '.venv', 'bin', 'python');
+      
       // Execute Python script with file paths
       const { stdout, stderr } = await execAsync(
-        `python "${scriptPath}" "${tempInputFile}" "${tempOutputFile}"`,
+        `"${venvPython}" "${scriptPath}" "${tempInputFile}" "${tempOutputFile}"`,
         { 
           timeout: 60000, // 60 second timeout for large datasets
           maxBuffer: 10 * 1024 * 1024 // 10MB buffer

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
 
 // Convert exec to Promise-based
 const execAsync = promisify(exec);
@@ -47,9 +48,14 @@ export async function GET(req: NextRequest) {
         // Call the ML analysis process for this barangay
         const pythonScriptPath = process.env.NODE_ENV === 'production' 
           ? '/var/www/html/SIGLA-2/ml/analyze_barangay.py'
-          : 'c:/xampp/htdocs/SIGLA-2/ml/analyze_barangay.py';
+          : path.join(process.cwd(), 'ml', 'analyze_barangay.py');
         
-        const { stdout, stderr } = await execAsync(`python ${pythonScriptPath} --barangay_id ${target.barangay_id}`);
+        // Use the virtual environment's Python interpreter
+        const venvPython = process.platform === 'win32' 
+          ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+          : path.join(process.cwd(), '.venv', 'bin', 'python');
+        
+        const { stdout, stderr } = await execAsync(`"${venvPython}" "${pythonScriptPath}" --barangay_id ${target.barangay_id}`);
         
         if (stderr) {
           console.error(`Error analyzing barangay ${target.barangay_id}:`, stderr);
