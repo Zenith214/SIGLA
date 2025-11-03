@@ -14,6 +14,7 @@ interface RespondentDemographicsProps {
 export function RespondentDemographics({ data, onUpdate, onNext, onBack }: RespondentDemographicsProps) {
   const [demographics, setDemographics] = useState({
     age: data.respondentDemographics?.age || 0,
+    birthdate: data.respondentDemographics?.birthdate || "",
     gender: data.respondentDemographics?.gender || "",
     educationalAttainment: data.respondentDemographics?.educationalAttainment || "",
     householdIncome: data.respondentDemographics?.householdIncome || ""
@@ -56,6 +57,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
           <h3 className="text-sm font-medium text-blue-900 mb-2">Selected Respondent</h3>
           <div className="text-sm text-blue-800">
             <p><strong>Name:</strong> {data.selectedMember || "Not selected"}</p>
+            <p><strong>Birthdate:</strong> {demographics.birthdate ? new Date(demographics.birthdate).toLocaleDateString() : "Not provided"}</p>
             <p><strong>Age:</strong> {demographics.age} years old</p>
             <p><strong>Gender:</strong> {demographics.gender}</p>
           </div>
@@ -67,19 +69,30 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
             Please provide additional information about the selected respondent for our analysis.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Birthdate</label>
               <input
-                type="number"
-                min="18"
-                max="120"
-                value={demographics.age}
-                onChange={(e) => handleDemographicsChange("age", Number.parseInt(e.target.value) || 0)}
+                type="date"
+                value={demographics.birthdate}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
                 disabled
               />
               <p className="text-xs text-gray-500 mt-1">Auto-filled from respondent selection</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+              <input
+                type="number"
+                value={demographics.age}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
+                disabled
+              />
+              <p className="text-xs text-gray-500 mt-1">Calculated from birthdate</p>
+            </div>
+
             </div>
 
             <div>
@@ -99,45 +112,48 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               <p className="text-xs text-gray-500 mt-1">Auto-filled from respondent selection</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Educational Attainment *</label>
-              <select
-                value={demographics.educationalAttainment}
-                onChange={(e) => handleDemographicsChange("educationalAttainment", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              >
-                <option value="">Select educational level</option>
-                <option value="No formal education">No formal education</option>
-                <option value="Elementary (1-6)">Elementary (1-6)</option>
-                <option value="Elementary graduate">Elementary graduate</option>
-                <option value="High school (1-4)">High school (1-4)</option>
-                <option value="High school graduate">High school graduate</option>
-                <option value="Vocational/Technical">Vocational/Technical</option>
-                <option value="College (1-4)">College (1-4)</option>
-                <option value="College graduate">College graduate</option>
-                <option value="Post-graduate">Post-graduate</option>
-              </select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Educational Attainment *</label>
+                <select
+                  value={demographics.educationalAttainment}
+                  onChange={(e) => handleDemographicsChange("educationalAttainment", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                >
+                  <option value="">Select educational level</option>
+                  <option value="No formal education">No formal education</option>
+                  <option value="Elementary (1-6)">Elementary (1-6)</option>
+                  <option value="Elementary graduate">Elementary graduate</option>
+                  <option value="High school (1-4)">High school (1-4)</option>
+                  <option value="High school graduate">High school graduate</option>
+                  <option value="Vocational/Technical">Vocational/Technical</option>
+                  <option value="College (1-4)">College (1-4)</option>
+                  <option value="College graduate">College graduate</option>
+                  <option value="Post-graduate">Post-graduate</option>
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Household Income *</label>
-              <select
-                value={demographics.householdIncome}
-                onChange={(e) => handleDemographicsChange("householdIncome", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              >
-                <option value="">Select income range</option>
-                <option value="Below ₱10,000">Below ₱10,000</option>
-                <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
-                <option value="₱20,001 - ₱30,000">₱20,001 - ₱30,000</option>
-                <option value="₱30,001 - ₱50,000">₱30,001 - ₱50,000</option>
-                <option value="₱50,001 - ₱75,000">₱50,001 - ₱75,000</option>
-                <option value="₱75,001 - ₱100,000">₱75,001 - ₱100,000</option>
-                <option value="Above ₱100,000">Above ₱100,000</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Household Income *</label>
+                <select
+                  value={demographics.householdIncome}
+                  onChange={(e) => handleDemographicsChange("householdIncome", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                >
+                  <option value="">Select income range</option>
+                  <option value="₱0 – No income">₱0 – No income</option>
+                  <option value="Below ₱10,000">Below ₱10,000</option>
+                  <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
+                  <option value="₱20,001 - ₱30,000">₱20,001 - ₱30,000</option>
+                  <option value="₱30,001 - ₱50,000">₱30,001 - ₱50,000</option>
+                  <option value="₱50,001 - ₱75,000">₱50,001 - ₱75,000</option>
+                  <option value="₱75,001 - ₱100,000">₱75,001 - ₱100,000</option>
+                  <option value="Above ₱100,000">Above ₱100,000</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
             </div>
           </div>
 

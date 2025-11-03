@@ -13,6 +13,26 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
   // Filter out the 'summary' section from progress calculation
   const filterableSections = sections.filter(s => s.id !== 'summary');
 
+  // Check if the first 3 sections (initialization, respondent-selection, respondent-demographics) are completed
+  const isInitialSectionsComplete = () => {
+    const initialSections = ['initialization', 'respondent-selection', 'respondent-demographics'];
+    return initialSections.every(sectionId => {
+      const section = sections.find(s => s.id === sectionId);
+      return section && section.status === 'completed';
+    });
+  };
+
+  // Check if a section can be clicked
+  const canClickSection = (section: SectionStatus, index: number) => {
+    // Always allow clicking on the first 3 sections and summary
+    if (['initialization', 'respondent-selection', 'respondent-demographics', 'summary'].includes(section.id)) {
+      return true;
+    }
+    
+    // For survey sections (4+), only allow if initial sections are complete
+    return isInitialSectionsComplete();
+  };
+
   const getStatusIcon = (status: SectionStatus["status"]) => {
     switch (status) {
       case "completed":
@@ -42,30 +62,45 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Sections</h2>
 
       <div className="space-y-3">
-        {sections.map((section, index) => (
-          <button
-            key={section.id}
-            onClick={() => onSectionChange(section.id)}
-            className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-              currentSection === section.id
-                ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
-                : "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-sm"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <span className="flex items-center justify-center w-5 h-5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
-                  {index + 1}
-                </span>
-                {getStatusIcon(section.status)}
+        {sections.map((section, index) => {
+          const clickable = canClickSection(section, index);
+          return (
+            <button
+              key={section.id}
+              onClick={() => clickable && onSectionChange(section.id)}
+              disabled={!clickable}
+              className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                currentSection === section.id
+                  ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
+                  : clickable
+                    ? "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+                    : "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <span className="flex items-center justify-center w-5 h-5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
+                    {index + 1}
+                  </span>
+                  {getStatusIcon(section.status)}
+                </div>
+                {getStatusBadge(section.status)}
               </div>
-              {getStatusBadge(section.status)}
-            </div>
-            <h3 className={`text-sm font-medium ${currentSection === section.id ? "text-blue-700" : "text-gray-700"}`}>
-              {section.name}
-            </h3>
-          </button>
-        ))}
+              <h3 className={`text-sm font-medium ${
+                currentSection === section.id 
+                  ? "text-blue-700" 
+                  : clickable 
+                    ? "text-gray-700" 
+                    : "text-gray-400"
+              }`}>
+                {section.name}
+              </h3>
+              {!clickable && !['initialization', 'respondent-selection', 'respondent-demographics', 'summary'].includes(section.id) && (
+                <p className="text-xs text-gray-400 mt-1">Complete initial sections first</p>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Progress Summary */}

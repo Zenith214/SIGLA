@@ -337,6 +337,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
                   required
                 >
                   <option value="">Select income range</option>
+                  <option value="₱0 – No income">₱0 – No income</option>
                   <option value="Below ₱10,000">Below ₱10,000</option>
                   <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
                   <option value="₱20,001 - ₱30,000">₱20,001 - ₱30,000</option>

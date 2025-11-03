@@ -16,6 +16,26 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
 
   // Filter out the 'summary' section from progress calculation
   const filterableSections = sections.filter(s => s.id !== 'summary');
+
+  // Check if the first 3 sections (initialization, respondent-selection, respondent-demographics) are completed
+  const isInitialSectionsComplete = () => {
+    const initialSections = ['initialization', 'respondent-selection', 'respondent-demographics'];
+    return initialSections.every(sectionId => {
+      const section = sections.find(s => s.id === sectionId);
+      return section && section.status === 'completed';
+    });
+  };
+
+  // Check if a section can be clicked
+  const canClickSection = (section: SectionStatus) => {
+    // Always allow clicking on the first 3 sections and summary
+    if (['initialization', 'respondent-selection', 'respondent-demographics', 'summary'].includes(section.id)) {
+      return true;
+    }
+    
+    // For survey sections (4+), only allow if initial sections are complete
+    return isInitialSectionsComplete();
+  };
   const completedSections = filterableSections.filter((section) => section.status === "completed").length
   const totalSections = filterableSections.length
   const progressPercentage = (totalSections > 0) ? (completedSections / totalSections) * 100 : 0;
@@ -43,8 +63,11 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
   }
 
   const handleSectionSelect = (sectionId: string) => {
-    onSectionChange(sectionId)
-    setIsDrawerOpen(false)
+    const section = sections.find(s => s.id === sectionId);
+    if (section && canClickSection(section)) {
+      onSectionChange(sectionId)
+      setIsDrawerOpen(false)
+    }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -130,46 +153,61 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
 
           {/* Section List */}
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {sections.map((section, index) => (
-              <button
-                key={section.id}
-                onClick={() => handleSectionSelect(section.id)}
-                className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
-                  currentSection === section.id
-                    ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
-                    : "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-sm"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-3">
-                    <span className="flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
-                      {index + 1}
-                    </span>
-                    <span className={`text-lg ${getStatusColor(section.status)}`}>{getStatusIcon(section.status)}</span>
-                  </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      section.status === "completed"
-                        ? "bg-green-100 text-green-800"
+            {sections.map((section, index) => {
+              const clickable = canClickSection(section);
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => handleSectionSelect(section.id)}
+                  disabled={!clickable}
+                  className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
+                    currentSection === section.id
+                      ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
+                      : clickable
+                        ? "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+                        : "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <span className="flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+                        {index + 1}
+                      </span>
+                      <span className={`text-lg ${getStatusColor(section.status)}`}>{getStatusIcon(section.status)}</span>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        section.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : section.status === "in-progress"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {section.status === "completed"
+                        ? "Completed"
                         : section.status === "in-progress"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-blue-100 text-blue-800"
+                          ? "In Progress"
+                          : "Pending"}
+                    </span>
+                  </div>
+                  <h3
+                    className={`text-sm font-medium ${
+                      currentSection === section.id 
+                        ? "text-blue-700" 
+                        : clickable 
+                          ? "text-gray-700" 
+                          : "text-gray-400"
                     }`}
                   >
-                    {section.status === "completed"
-                      ? "Completed"
-                      : section.status === "in-progress"
-                        ? "In Progress"
-                        : "Pending"}
-                  </span>
-                </div>
-                <h3
-                  className={`text-sm font-medium ${currentSection === section.id ? "text-blue-700" : "text-gray-700"}`}
-                >
-                  {section.name}
-                </h3>
-              </button>
-            ))}
+                    {section.name}
+                  </h3>
+                  {!clickable && !['initialization', 'respondent-selection', 'respondent-demographics', 'summary'].includes(section.id) && (
+                    <p className="text-xs text-gray-400 mt-1">Complete initial sections first</p>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Drawer Footer */}

@@ -74,3 +74,4 @@ console.log('3. Run: npx prisma generate');
 console.log('4. Run: npx prisma db push');
 console.log('5. Restart your Next.js development server');
 
+

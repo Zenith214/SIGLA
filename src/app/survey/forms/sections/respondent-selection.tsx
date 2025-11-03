@@ -6,7 +6,7 @@ import type { SurveyData } from "../page"
 
 interface HouseholdMember {
   name: string
-  age: number | string
+  birthdate: string
   gender: string
 }
 
@@ -17,11 +17,26 @@ interface RespondentSelectionProps {
   onBack: () => void
 }
 
+// Function to calculate age from birthdate
+const calculateAge = (birthdate: string): number => {
+  if (!birthdate) return 0
+  const today = new Date()
+  const birth = new Date(birthdate)
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  
+  return age
+}
+
 export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: RespondentSelectionProps) {
   const [numberOfMembers, setNumberOfMembers] = useState<number>(1)
-  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", age: 18, gender: "" }])
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", birthdate: "", gender: "" }])
   const [showModal, setShowModal] = useState(false)
-  const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string; age: number | string; gender: string } | null>(null)
+  const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string; birthdate: string; age: number; gender: string } | null>(null)
   const [inputError, setInputError] = useState<string>("")
 
   const handleNumberChange = (value: string) => {
@@ -41,31 +56,15 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     setNumberOfMembers(num)
     const newMembers = Array.from({ length: num }, (_, index) => ({
       name: householdMembers[index]?.name || "",
-      age: householdMembers[index]?.age || 18,
+      birthdate: householdMembers[index]?.birthdate || "",
       gender: householdMembers[index]?.gender || "",
     }))
     setHouseholdMembers(newMembers)
   }
 
-  const handleMemberChange = (index: number, field: "name" | "age" | "gender", value: string | number) => {
+  const handleMemberChange = (index: number, field: "name" | "birthdate" | "gender", value: string) => {
     const updatedMembers = [...householdMembers]
-
-    if (field === "age") {
-      // Handle age input more carefully
-      const ageValue = typeof value === "string" ? value : String(value)
-      const numericAge = Number.parseInt(ageValue)
-
-      // Allow empty string for editing, but ensure valid number when not empty
-      if (ageValue === "" || ageValue === "0") {
-        updatedMembers[index] = { ...updatedMembers[index], [field]: "" as any }
-      } else if (!isNaN(numericAge) && numericAge > 0) {
-        updatedMembers[index] = { ...updatedMembers[index], [field]: numericAge }
-      }
-      // If invalid input, don't update (keeps current value)
-    } else {
-      updatedMembers[index] = { ...updatedMembers[index], [field]: value }
-    }
-
+    updatedMembers[index] = { ...updatedMembers[index], [field]: value }
     setHouseholdMembers(updatedMembers)
   }
 
@@ -77,12 +76,12 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
     // Filter eligible members (age 18+)
     const eligibleMembers = householdMembers.filter((member) => {
-      const age = typeof member.age === "string" ? Number.parseInt(member.age) : member.age
-      return age >= 18 && member.name.trim() !== "" && member.gender.trim() !== "" && !isNaN(age)
+      const age = calculateAge(member.birthdate)
+      return age >= 18 && member.name.trim() !== "" && member.gender.trim() !== "" && member.birthdate.trim() !== ""
     })
 
     if (eligibleMembers.length === 0) {
-      alert("No eligible household members found. All members must be 18 or older, have names, and gender specified.")
+      alert("No eligible household members found. All members must be 18 or older, have names, birthdate, and gender specified.")
       return
     }
 
@@ -105,7 +104,8 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     setSelectedRespondent({
       number: originalIndex + 1,
       name: selected.name,
-      age: selected.age,
+      birthdate: selected.birthdate,
+      age: calculateAge(selected.birthdate),
       gender: selected.gender,
     })
     setShowModal(true)
@@ -116,9 +116,9 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       onUpdate("selectedMember", selectedRespondent.name)
 
       // Pre-populate basic demographics
-      const selectedAge = typeof selectedRespondent.age === "string" ? Number.parseInt(selectedRespondent.age) : selectedRespondent.age
       onUpdate("respondentDemographics", {
-        age: selectedAge,
+        age: selectedRespondent.age,
+        birthdate: selectedRespondent.birthdate,
         gender: selectedRespondent.gender,
         educationalAttainment: "",
         householdIncome: ""
@@ -191,24 +191,18 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Age *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate *</label>
                     <input
-                      type="number"
-                      min="18"
-                      max="120"
-                      value={member.age === "" ? "" : member.age}
-                      onChange={(e) => handleMemberChange(index, "age", e.target.value)}
-                      onBlur={(e) => {
-                        // Set default age if field is empty when user leaves the field
-                        if (e.target.value === "" || Number.parseInt(e.target.value) < 18) {
-                          handleMemberChange(index, "age", 18)
-                        }
-                      }}
+                      type="date"
+                      value={member.birthdate}
+                      onChange={(e) => handleMemberChange(index, "birthdate", e.target.value)}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="18"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Minimum age: 18 years</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {member.birthdate ? `Age: ${calculateAge(member.birthdate)} years` : 'Must be 18 or older'}
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
@@ -278,6 +272,7 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                 <h4 className="text-xl font-semibold text-gray-900 mb-2">Member #{selectedRespondent.number}</h4>
                 <p className="text-lg text-gray-700 mb-2">{selectedRespondent.name}</p>
                 <div className="text-sm text-gray-600 mb-4">
+                  <p>Birthdate: {new Date(selectedRespondent.birthdate).toLocaleDateString()}</p>
                   <p>Age: {selectedRespondent.age} years old</p>
                   <p>Gender: {selectedRespondent.gender}</p>
                 </div>

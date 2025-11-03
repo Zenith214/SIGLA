@@ -38,6 +38,7 @@ export interface SurveyData {
   selectedMember: string
   respondentDemographics: {
     age: number
+    birthdate: string
     gender: string
     educationalAttainment: string
     householdIncome: string

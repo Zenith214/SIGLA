@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { MapPin, Hash, Navigation, AlertCircle, CheckCircle, Globe } from "lucide-react"
 import type { SurveyData } from "../page"
 import { useGeotagging } from "../utils/useGeotagging"
-import { geotaggingService } from "../utils/geotagging"
 import { InteractiveMap } from "./interactive-map"
-import { getAssignmentDescription, getAssignedSections } from "../utils/sectionAssignment"
+import { getAssignmentDescription } from "../utils/sectionAssignment"
 
 interface SurveyInitializationProps {
    data: SurveyData
@@ -21,6 +20,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
   const [location, setLocation] = useState(data.location || { lat: 0, lng: 0, address: "" })
   const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState('')
+  const [wasAutoCaptured, setWasAutoCaptured] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -36,6 +36,18 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Auto-capture location when component mounts (if supported and no location exists)
+  useEffect(() => {
+    if (isClient && isSupported && location.lat === 0 && location.lng === 0 && locationStatus === 'idle') {
+      // Add a small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        handleLocationCapture(true) // Pass true to indicate automatic capture
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isClient, isSupported, location.lat, location.lng, locationStatus])
 
   // Fetch barangay name when preselectedBarangayId is provided
   useEffect(() => {
@@ -120,14 +132,15 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     mapInstanceRef.current = map
   }
 
-  const handleLocationCapture = async () => {
+  const handleLocationCapture = async (isAutomatic = false) => {
     setLocationStatus('capturing')
     setLocationError('')
+    setWasAutoCaptured(false)
 
     try {
       const locationData = await getLocation({
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: isAutomatic ? 10000 : 15000, // Shorter timeout for automatic capture
         requireAddress: true
       })
 
@@ -144,11 +157,22 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
 
       setLocation(newLocation)
       setLocationStatus('success')
+      setWasAutoCaptured(isAutomatic)
       
       // Auto-save to survey data
       onUpdate("location", newLocation)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get location'
+      let errorMessage = error instanceof Error ? error.message : 'Failed to get location'
+      
+      // Provide more user-friendly error messages
+      if (errorMessage.includes('denied')) {
+        errorMessage = 'Location access was denied. Please enable location permissions and try again.'
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'Location request timed out. Please check your GPS signal and try again.'
+      } else if (errorMessage.includes('unavailable')) {
+        errorMessage = 'Location services are not available on this device.'
+      }
+      
       setLocationError(errorMessage)
       setLocationStatus('error')
     }
@@ -217,7 +241,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     }
 
     if (!location.address.trim()) {
-      alert("Please capture or enter a location.")
+      alert("Please wait for location to be captured or select a location manually.")
       return
     }
 
@@ -232,33 +256,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     onNext()
   }
 
-  const getLocationStatusDisplay = () => {
-    switch (locationStatus) {
-      case 'capturing':
-        return (
-          <div className="flex items-center space-x-2 text-yellow-600">
-            <Navigation className="w-4 h-4 animate-spin" />
-            <span>Capturing location...</span>
-          </div>
-        )
-      case 'success':
-        return (
-          <div className="flex items-center space-x-2 text-green-600">
-            <CheckCircle className="w-4 h-4" />
-            <span>Location captured successfully</span>
-          </div>
-        )
-      case 'error':
-        return (
-          <div className="flex items-center space-x-2 text-red-600">
-            <AlertCircle className="w-4 h-4" />
-            <span>Location capture failed</span>
-          </div>
-        )
-      default:
-        return null
-    }
-  }
+
 
   // Don't render buttons until client-side
   if (!isClient) {
@@ -287,6 +285,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-gray-500 mt-2">Loading location services...</p>
+            <p className="text-xs text-gray-400 mt-1">Your location will be automatically detected</p>
           </div>
         </div>
       </div>
@@ -377,43 +376,74 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
             Respondent Location (Spot Map) *
           </label>
           
-          {/* Location Status */}
-          {getLocationStatusDisplay()}
+
           
           {/* Location Error */}
           {locationStatus === 'error' && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-              <div className="flex items-center space-x-2 text-sm text-red-600">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+              <div className="flex items-center space-x-2 text-sm text-red-600 mb-3">
                 <AlertCircle className="w-4 h-4" />
                 <span>{locationError}</span>
               </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Location Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleLocationCapture}
-                disabled={locationStatus === 'capturing' || !isSupported}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>
-                  {locationStatus === 'capturing' ? 'Capturing...' : 'Capture Current Location'}
-                </span>
-              </button>
-
+              <div className="text-sm text-red-700 mb-3">
+                Automatic location capture failed. Please use the "Select on Map" button below to manually select your location.
+              </div>
               <button
                 type="button"
                 onClick={() => setShowMap(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
               >
                 <Globe className="w-4 h-4" />
                 <span>Select on Map</span>
               </button>
             </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Auto-capture info */}
+            {locationStatus === 'idle' && location.lat === 0 && location.lng === 0 && isSupported && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                <div className="flex items-center space-x-2 text-sm text-blue-700">
+                  <Navigation className="w-4 h-4 animate-pulse" />
+                  <span>Attempting to automatically capture your location...</span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  Please wait while we detect your current position.
+                </p>
+              </div>
+            )}
+
+            {/* Location not supported warning */}
+            {!isSupported && location.lat === 0 && location.lng === 0 && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                <div className="flex items-center space-x-2 text-sm text-yellow-700">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Location services are not available on this device.</span>
+                </div>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowMap(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>Select on Map</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Location capture success message */}
+            {locationStatus === 'success' && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                <div className="flex items-center space-x-2 text-sm text-green-700">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>
+                    {wasAutoCaptured ? 'Location automatically captured!' : 'Location captured successfully'}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Interactive Map Area */}
             <div className="w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
@@ -427,7 +457,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                     <p className="text-sm text-gray-500">
                       {location.address && location.lat !== 0 && location.lng !== 0
                         ? `Location captured: ${location.address}`
-                        : 'Click "Capture Current Location" or "Select on Map" to mark position'}
+                        : 'Location will be automatically detected or you can select manually if needed'}
                     </p>
                     {location.lat !== 0 && location.lng !== 0 && (
                       <p className="text-xs text-gray-400 mt-1">
