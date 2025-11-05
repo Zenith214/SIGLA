@@ -13,11 +13,11 @@ interface RespondentDemographicsProps {
 
 export function RespondentDemographics({ data, onUpdate, onNext, onBack }: RespondentDemographicsProps) {
   const [demographics, setDemographics] = useState({
-    age: data.respondentDemographics?.age || 0,
-    birthdate: data.respondentDemographics?.birthdate || "",
-    gender: data.respondentDemographics?.gender || "",
-    educationalAttainment: data.respondentDemographics?.educationalAttainment || "",
-    householdIncome: data.respondentDemographics?.householdIncome || ""
+    age: data.respondentDemographics?.age ?? 0,
+    birthdate: data.respondentDemographics?.birthdate ?? "",
+    gender: data.respondentDemographics?.gender ?? "",
+    educationalAttainment: data.respondentDemographics?.educationalAttainment ?? "",
+    householdIncome: data.respondentDemographics?.householdIncome ?? ""
   })
 
   // Update local state when data changes

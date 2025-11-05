@@ -192,7 +192,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
   const generateQuestionnaireNumber = async () => {
     setIsGeneratingNumber(true)
     try {
-      // Get barangayId - either from preselected or from surveyData
+      // Get barangayId
       const barangayIdToUse = preselectedBarangayId || data.barangayId
       
       if (!barangayIdToUse) {
@@ -200,12 +200,10 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
         return null
       }
 
-      // Call API to get next questionnaire number atomically for this barangay
+      // Generate the actual questionnaire number NOW
       const response = await fetch('/api/questionnaire-number', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ barangayId: barangayIdToUse })
       })
 
@@ -213,16 +211,15 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
         throw new Error('Failed to generate questionnaire number')
       }
 
-      const data = await response.json()
-      const surveyNumber = data.surveyNumber // Full format: BB-YYYY-NNNN
-      const questionnaireNumber = data.questionnaireNumber // Just the number for display
+      const responseData = await response.json()
+      const surveyNumber = responseData.surveyNumber // Full format: BB-YYYY-NNNN
+      const questionnaireNumber = responseData.questionnaireNumber // Just the number
+      const type = questionnaireNumber % 2 === 1 ? 'odd' : 'even'
       
-      console.log(`Generated survey number: ${surveyNumber} (Questionnaire #${questionnaireNumber})`)
+      console.log(`✅ Generated survey number: ${surveyNumber} (Questionnaire #${questionnaireNumber}, ${type})`)
       
-      setSurveyNumber(surveyNumber)
-      onUpdate("surveyNumber", surveyNumber)
+      return { surveyNumber, questionnaireNumber, type }
       
-      return surveyNumber
     } catch (error) {
       console.error('Error generating questionnaire number:', error)
       alert('Failed to generate questionnaire number. Please try again.')
@@ -244,16 +241,23 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       return
     }
 
-    // Generate questionnaire number if not already generated
-    let finalSurveyNumber = surveyNumber
-    if (!finalSurveyNumber) {
-      finalSurveyNumber = await generateQuestionnaireNumber()
-      if (!finalSurveyNumber) {
-        return // Failed to generate number
-      }
+    // Check if we already have a survey number (from localStorage after refresh)
+    if (data.surveyNumber && data.surveyNumber !== "PENDING") {
+      console.log(`📋 Using existing survey number from localStorage: ${data.surveyNumber}`)
+      onUpdate("location", location)
+      onNext()
+      return
     }
 
-    onUpdate("surveyNumber", finalSurveyNumber)
+    // Generate questionnaire number NOW (will be saved to localStorage)
+    const result = await generateQuestionnaireNumber()
+    if (!result) {
+      return // Failed to generate
+    }
+
+    // Store the number and type
+    onUpdate("surveyNumber", result.surveyNumber)
+    onUpdate("questionnaireType", result.type)
     onUpdate("location", location)
     onNext()
   }
@@ -287,41 +291,22 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       </div>
 
       <div className="space-y-6">
-        {/* Auto-generated Questionnaire Number Display */}
-        {surveyNumber ? (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <h4 className="text-sm font-medium text-green-900">Questionnaire Number Assigned</h4>
-              </div>
-              <span className="text-2xl font-bold text-green-700">#{surveyNumber}</span>
-            </div>
-            
-            {/* Section Assignment Display */}
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Your Assigned Sections</h4>
-              <p className="text-sm text-blue-800">{getAssignmentDescription(surveyNumber)}</p>
-            </div>
+        {/* Questionnaire Number Info */}
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Hash className="w-5 h-5 text-blue-600" />
+            <h4 className="text-sm font-medium text-blue-900">Questionnaire Assignment</h4>
           </div>
-        ) : (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <Hash className="w-5 h-5 text-blue-600" />
-              <h4 className="text-sm font-medium text-blue-900">Questionnaire Number</h4>
+          <p className="text-sm text-blue-700">
+            When you continue, a unique questionnaire number will be assigned and you'll see which sections to complete.
+          </p>
+          {isGeneratingNumber && (
+            <div className="flex items-center space-x-2 mt-3 text-sm text-blue-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>Generating questionnaire number...</span>
             </div>
-            <p className="text-sm text-blue-700 mb-3">
-              A questionnaire number will be automatically assigned when you start the survey. 
-              This number determines which sections you'll answer (odd or even).
-            </p>
-            {isGeneratingNumber && (
-              <div className="flex items-center space-x-2 text-sm text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span>Generating questionnaire number...</span>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Pre-selected Barangay Indicator */}
         {preselectedBarangayId && preselectedBarangayName && (

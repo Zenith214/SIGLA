@@ -23,6 +23,7 @@ import { getQuestionsForSection } from "./utils/questions"
 
 export interface SurveyData {
   surveyNumber: string
+  questionnaireType?: 'odd' | 'even' // Determines which sections to answer
   assignedSections?: string[] // New field for tracking assigned sections
   barangayId?: number
   location: {
@@ -120,6 +121,7 @@ function SurveyAppContent() {
     selectedMember: "",
     respondentDemographics: {
       age: 0,
+      birthdate: "",
       gender: "",
       educationalAttainment: "",
       householdIncome: ""
@@ -172,14 +174,28 @@ function SurveyAppContent() {
     }
   }, [barangayIdParam, surveyData.barangayId])
 
-  // Update assigned sections when survey number changes
+  // Update assigned sections based on questionnaireType
   useEffect(() => {
-    console.log(`🔄 Survey number or current section changed: ${surveyData.surveyNumber}, current: ${currentSection}`);
+    console.log(`🔄 Questionnaire type or current section changed: ${surveyData.questionnaireType}, current: ${currentSection}`);
 
-    if (surveyData.surveyNumber && surveyData.surveyNumber.trim()) {
-      const assignedSections = getAssignedSections(surveyData.surveyNumber);
+    if (surveyData.questionnaireType) {
+      // Determine sections based on odd/even type
+      const ODD_SECTIONS = [
+        { id: "financial", name: "Financial Administration" },
+        { id: "safety", name: "Safety & Peace Order" },
+        { id: "environmental", name: "Environmental Management" },
+      ];
+      
+      const EVEN_SECTIONS = [
+        { id: "disaster", name: "Disaster Preparedness" },
+        { id: "social", name: "Social Protection" },
+        { id: "business", name: "Business Friendliness" },
+      ];
+
+      const assignedSections = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
       const assignedSectionIds = assignedSections.map(s => s.id);
-      console.log(`📋 Assigned sections for survey ${surveyData.surveyNumber}:`, assignedSectionIds);
+      
+      console.log(`📋 Assigned sections for ${surveyData.questionnaireType} questionnaire:`, assignedSectionIds);
 
       // Update survey data with assigned sections
       if (JSON.stringify(surveyData.assignedSections) !== JSON.stringify(assignedSectionIds)) {
@@ -187,14 +203,13 @@ function SurveyAppContent() {
         setSurveyData(prev => ({ ...prev, assignedSections: assignedSectionIds }));
       }
 
-      // Only rebuild sections if they don't exist yet, otherwise preserve existing statuses
+      // Build sections array
       setSections(prevSections => {
-        // If sections array is empty or doesn't have the right sections, rebuild it
         const existingSectionIds = prevSections.map(s => s.id);
         const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "summary"];
 
         if (prevSections.length === 0 || JSON.stringify(existingSectionIds) !== JSON.stringify(expectedSectionIds)) {
-          console.log(`🏗️ Building initial sections array`);
+          console.log(`🏗️ Building sections array for ${surveyData.questionnaireType}`);
           const newSections: SectionStatus[] = [
             { id: "initialization", name: "Survey Initialization", status: "completed" },
             { id: "respondent-selection", name: "Respondent Selection", status: currentSection === "respondent-selection" ? "in-progress" : "pending" },
@@ -205,24 +220,22 @@ function SurveyAppContent() {
             })),
             { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
           ];
-          console.log(`📋 Initial sections:`, newSections.map(s => `${s.id}: ${s.status}`));
+          console.log(`📋 Sections:`, newSections.map(s => `${s.id}: ${s.status}`));
           return newSections;
         } else {
           // Preserve existing statuses, only update current section to in-progress
-          console.log(`🔄 Preserving existing statuses, updating current section`);
           const updatedSections = prevSections.map(section => {
             if (section.id === currentSection && section.status === "pending") {
-              console.log(`▶️ Setting ${section.id} to in-progress (was ${section.status})`);
+              console.log(`▶️ Setting ${section.id} to in-progress`);
               return { ...section, status: "in-progress" as const };
             }
             return section;
           });
-          console.log(`📋 Preserved sections:`, updatedSections.map(s => `${s.id}: ${s.status}`));
           return updatedSections;
         }
       });
     }
-  }, [surveyData.surveyNumber, currentSection]);
+  }, [surveyData.questionnaireType, currentSection]);
 
   // Save data whenever it changes
   useEffect(() => {
@@ -358,10 +371,12 @@ function SurveyAppContent() {
             data={surveyData}
             onUpdate={updateSurveyData}
             onNext={() => {
-              // Get the first assigned section for this survey number
-              if (surveyData.surveyNumber) {
-                const assignedSections = getAssignedSections(surveyData.surveyNumber);
-                const firstAssignedSection = assignedSections.length > 0 ? assignedSections[0].id : "summary";
+              // Get the first assigned section based on questionnaire type
+              if (surveyData.questionnaireType) {
+                const ODD_SECTIONS = ["financial", "safety", "environmental"];
+                const EVEN_SECTIONS = ["disaster", "social", "business"];
+                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+                const firstAssignedSection = assignedSectionIds.length > 0 ? assignedSectionIds[0] : "summary";
                 handleSectionComplete("respondent-demographics", firstAssignedSection);
               } else {
                 handleSectionComplete("respondent-demographics", "summary");
@@ -376,11 +391,15 @@ function SurveyAppContent() {
       case "social":
       case "business":
       case "environmental":
-        // Only render if section is assigned
-        if (!surveyData.surveyNumber || !isSectionAssigned(surveyData.surveyNumber, currentSection)) {
+        // Only render if section is assigned based on questionnaire type
+        const ODD_SECTIONS = ["financial", "safety", "environmental"];
+        const EVEN_SECTIONS = ["disaster", "social", "business"];
+        const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+        
+        if (!surveyData.questionnaireType || !assignedSectionIds.includes(currentSection)) {
           return (
             <div className="p-6 text-center">
-              <p className="text-gray-600">This section is not assigned for your survey number.</p>
+              <p className="text-gray-600">This section is not assigned for your questionnaire type.</p>
               <button
                 onClick={() => setCurrentSection("summary")}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
@@ -400,10 +419,16 @@ function SurveyAppContent() {
               handleSectionComplete(currentSection);
             }}
             onBack={() => {
-              if (surveyData.surveyNumber) {
-                const prevSection = getPreviousAssignedSection(surveyData.surveyNumber, currentSection);
-                if (prevSection) {
-                  setCurrentSection(prevSection);
+              if (surveyData.questionnaireType) {
+                const ODD_SECTIONS = ["financial", "safety", "environmental"];
+                const EVEN_SECTIONS = ["disaster", "social", "business"];
+                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+                const currentIndex = assignedSectionIds.indexOf(currentSection);
+                
+                if (currentIndex > 0) {
+                  setCurrentSection(assignedSectionIds[currentIndex - 1]);
+                } else {
+                  setCurrentSection("respondent-demographics");
                 }
               }
             }}
@@ -416,14 +441,15 @@ function SurveyAppContent() {
             data={surveyData}
             sections={sections}
             onBack={() => {
-              if (surveyData.surveyNumber) {
+              if (surveyData.questionnaireType) {
                 // Go back to the last assigned section
-                const assignedSections = getAssignedSections(surveyData.surveyNumber);
-                const lastSection = assignedSections[assignedSections.length - 1];
+                const ODD_SECTIONS = ["financial", "safety", "environmental"];
+                const EVEN_SECTIONS = ["disaster", "social", "business"];
+                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+                const lastSection = assignedSectionIds[assignedSectionIds.length - 1];
                 if (lastSection) {
-                  setCurrentSection(lastSection.id);
+                  setCurrentSection(lastSection);
                 } else {
-                  // If no assigned sections, go back to respondent demographics
                   setCurrentSection("respondent-demographics");
                 }
               } else {
@@ -454,17 +480,31 @@ function SurveyAppContent() {
                   barangayId = 26 // Default to Katipunan
                 }
 
+                // Use the survey number that was generated at the start
+                const finalSurveyNumber = surveyData.surveyNumber;
+                
+                if (!finalSurveyNumber || finalSurveyNumber === "PENDING") {
+                  throw new Error('Survey number not generated. Please restart the survey.');
+                }
+
+                console.log(`📝 Submitting survey with number: ${finalSurveyNumber}`);
+
                 // Prepare survey data for submission with proper NULL handling
                 const submissionData = {
-                  surveyNumber: surveyData.surveyNumber,
+                  surveyNumber: finalSurveyNumber,
                   location: surveyData.location,
                   selectedMember: surveyData.selectedMember,
                   respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
-                  // Only include sections that were assigned to this survey number
-                  sections: getAssignedSections(surveyData.surveyNumber).reduce((acc, section) => {
-                    const sectionDataKey = getSectionDataKey(section.id);
+                    // Include only the sections that were assigned based on questionnaire type
+                  sections: (() => {
+                    const ODD_SECTIONS = ["financial", "safety", "environmental"];
+                    const EVEN_SECTIONS = ["disaster", "social", "business"];
+                    const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+                    
+                    return assignedSectionIds.reduce((acc, sectionId) => {
+                    const sectionDataKey = getSectionDataKey(sectionId);
                     const sectionData = surveyData[sectionDataKey];
 
                     // Clean the section data - only include answered questions
@@ -483,14 +523,15 @@ function SurveyAppContent() {
                       });
                     }
 
-                    acc[section.id] = {
+                    acc[sectionId] = {
                       data: cleanedData,
                       skipReasons: skipReasons,
                       completed: Object.keys(cleanedData).filter(k => cleanedData[k] !== null).length > 0
                     };
 
                     return acc;
-                  }, {} as Record<string, any>)
+                  }, {} as Record<string, any>);
+                  })() // Immediately invoke the function
                 }
 
                 // Submit to database
