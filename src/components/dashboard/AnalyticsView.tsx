@@ -12,14 +12,16 @@ const BarangayComparisonViewer = lazy(() => import("./BarangayComparisonViewer")
 const ServiceAreaDeepDive = lazy(() => import("./ServiceAreaDeepDive"));
 const OverallAnalytics = lazy(() => import("./OverallAnalytics"));
 const AwardLeaderboard = lazy(() => import("./AwardLeaderboard"));
+const DemographicsAnalytics = lazy(() => import("@/components/analytics/DemographicsAnalytics").then(mod => ({ default: mod.DemographicsAnalytics })));
 
-type AnalyticsTab = "historical" | "comparison" | "trends" | "overall" | "awards";
+type AnalyticsTab = "historical" | "comparison" | "trends" | "overall" | "awards" | "demographics";
 
 const TABS: { id: AnalyticsTab; label: string; icon: string }[] = [
   { id: "historical", label: "Historical Cycles", icon: "📊" },
   { id: "comparison", label: "Barangay Comparison", icon: "🔄" },
   { id: "trends", label: "Service Deep Dive", icon: "🎯" },
   { id: "overall", label: "Overall Analytics", icon: "🌐" },
+  { id: "demographics", label: "Demographics", icon: "👥" },
   { id: "awards", label: "Award Leaderboard", icon: "🏆" },
 ];
 
@@ -123,6 +125,12 @@ function AnalyticsViewContent() {
         return (
           <Suspense fallback={<LoadingSkeleton type="dashboard" />}>
             <OverallAnalytics />
+          </Suspense>
+        );
+      case "demographics":
+        return (
+          <Suspense fallback={<LoadingSkeleton type="chart" />}>
+            <DemographicsAnalytics />
           </Suspense>
         );
       case "awards":

@@ -288,12 +288,34 @@ function generateDemographics() {
   const genders = ['Male', 'Female'];
   const educations = ['Elementary', 'High School', 'College', 'Post Graduate'];
   const incomes = ['Below 10,000', '10,001-20,000', '20,001-50,000', 'Above 50,000'];
+  
+  // Generate realistic purok/sitio names
+  const purokTypes = ['Purok', 'Sitio'];
+  const purokNames = [
+    'Riverside', 'Hillside', 'Sunshine', 'Greenfield', 'Harmony',
+    'Unity', 'Progress', 'Victory', 'Peace', 'Hope',
+    'San Roque', 'San Jose', 'San Miguel', 'Santa Cruz', 'Santo Niño'
+  ];
+  const purokNumbers = ['1', '2', '3', '4', '5', '6', '7', '8'];
+  
+  // 70% chance of having a purok/sitio, 30% chance of being empty
+  let purok = '';
+  if (Math.random() > 0.3) {
+    if (Math.random() > 0.5) {
+      // Numbered purok (e.g., "Purok 1")
+      purok = `${purokTypes[0]} ${purokNumbers[Math.floor(Math.random() * purokNumbers.length)]}`;
+    } else {
+      // Named sitio (e.g., "Sitio Riverside")
+      purok = `${purokTypes[1]} ${purokNames[Math.floor(Math.random() * purokNames.length)]}`;
+    }
+  }
 
   return {
     age: 18 + Math.floor(Math.random() * 62), // 18-80 years old
     gender: genders[Math.floor(Math.random() * genders.length)],
     educationalAttainment: educations[Math.floor(Math.random() * educations.length)],
-    householdIncome: incomes[Math.floor(Math.random() * incomes.length)]
+    householdIncome: incomes[Math.floor(Math.random() * incomes.length)],
+    purok: purok
   };
 }
 
@@ -937,11 +959,11 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       INSERT INTO survey_response (
         survey_number, barangay_id, interviewer_id, survey_cycle_id, respondent_name,
         respondent_age, respondent_gender, respondent_educational_attainment,
-        respondent_household_income, location_lat, location_lng,
+        respondent_household_income, respondent_purok, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
 
@@ -955,6 +977,7 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       responseData.respondentDemographics.gender,
       responseData.respondentDemographics.educationalAttainment,
       responseData.respondentDemographics.householdIncome,
+      responseData.respondentDemographics.purok || null,
       responseData.location.lat,
       responseData.location.lng,
       responseData.location.address,

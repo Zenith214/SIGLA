@@ -43,6 +43,7 @@ export interface SurveyData {
     gender: string
     educationalAttainment: string
     householdIncome: string
+    purok: string
   }
   financialAdmin: Record<string, any>
   disasterPrep: Record<string, any>
@@ -124,7 +125,8 @@ function SurveyAppContent() {
       birthdate: "",
       gender: "",
       educationalAttainment: "",
-      householdIncome: ""
+      householdIncome: "",
+      purok: ""
     },
     financialAdmin: {},
     disasterPrep: {},

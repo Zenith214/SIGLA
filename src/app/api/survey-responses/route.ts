@@ -61,11 +61,11 @@ export async function POST(request: NextRequest) {
       INSERT INTO survey_response (
         survey_number, barangay_id, interviewer_id, survey_cycle_id, respondent_name,
         respondent_age, respondent_gender, respondent_educational_attainment,
-        respondent_household_income, location_lat, location_lng,
+        respondent_household_income, respondent_purok, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
     
@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       genderValue,
       respondentDemographics?.educationalAttainment || null,
       respondentDemographics?.householdIncome || null,
+      respondentDemographics?.purok || null,
       parseFloat(location.lat),
       parseFloat(location.lng),
       location.address,

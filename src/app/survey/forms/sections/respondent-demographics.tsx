@@ -17,7 +17,8 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
     birthdate: data.respondentDemographics?.birthdate ?? "",
     gender: data.respondentDemographics?.gender ?? "",
     educationalAttainment: data.respondentDemographics?.educationalAttainment ?? "",
-    householdIncome: data.respondentDemographics?.householdIncome ?? ""
+    householdIncome: data.respondentDemographics?.householdIncome ?? "",
+    purok: data.respondentDemographics?.purok ?? ""
   })
 
   // Update local state when data changes
@@ -154,6 +155,24 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
+            </div>
+
+            {/* Purok Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Purok/Sitio
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={demographics.purok}
+                onChange={(e) => handleDemographicsChange("purok", e.target.value)}
+                placeholder="Enter purok or sitio name (e.g., Purok 1, Sitio Riverside)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Please specify the purok or sitio where the respondent resides
+              </p>
             </div>
           </div>
 
