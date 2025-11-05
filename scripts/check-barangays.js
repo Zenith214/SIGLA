@@ -1,58 +1,26 @@
-const { PrismaClient } = require('@prisma/client');
+const { Pool } = require('pg');
+require('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: '.env' });
 
-const prisma = new PrismaClient();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 async function checkBarangays() {
   try {
-    console.log('🔍 Checking current barangay data in database...\n');
+    const result = await pool.query('SELECT barangay_id, barangay_name FROM barangay ORDER BY barangay_id');
     
-    const barangays = await prisma.barangay.findMany({
-      select: {
-        barangay_id: true,
-        barangay_name: true,
-        is_awardee: true,
-        population: true,
-        households: true,
-        area: true,
-        currentStatus: true
-      },
-      orderBy: {
-        barangay_name: 'asc'
-      }
+    console.log('\n📍 Barangays in database:\n');
+    result.rows.forEach(b => {
+      console.log(`  ${String(b.barangay_id).padStart(2, ' ')}: ${b.barangay_name}`);
     });
-
-    if (barangays.length === 0) {
-      console.log('❌ No barangays found in database');
-      console.log('💡 You need to seed the database first');
-    } else {
-      console.log(`✅ Found ${barangays.length} barangays in database:\n`);
-      
-      const awardees = barangays.filter(b => b.is_awardee);
-      const nonAwardees = barangays.filter(b => !b.is_awardee);
-      
-      console.log(`🏆 SGLGB Awardees (${awardees.length}):`);
-      awardees.forEach(b => {
-        console.log(`   ✅ ${b.barangay_name} (Pop: ${b.population?.toLocaleString() || 'N/A'})`);
-      });
-      
-      console.log(`\n📍 Non-Awardees (${nonAwardees.length}):`);
-      nonAwardees.forEach(b => {
-        console.log(`   ❌ ${b.barangay_name} (Pop: ${b.population?.toLocaleString() || 'N/A'})`);
-      });
-      
-      console.log(`\n📊 Summary:`);
-      console.log(`   Total Barangays: ${barangays.length}`);
-      console.log(`   SGLGB Awardees: ${awardees.length}`);
-      console.log(`   Non-Awardees: ${nonAwardees.length}`);
-    }
+    console.log(`\n  Total: ${result.rows.length} barangays\n`);
     
   } catch (error) {
-    console.error('💥 Error checking barangays:', error.message);
-    if (error.message.includes('Environment variable not found: DATABASE_URL')) {
-      console.log('💡 Make sure your DATABASE_URL environment variable is set');
-    }
+    console.error('Error:', error);
   } finally {
-    await prisma.$disconnect();
+    await pool.end();
   }
 }
 

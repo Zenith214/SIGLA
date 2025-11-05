@@ -16,7 +16,7 @@ interface SurveyInitializationProps {
 
 export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarangayId }: SurveyInitializationProps) {
   const [surveyNumber, setSurveyNumber] = useState(data.surveyNumber || "")
-  const [surveyNumberError, setSurveyNumberError] = useState('')
+  const [isGeneratingNumber, setIsGeneratingNumber] = useState(false)
   const [location, setLocation] = useState(data.location || { lat: 0, lng: 0, address: "" })
   const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState('')
@@ -189,57 +189,50 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     setShowMap(false) // Close the modal after selection
   }
 
-  const validateSurveyNumber = (value: string) => {
-    setSurveyNumberError('')
-    
-    if (!value.trim()) {
-      setSurveyNumberError('Survey number is required')
-      return false
-    }
-    
-    // Check for new format BB-YYYY-NNNN
-    const newFormatRegex = /^\d{2}-\d{4}-\d{4}$/
-    if (newFormatRegex.test(value)) {
-      return true // Valid new format
-    }
-    
-    // Check for old format (numbers only) for backward compatibility
-    if (/^\d+$/.test(value)) {
-      const num = parseInt(value)
-      if (num < 1 || num > 9999) {
-        setSurveyNumberError('Questionnaire number must be between 1 and 9999')
-        return false
+  const generateQuestionnaireNumber = async () => {
+    setIsGeneratingNumber(true)
+    try {
+      // Get barangayId - either from preselected or from surveyData
+      const barangayIdToUse = preselectedBarangayId || data.barangayId
+      
+      if (!barangayIdToUse) {
+        alert('Please select a barangay first.')
+        return null
       }
-      return true
+
+      // Call API to get next questionnaire number atomically for this barangay
+      const response = await fetch('/api/questionnaire-number', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ barangayId: barangayIdToUse })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate questionnaire number')
+      }
+
+      const data = await response.json()
+      const surveyNumber = data.surveyNumber // Full format: BB-YYYY-NNNN
+      const questionnaireNumber = data.questionnaireNumber // Just the number for display
+      
+      console.log(`Generated survey number: ${surveyNumber} (Questionnaire #${questionnaireNumber})`)
+      
+      setSurveyNumber(surveyNumber)
+      onUpdate("surveyNumber", surveyNumber)
+      
+      return surveyNumber
+    } catch (error) {
+      console.error('Error generating questionnaire number:', error)
+      alert('Failed to generate questionnaire number. Please try again.')
+      return null
+    } finally {
+      setIsGeneratingNumber(false)
     }
-    
-    setSurveyNumberError('Survey number must be in format BB-YYYY-NNNN (e.g., 24-2025-0001) or a questionnaire number (1-9999)')
-    return false
   }
 
-  const handleSurveyNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    
-    // Clear error when user starts typing
-    if (surveyNumberError) {
-      setSurveyNumberError('')
-    }
-    
-    // Only allow positive integers
-    if (value === '' || (/^\d+$/.test(value) && parseInt(value) > 0)) {
-      setSurveyNumber(value)
-    } else {
-      // Show error for invalid input
-      setSurveyNumberError('Only whole numbers are allowed')
-    }
-  }
-
-  const handleNext = () => {
-    // Validate survey number
-    if (!validateSurveyNumber(surveyNumber)) {
-      return
-    }
-
+  const handleNext = async () => {
     if (!location.address.trim()) {
       alert("Please wait for location to be captured or select a location manually.")
       return
@@ -251,7 +244,16 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       return
     }
 
-    onUpdate("surveyNumber", surveyNumber)
+    // Generate questionnaire number if not already generated
+    let finalSurveyNumber = surveyNumber
+    if (!finalSurveyNumber) {
+      finalSurveyNumber = await generateQuestionnaireNumber()
+      if (!finalSurveyNumber) {
+        return // Failed to generate number
+      }
+    }
+
+    onUpdate("surveyNumber", finalSurveyNumber)
     onUpdate("location", location)
     onNext()
   }
@@ -267,21 +269,6 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           <h2 className="text-xl font-semibold text-gray-900">Initialize Survey</h2>
         </div>
         <div className="space-y-6">
-          {/* Survey Number */}
-          <div>
-            <label htmlFor="surveyNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Survey Questionnaire Number *
-            </label>
-            <input
-              type="text"
-              id="surveyNumber"
-              value={surveyNumber}
-              onChange={(e) => setSurveyNumber(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Enter survey number (1-150)"
-              required
-            />
-          </div>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-gray-500 mt-2">Loading location services...</p>
@@ -300,60 +287,41 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       </div>
 
       <div className="space-y-6">
-        {/* Survey Number */}
-        <div>
-          <label htmlFor="surveyNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            Survey Questionnaire Number *
-          </label>
-          <input
-            type="number"
-            id="surveyNumber"
-            min="1"
-            max="150"
-            step="1"
-            value={surveyNumber}
-            onChange={handleSurveyNumberChange}
-            onBlur={() => validateSurveyNumber(surveyNumber)}
-            onKeyDown={(e) => {
-              // Prevent decimal point, minus sign, and 'e' (scientific notation)
-              if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
-                e.preventDefault();
-              }
-            }}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-colors ${
-              surveyNumberError 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="Enter survey number (1-150)"
-            required
-          />
-          
-          {/* Error Message */}
-          {surveyNumberError && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center space-x-2 text-sm text-red-600">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{surveyNumberError}</span>
+        {/* Auto-generated Questionnaire Number Display */}
+        {surveyNumber ? (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <h4 className="text-sm font-medium text-green-900">Questionnaire Number Assigned</h4>
               </div>
+              <span className="text-2xl font-bold text-green-700">#{surveyNumber}</span>
             </div>
-          )}
-          
-          {/* Help Text */}
-          {!surveyNumberError && (
-            <p className="mt-1 text-xs text-gray-500">
-              Enter survey number in format BB-YYYY-NNNN (e.g., 24-2025-0001) or just the questionnaire number (1-9999).
-            </p>
-          )}
-          
-          {/* Section Assignment Display */}
-          {surveyNumber && !surveyNumberError && (
+            
+            {/* Section Assignment Display */}
             <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Your Assigned Sections</h4>
               <p className="text-sm text-blue-800">{getAssignmentDescription(surveyNumber)}</p>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <Hash className="w-5 h-5 text-blue-600" />
+              <h4 className="text-sm font-medium text-blue-900">Questionnaire Number</h4>
+            </div>
+            <p className="text-sm text-blue-700 mb-3">
+              A questionnaire number will be automatically assigned when you start the survey. 
+              This number determines which sections you'll answer (odd or even).
+            </p>
+            {isGeneratingNumber && (
+              <div className="flex items-center space-x-2 text-sm text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>Generating questionnaire number...</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pre-selected Barangay Indicator */}
         {preselectedBarangayId && preselectedBarangayName && (
@@ -505,10 +473,10 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       <div className="flex justify-end mt-8">
         <button
           onClick={handleNext}
-          disabled={!surveyNumber.trim() || !!surveyNumberError || !location.address.trim() || (location.lat === 0 && location.lng === 0)}
+          disabled={isGeneratingNumber || !location.address.trim() || (location.lat === 0 && location.lng === 0)}
           className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Continue to Survey →
+          {isGeneratingNumber ? 'Generating Number...' : 'Continue to Survey →'}
         </button>
       </div>
 

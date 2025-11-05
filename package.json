@@ -16,7 +16,10 @@
     "db:generate": "prisma generate",
     "db:update": "node scripts/update-database.js",
     "create-year-data": "node scripts/safe-create-year-data-table.js",
-    "update-year-data": "node scripts/update-year-data.js"
+    "update-year-data": "node scripts/update-year-data.js",
+    "questionnaire:migrate": "node scripts/run-questionnaire-counter-migration.js",
+    "questionnaire:test": "node scripts/test-questionnaire-number-generation.js",
+    "questionnaire:reset": "node scripts/reset-questionnaire-counter.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.17.1",
