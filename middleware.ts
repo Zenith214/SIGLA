@@ -23,6 +23,22 @@ const ADMIN_ROUTES = [
   '/api/backups',
 ];
 
+// Define Field Supervisor routes (FS and Admin can access)
+const FS_ROUTES = [
+  '/fs-dashboard',
+  '/api/spots',
+  '/api/fs/monitoring',
+];
+
+// Define FI-specific routes (Interviewer, FS, and Admin can access)
+const FI_ROUTES = [
+  '/api/fi/assignments',
+  '/api/questionnaires',
+  '/api/visits',
+  '/api/sync',
+  '/api/survey-responses',
+];
+
 // Define interviewer-only routes
 const INTERVIEWER_ROUTES = [
   '/survey/forms',
@@ -35,12 +51,20 @@ const PROTECTED_ROUTES = [
   '/reportcard',
   '/settings',
   '/survey',
+  '/fs-dashboard',
   '/api/users',
   '/api/barangays',
   '/api/survey-cycles',
   '/api/survey-targets',
   '/api/assignments',
   '/api/backups',
+  '/api/spots',
+  '/api/fs/monitoring',
+  '/api/fi/assignments',
+  '/api/questionnaires',
+  '/api/visits',
+  '/api/sync',
+  '/api/survey-responses',
   '/api/me',
 ];
 
@@ -217,9 +241,34 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Check Field Supervisor routes
+  if (FS_ROUTES.some(route => pathname.startsWith(route))) {
+    if (userRole !== 'fs' && userRole !== 'admin') {
+      // For API routes, return a 403 Forbidden response
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'You need Field Supervisor privileges to access this resource' },
+          { status: 403 }
+        );
+      }
+      
+      // Redirect to appropriate dashboard based on role
+      const redirectUrl = request.nextUrl.clone();
+      if (userRole === 'interviewer') {
+        redirectUrl.pathname = '/survey/forms';
+      } else {
+        redirectUrl.pathname = '/dashboard';
+      }
+      redirectUrl.searchParams.set('redirected', '1');
+      redirectUrl.searchParams.set('reason', 'insufficient_permissions');
+      redirectUrl.searchParams.set('attempted_path', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // Check interviewer routes
   if (INTERVIEWER_ROUTES.some(route => pathname.startsWith(route))) {
-    if (userRole !== 'interviewer' && userRole !== 'admin') {
+    if (userRole !== 'interviewer' && userRole !== 'admin' && userRole !== 'fs') {
       // For API routes, return a 403 Forbidden response
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
@@ -229,6 +278,27 @@ export function middleware(request: NextRequest) {
       }
       
       // Redirect to dashboard for non-interviewer users
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = '/dashboard';
+      dashboardUrl.searchParams.set('redirected', '1');
+      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
+      dashboardUrl.searchParams.set('attempted_path', pathname);
+      return NextResponse.redirect(dashboardUrl);
+    }
+  }
+
+  // Check FI-specific routes (Interviewer, FS, and Admin can access)
+  if (FI_ROUTES.some(route => pathname.startsWith(route))) {
+    if (userRole !== 'interviewer' && userRole !== 'fs' && userRole !== 'admin') {
+      // For API routes, return a 403 Forbidden response
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'You need field interviewer or supervisor privileges to access this resource' },
+          { status: 403 }
+        );
+      }
+      
+      // Redirect to dashboard for unauthorized users
       const dashboardUrl = request.nextUrl.clone();
       dashboardUrl.pathname = '/dashboard';
       dashboardUrl.searchParams.set('redirected', '1');

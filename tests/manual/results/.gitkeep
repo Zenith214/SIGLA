@@ -1,0 +1,33 @@
+# Test Results Directory
+
+Store completed test results here:
+
+```
+results/
+├── 2024-11-17/
+│   ├── test-results-complete.md
+│   ├── issues-found.md
+│   ├── performance-metrics.csv
+│   └── sign-off.pdf
+├── 2024-11-18/
+│   └── ...
+```
+
+## What to Store
+
+- Completed TEST_RESULTS_TEMPLATE.md
+- Issue reports
+- Performance metrics
+- Sign-off documents
+- Test summary reports
+- Recommendations documents
+
+## Naming Convention
+
+`[type]-[date].[ext]`
+
+Examples:
+- `test-results-complete-2024-11-17.md`
+- `issues-critical-2024-11-17.md`
+- `performance-metrics-2024-11-17.csv`
+- `sign-off-2024-11-17.pdf`

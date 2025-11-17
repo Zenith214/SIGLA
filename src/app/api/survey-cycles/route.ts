@@ -158,3 +158,144 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * PUT /api/survey-cycles
+ * Updates an existing survey cycle
+ * Requires admin authentication
+ */
+export async function PUT(request: NextRequest) {
+  // Verify admin authentication
+  const authError = requireAdmin(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error },
+      { status: authError.error === 'No authentication token provided' || authError.error === 'Invalid authentication token' ? 401 : 403 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { cycle_id, name, year, start_date, end_date, is_active } = body;
+
+    // Validate required fields
+    if (!cycle_id) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'cycle_id is required'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Build update object
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (year !== undefined) updates.year = year;
+    if (start_date !== undefined) updates.start_date = start_date ? new Date(start_date) : null;
+    if (end_date !== undefined) updates.end_date = end_date ? new Date(end_date) : null;
+    if (is_active !== undefined) updates.is_active = is_active;
+
+    // Update the survey cycle
+    const updatedCycle = await updateSurveyCycle(cycle_id, updates);
+
+    // Create audit log
+    const authResult = requireAuth(request);
+    if (authResult?.success && authResult.user) {
+      createAuditLog(authResult.user, 'UPDATE_SURVEY_CYCLE', {
+        cycle_id,
+        updates
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Survey cycle updated successfully',
+      data: updatedCycle
+    });
+
+  } catch (error) {
+    console.error("Error updating survey cycle:", error);
+    return NextResponse.json(
+      { 
+        error: "Failed to update survey cycle",
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/survey-cycles
+ * Deletes a survey cycle
+ * Requires admin authentication
+ * Prevents deletion if cycle has associated data unless force=true
+ */
+export async function DELETE(request: NextRequest) {
+  // Verify admin authentication
+  const authError = requireAdmin(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error },
+      { status: authError.error === 'No authentication token provided' || authError.error === 'Invalid authentication token' ? 401 : 403 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { cycle_id, force } = body;
+
+    // Validate required fields
+    if (!cycle_id) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'cycle_id is required'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Attempt to delete the cycle
+    const result = await deleteSurveyCycle(cycle_id, force === true);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot delete survey cycle',
+          message: result.message,
+          data: result.deletedData
+        },
+        { status: 409 } // Conflict
+      );
+    }
+
+    // Create audit log
+    const authResult = requireAuth(request);
+    if (authResult?.success && authResult.user) {
+      createAuditLog(authResult.user, 'DELETE_SURVEY_CYCLE', {
+        cycle_id,
+        force,
+        deletedData: result.deletedData
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: result.message,
+      data: result.deletedData
+    });
+
+  } catch (error) {
+    console.error("Error deleting survey cycle:", error);
+    return NextResponse.json(
+      { 
+        error: "Failed to delete survey cycle",
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      },
+      { status: 500 }
+    );
+  }
+}

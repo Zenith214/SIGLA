@@ -58,9 +58,24 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
         setIsLoading(true);
         
         // Determine which cycle to use for data
-        const cycleId = selectedCycleId || (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
+        // If no specific cycle is selected, use the active cycle
+        const cycleId = selectedCycleId !== null ? selectedCycleId : (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
         
-        // Use cycle-aware API if we have a cycle ID, otherwise fall back to current year
+        console.log('🔍 Map data fetch:', {
+          selectedCycleId,
+          hasActiveCycle,
+          activeCycleId: activeCycle?.cycle_id,
+          finalCycleId: cycleId
+        });
+        
+        // If we don't have a cycle ID yet and we're expecting an active cycle, wait for it
+        if (selectedCycleId === null && !hasActiveCycle && !activeCycle) {
+          console.log('⏳ Waiting for active cycle to load...');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Always use cycle-aware API with awards when we have a cycle ID
         const apiUrl = cycleId 
           ? `/api/barangays/all?cycle_id=${cycleId}&include_awards=true`
           : `/api/barangays-by-year?year=${new Date().getFullYear()}`;

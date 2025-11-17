@@ -20,7 +20,27 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    // Enable image optimization
+    formats: ['image/webp', 'image/avif'],
+    // Minimize layout shift
+    minimumCacheTTL: 60,
   },
+  // Performance optimizations
+  compiler: {
+    // Remove console logs in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  // Optimize bundle
+  experimental: {
+    // Enable optimized package imports
+    optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
+  },
+  // Production optimizations
+  productionBrowserSourceMaps: false,
+  // Compress responses
+  compress: true,
 };
 
 export default nextConfig;

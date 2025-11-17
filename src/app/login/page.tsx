@@ -150,6 +150,8 @@ function PulseLoginContent() {
         // Redirect based on role immediately
         if (result.role === 'interviewer') {
           window.location.href = "/survey";
+        } else if (result.role === 'fs') {
+          window.location.href = "/fs-dashboard";
         } else {
           // Use the redirect URL if valid, otherwise default to dashboard
           window.location.href = isValidRedirect ? redirectUrl : '/dashboard';

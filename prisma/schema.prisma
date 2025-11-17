@@ -32,6 +32,7 @@ model User {
   assignments      Assignment[]
   survey_responses SurveyResponse[]
   created_awards   CycleAward[]
+  assigned_spots   Spot[]
 
   @@map("user")
 }
@@ -61,6 +62,7 @@ model Barangay {
   survey_targets   SurveyTarget[]
   year_data        BarangayYearData[]
   cycle_awards     CycleAward[]
+  spots            Spot[]
 
   @@map("barangay")
 }
@@ -149,6 +151,9 @@ model SurveyResponse {
   barangay_id            Int
   interviewer_id         Int
   survey_cycle_id        Int?
+  questionnaire_id       String?               @unique @db.VarChar(50)
+  spot_id                Int?
+  visit_count            Int?                  @default(1)
   respondent_name        String?               @db.VarChar(191)
   respondent_age         Int?
   respondent_gender      SurveyResponseGender?
@@ -169,19 +174,23 @@ model SurveyResponse {
   updated_at             DateTime?             @updatedAt
 
   // Relations
-  barangay     Barangay            @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  interviewer  User                @relation(fields: [interviewer_id], references: [id], onDelete: Cascade)
-  survey_cycle SurveyCycle?        @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
-  sections     SurveySection[]
-  answers      SurveyAnswer[]
-  attachments  SurveyAttachment[]
-  metadata     SurveyMetadata[]
-  validations  SurveyValidation[]
+  barangay      Barangay            @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  interviewer   User                @relation(fields: [interviewer_id], references: [id], onDelete: Cascade)
+  survey_cycle  SurveyCycle?        @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
+  questionnaire Questionnaire?      @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: SetNull)
+  spot          Spot?               @relation(fields: [spot_id], references: [spot_id], onDelete: SetNull)
+  sections      SurveySection[]
+  answers       SurveyAnswer[]
+  attachments   SurveyAttachment[]
+  metadata      SurveyMetadata[]
+  validations   SurveyValidation[]
 
   @@index([status])
   @@index([interviewer_id])
   @@index([barangay_id])
   @@index([survey_cycle_id])
+  @@index([questionnaire_id])
+  @@index([spot_id])
   @@index([created_at])
   @@index([completed_at])
   @@map("survey_response")
@@ -321,6 +330,8 @@ model SurveyCycle {
   survey_targets   SurveyTarget[]
   assignments      Assignment[]
   cycle_awards     CycleAward[]
+  spots            Spot[]
+  questionnaires   Questionnaire[]
 
   @@index([is_active])
   @@map("survey_cycle")
@@ -402,6 +413,77 @@ model BarangayYearData {
 }
 
 // ============================================================================
+// CSIS WORKFLOW - SPOT MANAGEMENT
+// ============================================================================
+
+model Spot {
+  spot_id         Int        @id @default(autoincrement())
+  cycle_id        Int
+  barangay_id     Int
+  spot_name       String     @db.VarChar(100)
+  starting_point  Json       // { lat: number, lng: number }
+  random_start    Int        // 1-999
+  assigned_fi_id  Int?
+  status          SpotStatus @default(Pending)
+  created_at      DateTime   @default(now())
+  updated_at      DateTime?  @updatedAt
+
+  // Relations
+  cycle           SurveyCycle     @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  barangay        Barangay        @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  assigned_fi     User?           @relation(fields: [assigned_fi_id], references: [id], onDelete: SetNull)
+  questionnaires  Questionnaire[]
+  survey_responses SurveyResponse[]
+
+  @@index([cycle_id])
+  @@index([barangay_id])
+  @@index([assigned_fi_id])
+  @@index([status])
+  @@map("spots")
+}
+
+model Questionnaire {
+  questionnaire_id String               @id @db.VarChar(50) // e.g., "2024-001-001"
+  spot_id          Int
+  cycle_id         Int
+  sequence_number  Int                  // 1-5 within spot
+  status           QuestionnaireStatus  @default(Pending)
+  visit_count      Int                  @default(0)
+  created_at       DateTime             @default(now())
+  updated_at       DateTime?            @updatedAt
+
+  // Relations
+  spot            Spot             @relation(fields: [spot_id], references: [spot_id], onDelete: Cascade)
+  cycle           SurveyCycle      @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  visits          Visit[]
+  survey_response SurveyResponse?
+
+  @@index([spot_id])
+  @@index([cycle_id])
+  @@index([status])
+  @@map("questionnaires")
+}
+
+model Visit {
+  visit_id         Int          @id @default(autoincrement())
+  questionnaire_id String
+  visit_number     Int
+  visit_timestamp  DateTime     @default(now())
+  outcome          VisitOutcome
+  notes            String?      @db.Text
+  location_lat     Decimal?     @db.Decimal(10, 8)
+  location_lng     Decimal?     @db.Decimal(11, 8)
+  created_at       DateTime     @default(now())
+
+  // Relations
+  questionnaire Questionnaire @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: Cascade)
+
+  @@index([questionnaire_id])
+  @@index([visit_timestamp])
+  @@map("visits")
+}
+
+// ============================================================================
 // ENUMS
 // ============================================================================
 
@@ -473,4 +555,25 @@ enum SurveyValidationStatus {
   passed
   failed
   warning
+}
+
+enum SpotStatus {
+  Pending
+  In_Progress
+  Completed
+}
+
+enum QuestionnaireStatus {
+  Pending
+  In_Progress
+  Completed
+  Flagged_For_Substitution
+}
+
+enum VisitOutcome {
+  Callback_Needed
+  Interview_Started
+  Interview_Completed
+  Refused
+  Household_Moved
 }

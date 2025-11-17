@@ -46,7 +46,7 @@ export async function PATCH(
   const resolvedParams = await params;
   const userId = parseInt(resolvedParams.id);
 
-  if (!role || !['admin', 'interviewer', 'viewer'].includes(role)) {
+  if (!role || !['admin', 'fs', 'interviewer', 'viewer'].includes(role)) {
     return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
   }
 

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 
-const roleOptions = ["admin", "interviewer", "viewer"];
+const roleOptions = ["admin", "fs", "interviewer", "viewer"];
 const statusOptions = ["active", "inactive"];
 
 export function UsersRoles() {
@@ -190,6 +190,7 @@ export function UsersRoles() {
   // Role stats
   const roleStats = [
     { role: "admin", count: users.filter(u => u.role === "admin").length, color: "bg-red-100 text-red-800" },
+    { role: "fs", count: users.filter(u => u.role === "fs").length, color: "bg-purple-100 text-purple-800" },
     { role: "interviewer", count: users.filter(u => u.role === "interviewer").length, color: "bg-blue-100 text-blue-800" },
     { role: "viewer", count: users.filter(u => u.role === "viewer").length, color: "bg-gray-100 text-gray-800" },
   ]
@@ -244,7 +245,7 @@ export function UsersRoles() {
         {rolePermissionsVisible && (
           <CardContent>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 border border-red-200 rounded-lg bg-red-50">
                   <h3 className="font-semibold text-red-800">Admin</h3>
                   <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
@@ -253,6 +254,16 @@ export function UsersRoles() {
                     <li>• Create/delete users</li>
                     <li>• Export data</li>
                     <li>• System backup</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-purple-200 rounded-lg bg-purple-50">
+                  <h3 className="font-semibold text-purple-800">Supervisor</h3>
+                  <p className="text-sm text-purple-600 mt-1">Manage field operations and monitor interviewers</p>
+                  <ul className="text-xs text-purple-600 mt-2 space-y-1">
+                    <li>• Allocate spots and assignments</li>
+                    <li>• Monitor fieldwork progress</li>
+                    <li>• Manage interviewer assignments</li>
+                    <li>• View performance metrics</li>
                   </ul>
                 </div>
                 <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
@@ -282,17 +293,17 @@ export function UsersRoles() {
       </Card>
 
       {/* Role Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {roleStats.map((stat) => (
           <Card key={stat.role}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.role}s</p>
+                  <p className="text-sm font-medium text-gray-600 capitalize">{stat.role === "fs" ? "Supervisors" : `${stat.role}s`}</p>
                   <p className="text-2xl font-bold text-gray-900">{stat.count}</p>
                 </div>
                 <div className={`p-3 rounded-full ${stat.color}`}>
-                  {stat.role === "Admin" ? <Shield className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+                  {stat.role === "admin" ? <Shield className="w-6 h-6" /> : <Users className="w-6 h-6" />}
                 </div>
               </div>
             </CardContent>
@@ -365,12 +376,14 @@ export function UsersRoles() {
                         className={`text-xs ${
                           user.role === "admin"
                             ? "border-red-200 text-red-700"
-                            : user.role === "interviewer"
-                              ? "border-blue-200 text-blue-700"
-                              : "border-gray-200 text-gray-700"
+                            : user.role === "fs"
+                              ? "border-purple-200 text-purple-700"
+                              : user.role === "interviewer"
+                                ? "border-blue-200 text-blue-700"
+                                : "border-gray-200 text-gray-700"
                         }`}
                       >
-                        {user.role}
+                        {user.role === "fs" ? "Supervisor" : user.role}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -420,7 +433,7 @@ export function UsersRoles() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select name="role" value={editForm.role} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+                  {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
                 </select>
               </div>
               <div>
@@ -492,7 +505,7 @@ export function UsersRoles() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select name="role" value={addForm.role} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+                  {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
                 </select>
               </div>
               <div>

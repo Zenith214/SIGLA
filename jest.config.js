@@ -43,6 +43,16 @@ const customJestConfig = {
       ],
       testEnvironment: 'jsdom',
       setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      transform: {
+        '^.+\\.tsx?$': ['ts-jest', {
+          tsconfig: {
+            module: 'commonjs',
+            esModuleInterop: true,
+            resolveJsonModule: true,
+            jsx: 'react',
+          }
+        }]
+      },
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
       },

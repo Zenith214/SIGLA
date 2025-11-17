@@ -120,13 +120,13 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
         className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50 transform transition-transform duration-300 block lg:hidden ${
           isDrawerOpen ? "translate-y-0" : "translate-y-full"
         }`}
-        style={{ maxHeight: "80vh" }}
+        style={{ maxHeight: "85vh" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="p-6">
+        <div className="p-5 pb-6">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Survey Sections</h2>
               <p className="text-sm text-gray-600">
@@ -135,14 +135,15 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
             </div>
             <button
               onClick={() => setIsDrawerOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors touch-manipulation"
+              aria-label="Close drawer"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
@@ -151,8 +152,8 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
             </div>
           </div>
 
-          {/* Section List */}
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          {/* Section List - Optimized for 6+ sections on mobile */}
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-2 -mr-2">
             {sections.map((section, index) => {
               const clickable = canClickSection(section);
               return (
@@ -160,23 +161,24 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
                   key={section.id}
                   onClick={() => handleSectionSelect(section.id)}
                   disabled={!clickable}
-                  className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
+                  className={`w-full text-left p-3 rounded-lg border transition-all duration-200 touch-manipulation ${
                     currentSection === section.id
                       ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
                       : clickable
-                        ? "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+                        ? "bg-white border-gray-200 active:bg-gray-50"
                         : "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
                   }`}
+                  style={{ minHeight: '60px' }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      <span className="flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="flex items-center justify-center w-6 h-6 text-sm font-medium text-gray-600 bg-gray-100 rounded-full flex-shrink-0">
                         {index + 1}
                       </span>
-                      <span className={`text-lg ${getStatusColor(section.status)}`}>{getStatusIcon(section.status)}</span>
+                      <span className={`text-base ${getStatusColor(section.status)}`}>{getStatusIcon(section.status)}</span>
                     </div>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                         section.status === "completed"
                           ? "bg-green-100 text-green-800"
                           : section.status === "in-progress"
@@ -185,14 +187,14 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
                       }`}
                     >
                       {section.status === "completed"
-                        ? "Completed"
+                        ? "Done"
                         : section.status === "in-progress"
-                          ? "In Progress"
+                          ? "Active"
                           : "Pending"}
                     </span>
                   </div>
                   <h3
-                    className={`text-sm font-medium ${
+                    className={`text-sm font-medium leading-tight ${
                       currentSection === section.id 
                         ? "text-blue-700" 
                         : clickable 
@@ -211,8 +213,8 @@ export function FloatingProgressButton({ sections, currentSection, onSectionChan
           </div>
 
           {/* Drawer Footer */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="text-center text-sm text-gray-500">Tap a section to navigate • Swipe down to close</div>
+          <div className="mt-4 pt-3 border-t border-gray-200">
+            <div className="text-center text-xs text-gray-500">Tap a section to navigate • Swipe down to close</div>
           </div>
         </div>
       </div>

@@ -17,14 +17,31 @@ import {
   getAssignedSections,
   isSectionAssigned,
   getNextAssignedSection,
-  getPreviousAssignedSection
+  getPreviousAssignedSection,
+  getServiceAreaOrder,
+  getSectionOrder,
+  getNextSectionSafe,
+  getPreviousSectionSafe,
+  isValidSectionId,
+  isSectionAccessible,
+  getSectionNavigationErrorMessage
 } from "./utils/sectionAssignment"
 import { getQuestionsForSection } from "./utils/questions"
+import { useSurveyRecord } from "@/hooks/useSurveyRecord"
+import { getSurveyRecordByQuestionnaire } from "@/lib/indexedDB"
+import { AutoSync } from "@/components/AutoSync"
+import { OfflineIndicator } from "@/components/OfflineIndicator"
+
+export interface GPSCoordinates {
+  lat: number
+  lng: number
+  accuracy?: number
+  timestamp?: number
+}
 
 export interface SurveyData {
   surveyNumber: string
-  questionnaireType?: 'odd' | 'even' // Determines which sections to answer
-  assignedSections?: string[] // New field for tracking assigned sections
+  assignedSections?: string[] // Tracks all 6 assigned sections in randomized order
   barangayId?: number
   location: {
     lat: number;
@@ -36,6 +53,7 @@ export interface SurveyData {
     municipality?: string;
     province?: string;
   }
+  verificationLocation?: GPSCoordinates // GPS captured at household for quality control
   selectedMember: string
   respondentDemographics: {
     age: number
@@ -75,6 +93,17 @@ export interface Question {
     value: string; // The value that triggers the jump
     skipToId: string; // The ID of the question to jump to
   }[];
+}
+
+// Helper function to extract numeric questionnaire number from survey number
+function extractQuestionnaireNumber(surveyNumber: string): number {
+  if (surveyNumber.includes('-')) {
+    const parts = surveyNumber.split('-')
+    if (parts.length === 3) {
+      return parseInt(parts[2], 10)
+    }
+  }
+  return parseInt(surveyNumber, 10)
 }
 
 // Helper function to format user data for the header
@@ -135,6 +164,10 @@ function SurveyAppContent() {
     environmental: {},
     socialProtection: {}, // Added missing property
   })
+  const [loadedFromIndexedDB, setLoadedFromIndexedDB] = useState(false)
+  const [questionnaireIdFromUrl, setQuestionnaireIdFromUrl] = useState<string | null>(null)
+  const [cycleIdFromUrl, setCycleIdFromUrl] = useState<number | null>(null)
+  const [spotIdFromUrl, setSpotIdFromUrl] = useState<number | null>(null)
 
   // Initialize with base sections - assigned sections will be added dynamically
   const [sections, setSections] = useState<SectionStatus[]>([
@@ -152,66 +185,169 @@ function SurveyAppContent() {
 
   // Read URL parameters
   const barangayIdParam = searchParams.get('barangayId')
+  const questionnaireIdParam = searchParams.get('questionnaireId')
+  const cycleIdParam = searchParams.get('cycleId')
+  const spotIdParam = searchParams.get('spotId')
 
-  // Load saved data on mount
+  // Load saved data on mount - check IndexedDB first, then localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("barangay-survey-data")
-    if (saved) {
-      setSurveyData(JSON.parse(saved))
-    }
-    const savedSections = localStorage.getItem("barangay-survey-sections")
-    if (savedSections) {
-      setSections(JSON.parse(savedSections))
-    }
-  }, [])
+    const loadSurveyData = async () => {
+      // If we have questionnaire ID in URL, try to load from IndexedDB
+      if (questionnaireIdParam) {
+        try {
+          console.log(`🔍 Checking IndexedDB for questionnaire: ${questionnaireIdParam}`);
+          const existingRecord = await getSurveyRecordByQuestionnaire(questionnaireIdParam);
+          
+          if (existingRecord) {
+            console.log(`📖 Found existing record in IndexedDB:`, existingRecord);
+            
+            // Load survey data from IndexedDB record
+            const loadedData: SurveyData = {
+              surveyNumber: existingRecord.questionnaireId,
+              barangayId: existingRecord.surveyData.barangayId,
+              location: existingRecord.surveyData.location || { lat: 0, lng: 0, address: "" },
+              verificationLocation: existingRecord.surveyData.verificationLocation,
+              selectedMember: existingRecord.surveyData.selectedMember || "",
+              respondentDemographics: existingRecord.surveyData.respondentDemographics || {
+                age: 0,
+                birthdate: "",
+                gender: "",
+                educationalAttainment: "",
+                householdIncome: "",
+                purok: ""
+              },
+              financialAdmin: existingRecord.surveyData.sections?.financial?.data || {},
+              disasterPrep: existingRecord.surveyData.sections?.disaster?.data || {},
+              safetyPeace: existingRecord.surveyData.sections?.safety?.data || {},
+              businessFriendly: existingRecord.surveyData.sections?.business?.data || {},
+              environmental: existingRecord.surveyData.sections?.environmental?.data || {},
+              socialProtection: existingRecord.surveyData.sections?.social?.data || {},
+              assignedSections: existingRecord.surveyData.assignedSections,
+            };
+            
+            setSurveyData(loadedData);
+            setLoadedFromIndexedDB(true);
+            setQuestionnaireIdFromUrl(questionnaireIdParam);
+            setCycleIdFromUrl(existingRecord.cycleId);
+            setSpotIdFromUrl(existingRecord.spotId);
+            
+            // Determine current section based on record status
+            if (existingRecord.status === 'In Progress') {
+              // Resume from where they left off
+              // You could store the last section in surveyData
+              setCurrentSection(existingRecord.surveyData.currentSection || 'respondent-selection');
+              
+              // Increment visit count by adding a new visit
+              try {
+                const { addVisit } = await import('@/lib/indexedDB');
+                await addVisit(
+                  questionnaireIdParam,
+                  existingRecord.cycleId,
+                  'Interview Started',
+                  `Visit ${existingRecord.visits.length + 1} - Resuming interview`,
+                  undefined
+                );
+                console.log(`📝 Incremented visit count to ${existingRecord.visits.length + 1}`);
+              } catch (error) {
+                console.error('Error incrementing visit count:', error);
+              }
+            }
+            
+            console.log(`✅ Loaded survey data from IndexedDB for callback scenario`);
+            return; // Don't load from localStorage
+          } else {
+            // No existing record - this is a new interview with pre-assigned questionnaire number
+            console.log(`📝 New interview with pre-assigned questionnaire: ${questionnaireIdParam}`);
+            
+            // Set the questionnaire number from URL
+            setSurveyData(prev => ({ 
+              ...prev, 
+              surveyNumber: questionnaireIdParam 
+            }));
+            setQuestionnaireIdFromUrl(questionnaireIdParam);
+            
+            // Set cycleId and spotId from URL if available
+            if (cycleIdParam) {
+              setCycleIdFromUrl(parseInt(cycleIdParam));
+            }
+            if (spotIdParam) {
+              setSpotIdFromUrl(parseInt(spotIdParam));
+            }
+            
+            console.log(`✅ Pre-assigned questionnaire number set: ${questionnaireIdParam}`);
+            return; // Don't load from localStorage
+          }
+        } catch (error) {
+          console.error('Error loading from IndexedDB:', error);
+        }
+      }
+      
+      // Fallback to localStorage for legacy surveys
+      const saved = localStorage.getItem("barangay-survey-data");
+      if (saved) {
+        setSurveyData(JSON.parse(saved));
+      }
+      const savedSections = localStorage.getItem("barangay-survey-sections");
+      if (savedSections) {
+        setSections(JSON.parse(savedSections));
+      }
+    };
+
+    loadSurveyData();
+  }, [questionnaireIdParam])
 
   // Pre-populate barangayId from URL parameter
   useEffect(() => {
-    if (barangayIdParam && !surveyData.barangayId) {
+    if (barangayIdParam) {
       const barangayId = parseInt(barangayIdParam)
-      if (!isNaN(barangayId)) {
+      if (!isNaN(barangayId) && surveyData.barangayId !== barangayId) {
         console.log(`📍 Pre-populating barangayId from URL: ${barangayId}`)
         setSurveyData(prev => ({ ...prev, barangayId }))
       }
     }
-  }, [barangayIdParam, surveyData.barangayId])
+  }, [barangayIdParam])
 
-  // Update assigned sections based on questionnaireType
+  // Update assigned sections based on questionnaire number (CSIS 6-section randomization)
   useEffect(() => {
-    console.log(`🔄 Questionnaire type or current section changed: ${surveyData.questionnaireType}, current: ${currentSection}`);
+    console.log(`🔄 Survey number or current section changed: ${surveyData.surveyNumber}, current: ${currentSection}`);
 
-    if (surveyData.questionnaireType) {
-      // Determine sections based on odd/even type
-      const ODD_SECTIONS = [
-        { id: "financial", name: "Financial Administration" },
-        { id: "safety", name: "Safety & Peace Order" },
-        { id: "environmental", name: "Environmental Management" },
-      ];
+    if (surveyData.surveyNumber && surveyData.surveyNumber !== "PENDING") {
+      // Extract questionnaire number from survey number format
+      const questionnaireNumber = extractQuestionnaireNumber(surveyData.surveyNumber);
       
-      const EVEN_SECTIONS = [
-        { id: "disaster", name: "Disaster Preparedness" },
-        { id: "social", name: "Social Protection" },
-        { id: "business", name: "Business Friendliness" },
-      ];
-
-      const assignedSections = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
-      const assignedSectionIds = assignedSections.map(s => s.id);
+      // Get all 6 sections in randomized order using CSIS methodology
+      const assignedSectionIds = getSectionOrder(questionnaireNumber);
       
-      console.log(`📋 Assigned sections for ${surveyData.questionnaireType} questionnaire:`, assignedSectionIds);
+      // Map section IDs to full section objects
+      const SECTION_MAP: Record<string, { id: string; name: string }> = {
+        financial: { id: "financial", name: "Financial Administration" },
+        safety: { id: "safety", name: "Safety & Peace Order" },
+        environmental: { id: "environmental", name: "Environmental Management" },
+        disaster: { id: "disaster", name: "Disaster Preparedness" },
+        social: { id: "social", name: "Social Protection" },
+        business: { id: "business", name: "Business Friendliness" },
+      };
 
-      // Update survey data with assigned sections
+      const assignedSections = assignedSectionIds.map(id => SECTION_MAP[id]);
+      
+      console.log(`📋 Assigned sections for questionnaire ${surveyData.surveyNumber} (Q#${questionnaireNumber}):`, assignedSectionIds);
+
+      // Update survey data with assigned sections (no questionnaireType)
       if (JSON.stringify(surveyData.assignedSections) !== JSON.stringify(assignedSectionIds)) {
-        console.log(`🔄 Updating survey data with assigned sections`);
-        setSurveyData(prev => ({ ...prev, assignedSections: assignedSectionIds }));
+        console.log(`🔄 Updating survey data with all 6 assigned sections`);
+        setSurveyData(prev => ({ 
+          ...prev, 
+          assignedSections: assignedSectionIds
+        }));
       }
 
-      // Build sections array
+      // Build sections array with all 6 service sections
       setSections(prevSections => {
         const existingSectionIds = prevSections.map(s => s.id);
         const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "summary"];
 
         if (prevSections.length === 0 || JSON.stringify(existingSectionIds) !== JSON.stringify(expectedSectionIds)) {
-          console.log(`🏗️ Building sections array for ${surveyData.questionnaireType}`);
+          console.log(`🏗️ Building sections array for questionnaire ${surveyData.surveyNumber} with 6 sections`);
           const newSections: SectionStatus[] = [
             { id: "initialization", name: "Survey Initialization", status: "completed" },
             { id: "respondent-selection", name: "Respondent Selection", status: currentSection === "respondent-selection" ? "in-progress" : "pending" },
@@ -222,7 +358,7 @@ function SurveyAppContent() {
             })),
             { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
           ];
-          console.log(`📋 Sections:`, newSections.map(s => `${s.id}: ${s.status}`));
+          console.log(`📋 Sections (6 service sections):`, newSections.map(s => `${s.id}: ${s.status}`));
           return newSections;
         } else {
           // Preserve existing statuses, only update current section to in-progress
@@ -237,7 +373,7 @@ function SurveyAppContent() {
         }
       });
     }
-  }, [surveyData.questionnaireType, currentSection]);
+  }, [surveyData.surveyNumber, currentSection]);
 
   // Save data whenever it changes
   useEffect(() => {
@@ -250,6 +386,13 @@ function SurveyAppContent() {
 
   const updateSectionStatus = (sectionId: string, status: SectionStatus["status"]) => {
     console.log(`🔄 updateSectionStatus called: ${sectionId} -> ${status}`);
+    
+    // Validate section ID
+    if (!isValidSectionId(sectionId)) {
+      console.error(`Invalid section ID in updateSectionStatus: ${sectionId}`);
+      return;
+    }
+
     setSections((prev) => {
       const updated = prev.map((section) => {
         if (section.id === sectionId) {
@@ -263,8 +406,85 @@ function SurveyAppContent() {
     });
   }
 
+  // Safe section navigation handler
+  const handleSectionChange = (targetSection: string) => {
+    try {
+      // Validate target section
+      if (!isValidSectionId(targetSection)) {
+        console.error(`Invalid target section: ${targetSection}`);
+        alert('Invalid section. Returning to summary.');
+        setCurrentSection('summary');
+        return;
+      }
+
+      // Check if section is accessible
+      const assignedSections = surveyData.assignedSections || [];
+      if (!isSectionAccessible(targetSection, assignedSections)) {
+        console.error(`Section ${targetSection} is not accessible`);
+        alert('This section is not assigned for your questionnaire.');
+        return;
+      }
+
+      console.log(`🚀 Navigating to section: ${targetSection}`);
+      setCurrentSection(targetSection);
+    } catch (error) {
+      console.error('Error in handleSectionChange:', error);
+      const errorMessage = getSectionNavigationErrorMessage(error as Error);
+      alert(errorMessage);
+      setCurrentSection('summary');
+    }
+  }
+
   const updateSurveyData = (section: keyof SurveyData, data: any) => {
     setSurveyData((prev) => ({ ...prev, [section]: data }))
+  }
+
+  // Save survey data to IndexedDB
+  const saveToIndexedDB = async (completedSection?: string) => {
+    if (!questionnaireIdFromUrl || !cycleIdFromUrl || !spotIdFromUrl) {
+      console.log('⚠️ Missing questionnaire context, skipping IndexedDB save');
+      return;
+    }
+
+    try {
+      const { getSurveyRecord, createSurveyRecord, updateSurveyData: updateIndexedDBData } = await import('@/lib/indexedDB');
+      
+      // Check if record exists
+      const existingRecord = await getSurveyRecord(questionnaireIdFromUrl, cycleIdFromUrl);
+      
+      // Prepare survey data for IndexedDB
+      const indexedDBData = {
+        barangayId: surveyData.barangayId,
+        location: surveyData.location,
+        verificationLocation: surveyData.verificationLocation,
+        selectedMember: surveyData.selectedMember,
+        respondentDemographics: surveyData.respondentDemographics,
+        interviewerId: user?.id,
+        assignedSections: surveyData.assignedSections,
+        currentSection: completedSection || currentSection,
+        sections: {
+          financial: { data: surveyData.financialAdmin },
+          disaster: { data: surveyData.disasterPrep },
+          safety: { data: surveyData.safetyPeace },
+          social: { data: surveyData.socialProtection },
+          business: { data: surveyData.businessFriendly },
+          environmental: { data: surveyData.environmental },
+        },
+      };
+
+      if (existingRecord) {
+        // Update existing record
+        await updateIndexedDBData(questionnaireIdFromUrl, cycleIdFromUrl, indexedDBData);
+        console.log(`💾 Updated IndexedDB record for ${questionnaireIdFromUrl}`);
+      } else {
+        // Create new record
+        await createSurveyRecord(questionnaireIdFromUrl, cycleIdFromUrl, spotIdFromUrl, indexedDBData);
+        console.log(`✨ Created IndexedDB record for ${questionnaireIdFromUrl}`);
+      }
+    } catch (error) {
+      console.error('Error saving to IndexedDB:', error);
+      throw error;
+    }
   }
 
   const handleModalClose = () => {
@@ -318,32 +538,72 @@ function SurveyAppContent() {
     });
   }
 
-  const handleSectionComplete = (sectionId: string, nextSectionId?: string) => {
+  const handleSectionComplete = async (sectionId: string, nextSectionId?: string) => {
     console.log(`🎯 handleSectionComplete called for: ${sectionId}, nextSectionId: ${nextSectionId}`);
 
-    // Always mark the current section as completed when this function is called
-    console.log(`🏁 Marking section ${sectionId} as completed`);
-    updateSectionStatus(sectionId, "completed")
+    try {
+      // Validate current section
+      if (!isValidSectionId(sectionId)) {
+        console.error(`Invalid section ID: ${sectionId}`);
+        alert('An error occurred. Returning to summary.');
+        setCurrentSection('summary');
+        return;
+      }
 
-    // Determine next section based on assignment logic
-    let actualNextSection = nextSectionId;
-    if ((!actualNextSection || actualNextSection === "") && surveyData.surveyNumber) {
-      const nextSection = getNextAssignedSection(surveyData.surveyNumber, sectionId);
-      actualNextSection = nextSection || undefined;
-      console.log(`🔍 Next assigned section for survey ${surveyData.surveyNumber} after ${sectionId}: ${actualNextSection}`);
-    }
+      // Always mark the current section as completed when this function is called
+      console.log(`🏁 Marking section ${sectionId} as completed`);
+      updateSectionStatus(sectionId, "completed")
 
-    if (actualNextSection && actualNextSection !== "summary") {
-      console.log(`▶️ Setting next section ${actualNextSection} to in-progress`);
-      updateSectionStatus(actualNextSection, "in-progress")
-    } else if (actualNextSection === "summary") {
-      console.log(`📝 Setting summary to in-progress`);
-      updateSectionStatus("summary", "in-progress")
-    }
+      // Save to IndexedDB if we have questionnaire context
+      if (questionnaireIdFromUrl && cycleIdFromUrl && spotIdFromUrl) {
+        try {
+          await saveToIndexedDB(sectionId);
+        } catch (error) {
+          console.error('Error saving to IndexedDB:', error);
+          // Continue even if IndexedDB save fails
+        }
+      }
 
-    if (actualNextSection) {
-      console.log(`🚀 Navigating to section: ${actualNextSection}`);
-      setCurrentSection(actualNextSection)
+      // Determine next section using safe navigation
+      let actualNextSection = nextSectionId;
+      
+      if (!actualNextSection || actualNextSection === "") {
+        // Use safe navigation function
+        const assignedSections = surveyData.assignedSections || [];
+        actualNextSection = getNextSectionSafe(sectionId, assignedSections);
+        console.log(`🔍 Safe next section after ${sectionId}: ${actualNextSection}`);
+      }
+
+      // Validate next section
+      if (!isValidSectionId(actualNextSection)) {
+        console.error(`Invalid next section: ${actualNextSection}, navigating to summary`);
+        actualNextSection = 'summary';
+      }
+
+      // Check if section is accessible
+      const assignedSections = surveyData.assignedSections || [];
+      if (!isSectionAccessible(actualNextSection, assignedSections)) {
+        console.error(`Section ${actualNextSection} is not accessible, navigating to summary`);
+        actualNextSection = 'summary';
+      }
+
+      if (actualNextSection && actualNextSection !== "summary") {
+        console.log(`▶️ Setting next section ${actualNextSection} to in-progress`);
+        updateSectionStatus(actualNextSection, "in-progress")
+      } else if (actualNextSection === "summary") {
+        console.log(`📝 Setting summary to in-progress`);
+        updateSectionStatus("summary", "in-progress")
+      }
+
+      if (actualNextSection) {
+        console.log(`🚀 Navigating to section: ${actualNextSection}`);
+        setCurrentSection(actualNextSection)
+      }
+    } catch (error) {
+      console.error('Error in handleSectionComplete:', error);
+      const errorMessage = getSectionNavigationErrorMessage(error as Error);
+      alert(errorMessage);
+      setCurrentSection('summary');
     }
   }
 
@@ -354,7 +614,23 @@ function SurveyAppContent() {
           <SurveyInitialization
             data={surveyData}
             onUpdate={updateSurveyData}
-            onNext={() => handleSectionComplete("initialization", "respondent-selection")}
+            onNext={async () => {
+              // Create IndexedDB record if we have questionnaire context
+              if (questionnaireIdFromUrl && cycleIdFromUrl && spotIdFromUrl && !loadedFromIndexedDB) {
+                try {
+                  const { createSurveyRecord } = await import('@/lib/indexedDB');
+                  await createSurveyRecord(questionnaireIdFromUrl, cycleIdFromUrl, spotIdFromUrl, {
+                    barangayId: surveyData.barangayId,
+                    location: surveyData.location,
+                    interviewerId: user?.id,
+                  });
+                  console.log(`✨ Created IndexedDB record on initialization for ${questionnaireIdFromUrl}`);
+                } catch (error) {
+                  console.error('Error creating IndexedDB record:', error);
+                }
+              }
+              handleSectionComplete("initialization", "respondent-selection");
+            }}
             preselectedBarangayId={barangayIdParam ? parseInt(barangayIdParam) : undefined}
           />
         )
@@ -373,16 +649,9 @@ function SurveyAppContent() {
             data={surveyData}
             onUpdate={updateSurveyData}
             onNext={() => {
-              // Get the first assigned section based on questionnaire type
-              if (surveyData.questionnaireType) {
-                const ODD_SECTIONS = ["financial", "safety", "environmental"];
-                const EVEN_SECTIONS = ["disaster", "social", "business"];
-                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
-                const firstAssignedSection = assignedSectionIds.length > 0 ? assignedSectionIds[0] : "summary";
-                handleSectionComplete("respondent-demographics", firstAssignedSection);
-              } else {
-                handleSectionComplete("respondent-demographics", "summary");
-              }
+              // Get the first assigned section from the 6-section randomized order
+              const firstAssignedSection = surveyData.assignedSections?.[0] || "summary";
+              handleSectionComplete("respondent-demographics", firstAssignedSection);
             }}
             onBack={() => setCurrentSection("respondent-selection")}
           />
@@ -393,15 +662,13 @@ function SurveyAppContent() {
       case "social":
       case "business":
       case "environmental":
-        // Only render if section is assigned based on questionnaire type
-        const ODD_SECTIONS = ["financial", "safety", "environmental"];
-        const EVEN_SECTIONS = ["disaster", "social", "business"];
-        const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+        // All 6 sections should be assigned in the randomized order
+        const assignedSectionIds = surveyData.assignedSections || [];
         
-        if (!surveyData.questionnaireType || !assignedSectionIds.includes(currentSection)) {
+        if (!surveyData.surveyNumber || surveyData.surveyNumber === "PENDING" || !assignedSectionIds.includes(currentSection)) {
           return (
             <div className="p-6 text-center">
-              <p className="text-gray-600">This section is not assigned for your questionnaire type.</p>
+              <p className="text-gray-600">This section is not assigned for your questionnaire.</p>
               <button
                 onClick={() => setCurrentSection("summary")}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
@@ -418,23 +685,17 @@ function SurveyAppContent() {
             data={surveyData}
             onUpdate={updateSurveyData}
             onComplete={() => {
-              handleSectionComplete(currentSection);
+              // Use safe navigation to get next section
+              const nextSection = getNextSectionSafe(currentSection, assignedSectionIds);
+              handleSectionComplete(currentSection, nextSection);
             }}
             onBack={() => {
-              if (surveyData.questionnaireType) {
-                const ODD_SECTIONS = ["financial", "safety", "environmental"];
-                const EVEN_SECTIONS = ["disaster", "social", "business"];
-                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
-                const currentIndex = assignedSectionIds.indexOf(currentSection);
-                
-                if (currentIndex > 0) {
-                  setCurrentSection(assignedSectionIds[currentIndex - 1]);
-                } else {
-                  setCurrentSection("respondent-demographics");
-                }
-              }
+              // Use safe navigation to get previous section
+              const prevSection = getPreviousSectionSafe(currentSection, assignedSectionIds);
+              handleSectionChange(prevSection);
             }}
             onResetSectionStatus={updateSectionStatus}
+            assignedSections={assignedSectionIds}
           />
         )
       case "summary":
@@ -443,20 +704,10 @@ function SurveyAppContent() {
             data={surveyData}
             sections={sections}
             onBack={() => {
-              if (surveyData.questionnaireType) {
-                // Go back to the last assigned section
-                const ODD_SECTIONS = ["financial", "safety", "environmental"];
-                const EVEN_SECTIONS = ["disaster", "social", "business"];
-                const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
-                const lastSection = assignedSectionIds[assignedSectionIds.length - 1];
-                if (lastSection) {
-                  setCurrentSection(lastSection);
-                } else {
-                  setCurrentSection("respondent-demographics");
-                }
-              } else {
-                setCurrentSection("respondent-demographics");
-              }
+              // Use safe navigation to get previous section
+              const assignedSectionIds = surveyData.assignedSections || [];
+              const prevSection = getPreviousSectionSafe('summary', assignedSectionIds);
+              handleSectionChange(prevSection);
             }}
             onSubmit={async () => {
               try {
@@ -495,15 +746,14 @@ function SurveyAppContent() {
                 const submissionData = {
                   surveyNumber: finalSurveyNumber,
                   location: surveyData.location,
+                  verificationLocation: surveyData.verificationLocation,
                   selectedMember: surveyData.selectedMember,
                   respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
-                    // Include only the sections that were assigned based on questionnaire type
+                  // Include all 6 assigned sections in randomized order
                   sections: (() => {
-                    const ODD_SECTIONS = ["financial", "safety", "environmental"];
-                    const EVEN_SECTIONS = ["disaster", "social", "business"];
-                    const assignedSectionIds = surveyData.questionnaireType === 'odd' ? ODD_SECTIONS : EVEN_SECTIONS;
+                    const assignedSectionIds = surveyData.assignedSections || [];
                     
                     return assignedSectionIds.reduce((acc, sectionId) => {
                     const sectionDataKey = getSectionDataKey(sectionId);
@@ -547,10 +797,29 @@ function SurveyAppContent() {
 
                 if (response.ok) {
                   const result = await response.json()
+                  
+                  // Mark as completed in IndexedDB if this is a questionnaire-based survey
+                  let wasCallback = false;
+                  if (questionnaireIdFromUrl && cycleIdFromUrl) {
+                    try {
+                      const { markCompletedPendingSync, getSurveyRecord } = await import('@/lib/indexedDB');
+                      const record = await getSurveyRecord(questionnaireIdFromUrl, cycleIdFromUrl);
+                      wasCallback = !!(record && record.visits && record.visits.length > 1);
+                      await markCompletedPendingSync(questionnaireIdFromUrl, cycleIdFromUrl);
+                      console.log(`✅ Marked ${questionnaireIdFromUrl} as completed (pending sync)`);
+                    } catch (error) {
+                      console.error('Error marking as completed in IndexedDB:', error);
+                    }
+                  }
+                  
+                  const successMessage = wasCallback 
+                    ? `Interview completed successfully after ${loadedFromIndexedDB ? 'callback' : 'multiple'} visits! Response ID: ${result.responseId}`
+                    : `Survey submitted successfully! Response ID: ${result.responseId}`;
+                  
                   setSubmissionModal({
                     isOpen: true,
                     type: 'success',
-                    message: `Survey submitted successfully! Response ID: ${result.responseId}`
+                    message: successMessage
                   })
                 } else {
                   const error = await response.json()
@@ -597,6 +866,12 @@ function SurveyAppContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+      
+      {/* Auto-sync on reconnection */}
+      <AutoSync />
+      
       <Header user={formattedUser} currentSection={getCurrentSectionName()} />
       <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">

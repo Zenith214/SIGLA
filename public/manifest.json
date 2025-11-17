@@ -1,0 +1,40 @@
+{
+  "name": "PULSE - Public Understanding and Local Service Evaluation",
+  "short_name": "PULSE",
+  "description": "A comprehensive survey platform for measuring citizen satisfaction with local government services",
+  "start_url": "/survey",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "/sdashboard.gif",
+      "sizes": "1280x720",
+      "type": "image/gif",
+      "label": "Survey Dashboard"
+    },
+    {
+      "src": "/spotmap.gif",
+      "sizes": "1280x720",
+      "type": "image/gif",
+      "label": "Spot Map"
+    }
+  ]
+}

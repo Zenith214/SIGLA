@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { QuestionRenderer } from "./QuestionRenderer"
 import { QuestionFlowNavigation } from "./QuestionFlowNavigation"
 import { QuestionProgressBar } from "./QuestionProgressBar"
+import { validateAnswer } from "../utils/validation"
 
 interface QuestionFlowProps {
   sectionId: string;
@@ -17,17 +18,23 @@ interface QuestionFlowProps {
   onComplete: () => void;
   onBack: () => void;
   onResetSectionStatus: (sectionId: string, status: SectionStatus['status']) => void;
+  assignedSections?: string[]; // NEW: Full list of 6 sections in randomized order
 }
 
-export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, onResetSectionStatus }: QuestionFlowProps): JSX.Element {
+export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, onResetSectionStatus, assignedSections }: QuestionFlowProps): JSX.Element {
   const questions = getQuestionsForSection(sectionId);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [showValidation, setShowValidation] = useState<boolean>(false);
 
   const prevSectionIdRef = useRef<string | undefined>(undefined);
 
   const sectionDataKey = sectionId ? getSectionDataKey(sectionId) : "financialAdmin";
   const sectionTitle = getSectionTitle(sectionId);
+  
+  // Calculate progress based on all 6 assigned sections
+  const totalSections = assignedSections?.length || 6;
+  const currentSectionIndex = assignedSections?.indexOf(sectionId) ?? -1;
 
   useEffect(() => {
     const isNewSection = prevSectionIdRef.current !== sectionId;
@@ -94,7 +101,45 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     if (!question.dependsOn) return true;
 
     const dependencyAnswer = answers[question.dependsOn];
-    return dependencyAnswer === question.dependsOnValue;
+    const isEnabled = dependencyAnswer === question.dependsOnValue;
+    
+    // If question is not enabled, mark it as skipped with reason
+    if (!isEnabled && !(question.id in answers)) {
+      const skipReason = getDetailedSkipReason(question);
+      handleAnswerChange(question.id, null);
+      handleAnswerChange(`${question.id}_skipReason`, skipReason);
+    }
+    
+    return isEnabled;
+  }
+
+  // Helper function to get detailed skip reason
+  const getDetailedSkipReason = (question: Question): string => {
+    if (!question.dependsOn) return 'not_applicable';
+    
+    const dependencyQuestion = questions.find(q => q.id === question.dependsOn);
+    const dependencyAnswer = answers[question.dependsOn];
+    
+    if (!dependencyQuestion) return 'dependency_not_found';
+    
+    // Determine skip reason based on the dependency
+    if (dependencyQuestion.id.includes('awareness') || dependencyQuestion.id.includes('Awareness')) {
+      return dependencyAnswer === 'Hindi' || dependencyAnswer === 'No' 
+        ? 'not_aware_of_service' 
+        : 'conditional_skip';
+    } else if (dependencyQuestion.id.includes('availment') || dependencyQuestion.id.includes('experience') || 
+               dependencyQuestion.id.includes('benefited') || dependencyQuestion.id.includes('used') ||
+               dependencyQuestion.id.includes('participated')) {
+      return dependencyAnswer === 'Hindi' || dependencyAnswer === 'No' 
+        ? 'service_not_used' 
+        : 'conditional_skip';
+    } else if (dependencyQuestion.id.includes('reported')) {
+      return dependencyAnswer === 'Hindi' || dependencyAnswer === 'No'
+        ? 'incident_not_reported'
+        : 'incident_reported';
+    } else {
+      return 'conditional_skip';
+    }
   }
 
   const isCurrentQuestionAnswered = () => {
@@ -104,18 +149,11 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
 
     const answer = answers[currentQuestion.id];
 
-    switch (currentQuestion.type) {
-      case "radio":
-      case "text":
-      case "textarea":
-        return typeof answer === 'string' && answer.trim() !== '';
-      case "checkbox":
-        return Array.isArray(answer) && answer.length > 0;
-      case "grouped":
-        return answer && typeof answer.main === 'string' && answer.main.trim() !== '';
-      default:
-        return false;
-    }
+    // Use validation to check if answer is valid
+    const validationError = validateAnswer(currentQuestion, answer);
+    
+    // Question is answered if there's no validation error
+    return validationError === null;
   };
 
   const getNextButtonText = () => {
@@ -148,6 +186,15 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   };
 
   const handleNext = () => {
+    // Validate current question before proceeding
+    if (!isCurrentQuestionAnswered()) {
+      setShowValidation(true);
+      return;
+    }
+    
+    // Reset validation state for next question
+    setShowValidation(false);
+    
     if (currentQuestion.conditionalNext) {
       const currentAnswerValue = answers[currentQuestion.id];
       const jumpCondition = currentQuestion.conditionalNext.find(
@@ -191,7 +238,21 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
       onResetSectionStatus(sectionId, "completed");
       onComplete();
     } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      // Move to next question, skipping any disabled questions
+      let nextIndex = currentQuestionIndex + 1;
+      while (nextIndex < questions.length && !isQuestionEnabled(questions[nextIndex])) {
+        console.log(`⏭️ Skipping disabled question: ${questions[nextIndex].id}`);
+        nextIndex++;
+      }
+      
+      if (nextIndex < questions.length) {
+        setCurrentQuestionIndex(nextIndex);
+      } else {
+        // No more enabled questions, complete the section
+        console.log(`🏁 QuestionFlow: No more enabled questions, completing section ${sectionId}`);
+        onResetSectionStatus(sectionId, "completed");
+        onComplete();
+      }
     }
   }
 
@@ -270,6 +331,8 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
         answers={answers}
         isQuestionEnabled={isQuestionEnabled}
         sectionTitle={sectionTitle}
+        currentSectionIndex={currentSectionIndex}
+        totalSections={totalSections}
       />
 
       <div className="max-w-2xl mx-auto">
@@ -281,23 +344,33 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
           </Card>
         )}
 
-        <Card className="bg-gray-50 rounded-lg p-8 mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-6 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: currentQuestion?.question || '' }}>
-          </h3>
-          <QuestionRenderer
-            question={currentQuestion}
-            currentAnswer={answers[currentQuestion.id]}
-            onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-            isEnabled={isQuestionEnabled(currentQuestion)}
-          />
-          {!isQuestionEnabled(currentQuestion) && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                This question is disabled. Please answer the previous question with "Oo" or "Yes" to enable it.
+        {isQuestionEnabled(currentQuestion) ? (
+          <Card className="bg-gray-50 rounded-lg p-8 mb-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-6 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: currentQuestion?.question || '' }}>
+            </h3>
+            <QuestionRenderer
+              question={currentQuestion}
+              currentAnswer={answers[currentQuestion.id]}
+              onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+              isEnabled={true}
+              showValidation={showValidation}
+            />
+          </Card>
+        ) : (
+          <Card className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-8 mb-8">
+            <div className="text-center">
+              <p className="text-lg font-medium text-yellow-800 mb-2">
+                Question Skipped
+              </p>
+              <p className="text-sm text-yellow-700">
+                This question was automatically skipped based on your previous answer.
+              </p>
+              <p className="text-xs text-yellow-600 mt-2">
+                Skip reason: {answers[`${currentQuestion.id}_skipReason`] || 'conditional_skip'}
               </p>
             </div>
-          )}
-        </Card>
+          </Card>
+        )}
 
         <QuestionFlowNavigation
           isFirstQuestion={isFirstQuestion}

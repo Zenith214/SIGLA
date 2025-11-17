@@ -38,11 +38,6 @@ const navigationItems = [
     id: "users",
   },
   {
-    title: "Assignments",
-    icon: Database,
-    id: "assignments",
-  },
-  {
     title: "Gemini AI",
     icon: Sparkles,
     id: "gemini-ai",

@@ -58,10 +58,11 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full max-h-[calc(100vh-8rem)]">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Sections</h2>
 
-      <div className="space-y-3">
+      {/* Scrollable section list with improved spacing for 6+ sections */}
+      <div className="space-y-2 overflow-y-auto flex-1 pr-2 -mr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {sections.map((section, index) => {
           const clickable = canClickSection(section, index);
           return (
@@ -69,7 +70,7 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
               key={section.id}
               onClick={() => clickable && onSectionChange(section.id)}
               disabled={!clickable}
-              className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+              className={`w-full text-left p-2.5 rounded-lg border transition-all duration-200 ${
                 currentSection === section.id
                   ? "bg-blue-50 border-blue-200 border-l-4 border-l-blue-700"
                   : clickable
@@ -77,16 +78,16 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
                     : "bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed"
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center space-x-2">
-                  <span className="flex items-center justify-center w-5 h-5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
+                  <span className="flex items-center justify-center w-5 h-5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full flex-shrink-0">
                     {index + 1}
                   </span>
                   {getStatusIcon(section.status)}
                 </div>
                 {getStatusBadge(section.status)}
               </div>
-              <h3 className={`text-sm font-medium ${
+              <h3 className={`text-sm font-medium leading-tight ${
                 currentSection === section.id 
                   ? "text-blue-700" 
                   : clickable 
@@ -103,8 +104,8 @@ export function SectionCard({ sections, currentSection, onSectionChange }: Secti
         })}
       </div>
 
-      {/* Progress Summary */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
+      {/* Progress Summary - Fixed at bottom */}
+      <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0">
         <div className="text-sm text-gray-600">
           <div className="flex justify-between items-center mb-2">
             <span>Progress</span>

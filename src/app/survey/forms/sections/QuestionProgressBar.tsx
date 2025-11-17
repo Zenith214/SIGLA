@@ -9,6 +9,8 @@ interface QuestionProgressBarProps {
   answers: Record<string, any>;
   isQuestionEnabled: (question: Question | undefined) => boolean;
   sectionTitle: string;
+  currentSectionIndex: number; // NEW: Index of current section in assigned sections
+  totalSections: number; // NEW: Total number of sections (6 for CSIS)
 }
 
 export function QuestionProgressBar({
@@ -17,6 +19,8 @@ export function QuestionProgressBar({
   answers,
   isQuestionEnabled,
   sectionTitle,
+  currentSectionIndex,
+  totalSections,
 }: QuestionProgressBarProps) {
   const getAnsweredCount = () => {
     return questions.filter((q) => {
@@ -43,11 +47,18 @@ export function QuestionProgressBar({
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
         <h2 className="text-xl font-semibold text-gray-900">{sectionTitle}</h2>
-        <span className="text-sm text-gray-600">
-          Question {currentQuestionIndex + 1} of {questions.length}
-        </span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          {currentSectionIndex >= 0 && (
+            <span className="text-sm font-medium text-blue-600">
+              Section {currentSectionIndex + 1} of {totalSections}
+            </span>
+          )}
+          <span className="text-sm text-gray-600">
+            Question {currentQuestionIndex + 1} of {questions.length}
+          </span>
+        </div>
       </div>
       <div className="flex space-x-1">
         {questions.map((question, index) => {

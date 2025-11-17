@@ -34,9 +34,22 @@ async function verifyAdminRole(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Check if user is admin
-  const isAdmin = await verifyAdminRole(request);
-  if (!isAdmin) {
+  // Check if user is admin or FS (Field Supervisors need to see interviewers)
+  const token = request.cookies.get('pulse_token')?.value;
+  if (!token) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+  
+  let userRole;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    userRole = decoded.role;
+  } catch {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // Allow admin and FS to view users
+  if (userRole !== 'admin' && userRole !== 'fs') {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
@@ -73,7 +86,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Check if user is admin
+  // Check if user is admin (only admins can create users)
   const isAdmin = await verifyAdminRole(req);
   if (!isAdmin) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });

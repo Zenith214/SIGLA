@@ -228,10 +228,31 @@ export function SurveyCycles() {
       const res = await fetch('/api/survey-cycles', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cycle_id: deletingCycle.cycle_id })
+        body: JSON.stringify({ cycle_id: deletingCycle.cycle_id, force: false })
       })
       
-      if (!res.ok) throw new Error('Failed to delete survey cycle')
+      const data = await res.json()
+      
+      if (!res.ok) {
+        // If there's associated data, show a detailed warning
+        if (res.status === 409 && data.data) {
+          const { spotsCount, responsesCount, assignmentsCount } = data.data
+          const details = []
+          if (spotsCount > 0) details.push(`${spotsCount} spot${spotsCount !== 1 ? 's' : ''}`)
+          if (responsesCount > 0) details.push(`${responsesCount} survey response${responsesCount !== 1 ? 's' : ''}`)
+          if (assignmentsCount > 0) details.push(`${assignmentsCount} assignment${assignmentsCount !== 1 ? 's' : ''}`)
+          
+          toast({
+            variant: "destructive",
+            title: "Cannot Delete Survey Cycle",
+            description: `This cycle has ${details.join(', ')}. Please delete associated data first or contact an administrator for force deletion.`,
+          })
+          setDeletingCycle(null)
+          return
+        }
+        
+        throw new Error(data.message || 'Failed to delete survey cycle')
+      }
       
       fetchSurveyCycles()
       setDeletingCycle(null)

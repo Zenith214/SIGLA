@@ -344,4 +344,205 @@ export function createSpecificCycleScopedWhere(cycleId: number, additionalCondit
   };
 }
 
+/**
+ * Updates an existing survey cycle
+ * @param cycleId - The ID of the cycle to update
+ * @param updates - The fields to update
+ * @returns Promise<SurveyCycle> - The updated cycle
+ */
+export async function updateSurveyCycle(
+  cycleId: number,
+  updates: Partial<Omit<SurveyCycle, 'cycle_id' | 'created_at'>>
+): Promise<SurveyCycle> {
+  try {
+    const { data: cycle, error } = await supabaseAdmin
+      .from('survey_cycle')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('cycle_id', cycleId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return cycle;
+  } catch (error) {
+    console.error('Error updating survey cycle:', error);
+    throw new Error('Failed to update survey cycle');
+  }
+}
+
+/**
+ * Deletes a survey cycle
+ * Prevents deletion if the cycle has associated data (spots, survey responses, etc.)
+ * @param cycleId - The ID of the cycle to delete
+ * @param force - If true, cascade delete all associated data (admin only)
+ * @returns Promise<{ success: boolean; message: string; deletedData?: any }>
+ */
+export async function deleteSurveyCycle(
+  cycleId: number,
+  force: boolean = false
+): Promise<{ success: boolean; message: string; deletedData?: any }> {
+  try {
+    // Check if cycle exists
+    const { data: cycle, error: cycleError } = await supabaseAdmin
+      .from('survey_cycle')
+      .select('cycle_id, name, year, is_active')
+      .eq('cycle_id', cycleId)
+      .single();
+
+    if (cycleError || !cycle) {
+      throw new Error('Survey cycle not found');
+    }
+
+    // Prevent deletion of active cycle
+    if (cycle.is_active) {
+      return {
+        success: false,
+        message: 'Cannot delete the active survey cycle. Please deactivate it first.'
+      };
+    }
+
+    // Check for associated spots
+    const { count: spotsCount, error: spotsError } = await supabaseAdmin
+      .from('spots')
+      .select('spot_id', { count: 'exact', head: true })
+      .eq('cycle_id', cycleId);
+
+    if (spotsError) {
+      throw spotsError;
+    }
+
+    // Check for associated survey responses
+    const { count: responsesCount, error: responsesError } = await supabaseAdmin
+      .from('survey_response')
+      .select('response_id', { count: 'exact', head: true })
+      .eq('survey_cycle_id', cycleId);
+
+    if (responsesError) {
+      throw responsesError;
+    }
+
+    // Check for associated assignments
+    const { count: assignmentsCount, error: assignmentsError } = await supabaseAdmin
+      .from('assignment')
+      .select('assignment_id', { count: 'exact', head: true })
+      .eq('cycle_id', cycleId);
+
+    if (assignmentsError) {
+      throw assignmentsError;
+    }
+
+    const hasAssociatedData = (spotsCount || 0) > 0 || (responsesCount || 0) > 0 || (assignmentsCount || 0) > 0;
+
+    // If there's associated data and force is not enabled, prevent deletion
+    if (hasAssociatedData && !force) {
+      return {
+        success: false,
+        message: `Cannot delete survey cycle "${cycle.name}". It has ${spotsCount || 0} spots, ${responsesCount || 0} survey responses, and ${assignmentsCount || 0} assignments. Use force delete to remove all associated data.`,
+        deletedData: {
+          spotsCount: spotsCount || 0,
+          responsesCount: responsesCount || 0,
+          assignmentsCount: assignmentsCount || 0
+        }
+      };
+    }
+
+    // If force is enabled, delete all associated data
+    if (force && hasAssociatedData) {
+      // Delete in correct order to respect foreign key constraints
+      
+      // 1. First get all questionnaire IDs for this cycle
+      const { data: questionnaires, error: questionnairesQueryError } = await supabaseAdmin
+        .from('questionnaires')
+        .select('questionnaire_id')
+        .eq('cycle_id', cycleId);
+
+      if (questionnairesQueryError) {
+        console.error('Error querying questionnaires:', questionnairesQueryError);
+      }
+
+      // 2. Delete visits (depends on questionnaires)
+      if (questionnaires && questionnaires.length > 0) {
+        const questionnaireIds = questionnaires.map(q => q.questionnaire_id);
+        const { error: visitsDeleteError } = await supabaseAdmin
+          .from('visits')
+          .delete()
+          .in('questionnaire_id', questionnaireIds);
+
+        if (visitsDeleteError) {
+          console.error('Error deleting visits:', visitsDeleteError);
+        }
+      }
+
+      // 3. Delete questionnaires (depends on spots)
+      const { error: questionnairesDeleteError } = await supabaseAdmin
+        .from('questionnaires')
+        .delete()
+        .eq('cycle_id', cycleId);
+
+      if (questionnairesDeleteError) {
+        console.error('Error deleting questionnaires:', questionnairesDeleteError);
+      }
+
+      // 4. Delete spots
+      const { error: spotsDeleteError } = await supabaseAdmin
+        .from('spots')
+        .delete()
+        .eq('cycle_id', cycleId);
+
+      if (spotsDeleteError) {
+        console.error('Error deleting spots:', spotsDeleteError);
+      }
+
+      // 5. Delete survey responses
+      const { error: responsesDeleteError } = await supabaseAdmin
+        .from('survey_response')
+        .delete()
+        .eq('survey_cycle_id', cycleId);
+
+      if (responsesDeleteError) {
+        console.error('Error deleting survey responses:', responsesDeleteError);
+      }
+
+      // 6. Delete assignments
+      const { error: assignmentsDeleteError } = await supabaseAdmin
+        .from('assignment')
+        .delete()
+        .eq('cycle_id', cycleId);
+
+      if (assignmentsDeleteError) {
+        console.error('Error deleting assignments:', assignmentsDeleteError);
+      }
+    }
+
+    // Finally, delete the cycle itself
+    const { error: deleteError } = await supabaseAdmin
+      .from('survey_cycle')
+      .delete()
+      .eq('cycle_id', cycleId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return {
+      success: true,
+      message: `Survey cycle "${cycle.name}" deleted successfully${force ? ' along with all associated data' : ''}.`,
+      deletedData: force ? {
+        spotsCount: spotsCount || 0,
+        responsesCount: responsesCount || 0,
+        assignmentsCount: assignmentsCount || 0
+      } : undefined
+    };
+  } catch (error) {
+    console.error('Error deleting survey cycle:', error);
+    throw new Error('Failed to delete survey cycle');
+  }
+}
+
 // Note: Supabase client doesn't require explicit connection cleanup

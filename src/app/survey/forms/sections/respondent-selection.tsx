@@ -1,8 +1,22 @@
 "use client"
 
-import { useState } from "react"
-import { Users, ArrowLeft, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Users, ArrowLeft, X, MapPin, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import type { SurveyData } from "../page"
+import { VisitStatusButton } from "@/components/survey/VisitStatusButton"
+import { KishGridDisplay } from "@/components/survey/KishGridDisplay"
+import { useSearchParams } from "next/navigation"
+import { getSurveyRecordByQuestionnaire } from "@/lib/indexedDB"
+import { selectRespondentKishGrid, getKishGridErrorMessage, isKishGridErrorRetryable, KishGridError } from "../utils/kishGrid"
+import { useGeotagging } from "../utils/useGeotagging"
+import { parseGPSCaptureError, getGPSCaptureErrorMessage, isGPSCaptureErrorRetryable, GPSCaptureErrorType } from "../utils/gpsVerification"
+
+interface GPSCoordinates {
+  lat: number
+  lng: number
+  accuracy?: number
+  timestamp?: number
+}
 
 interface HouseholdMember {
   name: string
@@ -32,12 +46,56 @@ const calculateAge = (birthdate: string): number => {
   return age
 }
 
+/**
+ * Extract numeric questionnaire number from full survey number
+ * Handles formats: "BB-2024-0001" → 1, "123" → 123
+ */
+const extractQuestionnaireNumber = (surveyNumber: string): number => {
+  if (surveyNumber.includes('-')) {
+    const parts = surveyNumber.split('-')
+    if (parts.length === 3) {
+      return parseInt(parts[2], 10)
+    }
+  }
+  return parseInt(surveyNumber, 10)
+}
+
 export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: RespondentSelectionProps) {
+  const searchParams = useSearchParams()
   const [numberOfMembers, setNumberOfMembers] = useState<number>(1)
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", birthdate: "", gender: "" }])
   const [showModal, setShowModal] = useState(false)
   const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string; birthdate: string; age: number; gender: string } | null>(null)
+  const [eligibleMembers, setEligibleMembers] = useState<Array<{ name: string; birthdate: string; gender: string; age: number }>>([])
+  const [selectedIndex, setSelectedIndex] = useState<number>(0)
   const [inputError, setInputError] = useState<string>("")
+  
+  // GPS capture state
+  const [gpsLocation, setGpsLocation] = useState<GPSCoordinates | null>(null)
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
+  const { getLocation } = useGeotagging(false)
+  
+  // Get questionnaire context from URL
+  const questionnaireIdParam = searchParams.get('questionnaireId')
+  const cycleIdParam = searchParams.get('cycleId')
+  const [currentVisitCount, setCurrentVisitCount] = useState(0)
+
+  // Load visit count from IndexedDB
+  useEffect(() => {
+    const loadVisitCount = async () => {
+      if (questionnaireIdParam) {
+        try {
+          const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
+          if (record) {
+            setCurrentVisitCount(record.visits.length)
+          }
+        } catch (error) {
+          console.error('Error loading visit count:', error)
+        }
+      }
+    }
+    loadVisitCount()
+  }, [questionnaireIdParam])
 
   const handleNumberChange = (value: string) => {
     const num = Number.parseInt(value) || 1
@@ -68,6 +126,59 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     setHouseholdMembers(updatedMembers)
   }
 
+  const captureGPSLocation = async () => {
+    setGpsStatus('capturing')
+    try {
+      const locationData = await getLocation({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        requireAddress: false // Don't need address, just coordinates
+      })
+      
+      const gpsCoords: GPSCoordinates = {
+        lat: locationData.latitude,
+        lng: locationData.longitude,
+        accuracy: locationData.accuracy,
+        timestamp: locationData.timestamp
+      }
+      
+      setGpsLocation(gpsCoords)
+      setGpsStatus('success')
+      
+      // Save to survey data
+      onUpdate("verificationLocation", gpsCoords)
+    } catch (error) {
+      setGpsStatus('error')
+      console.error('GPS capture failed:', error)
+      
+      // Parse error type and get user-friendly message
+      const errorType = parseGPSCaptureError(error)
+      const errorMessage = getGPSCaptureErrorMessage(errorType)
+      const canRetry = isGPSCaptureErrorRetryable(errorType)
+      
+      // Store error info for display
+      setGpsStatus('error')
+      
+      // Log detailed error for debugging
+      console.error('GPS capture error details:', {
+        errorType,
+        errorMessage,
+        canRetry,
+        originalError: error
+      })
+    }
+  }
+
+  const proceedWithoutGPS = () => {
+    // Allow proceeding without GPS but flag for review
+    setGpsStatus('idle')
+    console.warn('Proceeding without GPS verification - interview will be flagged for review')
+    
+    // Clear any captured GPS data
+    setGpsLocation(null)
+    onUpdate("verificationLocation", null)
+  }
+
   const selectRespondent = () => {
     if (!surveyNumber) {
       alert("Please enter a survey questionnaire number first.")
@@ -75,40 +186,53 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     }
 
     // Filter eligible members (age 18+)
-    const eligibleMembers = householdMembers.filter((member) => {
+    const eligibleMembersList = householdMembers.filter((member) => {
       const age = calculateAge(member.birthdate)
       return age >= 18 && member.name.trim() !== "" && member.gender.trim() !== "" && member.birthdate.trim() !== ""
     })
 
-    if (eligibleMembers.length === 0) {
-      alert("No eligible household members found. All members must be 18 or older, have names, birthdate, and gender specified.")
-      return
-    }
+    // Extract questionnaire number from survey number
+    const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+    
+    // Use Kish Grid selection with comprehensive error handling
+    try {
+      const result = selectRespondentKishGrid(questionnaireNumber, eligibleMembersList)
+      
+      // Prepare eligible members with ages for Kish Grid display
+      const eligibleWithAges = eligibleMembersList.map((member) => ({
+        ...member,
+        age: calculateAge(member.birthdate)
+      }))
 
-    // Kish Grid logic: use last digit of questionnaire number
-    // For new format BB-YYYY-NNNN, extract the NNNN part
-    let questionnaireNumber = surveyNumber;
-    if (surveyNumber.includes('-')) {
-      const parts = surveyNumber.split('-');
-      if (parts.length === 3) {
-        questionnaireNumber = parts[2]; // Extract NNNN part
+      setEligibleMembers(eligibleWithAges)
+      setSelectedIndex(result.selectedIndex)
+      setSelectedRespondent({
+        number: result.selectedIndex + 1,
+        name: result.selectedMember.name,
+        birthdate: result.selectedMember.birthdate,
+        age: calculateAge(result.selectedMember.birthdate),
+        gender: result.selectedMember.gender,
+      })
+      setShowModal(true)
+    } catch (error: any) {
+      console.error('Error selecting respondent:', error)
+      
+      // Get user-friendly error message
+      const errorMessage = getKishGridErrorMessage(error)
+      
+      // Check if error is retryable
+      const canRetry = isKishGridErrorRetryable(error)
+      
+      if (canRetry) {
+        // Show retry option for transient errors
+        if (confirm(`${errorMessage}\n\nWould you like to try again?`)) {
+          selectRespondent()
+        }
+      } else {
+        // Show error message for errors requiring user correction
+        alert(errorMessage)
       }
     }
-    const lastDigit = Number.parseInt(questionnaireNumber.slice(-1)) || 0
-    const selectedIndex = lastDigit % eligibleMembers.length
-    const selected = eligibleMembers[selectedIndex]
-
-    // Find the original index for display
-    const originalIndex = householdMembers.findIndex((member) => member === selected)
-
-    setSelectedRespondent({
-      number: originalIndex + 1,
-      name: selected.name,
-      birthdate: selected.birthdate,
-      age: calculateAge(selected.birthdate),
-      gender: selected.gender,
-    })
-    setShowModal(true)
   }
 
   const handleConfirmSelection = () => {
@@ -137,10 +261,112 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Visit Status Button - shown only for questionnaire-based surveys */}
+        <VisitStatusButton
+          questionnaireId={questionnaireIdParam}
+          cycleId={cycleIdParam ? parseInt(cycleIdParam) : null}
+          currentVisitCount={currentVisitCount}
+          onVisitLogged={() => {
+            // Reload visit count after logging
+            if (questionnaireIdParam) {
+              getSurveyRecordByQuestionnaire(questionnaireIdParam).then(record => {
+                if (record) {
+                  setCurrentVisitCount(record.visits.length)
+                }
+              })
+            }
+          }}
+        />
+
         {/* Survey Number Display */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Survey Questionnaire Number</label>
           <div className="text-lg font-semibold text-blue-900">{surveyNumber || "Not provided"}</div>
+        </div>
+
+        {/* GPS Capture Section */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">GPS Verification</h3>
+            </div>
+            {gpsStatus === 'success' && (
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            )}
+          </div>
+          
+          <p className="text-sm text-gray-600 mb-4">
+            Capture your current GPS location to verify the interview location. This helps ensure data quality.
+          </p>
+
+          {gpsStatus === 'idle' && (
+            <button
+              onClick={captureGPSLocation}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <MapPin className="w-4 h-4" />
+              <span>Capture GPS Location</span>
+            </button>
+          )}
+
+          {gpsStatus === 'capturing' && (
+            <div className="flex items-center justify-center space-x-2 py-3 text-blue-600">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Capturing location...</span>
+            </div>
+          )}
+
+          {gpsStatus === 'success' && gpsLocation && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-900">Location Captured</span>
+              </div>
+              <div className="text-xs text-gray-600 space-y-1">
+                <p>Latitude: {gpsLocation.lat.toFixed(6)}</p>
+                <p>Longitude: {gpsLocation.lng.toFixed(6)}</p>
+                {gpsLocation.accuracy && <p>Accuracy: ±{gpsLocation.accuracy.toFixed(0)}m</p>}
+              </div>
+              <button
+                onClick={captureGPSLocation}
+                className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+              >
+                Recapture Location
+              </button>
+            </div>
+          )}
+
+          {gpsStatus === 'error' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm font-medium text-yellow-900">GPS Capture Failed</span>
+              </div>
+              <p className="text-xs text-gray-600 mb-3">
+                Unable to capture GPS location. You can retry or continue without GPS (interview will be flagged for review).
+              </p>
+              <div className="bg-white border border-yellow-300 rounded p-2 mb-3">
+                <p className="text-xs text-gray-700">
+                  <strong>Note:</strong> Interviews without GPS verification will be automatically flagged for supervisor review to ensure data quality.
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={captureGPSLocation}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Retry GPS Capture
+                </button>
+                <button
+                  onClick={proceedWithoutGPS}
+                  className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Continue Without GPS
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Number of Members */}
@@ -252,11 +478,11 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
       {/* Modal */}
       {showModal && selectedRespondent && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Selected Respondent</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Respondent Selection Result</h3>
                 <button
                   onClick={() => setShowModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -265,20 +491,27 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                 </button>
               </div>
 
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-green-600" />
+              {/* Kish Grid Display */}
+              <KishGridDisplay
+                members={eligibleMembers}
+                selectedIndex={selectedIndex}
+                questionnaireNumber={surveyNumber}
+              />
+
+              {/* Selected Respondent Summary */}
+              <div className="mt-6 p-4 bg-green-50 border-2 border-green-500 rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700">Selected Respondent</h4>
+                    <p className="text-lg font-semibold text-gray-900">{selectedRespondent.name}</p>
+                  </div>
                 </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">Member #{selectedRespondent.number}</h4>
-                <p className="text-lg text-gray-700 mb-2">{selectedRespondent.name}</p>
-                <div className="text-sm text-gray-600 mb-4">
-                  <p>Birthdate: {new Date(selectedRespondent.birthdate).toLocaleDateString()}</p>
-                  <p>Age: {selectedRespondent.age} years old</p>
-                  <p>Gender: {selectedRespondent.gender}</p>
+                <div className="text-sm text-gray-600 ml-13">
+                  <p>Age: {selectedRespondent.age} years • Gender: {selectedRespondent.gender}</p>
                 </div>
-                <p className="text-sm text-gray-500">
-                  This respondent was selected using Kish Grid methodology based on your survey number.
-                </p>
               </div>
 
               <div className="flex space-x-3">

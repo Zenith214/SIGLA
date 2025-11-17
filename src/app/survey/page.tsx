@@ -6,6 +6,9 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { CycleDisplay } from "@/components/survey-cycle"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+import { MySpotAssignments } from "@/components/fi-dashboard"
+import { OfflineIndicator } from "@/components/OfflineIndicator"
+import { AutoSync } from "@/components/AutoSync"
 
 interface Barangay {
   id: number;
@@ -83,7 +86,7 @@ function SurveyDashboardContent() {
   const [barangays, setBarangays] = useState<Barangay[]>([])
   const [myAssignments, setMyAssignments] = useState<Barangay[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'assignments'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'spots'>('overview')
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   // Logout handler function
@@ -186,6 +189,12 @@ function SurveyDashboardContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
+      {/* Offline Indicator */}
+      <OfflineIndicator />
+      
+      {/* Auto-sync on reconnection */}
+      <AutoSync />
+      
       {/* Header */}
       <header className="bg-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -303,21 +312,33 @@ function SurveyDashboardContent() {
                   Overall Progress
                 </button>
                 {user?.role?.toLowerCase() === 'interviewer' && (
-                  <button
-                    onClick={() => setActiveTab('assignments')}
-                    className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors relative ${
-                      activeTab === 'assignments'
-                        ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                    }`}
-                  >
-                    My Assignments
-                    {myAssignments.filter(b => b.status === 'In Progress').length > 0 && (
-                      <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
-                        {myAssignments.filter(b => b.status === 'In Progress').length}
-                      </span>
-                    )}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setActiveTab('spots')}
+                      className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors relative ${
+                        activeTab === 'spots'
+                          ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      My Spots
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('assignments')}
+                      className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors relative ${
+                        activeTab === 'assignments'
+                          ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      Legacy Assignments
+                      {myAssignments.filter(b => b.status === 'In Progress').length > 0 && (
+                        <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
+                          {myAssignments.filter(b => b.status === 'In Progress').length}
+                        </span>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -506,10 +527,16 @@ function SurveyDashboardContent() {
                 </div>
               )}
 
+              {activeTab === 'spots' && user?.role?.toLowerCase() === 'interviewer' && (
+                <div>
+                  <MySpotAssignments cycleId={activeCycle?.cycle_id} />
+                </div>
+              )}
+
               {activeTab === 'assignments' && user?.role?.toLowerCase() === 'interviewer' && (
                 <div>
                   <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
-                    My Assignments
+                    Legacy Barangay Assignments
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {loading ? (

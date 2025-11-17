@@ -51,7 +51,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#007fff' }}>
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900">PULSE</span>
@@ -59,20 +59,25 @@ export default function LandingPage() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <button onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-blue-600 transition-colors">
+              <style jsx>{`
+                .nav-link:hover {
+                  color: #007fff;
+                }
+              `}</style>
+              <button onClick={() => scrollToSection('home')} className="text-gray-700 transition-colors nav-link">
                 Home
               </button>
-              <button onClick={() => scrollToSection('features')} className="text-gray-700 hover:text-blue-600 transition-colors">
+              <button onClick={() => scrollToSection('features')} className="text-gray-700 transition-colors nav-link">
                 Features
               </button>
-              <button onClick={() => scrollToSection('how-it-works')} className="text-gray-700 hover:text-blue-600 transition-colors">
+              <button onClick={() => scrollToSection('how-it-works')} className="text-gray-700 transition-colors nav-link">
                 How It Works
               </button>
-              <button onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-blue-600 transition-colors">
+              <button onClick={() => scrollToSection('about')} className="text-gray-700 transition-colors nav-link">
                 About
               </button>
               <Link href="/login">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="text-white hover:opacity-90" style={{ backgroundColor: '#007fff' }}>
                   Login
                 </Button>
               </Link>
@@ -104,7 +109,7 @@ export default function LandingPage() {
                   About
                 </button>
                 <Link href="/login">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button className="w-full text-white hover:opacity-90" style={{ backgroundColor: '#007fff' }}>
                     Login
                   </Button>
                 </Link>
@@ -115,7 +120,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-to-b from-blue-50 to-white">
+      <section id="home" className="pt-24 pb-16 md:pt-32 md:pb-24" style={{ background: 'linear-gradient(to bottom, #e6f3ff, white)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -123,7 +128,7 @@ export default function LandingPage() {
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                   Streamline your survey operations with{" "}
-                  <span className="text-blue-600">PULSE</span>
+                  <span style={{ color: '#007fff' }}>PULSE</span>
                 </h1>
                 <p className="text-lg md:text-xl text-gray-600">
                   Efficient survey management for local governance. Measure public satisfaction and service evaluation with real-time analytics.
@@ -131,7 +136,7 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/login">
-                  <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
+                  <Button size="lg" className="text-white hover:opacity-90 w-full sm:w-auto" style={{ backgroundColor: '#007fff' }}>
                     Access System
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -140,7 +145,8 @@ export default function LandingPage() {
                   size="lg"
                   variant="outline"
                   onClick={() => scrollToSection('features')}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto border-2"
+                  style={{ borderColor: '#007fff', color: '#007fff' }}
                 >
                   Learn More
                 </Button>
@@ -165,19 +171,19 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-blue-600">Ready</div>
+              <div className="text-3xl md:text-4xl font-bold" style={{ color: '#007fff' }}>Ready</div>
               <div className="text-sm md:text-base text-gray-600 mt-2">For Deployment</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-green-600">Modern</div>
+              <div className="text-3xl md:text-4xl font-bold" style={{ color: '#008000' }}>Modern</div>
               <div className="text-sm md:text-base text-gray-600 mt-2">Technology Stack</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-purple-600">Secure</div>
+              <div className="text-3xl md:text-4xl font-bold" style={{ color: '#ff0000' }}>Secure</div>
               <div className="text-sm md:text-base text-gray-600 mt-2">Data Protection</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-orange-600">24/7</div>
+              <div className="text-3xl md:text-4xl font-bold" style={{ color: '#ffa500' }}>24/7</div>
               <div className="text-sm md:text-base text-gray-600 mt-2">System Access</div>
             </div>
           </div>
@@ -199,8 +205,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Feature 1 */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: '#e6f3ff' }}>
+                <FileText className="h-6 w-6" style={{ color: '#007fff' }} />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Survey Management</h3>
               <p className="text-gray-600">
@@ -210,8 +216,8 @@ export default function LandingPage() {
 
             {/* Feature 2 */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: '#e6ffe6' }}>
+                <Users className="h-6 w-6" style={{ color: '#008000' }} />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Assignment Tracking</h3>
               <p className="text-gray-600">
@@ -221,8 +227,8 @@ export default function LandingPage() {
 
             {/* Feature 3 */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: '#fff5e6' }}>
+                <BarChart3 className="h-6 w-6" style={{ color: '#ffa500' }} />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-time Analytics</h3>
               <p className="text-gray-600">
@@ -232,8 +238,8 @@ export default function LandingPage() {
 
             {/* Feature 4 */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-red-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: '#ffe6e6' }}>
+                <Shield className="h-6 w-6" style={{ color: '#ff0000' }} />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Data Security</h3>
               <p className="text-gray-600">
@@ -259,16 +265,16 @@ export default function LandingPage() {
           {/* Workflow Steps */}
           <div className="relative">
             {/* Connection Line (Desktop) */}
-            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-blue-200 -translate-y-1/2" style={{ zIndex: 0 }}></div>
+            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2" style={{ backgroundColor: '#b3d9ff', zIndex: 0 }}></div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-8 relative" style={{ zIndex: 1 }}>
               {/* Step 1 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg" style={{ backgroundColor: '#007fff' }}>
                   1
                 </div>
                 <div className="bg-white p-4 rounded-lg">
-                  <Database className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <Database className="h-8 w-8 mx-auto mb-2" style={{ color: '#007fff' }} />
                   <h3 className="font-semibold text-gray-900 mb-2">Create Cycle</h3>
                   <p className="text-sm text-gray-600">Admin sets up survey cycle and targets</p>
                 </div>
@@ -276,11 +282,11 @@ export default function LandingPage() {
 
               {/* Step 2 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg" style={{ backgroundColor: '#008000' }}>
                   2
                 </div>
                 <div className="bg-white p-4 rounded-lg">
-                  <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <Users className="h-8 w-8 mx-auto mb-2" style={{ color: '#008000' }} />
                   <h3 className="font-semibold text-gray-900 mb-2">Assign</h3>
                   <p className="text-sm text-gray-600">Interviewers assigned to barangays</p>
                 </div>
@@ -288,11 +294,11 @@ export default function LandingPage() {
 
               {/* Step 3 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg" style={{ backgroundColor: '#ffa500' }}>
                   3
                 </div>
                 <div className="bg-white p-4 rounded-lg">
-                  <FileText className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <FileText className="h-8 w-8 mx-auto mb-2" style={{ color: '#ffa500' }} />
                   <h3 className="font-semibold text-gray-900 mb-2">Survey</h3>
                   <p className="text-sm text-gray-600">Conduct surveys and collect data</p>
                 </div>
@@ -300,11 +306,11 @@ export default function LandingPage() {
 
               {/* Step 4 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg" style={{ backgroundColor: '#007fff' }}>
                   4
                 </div>
                 <div className="bg-white p-4 rounded-lg">
-                  <Activity className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <Activity className="h-8 w-8 mx-auto mb-2" style={{ color: '#007fff' }} />
                   <h3 className="font-semibold text-gray-900 mb-2">Track</h3>
                   <p className="text-sm text-gray-600">Monitor progress in real-time</p>
                 </div>
@@ -312,11 +318,11 @@ export default function LandingPage() {
 
               {/* Step 5 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg" style={{ backgroundColor: '#008000' }}>
                   5
                 </div>
                 <div className="bg-white p-4 rounded-lg">
-                  <TrendingUp className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2" style={{ color: '#008000' }} />
                   <h3 className="font-semibold text-gray-900 mb-2">Report</h3>
                   <p className="text-sm text-gray-600">Generate insights and reports</p>
                 </div>
@@ -340,32 +346,32 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Database className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#e6ffe6' }}>
+                <Database className="h-8 w-8" style={{ color: '#008000' }} />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Centralized Management</h3>
               <p className="text-gray-600">All survey data in one secure, accessible location</p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-blue-600" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#e6f3ff' }}>
+                <CheckCircle className="h-8 w-8" style={{ color: '#007fff' }} />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Improved Accountability</h3>
               <p className="text-gray-600">Track every assignment and survey completion</p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-purple-600" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#fff5e6' }}>
+                <Clock className="h-8 w-8" style={{ color: '#ffa500' }} />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Faster Collection</h3>
               <p className="text-gray-600">Streamlined process reduces survey time</p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="h-8 w-8 text-orange-600" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#ffe6e6' }}>
+                <TrendingUp className="h-8 w-8" style={{ color: '#ff0000' }} />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Better Decisions</h3>
               <p className="text-gray-600">Data-driven insights for policy making</p>
@@ -389,8 +395,8 @@ export default function LandingPage() {
 
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: '#e6ffe6' }}>
+                    <CheckCircle className="h-4 w-4" style={{ color: '#008000' }} />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Role-Based Access Control</h4>
@@ -399,8 +405,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: '#e6ffe6' }}>
+                    <CheckCircle className="h-4 w-4" style={{ color: '#008000' }} />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Encrypted Data Storage</h4>
@@ -409,8 +415,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: '#e6ffe6' }}>
+                    <CheckCircle className="h-4 w-4" style={{ color: '#008000' }} />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Activity Monitoring</h4>
@@ -419,8 +425,8 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-1" style={{ backgroundColor: '#e6ffe6' }}>
+                    <CheckCircle className="h-4 w-4" style={{ color: '#008000' }} />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Data Protection</h4>
@@ -461,19 +467,19 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <MapPin className="h-10 w-10 text-blue-600 mx-auto mb-4" />
+                <MapPin className="h-10 w-10 mx-auto mb-4" style={{ color: '#007fff' }} />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Local Focus</h3>
                 <p className="text-gray-600">Designed for barangay-level survey operations</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <Activity className="h-10 w-10 text-green-600 mx-auto mb-4" />
+                <Activity className="h-10 w-10 mx-auto mb-4" style={{ color: '#008000' }} />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-Time</h3>
                 <p className="text-gray-600">Live progress tracking and instant updates</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <Lock className="h-10 w-10 text-red-600 mx-auto mb-4" />
+                <Lock className="h-10 w-10 mx-auto mb-4" style={{ color: '#ff0000' }} />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Secure</h3>
                 <p className="text-gray-600">Government-grade data protection</p>
               </div>
@@ -483,16 +489,16 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
+      <section className="py-20" style={{ backgroundColor: '#007fff' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Get Started?
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-xl mb-8" style={{ color: '#e6f3ff' }}>
             Access the PULSE system and start managing your surveys efficiently.
           </p>
           <Link href="/login">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+            <Button size="lg" className="bg-white hover:bg-gray-100" style={{ color: '#007fff' }}>
               Access System
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -507,7 +513,7 @@ export default function LandingPage() {
             {/* About Column */}
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#007fff' }}>
                   <Building2 className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">PULSE</span>
@@ -516,7 +522,7 @@ export default function LandingPage() {
                 Public Understanding and Local Service Evaluation system for efficient government survey management.
               </p>
               <div className="flex items-center space-x-2 text-sm">
-                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#007fff' }}></div>
                 <span>For Official Government Use Only</span>
               </div>
             </div>

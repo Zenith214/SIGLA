@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     const sequencePart = String(questionnaireNumber).padStart(4, '0');
     const fullSurveyNumber = `${barangayPart}-${yearPart}-${sequencePart}`;
 
+    // Note: We no longer return 'type' field (odd/even)
+    // Gender requirements are now calculated dynamically based on questionnaire number parity
     return NextResponse.json({
       success: true,
       questionnaireNumber: questionnaireNumber,

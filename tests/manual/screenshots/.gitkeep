@@ -1,0 +1,22 @@
+# Screenshots Directory
+
+Store test screenshots here organized by date:
+
+```
+screenshots/
+├── 2024-11-17/
+│   ├── kish-grid-1.1-single-member-pass.png
+│   ├── gps-3.6-within-threshold-pass.png
+│   └── ...
+├── 2024-11-18/
+│   └── ...
+```
+
+## Naming Convention
+
+`[section]-[test-number]-[description]-[status].png`
+
+Examples:
+- `kish-grid-1.1-single-member-pass.png`
+- `gps-3.6-within-threshold-fail.png`
+- `offline-5.3-sync-error.png`

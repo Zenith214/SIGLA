@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
       if (includeAwards) {
         // Get detailed award information
         cycleAwards = await CycleAwardsService.getCycleAwards(targetCycleId);
+        console.log(`📊 Fetched ${cycleAwards.length} cycle awards for cycle ${targetCycleId}`);
+        console.log('🎯 Award data:', cycleAwards.map(a => ({ barangay_id: a.barangay_id, is_awardee: a.is_awardee })));
       } else {
         // Just get awardee IDs for filtering
         awardeeIds = await CycleAwardsService.getAwardeeBarangayIds(targetCycleId);
@@ -162,6 +164,8 @@ export async function GET(request: NextRequest) {
           awardId: null,
           cycleId: targetCycleId
         };
+        // Also set the direct isAwardee flag for convenience
+        baseBarangay.isAwardee = awardInfo?.isAwardee || false;
       }
 
       return baseBarangay;
