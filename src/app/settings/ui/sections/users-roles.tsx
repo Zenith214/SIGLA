@@ -10,11 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 
-const roleOptions = ["admin", "fs", "interviewer", "viewer"];
+const roleOptions = ["admin", "fs", "interviewer", "officer"];
 const statusOptions = ["active", "inactive"];
 
 export function UsersRoles() {
   const [users, setUsers] = useState<any[]>([])
+  const [barangays, setBarangays] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingUser, setEditingUser] = useState<any | null>(null)
@@ -27,9 +28,10 @@ export function UsersRoles() {
     lastName: "",
     email: "",
     password: "",
-    role: "viewer",
+    role: "officer",
     status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
+    barangay_id: "",
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
@@ -50,28 +52,56 @@ export function UsersRoles() {
 
   useEffect(() => {
     setLoading(true)
-    fetch("/api/users")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch users")
-        return res.json()
-      })
-      .then((data) => {
-        setUsers(data.users || data) // Handle both new and old API response formats
+    // Fetch users and barangays
+    Promise.all([
+      fetch("/api/users").then(res => res.ok ? res.json() : Promise.reject("Failed to fetch users")),
+      fetch("/api/barangays").then(res => res.ok ? res.json() : Promise.reject("Failed to fetch barangays"))
+    ])
+      .then(([usersData, barangaysData]) => {
+        console.log("Barangays API Response:", barangaysData)
+        setUsers(usersData.users || usersData)
+        // Handle different API response formats
+        // New format: { success: true, data: [...] }
+        // Old format: { barangays: [...] } or [...]
+        const barangaysList = barangaysData.data || barangaysData.barangays || barangaysData
+        console.log("Extracted barangays list:", barangaysList)
+        console.log("Is array?", Array.isArray(barangaysList))
+        setBarangays(Array.isArray(barangaysList) ? barangaysList : [])
         setLoading(false)
       })
       .catch((err) => {
-        setError(err.message)
+        console.error("Error fetching data:", err)
+        setError(err.message || err)
         setLoading(false)
       })
   }, [])
 
   // Edit
-  const handleEditClick = (user: any) => {
-    setEditingUser(user)
+  const handleEditClick = async (user: any) => {
+    // Set initial form data immediately to prevent null errors
     setEditForm({ 
       ...user,
-      role: user.role?.toLowerCase() || 'viewer'
+      role: user.role?.toLowerCase() || 'officer',
+      barangay_id: ""
     })
+    setEditingUser(user)
+    
+    // Fetch user's barangay assignment if they're an officer
+    if (user.role?.toLowerCase() === 'officer') {
+      try {
+        const assignmentRes = await fetch(`/api/users/${user.id}/assignment`);
+        if (assignmentRes.ok) {
+          const assignmentData = await assignmentRes.json();
+          // Update form with barangay assignment
+          setEditForm((prev: any) => ({ 
+            ...prev,
+            barangay_id: assignmentData.barangay_id || ""
+          }))
+        }
+      } catch (err) {
+        console.error("Failed to fetch user assignment:", err);
+      }
+    }
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
@@ -79,6 +109,7 @@ export function UsersRoles() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
+      // Update user role
       const res = await fetch(`/api/users/${editForm.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +117,29 @@ export function UsersRoles() {
       })
       if (!res.ok) throw new Error("Failed to update user")
       const updated = await res.json()
+      
+      // If officer role and barangay selected, create/update assignment
+      if (editForm.role === 'officer' && editForm.barangay_id) {
+        try {
+          await fetch("/api/assignments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: editForm.id,
+              barangay_id: parseInt(editForm.barangay_id),
+              status: "Active"
+            }),
+          });
+        } catch (assignErr) {
+          console.error("Failed to create assignment:", assignErr);
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "User updated but barangay assignment failed. Please assign manually in the Assignments tab.",
+          });
+        }
+      }
+      
       setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
       setEditForm(null)
@@ -141,9 +195,10 @@ export function UsersRoles() {
       lastName: "",
       email: "",
       password: "",
-      role: "viewer",
+      role: "officer",
       status: "Active",
       lastLogin: new Date().toISOString().slice(0, 10),
+      barangay_id: "",
     })
   }
   const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -161,6 +216,29 @@ export function UsersRoles() {
       })
       if (!res.ok) throw new Error("Failed to add user")
       const response = await res.json()
+      
+      // If officer role and barangay selected, create assignment
+      if (addForm.role === 'officer' && addForm.barangay_id) {
+        try {
+          await fetch("/api/assignments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: response.user.id,
+              barangay_id: parseInt(addForm.barangay_id),
+              status: "Active"
+            }),
+          });
+        } catch (assignErr) {
+          console.error("Failed to create assignment:", assignErr);
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "User created but barangay assignment failed. Please assign manually in the Assignments tab.",
+          });
+        }
+      }
+      
       setUsers([response.user, ...users])
       setAddingUser(false)
       setAddForm({
@@ -168,9 +246,10 @@ export function UsersRoles() {
         lastName: "",
         email: "",
         password: "",
-        role: "viewer",
+        role: "officer",
         status: "active",
         lastLogin: new Date().toISOString().slice(0, 10),
+        barangay_id: "",
       })
       toast({
         title: "User Added Successfully!",
@@ -192,7 +271,7 @@ export function UsersRoles() {
     { role: "admin", count: users.filter(u => u.role === "admin").length, color: "bg-red-100 text-red-800" },
     { role: "fs", count: users.filter(u => u.role === "fs").length, color: "bg-purple-100 text-purple-800" },
     { role: "interviewer", count: users.filter(u => u.role === "interviewer").length, color: "bg-blue-100 text-blue-800" },
-    { role: "viewer", count: users.filter(u => u.role === "viewer").length, color: "bg-gray-100 text-gray-800" },
+    { role: "officer", count: users.filter(u => u.role === "officer").length, color: "bg-gray-100 text-gray-800" },
   ]
 
   if (loading) {
@@ -277,13 +356,13 @@ export function UsersRoles() {
                   </ul>
                 </div>
                 <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-gray-800">Viewer</h3>
-                  <p className="text-sm text-gray-600 mt-1">Read-only access to reports and data</p>
+                  <h3 className="font-semibold text-gray-800">Officer</h3>
+                  <p className="text-sm text-gray-600 mt-1">LGU official with governance responsibilities</p>
                   <ul className="text-xs text-gray-600 mt-2 space-y-1">
                     <li>• View reports</li>
-                    <li>• Export reports</li>
+                    <li>• Create and manage CPAPs</li>
                     <li>• Dashboard access</li>
-                    <li>• No data modification</li>
+                    <li>• Track action plan progress</li>
                   </ul>
                 </div>
               </div>
@@ -411,8 +490,8 @@ export function UsersRoles() {
       </Card>
 
       {/* Edit Modal */}
-      {editingUser && (
-        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) setEditingUser(null) }}>
+      {editingUser && editForm && (
+        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) { setEditingUser(null); setEditForm(null); } }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
@@ -420,25 +499,39 @@ export function UsersRoles() {
             <div className="space-y-4 mt-2">
               <div>
                 <label className="block text-sm font-medium mb-1">First Name</label>
-                <Input name="firstName" value={editForm.firstName} onChange={handleEditChange} />
+                <Input name="firstName" value={editForm?.firstName || ""} onChange={handleEditChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Last Name</label>
-                <Input name="lastName" value={editForm.lastName} onChange={handleEditChange} />
+                <Input name="lastName" value={editForm?.lastName || ""} onChange={handleEditChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <Input name="email" value={editForm.email} readOnly disabled />
+                <Input name="email" value={editForm?.email || ""} readOnly disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
-                <select name="role" value={editForm.role} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                <select name="role" value={editForm?.role || "officer"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
                   {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
                 </select>
               </div>
+              {editForm.role === 'officer' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assigned Barangay</label>
+                  <select name="barangay_id" value={editForm.barangay_id || ""} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                    <option value="">Select Barangay</option>
+                    {Array.isArray(barangays) && barangays.map(barangay => (
+                      <option key={barangay.id} value={barangay.id}>
+                        {barangay.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Required for CPAP submission access</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
-                <select name="status" value={editForm.status} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                <select name="status" value={editForm?.status || "active"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
                   {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
               </div>
@@ -508,6 +601,20 @@ export function UsersRoles() {
                   {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
                 </select>
               </div>
+              {addForm.role === 'officer' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assigned Barangay</label>
+                  <select name="barangay_id" value={addForm.barangay_id || ""} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
+                    <option value="">Select Barangay</option>
+                    {Array.isArray(barangays) && barangays.map(barangay => (
+                      <option key={barangay.id} value={barangay.id}>
+                        {barangay.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Required for CPAP submission access</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select name="status" value={addForm.status} onChange={handleAddChange} className="w-full border rounded px-2 py-1">

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         firstName: user.firstName,
                         lastName: user.lastName,
                 email: user.email,
-                role: (user.role || 'viewer').toLowerCase(), // Ensure role is lowercase
+                role: (user.role || 'officer').toLowerCase(), // Ensure role is lowercase
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
     // Set JWT as HttpOnly cookie
     const response = NextResponse.json({ 
       message: 'Login successful',
-      role: (user.role || 'viewer').toLowerCase(),
+      role: (user.role || 'officer').toLowerCase(),
       user: {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: (user.role || 'viewer').toLowerCase()
+        role: (user.role || 'officer').toLowerCase()
       }
     }, { status: 200 });
     

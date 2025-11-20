@@ -101,8 +101,8 @@ function SurveyDashboardContent() {
         return 'Administrator'
       case 'interviewer':
         return 'Field Interviewer'
-      case 'viewer':
-        return 'Data Viewer'
+      case 'officer':
+        return 'LGU Officer'
       default:
         return 'User'
     }
@@ -114,7 +114,7 @@ function SurveyDashboardContent() {
         return 'Manage assignments, monitor survey progress, and oversee all survey operations across assigned barangays.'
       case 'interviewer':
         return 'Continue your survey work and track progress across your assigned barangays.'
-      case 'viewer':
+      case 'officer':
         return 'View assignment progress and survey data across all assigned barangays.'
       default:
         return 'Access assignment information and track survey progress.'

@@ -517,12 +517,12 @@ describe('End-to-End Survey Cycle Integration Tests', () => {
      */
     it('should restrict cycle switching for non-admin users', async () => {
       // Mock non-admin user
-      const mockViewerUser = {
+      const mockOfficerUser = {
         id: '2',
-        firstName: 'Viewer',
+        firstName: 'Officer',
         lastName: 'User',
-        email: 'viewer@test.com',
-        role: 'viewer'
+        email: 'officer@test.com',
+        role: 'officer'
       };
 
       // Mock unauthorized cycle change attempt
@@ -552,7 +552,7 @@ describe('End-to-End Survey Cycle Integration Tests', () => {
 
       // Verify UI shows appropriate message for non-admin users
       const uiState = {
-        canChangeCycle: mockViewerUser.role === 'admin',
+        canChangeCycle: mockOfficerUser.role === 'admin',
         restrictionMessage: 'Only administrators can change the active survey cycle.'
       };
 

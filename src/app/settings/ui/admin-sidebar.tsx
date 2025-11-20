@@ -56,19 +56,19 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   return (
-    <Sidebar className="border-r border-gray-200">
-      <SidebarHeader className="border-b border-gray-200 p-4">
+    <Sidebar className="border-r border-slate-300 bg-white">
+      <SidebarHeader className="border-b border-slate-300 p-4 bg-slate-50">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
             <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">PULSE Admin</h2>
-            <p className="text-sm text-gray-600">Settings Panel</p>
+            <h2 className="text-lg font-semibold text-slate-900">PULSE Admin</h2>
+            <p className="text-sm text-slate-600">Settings Panel</p>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-2 bg-white">
         <SidebarMenu className="space-y-1">
           {navigationItems.map((item) => (
             <SidebarMenuItem key={item.id}>
@@ -76,9 +76,9 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
                 onClick={() => onSectionChange(item.id)}
                 isActive={activeSection === item.id}
                 className={cn(
-                  "w-full justify-start px-4 py-3 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors",
+                  "w-full justify-start px-4 py-3 text-sm font-medium hover:bg-slate-100 rounded-lg transition-colors text-slate-700",
                   activeSection === item.id &&
-                    "bg-blue-50 text-blue-700 hover:bg-blue-100 border-l-4 border-blue-500 shadow-sm",
+                    "bg-slate-700 text-white hover:bg-slate-600 shadow-sm",
                 )}
               >
                 <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />

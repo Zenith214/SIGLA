@@ -116,8 +116,8 @@ export default function AdminSettingsPanel() {
 
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-blue-50">
-        <div className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4">
+      <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
+        <div className="flex h-16 shrink-0 items-center gap-2 border-b bg-slate-800 px-4">
           <Skeleton className="h-8 w-8" />
           <Skeleton className="h-4 w-32" />
           <div className="ml-auto flex items-center gap-4">
@@ -146,7 +146,7 @@ export default function AdminSettingsPanel() {
           <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
           <SidebarInset>
           {/* Header */}
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-primary px-4 sticky top-0 z-10">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-slate-800 px-4 sticky top-0 z-10">
           <Button
               variant="ghost"
               size="sm"
@@ -196,7 +196,7 @@ export default function AdminSettingsPanel() {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto bg-blue-50">
+          <main className="flex-1 overflow-auto" style={{ backgroundColor: '#dbeafe' }}>
             <div className="container mx-auto p-6 max-w-7xl">{renderSection()}</div>
           </main>
         </SidebarInset>

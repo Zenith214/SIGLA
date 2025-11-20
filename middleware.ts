@@ -15,12 +15,18 @@ const PUBLIC_PATHS = [
 // Define admin-only routes
 const ADMIN_ROUTES = [
   '/settings',
+  '/admin/cpap',
   '/api/users',
   '/api/barangays',
   '/api/survey-cycles',
   '/api/survey-targets',
   '/api/assignments',
   '/api/backups',
+];
+
+// Define Officer routes (Officer and Admin can access)
+const OFFICER_ROUTES = [
+  '/cpap',
 ];
 
 // Define Field Supervisor routes (FS and Admin can access)
@@ -52,6 +58,8 @@ const PROTECTED_ROUTES = [
   '/settings',
   '/survey',
   '/fs-dashboard',
+  '/cpap',
+  '/admin/cpap',
   '/api/users',
   '/api/barangays',
   '/api/survey-cycles',
@@ -65,6 +73,7 @@ const PROTECTED_ROUTES = [
   '/api/visits',
   '/api/sync',
   '/api/survey-responses',
+  '/api/cpap',
   '/api/me',
 ];
 
@@ -211,7 +220,7 @@ export function middleware(request: NextRequest) {
   }
 
   const user = tokenValidation.user!;
-  const userRole = (user.role || 'viewer').toLowerCase();
+  const userRole = (user.role || 'officer').toLowerCase();
 
   // Special redirect for interviewers accessing dashboard
   if (pathname === '/dashboard' && userRole === 'interviewer') {
@@ -231,13 +240,52 @@ export function middleware(request: NextRequest) {
         );
       }
       
-      // Redirect to dashboard for non-admin users
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = '/dashboard';
-      dashboardUrl.searchParams.set('redirected', '1');
-      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
-      dashboardUrl.searchParams.set('attempted_path', pathname);
-      return NextResponse.redirect(dashboardUrl);
+      // Redirect to 403 forbidden page for non-admin users
+      const forbiddenUrl = request.nextUrl.clone();
+      forbiddenUrl.pathname = '/forbidden';
+      forbiddenUrl.searchParams.set('reason', 'insufficient_permissions');
+      forbiddenUrl.searchParams.set('attempted_path', pathname);
+      return NextResponse.redirect(forbiddenUrl);
+    }
+  }
+
+  // Check Officer routes (Officer and Admin can access)
+  if (OFFICER_ROUTES.some(route => pathname.startsWith(route))) {
+    if (userRole !== 'officer' && userRole !== 'admin') {
+      // For API routes, return a 403 Forbidden response
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'You need Officer privileges to access this resource' },
+          { status: 403 }
+        );
+      }
+      
+      // Redirect to 403 forbidden page for FS and INTERVIEWER users
+      const forbiddenUrl = request.nextUrl.clone();
+      forbiddenUrl.pathname = '/forbidden';
+      forbiddenUrl.searchParams.set('reason', 'role_restricted');
+      forbiddenUrl.searchParams.set('attempted_path', pathname);
+      return NextResponse.redirect(forbiddenUrl);
+    }
+  }
+
+  // Check CPAP API routes with specific role-based access control
+  if (pathname.startsWith('/api/cpap')) {
+    // Admin can approve and request revisions
+    if (pathname.includes('/approve') || pathname.includes('/request-revision')) {
+      if (userRole !== 'admin') {
+        return NextResponse.json(
+          { error: 'Insufficient permissions', message: 'Only ADMIN users can review CPAPs' },
+          { status: 403 }
+        );
+      }
+    }
+    // Officer and Admin can access other CPAP endpoints
+    else if (userRole !== 'officer' && userRole !== 'admin') {
+      return NextResponse.json(
+        { error: 'Insufficient permissions', message: 'You need Officer or Admin privileges to access CPAP resources' },
+        { status: 403 }
+      );
     }
   }
 

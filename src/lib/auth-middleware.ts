@@ -39,7 +39,7 @@ export function verifyAuth(request: NextRequest): AuthResult {
       firstName: decoded.firstName,
       lastName: decoded.lastName,
       email: decoded.email,
-      role: (decoded.role || 'viewer').toLowerCase()
+      role: (decoded.role || 'officer').toLowerCase()
     };
 
     return {

@@ -233,7 +233,7 @@ describe('CycleSelectorDropdown', () => {
   describe('Permission Handling', () => {
     it('should disable selector for non-admin users', () => {
       mockUseAuth.mockReturnValue({
-        user: { id: '1', firstName: 'Test', lastName: 'User', email: 'user@test.com', role: 'viewer' },
+        user: { id: '1', firstName: 'Test', lastName: 'User', email: 'user@test.com', role: 'officer' },
         isAuthenticated: true,
         isLoading: false,
         login: jest.fn(),

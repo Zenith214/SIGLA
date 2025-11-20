@@ -24,7 +24,7 @@ model User {
   lastName     String    @db.VarChar(191)
   organization String?   @db.VarChar(191)
   phone        String?   @db.VarChar(191)
-  role         String?   @default("Viewer") @db.VarChar(32)
+  role         String?   @default("officer") @db.VarChar(32)
   status       String?   @default("Active") @db.VarChar(16)
   lastLogin    DateTime?
 
@@ -63,6 +63,7 @@ model Barangay {
   year_data        BarangayYearData[]
   cycle_awards     CycleAward[]
   spots            Spot[]
+  cpaps            CPAP[]
 
   @@map("barangay")
 }
@@ -332,6 +333,7 @@ model SurveyCycle {
   cycle_awards     CycleAward[]
   spots            Spot[]
   questionnaires   Questionnaire[]
+  cpaps            CPAP[]
 
   @@index([is_active])
   @@map("survey_cycle")
@@ -576,4 +578,60 @@ enum VisitOutcome {
   Interview_Completed
   Refused
   Household_Moved
+}
+
+// ============================================================================
+// CPAP (CITIZEN PRIORITY ACTION PLAN) MODULE
+// ============================================================================
+
+model CPAP {
+  id              Int        @id @default(autoincrement())
+  barangay_id     Int
+  cycle_id        Int
+  status          CPAPStatus @default(Draft)
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  submitted_at    DateTime?
+  approved_at     DateTime?
+  admin_comments  String?    @db.Text
+
+  // Relations
+  barangay Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  cycle    SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  items    CPAPItem[]
+
+  @@unique([barangay_id, cycle_id])
+  @@index([status])
+  @@index([barangay_id])
+  @@index([cycle_id])
+  @@map("cpaps")
+}
+
+model CPAPItem {
+  id                    Int       @id @default(autoincrement())
+  cpap_id               Int
+  priority_area         String    @db.VarChar(255)
+  target_output         String    @db.Text
+  success_indicator     String    @db.Text
+  responsible_person    String    @db.VarChar(255)
+  timeline_start        DateTime  @db.Date
+  timeline_end          DateTime  @db.Date
+  actual_output         String?   @db.Text
+  accomplishment_status String?   @db.VarChar(50)
+  remarks               String?   @db.Text
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  // Relations
+  cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
+
+  @@index([cpap_id])
+  @@map("cpap_items")
+}
+
+enum CPAPStatus {
+  Draft
+  Submitted
+  Approved
+  Revision_Requested
 }

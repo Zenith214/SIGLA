@@ -93,29 +93,27 @@ export default function LandingPage() {
           </div>
 
           {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-200">
-              <div className="flex flex-col space-y-4">
-                <button onClick={() => scrollToSection('home')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
-                  Home
-                </button>
-                <button onClick={() => scrollToSection('features')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
-                  Features
-                </button>
-                <button onClick={() => scrollToSection('how-it-works')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
-                  How It Works
-                </button>
-                <button onClick={() => scrollToSection('about')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
-                  About
-                </button>
-                <Link href="/login">
-                  <Button className="w-full text-white hover:opacity-90" style={{ backgroundColor: '#007fff' }}>
-                    Login
-                  </Button>
-                </Link>
-              </div>
+          <div className={`md:hidden py-4 border-t border-gray-200 ${mobileMenuOpen ? 'block' : 'hidden'}`}>
+            <div className="flex flex-col space-y-4">
+              <button onClick={() => scrollToSection('home')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
+                Home
+              </button>
+              <button onClick={() => scrollToSection('features')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
+                Features
+              </button>
+              <button onClick={() => scrollToSection('how-it-works')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
+                How It Works
+              </button>
+              <button onClick={() => scrollToSection('about')} className="text-left text-gray-700 hover:text-blue-600 transition-colors">
+                About
+              </button>
+              <Link href="/login">
+                <Button className="w-full text-white hover:opacity-90" style={{ backgroundColor: '#007fff' }}>
+                  Login
+                </Button>
+              </Link>
             </div>
-          )}
+          </div>
         </div>
       </nav>
 

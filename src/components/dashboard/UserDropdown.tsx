@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, BarChart3, LogOut } from "lucide-react";
+import { Settings, BarChart3, LogOut, ClipboardList, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -25,6 +25,12 @@ export default function UserDropdown() {
       case "survey-dashboard":
         router.push("/survey");
         break;
+      case "cpap":
+        router.push("/cpap");
+        break;
+      case "cpap-management":
+        router.push("/admin/cpap");
+        break;
       case "logout":
         await logout();
         break;
@@ -33,8 +39,11 @@ export default function UserDropdown() {
 
   // Get user initials for avatar
   const getUserInitials = () => {
-    if (user?.name) {
-      return user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.firstName) {
+      return user.firstName[0].toUpperCase();
     }
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
@@ -49,15 +58,29 @@ export default function UserDropdown() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        {/* Hide Settings for viewer role */}
-        {user?.role !== 'viewer' && (
+        {/* Show CPAP Submission for Officer role only */}
+        {user?.role?.toLowerCase() === 'officer' && (
+          <DropdownMenuItem onClick={() => handleMenuClick("cpap")}>
+            <ClipboardList className="mr-2 h-4 w-4" />
+            <span>CPAP Submission</span>
+          </DropdownMenuItem>
+        )}
+        {/* Show CPAP Management for Admin role only */}
+        {user?.role?.toLowerCase() === 'admin' && (
+          <DropdownMenuItem onClick={() => handleMenuClick("cpap-management")}>
+            <CheckSquare className="mr-2 h-4 w-4" />
+            <span>CPAP Management</span>
+          </DropdownMenuItem>
+        )}
+        {/* Hide Settings for officer role */}
+        {user?.role?.toLowerCase() !== 'officer' && (
           <DropdownMenuItem onClick={() => handleMenuClick("settings")}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
         )}
-        {/* Hide Survey Dashboard for viewer role */}
-        {user?.role !== 'viewer' && (
+        {/* Hide Survey Dashboard for officer role */}
+        {user?.role?.toLowerCase() !== 'officer' && (
           <DropdownMenuItem onClick={() => handleMenuClick("survey-dashboard")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             <span>Survey Dashboard</span>
