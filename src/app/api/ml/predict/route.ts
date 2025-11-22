@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       barangay_id: parseInt(barangayId),
-      model_type: modelType,
+      model_type: predictions?.model_type || 'unknown',
       predictions: predictions,
       timestamp: new Date().toISOString()
     });
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       barangay_id: parseInt(barangayId),
-      model_type: modelType,
+      model_type: predictions?.model_type || 'unknown',
       predictions: predictions,
       timestamp: new Date().toISOString()
     });
