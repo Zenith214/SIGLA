@@ -5,6 +5,44 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
+// In-memory cache for ML predictions
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const predictionCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+function getCacheKey(barangayId: string): string {
+  return `ml-predict-${barangayId}`;
+}
+
+function getCachedPrediction(barangayId: string): any | null {
+  const key = getCacheKey(barangayId);
+  const entry = predictionCache.get(key);
+  
+  if (!entry) return null;
+  
+  // Check if expired
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    predictionCache.delete(key);
+    return null;
+  }
+  
+  console.log(`✅ Cache hit for ML prediction: barangay ${barangayId}`);
+  return entry.data;
+}
+
+function setCachedPrediction(barangayId: string, data: any): void {
+  const key = getCacheKey(barangayId);
+  predictionCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+  console.log(`💾 Cached ML prediction for barangay ${barangayId}`);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -15,6 +53,15 @@ export async function POST(request: NextRequest) {
         { error: "barangayId is required" },
         { status: 400 }
       );
+    }
+
+    // Check cache first
+    const cachedResult = getCachedPrediction(barangayId);
+    if (cachedResult) {
+      return NextResponse.json({
+        ...cachedResult,
+        cached: true
+      });
     }
 
     // Call the ML analysis Python script
@@ -45,12 +92,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const result = {
       barangay_id: parseInt(barangayId),
       model_type: predictions?.model_type || 'unknown',
       predictions: predictions,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // Cache the result
+    setCachedPrediction(barangayId, result);
+
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error("Error in ML prediction:", error);
@@ -73,6 +125,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check cache first
+    const cachedResult = getCachedPrediction(barangayId);
+    if (cachedResult) {
+      return NextResponse.json({
+        ...cachedResult,
+        cached: true
+      });
+    }
+
     // Call the ML analysis Python script
     const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
     
@@ -101,12 +162,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const result = {
       barangay_id: parseInt(barangayId),
       model_type: predictions?.model_type || 'unknown',
       predictions: predictions,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // Cache the result
+    setCachedPrediction(barangayId, result);
+
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error("Error in ML prediction:", error);

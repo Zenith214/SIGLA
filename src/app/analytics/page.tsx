@@ -35,9 +35,9 @@ export default function AnalyticsPage() {
       {/* Header with cycle information */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Survey Analytics</h1>
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Survey Analytics</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <div className="text-sm text-gray-600">
                 {hasActiveCycle ? (
                   <div>
@@ -47,14 +47,14 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-amber-600 font-medium bg-amber-50 px-3 py-2 rounded-md">
+                  <div className="text-amber-600 font-medium bg-amber-50 px-3 py-2 rounded-md text-xs sm:text-sm">
                     ⚠️ No Active Cycle
                   </div>
                 )}
               </div>
               <a
                 href="/dashboard"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-center"
               >
                 Back to Dashboard
               </a>
@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         <SurveyAnalyticsDashboard />
       </div>
     </div>

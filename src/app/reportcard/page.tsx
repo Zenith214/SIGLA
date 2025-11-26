@@ -975,34 +975,35 @@ function ReportCardContent() {
       {/* Web Header */}
       <div className="bg-slate-800 shadow-sm border-b print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <Link href="/dashboard">
-                <Button variant="outline" size="sm" className="bg-white text-slate-800 hover:bg-gray-100">
+                <Button variant="outline" size="sm" className="bg-white text-slate-800 hover:bg-gray-100 w-full sm:w-auto">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Dashboard
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-white">{barangayData.barangay} Report Card</h1>
-                <p className="text-gray-200">Satisfaction Index Analysis Report</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">{barangayData.barangay} Report Card</h1>
+                <p className="text-sm sm:text-base text-gray-200">Satisfaction Index Analysis Report</p>
               </div>
             </div>
-            <div className="flex gap-2 print:hidden">
+            <div className="flex flex-wrap gap-2 print:hidden">
               <Button
                 variant="outline"
                 onClick={handleForceRefresh}
                 disabled={isRefreshing}
-                className="bg-white text-slate-800 hover:bg-gray-100"
+                className="bg-white text-slate-800 hover:bg-gray-100 text-sm"
+                size="sm"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                <RefreshCw className={`w-4 h-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </Button>
-              <Button variant="outline" onClick={() => setShowResponsesModal(true)}>
-                <Eye className="w-4 h-4 mr-2" />
-                View Participants
+              <Button variant="outline" onClick={() => setShowResponsesModal(true)} size="sm" className="text-sm">
+                <Eye className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">View Participants</span>
               </Button>
-              <div className="flex items-center gap-2 text-sm text-white">
+              <div className="hidden md:flex items-center gap-2 text-sm text-white">
                 {barangayData.cycleId ? (
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
@@ -1020,19 +1021,19 @@ function ReportCardContent() {
                   <span className="text-amber-300 font-medium">⚠️ No Active Cycle</span>
                 )}
               </div>
-              <div className="text-gray-400">|</div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="hidden md:block text-gray-400">|</div>
+              <div className="hidden md:flex items-center gap-2 text-sm">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-green-200">ML Enhanced</span>
               </div>
-              <Button variant="outline" onClick={handleShareReport}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
+              <Button variant="outline" onClick={handleShareReport} size="sm" className="text-sm">
+                <Share2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Share</span>
               </Button>
               <div className="relative group">
-                <Button onClick={handleDownloadReport}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
+                <Button onClick={handleDownloadReport} size="sm" className="text-sm">
+                  <Download className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export</span>
                 </Button>
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                   <div className="p-2">
@@ -1057,14 +1058,14 @@ function ReportCardContent() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:max-w-none print:px-0 print:py-0">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:single-column print:gap-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 print:max-w-none print:px-0 print:py-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 print:single-column print:gap-0">
           {/* Left Column - Overview (Web Only) */}
-          <div className="lg:col-span-1 space-y-6 print:hidden">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6 print:hidden">
             {/* Barangay Logo */}
             <Card>
-              <CardContent className="p-8">
-                <div className="border-2 border-gray-200 rounded-xl p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-32">
+              <CardContent className="p-4 sm:p-8">
+                <div className="border-2 border-gray-200 rounded-xl p-4 sm:p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-24 sm:h-32">
                   {barangayData.logo_url ? (
                     <img
                       src={barangayData.logo_url}
@@ -1085,23 +1086,23 @@ function ReportCardContent() {
 
             {/* Overall Satisfaction */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
                   Overall Satisfaction
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <div className={`text-4xl font-bold mb-2 ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`text-3xl sm:text-4xl font-bold mb-2 ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
                     {formatPercentage(barangayData.satisfaction)}%
                   </div>
-                  <Badge variant={isHighSatisfaction ? 'default' : 'destructive'} className="mb-4">
+                  <Badge variant={isHighSatisfaction ? 'default' : 'destructive'} className="mb-3 sm:mb-4 text-xs sm:text-sm">
                     {isHighSatisfaction ? 'Good Performance' : 'Needs Improvement'}
                   </Badge>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                     <div
-                      className={`h-3 rounded-full transition-all duration-300 ${isHighSatisfaction ? 'bg-green-500' : 'bg-red-500'
+                      className={`h-2 sm:h-3 rounded-full transition-all duration-300 ${isHighSatisfaction ? 'bg-green-500' : 'bg-red-500'
                         }`}
                       style={{ width: `${barangayData.satisfaction}%` }}
                     ></div>
@@ -1112,33 +1113,33 @@ function ReportCardContent() {
 
             {/* Barangay Information */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
                   Barangay Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
+              <CardContent className="space-y-2 sm:space-y-3">
+                <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-gray-600">Population:</span>
                   <span className="font-medium">{barangayData.population.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-gray-600">Households:</span>
                   <span className="font-medium">{barangayData.households.toLocaleString()}</span>
                 </div>
                 {barangayData.area > 0 && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm sm:text-base">
                     <span className="text-gray-600">Area:</span>
                     <span className="font-medium">{barangayData.area} km²</span>
                   </div>
                 )}
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-gray-600">Survey Status:</span>
-                  <Badge variant="outline">{barangayData.surveyStatus}</Badge>
+                  <Badge variant="outline" className="text-xs sm:text-sm">{barangayData.surveyStatus}</Badge>
                 </div>
                 {barangayData.responses > 0 && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm sm:text-base">
                     <span className="text-gray-600">Survey Participants:</span>
                     <span className="font-medium">{barangayData.responses} residents</span>
                   </div>
@@ -1148,11 +1149,11 @@ function ReportCardContent() {
           </div>
 
           {/* Right Column - Detailed Analysis */}
-          <div className="lg:col-span-2 space-y-6 print:full-width">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 print:full-width">
             {/* Executive Summary */}
             <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 print:section">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-purple-900">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="flex items-center gap-2 text-purple-900 text-base sm:text-lg">
                   <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
                   <h2 className="hidden print:show">Executive Summary & Action Plan</h2>
                   <span className="print:hidden">📋 Executive Summary & Action Plan</span>
@@ -1168,15 +1169,15 @@ function ReportCardContent() {
 
             {/* Service Area Performance */}
             <Card className="print:section print:page-break-before">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 print:hidden" />
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 print:hidden" />
                   <h2 className="hidden print:show">Service Area Performance Analysis</h2>
                   <span className="print:hidden">Service Area Performance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:metric-grid">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 print:metric-grid">
                   {[
                     { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
                     { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
@@ -1187,12 +1188,12 @@ function ReportCardContent() {
                   ].map((category) => (
                     <div
                       key={category.key}
-                      className="p-4 border rounded-lg print:metric-item print:break-inside-avoid cursor-pointer hover:shadow-lg transition-shadow print:cursor-auto print:hover:shadow-none"
+                      className="p-3 sm:p-4 border rounded-lg print:metric-item print:break-inside-avoid cursor-pointer hover:shadow-lg transition-shadow print:cursor-auto print:hover:shadow-none"
                       onClick={() => handleServiceAreaClick(category)}
                     >
-                      <div className="mb-3 print:metric-label flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{category.label}</span>
-                        <div className="flex items-center gap-2 print:hidden">
+                      <div className="mb-2 sm:mb-3 print:metric-label flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <span className="font-medium text-gray-900 text-sm sm:text-base">{category.label}</span>
+                        <div className="flex items-center gap-2 print:hidden flex-wrap">
                           {(() => {
                             const trend = trendsData[category.key];
                             if (trend && trend.available && trend.direction !== 'baseline') {
@@ -1218,11 +1219,11 @@ function ReportCardContent() {
                       </div>
 
                       {/* Web Layout - Side by side */}
-                      <div className="flex items-start justify-between print:hidden">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0 print:hidden">
                         {/* Donut Chart for Satisfaction */}
                         <div className="flex flex-col items-center">
-                          <div className="relative w-20 h-20">
-                            <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                          <div className="relative w-16 h-16 sm:w-20 sm:h-20">
+                            <svg className="w-16 h-16 sm:w-20 sm:h-20 transform -rotate-90" viewBox="0 0 36 36">
                               {/* Background circle */}
                               <path
                                 d="M18 2.0845
@@ -1245,7 +1246,7 @@ function ReportCardContent() {
                               />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <span className={`text-sm font-bold ${category.score > 57 ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className={`text-xs sm:text-sm font-bold ${category.score > 57 ? 'text-green-600' : 'text-red-600'}`}>
                                 {formatPercentage(category.score)}%
                               </span>
                             </div>
@@ -1255,7 +1256,7 @@ function ReportCardContent() {
 
                         {/* Badge for Need for Action */}
                         <div className="flex flex-col items-center">
-                          <div className={`px-3 py-2 rounded-full text-sm font-bold ${category.need < 50
+                          <div className={`px-2 sm:px-3 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-bold ${category.need < 50
                             ? 'bg-blue-100 text-blue-800 border border-blue-300'
                             : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                             }`}>
@@ -1265,7 +1266,7 @@ function ReportCardContent() {
                         </div>
 
                         {/* Common Needs */}
-                        <div className="flex-1 ml-4">
+                        <div className="flex-1 sm:ml-4 w-full sm:w-auto">
                           <h4 className="text-xs font-medium text-gray-700 mb-2">Common Needs:</h4>
                           {commonNeeds[category.key] && commonNeeds[category.key].length > 0 ? (
                             <ul className="text-xs text-gray-600 space-y-1">
@@ -1415,21 +1416,21 @@ function ReportCardContent() {
 
             {/* Action Grid */}
             <Card className="print:section print:page-break-before">
-              <CardHeader>
-                <CardTitle>
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="text-base sm:text-lg">
                   <h2 className="hidden print:show">Action Priority Matrix</h2>
                   <span className="print:hidden">Action Priority Matrix</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4 min-h-80 print:action-matrix">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 print:action-matrix">
                   {/* Maintain */}
-                  <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 min-h-32 print:action-quadrant">
-                    <div className="text-center mb-3 print:quadrant-header">
-                      <h3 className="text-green-800 font-bold text-base mb-1">MAINTAIN</h3>
-                      <span className="text-green-600 font-medium text-xs print:text-sm">High Satisfaction, Low Need for Action</span>
+                  <div className="bg-green-100 border-2 border-green-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
+                    <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
+                      <h3 className="text-green-800 font-bold text-sm sm:text-base mb-1">MAINTAIN</h3>
+                      <span className="text-green-600 font-medium text-[10px] sm:text-xs print:text-sm">High Satisfaction, Low Need for Action</span>
                     </div>
-                    <div className="space-y-2 text-xs text-green-800">
+                    <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-green-800">
                       {[
                         { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
                         { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
@@ -1438,10 +1439,10 @@ function ReportCardContent() {
                         { key: 'business', label: 'Business Friendliness', score: barangayData.business, need: barangayData.business_need },
                         { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental, need: barangayData.environmental_need }
                       ].filter(cat => cat.score >= 70 && cat.need <= 30).map((category) => (
-                        <div key={category.key} className="flex items-center justify-between p-2 bg-green-50 rounded">
-                          <div className="flex items-center">
-                            <span className="mr-2">★</span>
-                            <span className="font-medium">{category.label}</span>
+                        <div key={category.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-1.5 sm:p-2 bg-green-50 rounded gap-1">
+                          <div className="flex items-center min-w-0">
+                            <span className="mr-1 sm:mr-2 text-xs sm:text-sm flex-shrink-0">★</span>
+                            <span className="font-medium truncate">{category.label}</span>
                           </div>
                           {(() => {
                             const trend = trendsData[category.key];
@@ -1449,7 +1450,7 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded print:hidden flex-shrink-0 ${isUp ? 'bg-green-200 text-green-800' :
                                   isDown ? 'bg-red-200 text-red-800' :
                                     'bg-gray-200 text-gray-600'
                                   }`}>
@@ -1458,7 +1459,7 @@ function ReportCardContent() {
                               );
                             }
                             return (
-                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                              <span className="text-[9px] sm:text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden flex-shrink-0">
                                 Baseline
                               </span>
                             );
@@ -1469,12 +1470,12 @@ function ReportCardContent() {
                   </div>
 
                   {/* Opportunities */}
-                  <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 min-h-32 print:action-quadrant">
-                    <div className="text-center mb-3 print:quadrant-header">
-                      <h3 className="text-blue-800 font-bold text-base mb-1">OPPORTUNITIES</h3>
-                      <span className="text-blue-600 font-medium text-xs print:text-sm">High Satisfaction, High Need for Action</span>
+                  <div className="bg-blue-100 border-2 border-blue-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
+                    <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
+                      <h3 className="text-blue-800 font-bold text-sm sm:text-base mb-1">OPPORTUNITIES</h3>
+                      <span className="text-blue-600 font-medium text-[10px] sm:text-xs print:text-sm">High Satisfaction, High Need for Action</span>
                     </div>
-                    <div className="space-y-2 text-xs text-blue-800">
+                    <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-blue-800">
                       {[
                         { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
                         { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
@@ -1483,10 +1484,10 @@ function ReportCardContent() {
                         { key: 'business', label: 'Business Friendliness', score: barangayData.business, need: barangayData.business_need },
                         { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental, need: barangayData.environmental_need }
                       ].filter(cat => cat.score >= 70 && cat.need > 30).map((category) => (
-                        <div key={category.key} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                          <div className="flex items-center">
-                            <span className="mr-2">★</span>
-                            <span className="font-medium">{category.label}</span>
+                        <div key={category.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-1.5 sm:p-2 bg-blue-50 rounded gap-1">
+                          <div className="flex items-center min-w-0">
+                            <span className="mr-1 sm:mr-2 text-xs sm:text-sm flex-shrink-0">★</span>
+                            <span className="font-medium truncate">{category.label}</span>
                           </div>
                           {(() => {
                             const trend = trendsData[category.key];
@@ -1494,7 +1495,7 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded print:hidden flex-shrink-0 ${isUp ? 'bg-green-200 text-green-800' :
                                   isDown ? 'bg-red-200 text-red-800' :
                                     'bg-gray-200 text-gray-600'
                                   }`}>
@@ -1503,7 +1504,7 @@ function ReportCardContent() {
                               );
                             }
                             return (
-                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                              <span className="text-[9px] sm:text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden flex-shrink-0">
                                 Baseline
                               </span>
                             );
@@ -1514,12 +1515,12 @@ function ReportCardContent() {
                   </div>
 
                   {/* Monitor */}
-                  <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 min-h-32 print:action-quadrant">
-                    <div className="text-center mb-3 print:quadrant-header">
-                      <h3 className="text-yellow-800 font-bold text-base mb-1">MONITOR</h3>
-                      <span className="text-yellow-600 font-medium text-xs print:text-sm">Low Satisfaction, Low Need for Action</span>
+                  <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
+                    <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
+                      <h3 className="text-yellow-800 font-bold text-sm sm:text-base mb-1">MONITOR</h3>
+                      <span className="text-yellow-600 font-medium text-[10px] sm:text-xs print:text-sm">Low Satisfaction, Low Need for Action</span>
                     </div>
-                    <div className="space-y-2 text-xs text-yellow-800">
+                    <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-yellow-800">
                       {[
                         { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
                         { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
@@ -1528,10 +1529,10 @@ function ReportCardContent() {
                         { key: 'business', label: 'Business Friendliness', score: barangayData.business, need: barangayData.business_need },
                         { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental, need: barangayData.environmental_need }
                       ].filter(cat => cat.score < 70 && cat.need <= 30).map((category) => (
-                        <div key={category.key} className="flex items-center justify-between p-2 bg-yellow-50 rounded">
-                          <div className="flex items-center">
-                            <span className="mr-2">★</span>
-                            <span className="font-medium">{category.label}</span>
+                        <div key={category.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-1.5 sm:p-2 bg-yellow-50 rounded gap-1">
+                          <div className="flex items-center min-w-0">
+                            <span className="mr-1 sm:mr-2 text-xs sm:text-sm flex-shrink-0">★</span>
+                            <span className="font-medium truncate">{category.label}</span>
                           </div>
                           {(() => {
                             const trend = trendsData[category.key];
@@ -1539,7 +1540,7 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded print:hidden flex-shrink-0 ${isUp ? 'bg-green-200 text-green-800' :
                                   isDown ? 'bg-red-200 text-red-800' :
                                     'bg-gray-200 text-gray-600'
                                   }`}>
@@ -1548,7 +1549,7 @@ function ReportCardContent() {
                               );
                             }
                             return (
-                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                              <span className="text-[9px] sm:text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden flex-shrink-0">
                                 Baseline
                               </span>
                             );
@@ -1559,12 +1560,12 @@ function ReportCardContent() {
                   </div>
 
                   {/* Fix Now */}
-                  <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 min-h-32 print:action-quadrant">
-                    <div className="text-center mb-3 print:quadrant-header">
-                      <h3 className="text-red-800 font-bold text-base mb-1">FIX NOW</h3>
-                      <span className="text-red-600 font-medium text-xs print:text-sm">Low Satisfaction, High Need for Action</span>
+                  <div className="bg-red-100 border-2 border-red-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
+                    <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
+                      <h3 className="text-red-800 font-bold text-sm sm:text-base mb-1">FIX NOW</h3>
+                      <span className="text-red-600 font-medium text-[10px] sm:text-xs print:text-sm">Low Satisfaction, High Need for Action</span>
                     </div>
-                    <div className="space-y-2 text-xs text-red-800">
+                    <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-red-800">
                       {[
                         { key: 'financial', label: 'Financial Administration', score: barangayData.financial, need: barangayData.financial_need },
                         { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster, need: barangayData.disaster_need },
@@ -1573,10 +1574,10 @@ function ReportCardContent() {
                         { key: 'business', label: 'Business Friendliness', score: barangayData.business, need: barangayData.business_need },
                         { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental, need: barangayData.environmental_need }
                       ].filter(cat => cat.score < 70 && cat.need > 30).map((category) => (
-                        <div key={category.key} className="flex items-center justify-between p-2 bg-red-50 rounded">
-                          <div className="flex items-center">
-                            <span className="mr-2">★</span>
-                            <span className="font-medium">{category.label}</span>
+                        <div key={category.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-1.5 sm:p-2 bg-red-50 rounded gap-1">
+                          <div className="flex items-center min-w-0">
+                            <span className="mr-1 sm:mr-2 text-xs sm:text-sm flex-shrink-0">★</span>
+                            <span className="font-medium truncate">{category.label}</span>
                           </div>
                           {(() => {
                             const trend = trendsData[category.key];
@@ -1584,7 +1585,7 @@ function ReportCardContent() {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
                               return (
-                                <span className={`text-xs px-1 py-0.5 rounded print:hidden ${isUp ? 'bg-green-200 text-green-800' :
+                                <span className={`text-[9px] sm:text-xs px-1 py-0.5 rounded print:hidden flex-shrink-0 ${isUp ? 'bg-green-200 text-green-800' :
                                   isDown ? 'bg-red-200 text-red-800' :
                                     'bg-gray-200 text-gray-600'
                                   }`}>
@@ -1593,7 +1594,7 @@ function ReportCardContent() {
                               );
                             }
                             return (
-                              <span className="text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden">
+                              <span className="text-[9px] sm:text-xs px-1 py-0.5 rounded bg-gray-200 text-gray-600 print:hidden flex-shrink-0">
                                 Baseline
                               </span>
                             );

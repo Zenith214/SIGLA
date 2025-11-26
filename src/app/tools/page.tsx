@@ -764,25 +764,25 @@ export default function ToolsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
-          <p className="text-gray-600">Mock data generation and testing utilities</p>
-          <div className="mt-4 flex justify-center items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg border">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
+          <p className="text-sm sm:text-base text-gray-600">Mock data generation and testing utilities</p>
+          <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-white px-3 sm:px-4 py-2 rounded-lg border w-full sm:w-auto justify-center">
               <span className="font-medium">Active Cycle:</span>
               <CycleDisplay />
             </div>
             {hasActiveCycle && !cycleLoading && (
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-xs sm:text-sm">
                 Working with {activeCycle?.name} targets
               </Badge>
             )}
           </div>
           {!hasActiveCycle && !cycleLoading && (
-            <div className="mt-2 text-amber-600 text-sm">
+            <div className="mt-2 text-amber-600 text-xs sm:text-sm">
               ⚠️ No active survey cycle set. Please set an active cycle in settings.
             </div>
           )}
@@ -790,28 +790,28 @@ export default function ToolsPage() {
 
         {/* Tabbed Tools Interface */}
         <Tabs defaultValue="mock-data" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="mock-data">Mock Data</TabsTrigger>
-            <TabsTrigger value="cache">ML Cache</TabsTrigger>
-            <TabsTrigger value="community">Community Voice</TabsTrigger>
-            <TabsTrigger value="database">Database</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+            <TabsTrigger value="mock-data" className="text-xs sm:text-sm">Mock Data</TabsTrigger>
+            <TabsTrigger value="cache" className="text-xs sm:text-sm">ML Cache</TabsTrigger>
+            <TabsTrigger value="community" className="text-xs sm:text-sm">Community Voice</TabsTrigger>
+            <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
           </TabsList>
 
           {/* Mock Data Tab */}
           <TabsContent value="mock-data">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Database className="w-4 h-4 sm:w-5 sm:h-5" />
                   Mock Survey Data Generator
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Generate realistic survey responses for testing funnel analysis and Action Grid calculations. 
                   {barangays.length > 0 ? `Works with ${barangays.length} barangays that have survey targets` : 'Loading survey targets'} for the active cycle.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <Label htmlFor="barangayId">Barangay</Label>
                     <Select value={barangayId} onValueChange={(value) => {
