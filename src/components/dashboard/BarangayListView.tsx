@@ -120,7 +120,7 @@ export default function BarangayListView() {
     const isHighSatisfaction = satisfactionPercentage >= 58;
 
     const handleViewReportCard = () => {
-      // Navigate to report card page with barangay data
+      // Navigate to score card page with barangay data
       const params = new URLSearchParams({
         barangay: selectedBarangay.name,
         population: selectedBarangay.population.toString(),
@@ -193,12 +193,12 @@ export default function BarangayListView() {
               )}
             </div>
 
-            {/* View Report Card Button */}
+            {/* View Score Card Button */}
             <button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
               onClick={handleViewReportCard}
             >
-              View Report Card
+              View Score Card
             </button>
 
             {/* Action Grid */}

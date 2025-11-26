@@ -154,7 +154,7 @@ export default function BarangaySatisfactionIndex({
       environmental: 'Environmental Management'
     };
 
-    // Transform each service score and recalculate category based on Report Card thresholds
+    // Transform each service score and recalculate category based on Score Card thresholds
     Object.entries(funnelData.service_scores || {}).forEach(([serviceKey, scores]: [string, any]) => {
       const displayName = sectionNames[serviceKey] || serviceKey;
       console.log(`🔍 Processing ${serviceKey}:`, scores);
@@ -163,7 +163,7 @@ export default function BarangaySatisfactionIndex({
       const needForAction = scores.need_action || 0;
       console.log(`  → satisfaction: ${satisfaction}, needForAction: ${needForAction}`);
 
-      // Use Report Card thresholds: 70% satisfaction, 30% need-for-action
+      // Use Score Card thresholds: 70% satisfaction, 30% need-for-action
       let category = 'monitor';
       if (satisfaction >= 70 && needForAction <= 30) {
         category = 'maintain';
@@ -336,7 +336,7 @@ export default function BarangaySatisfactionIndex({
   const isHighSatisfaction = satisfactionData.overall >= 58;
 
   const handleViewReportCard = () => {
-    // Navigate to report card page with comprehensive barangay data
+    // Navigate to score card page with comprehensive barangay data
     const params = new URLSearchParams({
       barangay: barangay.name,
       barangayId: barangay.id.toString(),
@@ -437,12 +437,12 @@ export default function BarangaySatisfactionIndex({
                 )}
               </div>
 
-              {/* View Report Card Button */}
+              {/* View Score Card Button */}
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5"
                 onClick={handleViewReportCard}
               >
-                View Report Card
+                View Score Card
               </Button>
 
               {/* How to Use Section */}

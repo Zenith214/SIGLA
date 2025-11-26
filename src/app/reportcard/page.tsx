@@ -577,8 +577,8 @@ function ReportCardContent() {
 
   const handleShareReport = async () => {
     const shareData = {
-      title: `${barangayData?.barangay} Satisfaction Report`,
-      text: `Satisfaction Index Report for ${barangayData?.barangay} - Overall Score: ${barangayData?.overall_satisfaction?.toFixed(2)}%`,
+      title: `${barangayData?.barangay} Satisfaction Score Card`,
+      text: `Satisfaction Index Score Card for ${barangayData?.barangay} - Overall Score: ${barangayData?.overall_satisfaction?.toFixed(2)}%`,
       url: window.location.href
     };
 
@@ -594,13 +594,13 @@ function ReportCardContent() {
         // Show toast notification
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-        toast.textContent = 'Report URL copied to clipboard!';
+        toast.textContent = 'Score Card URL copied to clipboard!';
         document.body.appendChild(toast);
         setTimeout(() => {
           document.body.removeChild(toast);
         }, 3000);
       } catch (error) {
-        prompt('Copy this URL to share the report:', window.location.href);
+        prompt('Copy this URL to share the score card:', window.location.href);
       }
     }
   };
@@ -609,7 +609,7 @@ function ReportCardContent() {
     if (!barangayData) return;
 
     const csvData = [
-      ['Barangay Report Data'],
+      ['Barangay Score Card Data'],
       [''],
       ['Basic Information'],
       ['Barangay', barangayData.barangay],
@@ -661,7 +661,7 @@ function ReportCardContent() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `${barangayData.barangay}_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `${barangayData.barangay}_ScoreCard_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -850,7 +850,7 @@ function ReportCardContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Report Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Score Card Not Found</h1>
           <Link href="/dashboard">
             <Button>Back to Dashboard</Button>
           </Link>
@@ -906,7 +906,7 @@ function ReportCardContent() {
 
         {/* Document Title */}
         <div className="print:document-title">
-          <h1 className="print:main-title">BARANGAY SATISFACTION INDEX REPORT</h1>
+          <h1 className="print:main-title">BARANGAY SATISFACTION INDEX SCORE CARD</h1>
           <h2 className="print:barangay-title">{barangayData.barangay} - Performance Analysis</h2>
           <div className="print:generation-date">
             Generated on {new Date().toLocaleDateString('en-US', {
@@ -984,8 +984,8 @@ function ReportCardContent() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">{barangayData.barangay} Report Card</h1>
-                <p className="text-sm sm:text-base text-gray-200">Satisfaction Index Analysis Report</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">{barangayData.barangay} Score Card</h1>
+                <p className="text-sm sm:text-base text-gray-200">Satisfaction Index Score Card</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 print:hidden">
@@ -1039,7 +1039,7 @@ function ReportCardContent() {
                   <div className="p-2">
                     <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2">
                       <Download className="w-4 h-4" />
-                      Detailed PDF Report
+                      Detailed PDF Score Card
                     </button>
                     <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
@@ -1848,7 +1848,7 @@ function ReportCardContent() {
   );
 }
 
-export default function ReportCard() {
+export default function ScoreCard() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
       <ReportCardContent />
