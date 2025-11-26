@@ -137,6 +137,7 @@ export async function GET(request: NextRequest) {
         spotName: spot.spot_name,
         barangayId: spot.barangay_id,
         barangayName: barangay?.barangay_name || null,
+        cycleId: spot.cycle_id,
         startingPoint: spot.starting_point,
         randomStart: spot.random_start,
         status: spotStatus,

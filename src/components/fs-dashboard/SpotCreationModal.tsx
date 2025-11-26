@@ -57,12 +57,14 @@ export default function SpotCreationModal({
   const [spotName, setSpotName] = useState("");
   const [barangayId, setBarangayId] = useState("");
   const [randomStart, setRandomStart] = useState("");
+  const [numberOfQuestionnaires, setNumberOfQuestionnaires] = useState("5");
 
   // Validation errors
   const [errors, setErrors] = useState<{
     spotName?: string;
     barangayId?: string;
     randomStart?: string;
+    numberOfQuestionnaires?: string;
   }>({});
 
   // Fetch barangays when modal opens
@@ -79,6 +81,7 @@ export default function SpotCreationModal({
         setSpotName("");
         setBarangayId("");
         setRandomStart("");
+        setNumberOfQuestionnaires("5");
         setErrors({});
         setShowSuccess(false);
         setGeneratedQuestionnaires([]);
@@ -136,6 +139,15 @@ export default function SpotCreationModal({
       }
     }
 
+    if (!numberOfQuestionnaires) {
+      newErrors.numberOfQuestionnaires = "Number of questionnaires is required";
+    } else {
+      const num = parseInt(numberOfQuestionnaires, 10);
+      if (isNaN(num) || num < 1 || num > 50) {
+        newErrors.numberOfQuestionnaires = "Must be a number between 1 and 50";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -161,6 +173,7 @@ export default function SpotCreationModal({
           spotName: spotName.trim(),
           startingPoint,
           randomStart: parseInt(randomStart, 10),
+          numberOfQuestionnaires: parseInt(numberOfQuestionnaires, 10),
         }),
       });
 
@@ -176,7 +189,7 @@ export default function SpotCreationModal({
 
       toast({
         title: "Success",
-        description: `Spot "${spotName}" created successfully with 5 questionnaires.`,
+        description: `Spot "${spotName}" created successfully with ${numberOfQuestionnaires} questionnaire${parseInt(numberOfQuestionnaires) !== 1 ? 's' : ''}.`,
       });
 
       // Wait a moment before closing to show the success state
@@ -235,7 +248,7 @@ export default function SpotCreationModal({
             <DialogHeader>
               <DialogTitle>Create New Spot</DialogTitle>
               <DialogDescription>
-                Create a new spot with 5 interview assignments. Click on the map to set the
+                Create a new spot with interview assignments. Click on the map to set the
                 starting point.
               </DialogDescription>
             </DialogHeader>
@@ -305,6 +318,30 @@ export default function SpotCreationModal({
                   {errors.barangayId && (
                     <p className="text-sm text-red-500">{errors.barangayId}</p>
                   )}
+                </div>
+
+                {/* Number of Questionnaires */}
+                <div className="space-y-2">
+                  <Label htmlFor="numberOfQuestionnaires">
+                    Number of Questionnaires (1-50) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="numberOfQuestionnaires"
+                    type="number"
+                    min="1"
+                    max="50"
+                    placeholder="e.g., 10"
+                    value={numberOfQuestionnaires}
+                    onChange={(e) => setNumberOfQuestionnaires(e.target.value)}
+                    disabled={loading}
+                    className={errors.numberOfQuestionnaires ? "border-red-500" : ""}
+                  />
+                  {errors.numberOfQuestionnaires && (
+                    <p className="text-sm text-red-500">{errors.numberOfQuestionnaires}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    How many interviews/households will be covered in this spot
+                  </p>
                 </div>
 
                 {/* Random Start */}

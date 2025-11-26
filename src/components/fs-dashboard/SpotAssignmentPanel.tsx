@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, MapPin, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, MapPin, User, CheckCircle2, AlertCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import QuestionnaireAssignmentModal from "./QuestionnaireAssignmentModal";
 
 interface Spot {
   spotId: number;
@@ -54,6 +55,7 @@ export default function SpotAssignmentPanel({
   const [loadingBarangays, setLoadingBarangays] = useState(false);
   const [loadingFIs, setLoadingFIs] = useState(false);
   const [assigningSpots, setAssigningSpots] = useState<Set<number>>(new Set());
+  const [managingSpot, setManagingSpot] = useState<{ spotId: number; spotName: string } | null>(null);
 
   // Fetch barangays on mount
   useEffect(() => {
@@ -282,6 +284,17 @@ export default function SpotAssignmentPanel({
 
                 {/* Assignment Section */}
                 <div className="space-y-2">
+                  {/* Manage Individual Assignments Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setManagingSpot({ spotId: spot.spotId, spotName: spot.spotName })}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Questionnaire Assignments
+                  </Button>
+
                   {spot.assignedFiName ? (
                     <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -326,6 +339,19 @@ export default function SpotAssignmentPanel({
           </div>
         )}
       </div>
+
+      {/* Questionnaire Assignment Modal */}
+      {managingSpot && (
+        <QuestionnaireAssignmentModal
+          open={!!managingSpot}
+          onClose={() => setManagingSpot(null)}
+          onSuccess={() => {
+            onAssignmentSuccess();
+          }}
+          spotId={managingSpot.spotId}
+          spotName={managingSpot.spotName}
+        />
+      )}
     </div>
   );
 }

@@ -23,13 +23,13 @@ export function QuestionProgressBar({
   totalSections,
 }: QuestionProgressBarProps) {
   const getAnsweredCount = () => {
-    return questions.filter((q) => {
+    return questions.filter((q, index) => {
       const isCurrentlyEnabled = isQuestionEnabled(q);
       const answer = answers[q.id];
       
       // Count as answered if:
       // 1. Question is enabled and has a real answer
-      // 2. Question was skipped (has null value with skip reason)
+      // 2. Question was explicitly skipped (user passed this question)
       if (isCurrentlyEnabled) {
         if (q.type === "grouped") {
           const groupAnswer = answers[q.id];
@@ -37,8 +37,9 @@ export function QuestionProgressBar({
         }
         return answer !== undefined && answer !== "";
       } else if (answer === null && answers[`${q.id}_skipReason`]) {
-        // Question was skipped due to conditional logic
-        return true;
+        // Only count as completed if user has passed this question
+        // (i.e., current question index is beyond this question)
+        return index < currentQuestionIndex;
       }
       
       return false;
@@ -76,7 +77,8 @@ export function QuestionProgressBar({
             }
           } else if (answer === null && answers[`${question.id}_skipReason`]) {
             // Question was skipped due to conditional logic
-            isSkipped = true;
+            // Only show as skipped if user has passed this question
+            isSkipped = index < currentQuestionIndex;
           }
 
           return (

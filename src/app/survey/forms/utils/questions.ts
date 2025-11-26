@@ -275,7 +275,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nHow could the barangay improve the way it informs and warns residents about disasters? / How could the barangay improve the way it informs and warns residents about disasters?"),
           required: false,
-          // This question is for EVERYONE who answers Q3, so no dependency on Q3's value
+          dependsOn: "availmentDisasterInfo",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Evacuation and Emergency Response Resources
@@ -315,7 +316,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency? / What are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency?"),
           required: false,
-          // This question is for EVERYONE who answers Q7, so no dependency on Q7's value
+          dependsOn: "locationEvacuation",
+          dependsOnValue: "Yes",
         },
       ];
 
@@ -358,6 +360,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving the overall safety in our barangay or the performance of our Tanods? / What are your suggestions for improving the overall safety in our barangay or the performance of our Tanods?"),
           required: false,
+          dependsOn: "experienceTanods",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Community Dispute Resolution (Lupon)
@@ -397,6 +401,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nDo you have any suggestions on how the barangay can better help residents resolve conflicts peacefully? / Do you have any suggestions on how the barangay can better help residents resolve conflicts peacefully?"),
           required: false,
+          dependsOn: "experienceLupon",
+          dependsOnValue: "Yes",
         },
 
         // Part C: Anti-Illegal Drug Programs
@@ -436,6 +442,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("12. NEED FOR ACTION / SUGGESTION:\nWhat are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives? / What are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives?"),
           required: false,
+          dependsOn: "experienceAntiDrug",
+          dependsOnValue: "Yes",
         },
       ];
     case "social":
@@ -477,6 +485,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training) / What are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training)"),
           required: false,
+          dependsOn: "availmentHealthServices",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Protection Services for Women and Children
@@ -516,6 +526,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nWhat more can the barangay do to ensure the safety and well-being of women and children in our community? / What more can the barangay do to ensure the safety and well-being of women and children in our community?"),
           required: false,
+          dependsOn: "availmentWomenChildrenProtection",
+          dependsOnValue: "Yes",
         },
 
         // Part C: Community Participation and Development
@@ -555,6 +567,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("12. NEED FOR ACTION / MUNGKAHI:\nWhat kind of community programs or activities would you like the barangay to start or improve? / What kind of community programs or activities would you like the barangay to start or improve?"),
           required: false,
+          dependsOn: "availmentCommunityParticipation",
+          dependsOnValue: "Yes",
         },
       ];
     case "business":
@@ -596,6 +610,8 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier? / What are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier?"),
           required: false,
+          dependsOn: "availmentBusinessClearance",
+          dependsOnValue: "Yes",
         },
       ];
     case "environmental":
@@ -637,6 +653,26 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           type: "textarea",
           ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay? / What are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay?"),
           required: false,
+          dependsOn: "availmentWasteManagement",
+          dependsOnValue: "Yes",
+        },
+      ];
+
+    case "overall":
+      return [
+        {
+          id: "overallSatisfaction",
+          type: "radio",
+          ...formatQuestionText("PART X: PANGKALAHATANG EBALWASYON (OVERALL EVALUATION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, gaano ka nasisiyahan? / Overall, thinking about all the services provided by the barangay in the past 12 months, how satisfied are you?"),
+          options: ["5 - Very Satisfied / Lubos na Nasiyahan", "4 - Satisfied / Nasiyahan", "3 - Neutral / Neither Satisfied nor Dissatisfied", "2 - Dissatisfied / Hindi Nasiyahan", "1 - Very Dissatisfied / Lubos na Hindi Nasiyahan"],
+          required: true,
+        },
+        {
+          id: "overallNeedForAction",
+          type: "radio",
+          ...formatQuestionText("M2: Overall Need for Action\nSa iyong pangkalahatang pananaw, sa kabuuan, kailangan bang gumawa ng aksyon ang barangay para mapabuti ang mga serbisyo nito? / On the whole, would you say that the barangay's services, in general, need action for improvement?"),
+          options: ["Yes / Oo", "No / Hindi"],
+          required: true,
         },
       ];
 

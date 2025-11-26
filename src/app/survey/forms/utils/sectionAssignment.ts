@@ -98,6 +98,7 @@ export function isValidSectionId(sectionId: string): boolean {
     'respondent-selection',
     'respondent-demographics',
     ...CANONICAL_SECTION_ORDER,
+    'overall',
     'summary'
   ];
   
@@ -111,8 +112,8 @@ export function isValidSectionId(sectionId: string): boolean {
  * @returns true if section is assigned or is a required section
  */
 export function isSectionAccessible(sectionId: string, assignedSections: string[]): boolean {
-  // Required sections are always accessible
-  const requiredSections = ['initialization', 'respondent-selection', 'respondent-demographics', 'summary'];
+  // Required sections are always accessible (including overall evaluation)
+  const requiredSections = ['initialization', 'respondent-selection', 'respondent-demographics', 'overall', 'summary'];
   if (requiredSections.includes(sectionId)) {
     return true;
   }
@@ -369,6 +370,12 @@ export function getNextSectionSafe(currentSection: string, assignedSections: str
     if (currentIndex < assignedSections.length - 1) {
       return assignedSections[currentIndex + 1];
     }
+    // After last service section, go to overall evaluation
+    return 'overall';
+  }
+
+  // After overall evaluation, go to summary
+  if (currentSection === 'overall') {
     return 'summary';
   }
 
@@ -397,12 +404,16 @@ export function getPreviousSectionSafe(currentSection: string, assignedSections:
   if (currentSection === 'respondent-demographics') {
     return 'respondent-selection';
   }
-  if (currentSection === 'summary') {
-    // Go to last assigned section
+  if (currentSection === 'overall') {
+    // Go back to last assigned section
     if (assignedSections && assignedSections.length > 0) {
       return assignedSections[assignedSections.length - 1];
     }
     return 'respondent-demographics';
+  }
+  if (currentSection === 'summary') {
+    // Go back to overall evaluation
+    return 'overall';
   }
 
   // Handle service sections

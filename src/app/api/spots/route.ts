@@ -154,11 +154,21 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to create spot: No data returned');
     }
 
-    // Generate 5 questionnaire IDs and create questionnaire records
+    // Generate questionnaire IDs based on specified count (default 5 for backward compatibility)
+    const numberOfQuestionnaires = body.numberOfQuestionnaires || 5;
+    
+    // Validate numberOfQuestionnaires
+    if (numberOfQuestionnaires < 1 || numberOfQuestionnaires > 50) {
+      return NextResponse.json(
+        { error: 'Number of questionnaires must be between 1 and 50' },
+        { status: 400 }
+      );
+    }
+
     const questionnaireIds: string[] = [];
     const questionnaireInserts = [];
 
-    for (let sequence = 1; sequence <= 5; sequence++) {
+    for (let sequence = 1; sequence <= numberOfQuestionnaires; sequence++) {
       const questionnaireId = generateQuestionnaireId(cycle.year, spotNumber, sequence);
       questionnaireIds.push(questionnaireId);
       
@@ -197,7 +207,7 @@ export async function POST(request: NextRequest) {
       spotId: spot.spot_id,
       spotName: spot.spot_name,
       questionnaires: questionnaireIds,
-      message: "Spot created successfully with 5 questionnaires"
+      message: `Spot created successfully with ${numberOfQuestionnaires} questionnaire${numberOfQuestionnaires !== 1 ? 's' : ''}`
     }, { status: 201 });
 
   } catch (error: any) {

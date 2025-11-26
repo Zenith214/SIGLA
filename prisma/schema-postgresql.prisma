@@ -183,28 +183,31 @@ model survey_question {
 }
 
 model survey_response {
-  response_id           Int                                @id @default(autoincrement())
-  survey_number         String                             @unique(map: "survey_number_unique")
-  barangay_id           Int
-  interviewer_id        Int
-  respondent_name       String?
-  respondent_age        Int?
-  respondent_gender     survey_response_respondent_gender?
-  location_lat          Decimal
-  location_lng          Decimal
-  location_address      String?
-  location_accuracy     Decimal?
-  location_timestamp    DateTime?
-  location_barangay     String?
-  location_municipality String?
-  location_province     String?
-  status                survey_response_status             @default(draft)
-  progress              Int?                               @default(0)
-  started_at            DateTime                           @default(now())
-  completed_at          DateTime?
-  submitted_at          DateTime?
-  created_at            DateTime                           @default(now())
-  updated_at            DateTime?
+  response_id              Int                                @id @default(autoincrement())
+  survey_number            String                             @unique(map: "survey_number_unique")
+  barangay_id              Int
+  interviewer_id           Int
+  respondent_name          String?
+  respondent_age           Int?
+  respondent_gender        survey_response_respondent_gender?
+  location_lat             Decimal
+  location_lng             Decimal
+  location_address         String?
+  location_accuracy        Decimal?
+  location_timestamp       DateTime?
+  location_barangay        String?
+  location_municipality    String?
+  location_province        String?
+  verification_location    String?                            @db.Json
+  gps_verification_status  String?                            @default("pending")
+  gps_distance_meters      Decimal?                           @db.Decimal(10, 2)
+  status                   survey_response_status             @default(draft)
+  progress                 Int?                               @default(0)
+  started_at               DateTime                           @default(now())
+  completed_at             DateTime?
+  submitted_at             DateTime?
+  created_at               DateTime                           @default(now())
+  updated_at               DateTime?
   survey_answer         survey_answer[]
   survey_attachment     survey_attachment[]
   survey_metadata       survey_metadata[]

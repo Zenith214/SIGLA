@@ -3,13 +3,11 @@
 import { useState, useEffect } from "react"
 import { Users, ArrowLeft, X, MapPin, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import type { SurveyData } from "../page"
-import { VisitStatusButton } from "@/components/survey/VisitStatusButton"
 import { KishGridDisplay } from "@/components/survey/KishGridDisplay"
-import { useSearchParams } from "next/navigation"
-import { getSurveyRecordByQuestionnaire } from "@/lib/indexedDB"
-import { selectRespondentKishGrid, getKishGridErrorMessage, isKishGridErrorRetryable, KishGridError } from "../utils/kishGrid"
+import { selectRespondentKishGrid, getKishGridErrorMessage, isKishGridErrorRetryable, getRequiredGender, KishGridError } from "../utils/kishGrid"
 import { useGeotagging } from "../utils/useGeotagging"
 import { parseGPSCaptureError, getGPSCaptureErrorMessage, isGPSCaptureErrorRetryable, GPSCaptureErrorType } from "../utils/gpsVerification"
+import { ManualLocationPicker } from "./ManualLocationPicker"
 
 interface GPSCoordinates {
   lat: number
@@ -61,7 +59,6 @@ const extractQuestionnaireNumber = (surveyNumber: string): number => {
 }
 
 export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: RespondentSelectionProps) {
-  const searchParams = useSearchParams()
   const [numberOfMembers, setNumberOfMembers] = useState<number>(1)
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([{ name: "", birthdate: "", gender: "" }])
   const [showModal, setShowModal] = useState(false)
@@ -69,33 +66,31 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
   const [eligibleMembers, setEligibleMembers] = useState<Array<{ name: string; birthdate: string; gender: string; age: number }>>([])
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
   const [inputError, setInputError] = useState<string>("")
+  const [isClient, setIsClient] = useState(false)
   
   // GPS capture state
   const [gpsLocation, setGpsLocation] = useState<GPSCoordinates | null>(null)
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
+  const [gpsError, setGpsError] = useState<string>('')
+  const [showManualMap, setShowManualMap] = useState(false)
   const { getLocation } = useGeotagging(false)
   
-  // Get questionnaire context from URL
-  const questionnaireIdParam = searchParams.get('questionnaireId')
-  const cycleIdParam = searchParams.get('cycleId')
-  const [currentVisitCount, setCurrentVisitCount] = useState(0)
-
-  // Load visit count from IndexedDB
+  // Ensure client-side rendering
   useEffect(() => {
-    const loadVisitCount = async () => {
-      if (questionnaireIdParam) {
-        try {
-          const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
-          if (record) {
-            setCurrentVisitCount(record.visits.length)
-          }
-        } catch (error) {
-          console.error('Error loading visit count:', error)
-        }
-      }
+    setIsClient(true)
+  }, [])
+
+  // Auto-populate gender when survey number changes
+  useEffect(() => {
+    if (surveyNumber) {
+      const requiredGender = getRequiredGender(extractQuestionnaireNumber(surveyNumber))
+      // Update all existing members with the required gender
+      setHouseholdMembers(prev => prev.map(member => ({
+        ...member,
+        gender: requiredGender
+      })))
     }
-    loadVisitCount()
-  }, [questionnaireIdParam])
+  }, [surveyNumber])
 
   const handleNumberChange = (value: string) => {
     const num = Number.parseInt(value) || 1
@@ -112,10 +107,14 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     }
 
     setNumberOfMembers(num)
+    
+    // Auto-populate gender based on questionnaire number
+    const requiredGender = surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : ""
+    
     const newMembers = Array.from({ length: num }, (_, index) => ({
       name: householdMembers[index]?.name || "",
       birthdate: householdMembers[index]?.birthdate || "",
-      gender: householdMembers[index]?.gender || "",
+      gender: requiredGender, // Auto-set based on questionnaire
     }))
     setHouseholdMembers(newMembers)
   }
@@ -126,8 +125,9 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     setHouseholdMembers(updatedMembers)
   }
 
-  const captureGPSLocation = async () => {
+  const captureGPSLocation = async (isAutomatic = false) => {
     setGpsStatus('capturing')
+    setGpsError('')
     try {
       const locationData = await getLocation({
         enableHighAccuracy: true,
@@ -147,6 +147,8 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       
       // Save to survey data
       onUpdate("verificationLocation", gpsCoords)
+      
+      console.log(`✅ GPS captured ${isAutomatic ? 'automatically' : 'manually'}:`, gpsCoords)
     } catch (error) {
       setGpsStatus('error')
       console.error('GPS capture failed:', error)
@@ -156,18 +158,27 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       const errorMessage = getGPSCaptureErrorMessage(errorType)
       const canRetry = isGPSCaptureErrorRetryable(errorType)
       
-      // Store error info for display
-      setGpsStatus('error')
+      // Store error message for display
+      setGpsError(errorMessage)
       
       // Log detailed error for debugging
       console.error('GPS capture error details:', {
         errorType,
         errorMessage,
         canRetry,
-        originalError: error
+        originalError: error,
+        isAutomatic
       })
     }
   }
+
+  // Auto-capture GPS on component mount (client-side only)
+  useEffect(() => {
+    if (isClient) {
+      console.log('🌍 Auto-capturing GPS location on mount...')
+      captureGPSLocation(true)
+    }
+  }, [isClient])
 
   const proceedWithoutGPS = () => {
     // Allow proceeding without GPS but flag for review
@@ -185,14 +196,27 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       return
     }
 
-    // Filter eligible members (age 18+)
-    const eligibleMembersList = householdMembers.filter((member) => {
-      const age = calculateAge(member.birthdate)
-      return age >= 18 && member.name.trim() !== "" && member.gender.trim() !== "" && member.birthdate.trim() !== ""
-    })
-
     // Extract questionnaire number from survey number
     const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+    
+    // Determine required sex based on questionnaire number (odd = Male, even = Female)
+    const requiredSex = getRequiredGender(questionnaireNumber)
+    
+    // Filter eligible members (age 18+ AND matching required sex)
+    const eligibleMembersList = householdMembers.filter((member) => {
+      const age = calculateAge(member.birthdate)
+      return age >= 18 && 
+             member.name.trim() !== "" && 
+             member.gender.trim() !== "" && 
+             member.birthdate.trim() !== "" &&
+             member.gender === requiredSex // Filter by required sex
+    })
+
+    // Check if there are any eligible members of the required sex
+    if (eligibleMembersList.length === 0) {
+      alert(`No eligible ${requiredSex.toLowerCase()} household members found.\n\nQuestionnaire #${questionnaireNumber} requires interviewing ${requiredSex.toLowerCase()} respondents only.\n\nPlease ensure:\n- At least one ${requiredSex.toLowerCase()} member is 18 years or older\n- All required information is complete`)
+      return
+    }
     
     // Use Kish Grid selection with comprehensive error handling
     try {
@@ -243,9 +267,11 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       onUpdate("respondentDemographics", {
         age: selectedRespondent.age,
         birthdate: selectedRespondent.birthdate,
-        gender: selectedRespondent.gender,
+        sex: selectedRespondent.gender, // Biological sex from Kish Grid
+        genderIdentity: selectedRespondent.gender, // Auto-fill with sex, but editable
         educationalAttainment: "",
-        householdIncome: ""
+        householdIncome: "",
+        purok: ""
       })
 
       setShowModal(false)
@@ -261,27 +287,25 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Visit Status Button - shown only for questionnaire-based surveys */}
-        <VisitStatusButton
-          questionnaireId={questionnaireIdParam}
-          cycleId={cycleIdParam ? parseInt(cycleIdParam) : null}
-          currentVisitCount={currentVisitCount}
-          onVisitLogged={() => {
-            // Reload visit count after logging
-            if (questionnaireIdParam) {
-              getSurveyRecordByQuestionnaire(questionnaireIdParam).then(record => {
-                if (record) {
-                  setCurrentVisitCount(record.visits.length)
-                }
-              })
-            }
-          }}
-        />
-
         {/* Survey Number Display */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Survey Questionnaire Number</label>
           <div className="text-lg font-semibold text-blue-900">{surveyNumber || "Not provided"}</div>
+          {surveyNumber && (
+            <div className="mt-2 pt-2 border-t border-blue-200">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Required Respondent Sex:</span>{" "}
+                <span className="font-semibold text-blue-900">
+                  {getRequiredGender(extractQuestionnaireNumber(surveyNumber))}
+                </span>
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {extractQuestionnaireNumber(surveyNumber) % 2 !== 0 
+                  ? "Odd questionnaire numbers interview male respondents only" 
+                  : "Even questionnaire numbers interview female respondents only"}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* GPS Capture Section */}
@@ -297,23 +321,13 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
           </div>
           
           <p className="text-sm text-gray-600 mb-4">
-            Capture your current GPS location to verify the interview location. This helps ensure data quality.
+            GPS location is automatically captured to verify the interview location. This helps ensure data quality.
           </p>
-
-          {gpsStatus === 'idle' && (
-            <button
-              onClick={captureGPSLocation}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <MapPin className="w-4 h-4" />
-              <span>Capture GPS Location</span>
-            </button>
-          )}
 
           {gpsStatus === 'capturing' && (
             <div className="flex items-center justify-center space-x-2 py-3 text-blue-600">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Capturing location...</span>
+              <span>Capturing location automatically...</span>
             </div>
           )}
 
@@ -321,7 +335,7 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-900">Location Captured</span>
+                <span className="text-sm font-medium text-green-900">Location Captured Successfully</span>
               </div>
               <div className="text-xs text-gray-600 space-y-1">
                 <p>Latitude: {gpsLocation.lat.toFixed(6)}</p>
@@ -329,7 +343,7 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                 {gpsLocation.accuracy && <p>Accuracy: ±{gpsLocation.accuracy.toFixed(0)}m</p>}
               </div>
               <button
-                onClick={captureGPSLocation}
+                onClick={() => captureGPSLocation(false)}
                 className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
               >
                 Recapture Location
@@ -341,28 +355,41 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">
                 <AlertCircle className="w-4 h-4 text-yellow-600" />
-                <span className="text-sm font-medium text-yellow-900">GPS Capture Failed</span>
+                <span className="text-sm font-medium text-yellow-900">Automatic GPS Capture Failed</span>
               </div>
+              {gpsError && (
+                <p className="text-xs text-gray-600 mb-3">
+                  <strong>Error:</strong> {gpsError}
+                </p>
+              )}
               <p className="text-xs text-gray-600 mb-3">
-                Unable to capture GPS location. You can retry or continue without GPS (interview will be flagged for review).
+                You can retry automatic capture, manually pin your location on a map, or continue without GPS.
               </p>
               <div className="bg-white border border-yellow-300 rounded p-2 mb-3">
                 <p className="text-xs text-gray-700">
-                  <strong>Note:</strong> Interviews without GPS verification will be automatically flagged for supervisor review to ensure data quality.
+                  <strong>Note:</strong> Interviews without GPS verification will be automatically flagged for supervisor review.
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-col space-y-2">
                 <button
-                  onClick={captureGPSLocation}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => captureGPSLocation(false)}
+                  className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                 >
-                  Retry GPS Capture
+                  <MapPin className="w-4 h-4" />
+                  <span>Retry Automatic GPS</span>
+                </button>
+                <button
+                  onClick={() => setShowManualMap(true)}
+                  className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Pin Location on Map</span>
                 </button>
                 <button
                   onClick={proceedWithoutGPS}
-                  className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Continue Without GPS
+                  Continue Without GPS (Will be flagged)
                 </button>
               </div>
             </div>
@@ -396,15 +423,48 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
         {/* Household Members */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Household Member Details</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Household Member Details</h3>
+          {surveyNumber && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Note:</strong> Only list household members who are{" "}
+                <strong>{getRequiredGender(extractQuestionnaireNumber(surveyNumber)).toLowerCase()}</strong> and{" "}
+                <strong>18 years or older</strong>. The Kish Grid will automatically select from eligible members.
+              </p>
+            </div>
+          )}
           <div className="space-y-4">
-            {householdMembers.map((member, index) => (
+            {householdMembers.map((member, index) => {
+              const age = member.birthdate ? calculateAge(member.birthdate) : 0
+              const requiredSex = surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : null
+              const isEligible = age >= 18 && member.gender === requiredSex && member.name.trim() !== ""
+              const isWrongSex = member.gender && requiredSex && member.gender !== requiredSex
+              
+              return (
               <div
                 key={index}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                className={`bg-white border rounded-lg p-4 transition-all ${
+                  isEligible 
+                    ? 'border-green-300 bg-green-50' 
+                    : isWrongSex 
+                    ? 'border-red-300 bg-red-50' 
+                    : 'border-gray-200'
+                }`}
               >
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Member {index + 1}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-700">Member {index + 1}</h4>
+                  {isEligible && (
+                    <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
+                      ✓ Eligible
+                    </span>
+                  )}
+                  {isWrongSex && (
+                    <span className="text-xs font-medium text-red-700 bg-red-100 px-2 py-1 rounded">
+                      Wrong sex for this questionnaire
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                     <input
@@ -430,24 +490,16 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                       {member.birthdate ? `Age: ${calculateAge(member.birthdate)} years` : 'Must be 18 or older'}
                     </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-                    <select
-                      value={member.gender}
-                      onChange={(e) => handleMemberChange(index, "gender", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      required
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="LGBTQI+">LGBTQI+</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </div>
+                </div>
+                <div className="mt-3 flex items-center space-x-2 text-sm">
+                  <span className="text-gray-600">Sex:</span>
+                  <span className="font-semibold text-gray-900">
+                    {surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : 'Not set'}
+                  </span>
+                  <span className="text-xs text-gray-500">(auto-set based on questionnaire)</span>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
 
@@ -476,7 +528,22 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Manual Location Picker Modal */}
+      {showManualMap && (
+        <ManualLocationPicker
+          onLocationSelected={(location) => {
+            setGpsLocation(location)
+            setGpsStatus('success')
+            setShowManualMap(false)
+            onUpdate("verificationLocation", location)
+            console.log('📍 Manual location selected:', location)
+          }}
+          onCancel={() => setShowManualMap(false)}
+          initialLocation={gpsLocation || undefined}
+        />
+      )}
+
+      {/* Respondent Selection Modal */}
       {showModal && selectedRespondent && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -510,11 +577,11 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 ml-13">
-                  <p>Age: {selectedRespondent.age} years • Gender: {selectedRespondent.gender}</p>
+                  <p>Age: {selectedRespondent.age} years • Sex: {selectedRespondent.gender}</p>
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 mt-6">
                 <button
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

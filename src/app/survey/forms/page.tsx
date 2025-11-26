@@ -28,6 +28,8 @@ import {
 } from "./utils/sectionAssignment"
 import { getQuestionsForSection } from "./utils/questions"
 import { useSurveyRecord } from "@/hooks/useSurveyRecord"
+import { migrateSurveyData } from "./utils/dataMigration"
+import { fixSurveyDataInIndexedDB, fixCurrentSurveyData, listAllSurveys, diagnoseSurveyData, diagnoseCurrentSurvey, deleteSurveyFromIndexedDB, clearAllSurveyData } from "./utils/fixSurveyData"
 import { getSurveyRecordByQuestionnaire } from "@/lib/indexedDB"
 import { AutoSync } from "@/components/AutoSync"
 import { OfflineIndicator } from "@/components/OfflineIndicator"
@@ -58,7 +60,8 @@ export interface SurveyData {
   respondentDemographics: {
     age: number
     birthdate: string
-    gender: string
+    sex: string
+    genderIdentity: string
     educationalAttainment: string
     householdIncome: string
     purok: string
@@ -69,6 +72,7 @@ export interface SurveyData {
   businessFriendly: Record<string, any>
   environmental: Record<string, any>
   socialProtection: Record<string, any>
+  overallEvaluation: Record<string, any>
 }
 
 export interface SectionStatus {
@@ -152,7 +156,8 @@ function SurveyAppContent() {
     respondentDemographics: {
       age: 0,
       birthdate: "",
-      gender: "",
+      sex: "",
+      genderIdentity: "",
       educationalAttainment: "",
       householdIncome: "",
       purok: ""
@@ -162,7 +167,8 @@ function SurveyAppContent() {
     safetyPeace: {},
     businessFriendly: {},
     environmental: {},
-    socialProtection: {}, // Added missing property
+    socialProtection: {},
+    overallEvaluation: {},
   })
   const [loadedFromIndexedDB, setLoadedFromIndexedDB] = useState(false)
   const [questionnaireIdFromUrl, setQuestionnaireIdFromUrl] = useState<string | null>(null)
@@ -174,6 +180,7 @@ function SurveyAppContent() {
     { id: "initialization", name: "Survey Initialization", status: "in-progress" },
     { id: "respondent-selection", name: "Respondent Selection", status: "pending" },
     { id: "respondent-demographics", name: "Respondent Demographics", status: "pending" },
+    { id: "overall", name: "Overall Evaluation", status: "pending" },
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
@@ -188,6 +195,23 @@ function SurveyAppContent() {
   const questionnaireIdParam = searchParams.get('questionnaireId')
   const cycleIdParam = searchParams.get('cycleId')
   const spotIdParam = searchParams.get('spotId')
+
+  // Expose fix function for debugging
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).fixSurveyData = fixSurveyDataInIndexedDB;
+      (window as any).fixCurrentSurvey = fixCurrentSurveyData;
+      (window as any).listSurveys = listAllSurveys;
+      (window as any).diagnoseSurvey = diagnoseSurveyData;
+      (window as any).diagnoseCurrentSurvey = diagnoseCurrentSurvey;
+      (window as any).deleteSurvey = deleteSurveyFromIndexedDB;
+      (window as any).clearAllSurveys = clearAllSurveyData;
+      console.log('🔧 Survey data utilities available:');
+      console.log('  - window.clearAllSurveys() - Clear ALL survey data (IndexedDB + localStorage)');
+      console.log('  - window.listSurveys() - List all surveys in IndexedDB');
+      console.log('  - window.deleteSurvey(questionnaireId, cycleId) - Delete specific survey');
+    }
+  }, []);
 
   // Load saved data on mount - check IndexedDB first, then localStorage
   useEffect(() => {
@@ -222,10 +246,13 @@ function SurveyAppContent() {
               businessFriendly: existingRecord.surveyData.sections?.business?.data || {},
               environmental: existingRecord.surveyData.sections?.environmental?.data || {},
               socialProtection: existingRecord.surveyData.sections?.social?.data || {},
+              overallEvaluation: existingRecord.surveyData.sections?.overall?.data || {},
               assignedSections: existingRecord.surveyData.assignedSections,
             };
             
-            setSurveyData(loadedData);
+            // Apply data migration to fix any section mapping issues
+            const migratedData = migrateSurveyData(loadedData);
+            setSurveyData(migratedData);
             setLoadedFromIndexedDB(true);
             setQuestionnaireIdFromUrl(questionnaireIdParam);
             setCycleIdFromUrl(existingRecord.cycleId);
@@ -341,13 +368,13 @@ function SurveyAppContent() {
         }));
       }
 
-      // Build sections array with all 6 service sections
+      // Build sections array with all 6 service sections + overall evaluation
       setSections(prevSections => {
         const existingSectionIds = prevSections.map(s => s.id);
-        const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "summary"];
+        const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "overall", "summary"];
 
         if (prevSections.length === 0 || JSON.stringify(existingSectionIds) !== JSON.stringify(expectedSectionIds)) {
-          console.log(`🏗️ Building sections array for questionnaire ${surveyData.surveyNumber} with 6 sections`);
+          console.log(`🏗️ Building sections array for questionnaire ${surveyData.surveyNumber} with 6 sections + overall`);
           const newSections: SectionStatus[] = [
             { id: "initialization", name: "Survey Initialization", status: "completed" },
             { id: "respondent-selection", name: "Respondent Selection", status: currentSection === "respondent-selection" ? "in-progress" : "pending" },
@@ -356,9 +383,10 @@ function SurveyAppContent() {
               ...section,
               status: currentSection === section.id ? "in-progress" as const : "pending" as const
             })),
+            { id: "overall", name: "Overall Evaluation", status: currentSection === "overall" ? "in-progress" : "pending" },
             { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
           ];
-          console.log(`📋 Sections (6 service sections):`, newSections.map(s => `${s.id}: ${s.status}`));
+          console.log(`📋 Sections (6 service sections + overall):`, newSections.map(s => `${s.id}: ${s.status}`));
           return newSections;
         } else {
           // Preserve existing statuses, only update current section to in-progress
@@ -436,6 +464,13 @@ function SurveyAppContent() {
   }
 
   const updateSurveyData = (section: keyof SurveyData, data: any) => {
+    const dataKeys = Object.keys(data || {}).filter(k => !k.endsWith('_skipReason'));
+    console.log(`💾 updateSurveyData: ${section} with ${dataKeys.length} questions (${Object.keys(data || {}).length} total keys)`);
+    if (dataKeys.length > 20) {
+      console.warn(`⚠️ WARNING: ${section} has ${dataKeys.length} questions - this seems too many!`);
+      console.log(`   First 10 keys:`, dataKeys.slice(0, 10));
+      console.log(`   Last 10 keys:`, dataKeys.slice(-10));
+    }
     setSurveyData((prev) => ({ ...prev, [section]: data }))
   }
 
@@ -469,6 +504,7 @@ function SurveyAppContent() {
           social: { data: surveyData.socialProtection },
           business: { data: surveyData.businessFriendly },
           environmental: { data: surveyData.environmental },
+          overall: { data: surveyData.overallEvaluation },
         },
       };
 
@@ -698,6 +734,26 @@ function SurveyAppContent() {
             assignedSections={assignedSectionIds}
           />
         )
+      case "overall":
+        // Overall evaluation section - always shown after all 6 service sections
+        return (
+          <QuestionFlow
+            sectionId="overall"
+            data={surveyData}
+            onUpdate={updateSurveyData}
+            onComplete={() => {
+              handleSectionComplete("overall", "summary");
+            }}
+            onBack={() => {
+              // Go back to the last assigned section (6th section)
+              const assignedSectionIds = surveyData.assignedSections || [];
+              const lastSection = assignedSectionIds[assignedSectionIds.length - 1] || "environmental";
+              handleSectionChange(lastSection);
+            }}
+            onResetSectionStatus={updateSectionStatus}
+            assignedSections={surveyData.assignedSections}
+          />
+        )
       case "summary":
         return (
           <TabbedSummary
@@ -751,11 +807,13 @@ function SurveyAppContent() {
                   respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
-                  // Include all 6 assigned sections in randomized order
+                  // Include all 6 assigned sections + overall evaluation
                   sections: (() => {
                     const assignedSectionIds = surveyData.assignedSections || [];
+                    // Add overall section to the list
+                    const allSectionIds = [...assignedSectionIds, 'overall'];
                     
-                    return assignedSectionIds.reduce((acc, sectionId) => {
+                    return allSectionIds.reduce((acc, sectionId) => {
                     const sectionDataKey = getSectionDataKey(sectionId);
                     const sectionData = surveyData[sectionDataKey];
 
@@ -935,6 +993,7 @@ function getSectionDataKey(sectionId: string): keyof SurveyData {
     social: "socialProtection",
     business: "businessFriendly",
     environmental: "environmental",
+    overall: "overallEvaluation",
   }
   return keyMap[sectionId] || "financialAdmin";
 }

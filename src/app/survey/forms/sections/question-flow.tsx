@@ -39,17 +39,47 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   useEffect(() => {
     const isNewSection = prevSectionIdRef.current !== sectionId;
 
+    // Always load the data for the current section from the parent state
+    const sectionSpecificData = (data[sectionDataKey] || {}) as Record<string, any>;
+    
+    // CRITICAL FIX: Filter out any keys that don't belong to this section
+    // This prevents data contamination from other sections
+    const validQuestionIds = new Set(questions.map(q => q.id));
+    const cleanedData: Record<string, any> = {};
+    
+    Object.entries(sectionSpecificData).forEach(([key, value]) => {
+      // Keep the key if it's a valid question ID or a skip reason for a valid question
+      if (validQuestionIds.has(key) || (key.endsWith('_skipReason') && validQuestionIds.has(key.replace('_skipReason', '')))) {
+        cleanedData[key] = value;
+      } else {
+        console.warn(`🧹 Removing invalid key from ${sectionId}: ${key}`);
+      }
+    });
+    
     if (isNewSection) {
+      console.log(`🔄 Switching to new section: ${sectionId}, loading ${Object.keys(cleanedData).length} keys (cleaned from ${Object.keys(sectionSpecificData).length})`);
       setCurrentQuestionIndex(0);
-      setAnswers((data[sectionDataKey] || {}) as Record<string, any>);
+      setAnswers(cleanedData);
       prevSectionIdRef.current = sectionId;
+      
+      // If we cleaned any data, update the parent state
+      if (Object.keys(cleanedData).length !== Object.keys(sectionSpecificData).length) {
+        console.log(`🔧 Updating parent state with cleaned data for ${sectionId}`);
+        onUpdate(sectionDataKey, cleanedData);
+      }
     } else {
-      setAnswers((data[sectionDataKey] || {}) as Record<string, any>);
+      // Even if same section, ensure we're using the correct data
+      setAnswers(cleanedData);
+      
+      // If we cleaned any data, update the parent state
+      if (Object.keys(cleanedData).length !== Object.keys(sectionSpecificData).length) {
+        console.log(`🔧 Updating parent state with cleaned data for ${sectionId}`);
+        onUpdate(sectionDataKey, cleanedData);
+      }
     }
     
     // Check if section should be marked as completed
-    const currentAnswers = (data[sectionDataKey] || {}) as Record<string, any>;
-    checkSectionCompletion(currentAnswers);
+    checkSectionCompletion(cleanedData);
   }, [sectionId, data, sectionDataKey]);
 
   const safeQuestions: Question[] =
@@ -62,7 +92,15 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   const isFirstQuestion = safeIndex === 0;
 
   const handleAnswerChange = (questionId: string, value: any) => {
+    // CRITICAL FIX: Only use the current answers state, not the parent data
+    // This prevents accumulation of data from other sections
     const newAnswers = { ...answers, [questionId]: value };
+    
+    console.log(`📝 [${sectionId}] Answer changed: ${questionId}`);
+    console.log(`   Current answers keys BEFORE: ${Object.keys(answers).length}`);
+    console.log(`   New answers keys AFTER: ${Object.keys(newAnswers).length}`);
+    console.log(`   Saving to: surveyData.${sectionDataKey}`);
+    
     setAnswers(newAnswers);
     onUpdate(sectionDataKey, newAnswers);
     
@@ -103,15 +141,27 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     const dependencyAnswer = answers[question.dependsOn];
     const isEnabled = dependencyAnswer === question.dependsOnValue;
     
-    // If question is not enabled, mark it as skipped with reason
-    if (!isEnabled && !(question.id in answers)) {
-      const skipReason = getDetailedSkipReason(question);
-      handleAnswerChange(question.id, null);
-      handleAnswerChange(`${question.id}_skipReason`, skipReason);
-    }
-    
     return isEnabled;
   }
+
+  // Mark disabled questions as skipped in useEffect to avoid setState during render
+  useEffect(() => {
+    questions.forEach(question => {
+      if (question.dependsOn) {
+        const isEnabled = isQuestionEnabled(question);
+        if (!isEnabled && !(question.id in answers)) {
+          const skipReason = getDetailedSkipReason(question);
+          const newAnswers = {
+            ...answers,
+            [question.id]: null,
+            [`${question.id}_skipReason`]: skipReason
+          };
+          setAnswers(newAnswers);
+          onUpdate(sectionDataKey, newAnswers);
+        }
+      }
+    });
+  }, [answers, questions]);
 
   // Helper function to get detailed skip reason
   const getDetailedSkipReason = (question: Question): string => {
@@ -393,6 +443,7 @@ function getSectionDataKey(sectionId: string): keyof SurveyData {
     social: "socialProtection",
     business: "businessFriendly",
     environmental: "environmental",
+    overall: "overallEvaluation",
   }
   return keyMap[sectionId] || "financialAdmin";
 }
@@ -405,6 +456,7 @@ function getSectionTitle(sectionId: string): string {
     social: "Social Protection and Security",
     business: "Business Friendliness and Competitiveness",
     environmental: "Environmental Management",
+    overall: "Overall Evaluation",
   }
   return titleMap[sectionId] || "Survey Section";
 }

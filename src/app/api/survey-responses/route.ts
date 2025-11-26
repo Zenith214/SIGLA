@@ -261,7 +261,8 @@ export async function POST(request: NextRequest) {
             safety: 'Safety & Peace Order',
             social: 'Social Protection',
             business: 'Business Friendliness',
-            environmental: 'Environmental Management'
+            environmental: 'Environmental Management',
+            overall: 'Overall Evaluation'
           };
 
           const sectionName = sectionNames[sectionKey] || sectionKey;

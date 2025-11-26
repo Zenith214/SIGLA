@@ -15,7 +15,8 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
   const [demographics, setDemographics] = useState({
     age: data.respondentDemographics?.age ?? 0,
     birthdate: data.respondentDemographics?.birthdate ?? "",
-    gender: data.respondentDemographics?.gender ?? "",
+    sex: data.respondentDemographics?.sex ?? "",
+    genderIdentity: data.respondentDemographics?.genderIdentity ?? "",
     educationalAttainment: data.respondentDemographics?.educationalAttainment ?? "",
     householdIncome: data.respondentDemographics?.householdIncome ?? "",
     purok: data.respondentDemographics?.purok ?? ""
@@ -60,7 +61,8 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
             <p><strong>Name:</strong> {data.selectedMember || "Not selected"}</p>
             <p><strong>Birthdate:</strong> {demographics.birthdate ? new Date(demographics.birthdate).toLocaleDateString() : "Not provided"}</p>
             <p><strong>Age:</strong> {demographics.age} years old</p>
-            <p><strong>Gender:</strong> {demographics.gender}</p>
+            <p><strong>Sex:</strong> {demographics.sex}</p>
+            <p><strong>Gender Identity:</strong> {demographics.genderIdentity || "Not specified"}</p>
           </div>
         </div>
 
@@ -76,7 +78,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               <label className="block text-sm font-medium text-gray-700 mb-2">Birthdate</label>
               <input
                 type="date"
-                value={demographics.birthdate}
+                value={demographics.birthdate || ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
                 disabled
               />
@@ -87,7 +89,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
               <input
                 type="number"
-                value={demographics.age}
+                value={demographics.age || 0}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
                 disabled
               />
@@ -97,27 +99,26 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Gender Identity</label>
               <select
-                value={demographics.gender}
-                onChange={(e) => handleDemographicsChange("gender", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
-                disabled
+                value={demographics.genderIdentity || ""}
+                onChange={(e) => handleDemographicsChange("genderIdentity", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               >
-                <option value="">Select gender</option>
+                <option value="">Select gender identity</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="LGBTQI+">LGBTQI+</option>
                 <option value="Prefer not to say">Prefer not to say</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">Auto-filled from respondent selection</p>
+              <p className="text-xs text-gray-500 mt-1">Auto-filled from sex (editable)</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Educational Attainment *</label>
                 <select
-                  value={demographics.educationalAttainment}
+                  value={demographics.educationalAttainment || ""}
                   onChange={(e) => handleDemographicsChange("educationalAttainment", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
@@ -138,7 +139,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Household Income *</label>
                 <select
-                  value={demographics.householdIncome}
+                  value={demographics.householdIncome || ""}
                   onChange={(e) => handleDemographicsChange("householdIncome", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
@@ -165,7 +166,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               </label>
               <input
                 type="text"
-                value={demographics.purok}
+                value={demographics.purok || ""}
                 onChange={(e) => handleDemographicsChange("purok", e.target.value)}
                 placeholder="Enter purok or sitio name (e.g., Purok 1, Sitio Riverside)"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"

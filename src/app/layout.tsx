@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { SurveyCycleProvider } from "@/contexts/SurveyCycleContext";
-import { ToastProvider } from "@/hooks/use-toast";
+import { ToastProviderWrapper } from "@/components/providers/ToastProviderWrapper";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import "./globals.css";
@@ -46,7 +46,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToastProvider>
+        <ToastProviderWrapper>
           <AuthProvider>
             <SurveyCycleProvider>
               <ServiceWorkerRegistration />
@@ -54,7 +54,7 @@ export default function RootLayout({
               {children}
             </SurveyCycleProvider>
           </AuthProvider>
-        </ToastProvider>
+        </ToastProviderWrapper>
       </body>
     </html>
   );

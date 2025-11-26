@@ -13,37 +13,44 @@ interface TabbedSummaryProps {
 }
 
 export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummaryProps) {
-  // Get only the sections that were assigned to this survey number
+  // Get all sections for the survey (6 service sections + overall evaluation)
   const getAssignedTabs = () => {
-    const allTabs = [
+    const tabs = [
       { id: "demographics", name: "Demographics", dataKey: "respondentDemographics" as keyof SurveyData },
-      { id: "financial", name: "Financial Admin", dataKey: "financialAdmin" as keyof SurveyData },
-      { id: "disaster", name: "Disaster Prep", dataKey: "disasterPrep" as keyof SurveyData },
-      { id: "safety", name: "Peace & Order", dataKey: "safetyPeace" as keyof SurveyData },
-      { id: "social", name: "Social Protection", dataKey: "socialProtection" as keyof SurveyData },
-      { id: "business", name: "Business Friendly", dataKey: "businessFriendly" as keyof SurveyData },
-      { id: "environmental", name: "Environmental", dataKey: "environmental" as keyof SurveyData },
     ];
 
-    // Always include demographics
-    const assignedTabs = [allTabs[0]]; // Demographics
+    // Add all 6 service sections in the order they were assigned
+    if (data.assignedSections && data.assignedSections.length > 0) {
+      const sectionMap: Record<string, { name: string; dataKey: keyof SurveyData }> = {
+        financial: { name: "Financial Admin", dataKey: "financialAdmin" },
+        disaster: { name: "Disaster Prep", dataKey: "disasterPrep" },
+        safety: { name: "Peace & Order", dataKey: "safetyPeace" },
+        social: { name: "Social Protection", dataKey: "socialProtection" },
+        business: { name: "Business Friendly", dataKey: "businessFriendly" },
+        environmental: { name: "Environmental", dataKey: "environmental" },
+      };
 
-    // Add only the sections that were assigned to this survey number
-    if (data.surveyNumber) {
-      const assignedSections = getAssignedSections(data.surveyNumber);
-      console.log(`📋 Summary: Survey ${data.surveyNumber} assigned sections:`, assignedSections.map(s => s.id));
-      
-      assignedSections.forEach(assignedSection => {
-        const tab = allTabs.find(t => t.id === assignedSection.id);
-        if (tab) {
-          console.log(`✅ Summary: Adding tab for section ${assignedSection.id}`);
-          assignedTabs.push(tab);
+      data.assignedSections.forEach(sectionId => {
+        const sectionInfo = sectionMap[sectionId];
+        if (sectionInfo) {
+          tabs.push({
+            id: sectionId,
+            name: sectionInfo.name,
+            dataKey: sectionInfo.dataKey
+          });
         }
       });
     }
 
-    console.log(`📊 Summary: Final tabs:`, assignedTabs.map(t => t.id));
-    return assignedTabs;
+    // Add overall evaluation section
+    tabs.push({
+      id: "overall",
+      name: "Overall Evaluation",
+      dataKey: "overallEvaluation" as keyof SurveyData
+    });
+
+    console.log(`📊 Summary: Showing ${tabs.length} tabs (Demographics + ${data.assignedSections?.length || 0} service sections + Overall)`);
+    return tabs;
   };
 
   const surveyTabs = getAssignedTabs();
@@ -82,6 +89,27 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
 
     const sectionData = data[activeTabData.dataKey] as Record<string, any>
     const sectionStatus = getSectionStatus(activeTab)
+    
+    // Debug: Log section data to help identify mapping issues
+    console.log(`📋 Rendering ${activeTab} (${activeTabData.dataKey}):`, Object.keys(sectionData || {}))
+    
+    // Detect data mapping issues
+    const keys = Object.keys(sectionData || {}).filter(k => !k.endsWith('_skipReason'));
+    const patterns = {
+      financial: /corruption|projects|financial|socialPrograms/i,
+      disaster: /disaster|evacuation/i,
+      safety: /tanods|lupon|antiDrug/i,
+      social: /health|women|children|community/i,
+      business: /business|clearance/i,
+      environmental: /waste|garbage/i,
+    };
+    
+    for (const [type, pattern] of Object.entries(patterns)) {
+      const matches = keys.filter(k => pattern.test(k)).length;
+      if (matches > 0 && type !== activeTab) {
+        console.warn(`⚠️ ${activeTab} section contains ${matches} ${type} questions - DATA MAPPING ERROR!`);
+      }
+    }
 
     if (!sectionData || Object.keys(sectionData).length === 0) {
       return (
@@ -154,7 +182,7 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
         {data.surveyNumber && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Survey #{data.surveyNumber}</strong> - You completed {surveyTabs.length - 1} assigned sections plus demographics
+              <strong>Survey #{data.surveyNumber}</strong> - Demographics + {data.assignedSections?.length || 6} Service Sections + Overall Evaluation
             </p>
           </div>
         )}
