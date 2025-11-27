@@ -54,7 +54,14 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
       const response = await fetch(`/api/fs/gps-verification?cycleId=${cycleId}`);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch GPS verification data");
+        // Handle 404 or empty data gracefully
+        if (response.status === 404) {
+          setInterviews([]);
+          return;
+        }
+        
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch GPS verification data");
       }
 
       const data = await response.json();
@@ -62,6 +69,8 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
     } catch (err) {
       console.error("Error fetching GPS verification data:", err);
       setError(err instanceof Error ? err.message : "Failed to load GPS verification data");
+      // Set empty array on error so UI shows "no records" instead of error
+      setInterviews([]);
     } finally {
       setLoading(false);
     }
@@ -109,11 +118,40 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
     );
   }
 
+  // Show empty state if no interviews and no error
+  if (!loading && !parentLoading && interviews.length === 0 && !error) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">GPS Verification</h3>
+            <p className="text-sm text-gray-600">Monitor interview location verification</p>
+          </div>
+          <MapPin className="h-6 w-6 text-blue-600" />
+        </div>
+        <div className="text-center py-12">
+          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <h4 className="text-lg font-medium text-gray-900 mb-2">No GPS Records Yet</h4>
+          <p className="text-sm text-gray-500 mb-4">
+            GPS verification data will appear here once interviews with location tracking are submitted.
+          </p>
+          <button
+            onClick={fetchGPSVerificationData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="text-center">
-          <p className="text-red-600 mb-2">Error loading GPS verification data</p>
+          <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-red-400" />
+          <p className="text-red-600 mb-2 font-medium">Error loading GPS verification data</p>
           <p className="text-sm text-gray-500 mb-4">{error}</p>
           <button
             onClick={fetchGPSVerificationData}
@@ -215,7 +253,16 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
           {filteredInterviews.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <MapPin className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p className="text-sm">No interviews found for this filter</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">
+                {interviews.length === 0 
+                  ? "No GPS verification records yet" 
+                  : `No ${statusFilter} interviews found`}
+              </p>
+              <p className="text-xs text-gray-500">
+                {interviews.length === 0
+                  ? "Records will appear here once interviews with GPS tracking are submitted"
+                  : "Try selecting a different filter"}
+              </p>
             </div>
           ) : (
             <table className="w-full">

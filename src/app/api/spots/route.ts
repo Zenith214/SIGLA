@@ -15,11 +15,29 @@ import {
 } from '@/utils/pagination';
 
 /**
- * Generate questionnaire ID in format: {YEAR}-{SPOT_NUMBER}-{SEQUENCE}
- * Example: 2024-001-003
+ * Generate questionnaire ID in format: {YEAR}-{BARANGAY_ID}-{SPOT_NUMBER}-{QUESTIONNAIRE_NUMBER}
+ * Example: 2026-18-01-001 (Year 2026, Barangay 18, Spot 01, Questionnaire 001)
+ * 
+ * Format breakdown:
+ * - YYYY: 4-digit year
+ * - BB: Barangay ID (no padding, natural number)
+ * - SS: 2-digit spot number within barangay (01, 02, 03...)
+ * - QQQ: 3-digit questionnaire number within spot (001, 002, 003...)
+ * 
+ * Benefits of hyphen-separated format:
+ * - Human-readable and unambiguous
+ * - Easy to parse: id.split('-') → [year, barangayId, spotNumber, questionnaireNumber]
+ * - Prevents confusion (e.g., barangay 1 spot 80 vs barangay 18 spot 0)
  */
-function generateQuestionnaireId(year: number, spotNumber: number, sequence: number): string {
-  return `${year}-${String(spotNumber).padStart(3, '0')}-${sequence}`;
+function generateQuestionnaireId(
+  year: number, 
+  barangayId: number, 
+  spotNumber: number, 
+  questionnaireNumber: number
+): string {
+  const spotPart = String(spotNumber).padStart(2, '0');
+  const questionnairePart = String(questionnaireNumber).padStart(3, '0');
+  return `${year}-${barangayId}-${spotPart}-${questionnairePart}`;
 }
 
 /**
@@ -120,14 +138,15 @@ export async function POST(request: NextRequest) {
       throw createNotFoundError('Barangay');
     }
 
-    // Get the next spot number for this cycle
-    const { count: spotCount, error: countError } = await supabaseAdmin
+    // Get the spot number for this barangay (how many spots already exist in this barangay for this cycle)
+    const { count: spotCount, error: spotCountError } = await supabaseAdmin
       .from('spots')
       .select('spot_id', { count: 'exact', head: true })
+      .eq('barangay_id', barangayId)
       .eq('cycle_id', cycleId);
 
-    if (countError) {
-      throw handleDatabaseError(countError, 'count spots');
+    if (spotCountError) {
+      throw handleDatabaseError(spotCountError, 'count spots for barangay');
     }
 
     const spotNumber = (spotCount || 0) + 1;
@@ -168,15 +187,17 @@ export async function POST(request: NextRequest) {
     const questionnaireIds: string[] = [];
     const questionnaireInserts = [];
 
-    for (let sequence = 1; sequence <= numberOfQuestionnaires; sequence++) {
-      const questionnaireId = generateQuestionnaireId(cycle.year, spotNumber, sequence);
+    // Generate questionnaires with format: YYYY-BBSS-QQQ
+    for (let i = 0; i < numberOfQuestionnaires; i++) {
+      const questionnaireNumber = i + 1; // 1, 2, 3, 4, 5 within this spot
+      const questionnaireId = generateQuestionnaireId(cycle.year, barangayId, spotNumber, questionnaireNumber);
       questionnaireIds.push(questionnaireId);
       
       questionnaireInserts.push({
         questionnaire_id: questionnaireId,
         spot_id: spot.spot_id,
         cycle_id: cycleId,
-        sequence_number: sequence,
+        sequence_number: i + 1, // Sequence within the spot (1-5)
         status: 'Pending',
         visit_count: 0
       });

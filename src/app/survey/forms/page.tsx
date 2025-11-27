@@ -807,6 +807,8 @@ function SurveyAppContent() {
                   respondentDemographics: surveyData.respondentDemographics,
                   interviewerId: user?.id,
                   barangayId: barangayId,
+                  questionnaireId: questionnaireIdFromUrl, // Include for visit logging and status update
+                  spotId: spotIdFromUrl, // Include for GPS verification
                   // Include all 6 assigned sections + overall evaluation
                   sections: (() => {
                     const assignedSectionIds = surveyData.assignedSections || [];

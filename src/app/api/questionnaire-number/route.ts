@@ -53,11 +53,13 @@ export async function POST(request: NextRequest) {
 
     const questionnaireNumber = result.rows[0].current_number;
     
-    // Generate full survey number in format BB-YYYY-NNNN
-    const barangayPart = String(barangayId).padStart(2, '0');
+    // Generate full survey number in format YYYY-BB-SS-QQQ
+    // For on-the-fly generation (not tied to spots), use spot number 00
     const yearPart = activeCycle.year;
-    const sequencePart = String(questionnaireNumber).padStart(4, '0');
-    const fullSurveyNumber = `${barangayPart}-${yearPart}-${sequencePart}`;
+    const barangayPart = String(barangayId);
+    const spotPart = '00'; // Special spot number for non-spot questionnaires
+    const questionnairePart = String(questionnaireNumber).padStart(3, '0');
+    const fullSurveyNumber = `${yearPart}-${barangayPart}-${spotPart}-${questionnairePart}`;
 
     // Note: We no longer return 'type' field (odd/even)
     // Gender requirements are now calculated dynamically based on questionnaire number parity

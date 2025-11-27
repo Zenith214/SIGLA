@@ -133,6 +133,12 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       newErrors.callbackReason = "Please select a callback reason"
     }
 
+    // Validate logical combinations
+    const replacementOutcomes = ["No_Qualified_Respondent", "Outright_Refusal", "Household_Moved"]
+    if (replacementOutcomes.includes(outcome) && visitType !== "First Visit") {
+      newErrors.outcome = "Replacement outcomes (NQR/OR/Moved) can only be used on First Visit"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -219,6 +225,32 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       // Log visit if this is a callback
       if (isCallback && outcome) {
         await logVisit()
+        
+        // If outcome is not "Interview_Started", redirect back to spots dashboard
+        if (outcome !== "Interview_Started") {
+          console.log(`📍 Visit logged with outcome: ${outcome}. Redirecting to spots dashboard...`)
+          
+          // Different messages based on outcome type
+          let message = "Visit logged successfully. ";
+          
+          if (outcome === "Callback_Needed") {
+            message += "You can return later to complete the interview. Remember: up to 3 total visits allowed for callbacks.";
+          } else if (outcome === "No_Qualified_Respondent") {
+            message += "No Qualified Respondent (NQR). Move to the next household following the interval rule (skip one house).";
+          } else if (outcome === "Outright_Refusal") {
+            message += "Outright Refusal (OR). Move to the next household following the interval rule (skip one house).";
+          } else if (outcome === "Household_Moved") {
+            message += "Household moved. Move to the next household following the interval rule (skip one house).";
+          } else {
+            message += "Returning to spots dashboard.";
+          }
+          
+          alert(message);
+          
+          // Redirect to spots page
+          window.location.href = `/survey/spots`;
+          return;
+        }
       }
 
       // Check if we already have a survey number (from localStorage after refresh)
@@ -295,6 +327,15 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
               </p>
             </div>
 
+            {/* CSIS Protocol Guide */}
+            <div className="p-3 bg-gray-50 border border-gray-300 rounded-lg text-xs">
+              <p className="font-semibold text-gray-900 mb-2">CSIS Protocol:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li><strong>Callback:</strong> Respondent unavailable → Return up to 3 times → Then substitute</li>
+                <li><strong>Replacement:</strong> NQR/OR/Moved → Move to next household immediately (skip one house)</li>
+              </ul>
+            </div>
+
             {/* Visit Type Selection */}
             <div className="space-y-3">
               <Label>
@@ -304,28 +345,38 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="First Visit" id="first-visit" />
                   <Label htmlFor="first-visit" className="font-normal cursor-pointer">
-                    First Visit
+                    First Visit (Initial attempt)
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="Second Visit" id="second-visit" />
                   <Label htmlFor="second-visit" className="font-normal cursor-pointer">
-                    Second Visit
+                    Second Visit (First callback)
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="Last Visit" id="last-visit" />
                   <Label htmlFor="last-visit" className="font-normal cursor-pointer">
-                    Last Visit (3rd Attempt)
+                    Last Visit (3rd Attempt - Final callback)
                   </Label>
                 </div>
               </RadioGroup>
               {errors.visitType && (
                 <p className="text-sm text-red-500">{errors.visitType}</p>
               )}
+              {visitType === "First Visit" && (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>First Visit:</strong> Initial attempt at this household. Use NQR/OR for immediate replacement, or Callback if respondent is unavailable.
+                </div>
+              )}
+              {visitType === "Second Visit" && (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>Second Visit:</strong> First callback attempt. You have one more visit (3rd) if still unavailable.
+                </div>
+              )}
               {visitType === "Last Visit" && (
                 <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                  <strong>Note:</strong> After this visit, you should move to another spot if the interview cannot be completed.
+                  <strong>Last Visit (3rd Attempt):</strong> Final callback attempt. If still unavailable, this respondent will be marked for substitution (not replacement).
                 </div>
               )}
             </div>
@@ -336,29 +387,44 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                 Visit Outcome <span className="text-red-500">*</span>
               </Label>
               <RadioGroup value={outcome} onValueChange={setOutcome}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Callback_Needed" id="callback" />
-                  <Label htmlFor="callback" className="font-normal cursor-pointer">
-                    Callback Needed
-                  </Label>
+                {/* Callback Outcomes (3-visit protocol) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-700 mt-2">Callback (Same Household - Up to 3 Visits):</p>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Callback_Needed" id="callback" />
+                    <Label htmlFor="callback" className="font-normal cursor-pointer">
+                      Callback Needed (Respondent unavailable/busy)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Interview_Started" id="started" />
+                    <Label htmlFor="started" className="font-normal cursor-pointer">
+                      Interview Started (Respondent available)
+                    </Label>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Interview_Started" id="started" />
-                  <Label htmlFor="started" className="font-normal cursor-pointer">
-                    Interview Started
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Refused" id="refused" />
-                  <Label htmlFor="refused" className="font-normal cursor-pointer">
-                    Refused to Participate
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Household_Moved" id="moved" />
-                  <Label htmlFor="moved" className="font-normal cursor-pointer">
-                    Household Moved
-                  </Label>
+
+                {/* Replacement Outcomes (1 visit only - move to next household) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-700 mt-4">Replacement (Move to Next Household Immediately):</p>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="No_Qualified_Respondent" id="nqr" />
+                    <Label htmlFor="nqr" className="font-normal cursor-pointer">
+                      No Qualified Respondent (NQR) - Wrong sex or all under 18
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Outright_Refusal" id="or" />
+                    <Label htmlFor="or" className="font-normal cursor-pointer">
+                      Outright Refusal (OR) - Household refused before Kish Grid
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Household_Moved" id="moved" />
+                    <Label htmlFor="moved" className="font-normal cursor-pointer">
+                      Household Moved - No longer at this location
+                    </Label>
+                  </div>
                 </div>
               </RadioGroup>
               {errors.outcome && (
@@ -409,14 +475,27 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
               </p>
             </div>
 
-            {/* Warning for last visit with failed outcome */}
-            {visitType === "Last Visit" && outcome && outcome !== "Interview_Started" && (
+            {/* Warning for replacement outcomes (NQR, OR, Moved) */}
+            {outcome && (outcome === "No_Qualified_Respondent" || outcome === "Outright_Refusal" || outcome === "Household_Moved") && (
+              <div className="p-3 bg-orange-50 border border-orange-300 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-orange-800">Replacement Required</p>
+                  <p className="text-orange-700 mt-1">
+                    This household is invalid. After logging, move to the next household following the interval rule (skip one house).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Warning for last visit with callback outcome */}
+            {visitType === "Last Visit" && outcome === "Callback_Needed" && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-red-800">Warning: Last Visit</p>
+                  <p className="font-medium text-red-800">Warning: Final Callback Attempt</p>
                   <p className="text-red-600 mt-1">
-                    This is the final attempt. After logging this visit, you should move to another spot. The questionnaire will be flagged for substitution.
+                    This is the 3rd attempt. After logging, this respondent will be marked for <strong>substitution</strong> (not replacement). A person with matching demographics will be found later.
                   </p>
                 </div>
               </div>

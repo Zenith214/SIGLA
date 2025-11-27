@@ -111,62 +111,80 @@ export default function ToolsPage() {
     setResults(prev => [result, ...prev.slice(0, 9)]); // Keep last 10 results
   };
 
-  const generateMockData = async () => {
+  const generateSyntheticData = async () => {
     const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
     
-    // Check if target is already reached
-    if (selectedBarangay && selectedBarangay.target && selectedBarangay.achieved) {
-      if (selectedBarangay.achieved >= selectedBarangay.target) {
-        addResult({
-          success: false,
-          message: `❌ Cannot generate: ${selectedBarangay.name} has already reached its target (${selectedBarangay.achieved}/${selectedBarangay.target})`
-        });
-        return;
-      }
-      
-      // Check if new responses would exceed target
-      const newTotal = selectedBarangay.achieved + parseInt(responseCount);
-      if (newTotal > selectedBarangay.target) {
-        const remaining = selectedBarangay.target - selectedBarangay.achieved;
-        addResult({
-          success: false,
-          message: `⚠️ Cannot generate ${responseCount} responses: Would exceed target. Only ${remaining} responses remaining for ${selectedBarangay.name}`
-        });
-        return;
-      }
+    if (!selectedBarangay) {
+      addResult({
+        success: false,
+        message: `❌ Barangay not found`
+      });
+      return;
     }
-    
-    console.log('Generating mock data for:', {
-      selectedBarangayId: barangayId,
-      selectedBarangay: selectedBarangay,
-      responseCount: responseCount,
-      profile: profile
+
+    // Get active cycle
+    let activeCycleId = null;
+    try {
+      const cycleResponse = await fetch('/api/survey-cycles?status=Active');
+      if (cycleResponse.ok) {
+        const cycles = await cycleResponse.json();
+        if (cycles.length > 0) {
+          activeCycleId = cycles[0].cycle_id;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching active cycle:', error);
+    }
+
+    if (!activeCycleId) {
+      addResult({
+        success: false,
+        message: `❌ No active survey cycle found. Please create and activate a cycle first.`
+      });
+      return;
+    }
+
+    // Calculate spots needed (5 questionnaires per spot)
+    const totalQuestionnaires = parseInt(responseCount);
+    const numberOfSpots = Math.ceil(totalQuestionnaires / 5);
+    const questionnairesPerSpot = 5;
+
+    console.log('Generating synthetic data:', {
+      barangayId,
+      barangayName: selectedBarangay.name,
+      cycleId: activeCycleId,
+      totalQuestionnaires,
+      numberOfSpots,
+      questionnairesPerSpot,
+      profile
     });
 
     setIsGenerating(true);
     setProgress(0);
     setResults([]);
     setFunnelAnalysis(null);
-    setCurrentAction("Initializing mock data generation...");
+    setCurrentAction(`Creating ${numberOfSpots} spot(s) with ${totalQuestionnaires} questionnaires...`);
 
     // Simulate progress updates during generation
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev < 95) {
-          return prev + Math.random() * 5; // Gradual progress increase
+          return prev + Math.random() * 5;
         }
         return prev;
       });
     }, 500);
 
     try {
-      const response = await fetch('/api/tools/generate-mock-survey-data', {
+      const response = await fetch('/api/tools/generate-synthetic-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           barangayId: parseInt(barangayId),
-          responseCount: parseInt(responseCount),
-          profile: profile
+          cycleId: activeCycleId,
+          numberOfSpots,
+          questionnairesPerSpot,
+          profile
         })
       });
 
@@ -176,39 +194,44 @@ export default function ToolsPage() {
       clearInterval(progressInterval);
 
       if (response.ok) {
-        const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
-        const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
-        
         setProgress(100);
-        setCurrentAction("Generation completed successfully!");
+        setCurrentAction("Synthetic data generation completed!");
         
         addResult({
           success: true,
-          message: `Successfully generated ${responseCount} mock responses for ${barangayName} (Barangay ${barangayId})`,
+          message: `✅ Generated synthetic data for ${data.barangayName}`,
           data: data
         });
 
-        // Add progress milestone results to terminal
         addResult({
           success: true,
-          message: `✅ 20% - Generated ${Math.round(parseInt(responseCount) * 0.2)} responses`
+          message: `📍 Created ${data.spotsCreated} spot(s)`
         });
+
         addResult({
           success: true,
-          message: `✅ 40% - Generated ${Math.round(parseInt(responseCount) * 0.4)} responses`
+          message: `📋 Generated ${data.questionnairesGenerated} questionnaire(s) with format YYYY-BB-SS-QQQ`
         });
+
         addResult({
           success: true,
-          message: `✅ 60% - Generated ${Math.round(parseInt(responseCount) * 0.6)} responses`
+          message: `📊 Created ${data.responsesGenerated} survey response(s) with CSIS randomization`
         });
+
         addResult({
           success: true,
-          message: `✅ 80% - Generated ${Math.round(parseInt(responseCount) * 0.8)} responses`
+          message: `🎯 Profile: ${data.profile} | Cycle: ${data.cycleYear}`
         });
-        addResult({
-          success: true,
-          message: `🎉 Done - All ${responseCount} responses completed!`
-        });
+
+        // Show spot details
+        if (data.spots && data.spots.length > 0) {
+          data.spots.forEach((spot: any) => {
+            addResult({
+              success: true,
+              message: `   📌 ${spot.spotName}: ${spot.questionnaires.length} questionnaires (${spot.questionnaires[0]} to ${spot.questionnaires[spot.questionnaires.length - 1]})`
+            });
+          });
+        }
 
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
@@ -763,6 +786,56 @@ export default function ToolsPage() {
     }
   };
 
+  const runSeeder = async (seederName: string, options: any = {}) => {
+    setCurrentAction(`Running ${seederName}...`);
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch('/api/tools/run-seeder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seederName, options })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        addResult({
+          success: true,
+          message: `✅ ${seederName} completed successfully`
+        });
+
+        // Display logs
+        if (data.logs && data.logs.length > 0) {
+          data.logs.forEach((log: string) => {
+            addResult({
+              success: true,
+              message: log
+            });
+          });
+        }
+
+        // Refresh barangays if spots or assignments were seeded
+        if (seederName === 'SpotSeeder' || seederName === 'AssignmentSeeder' || seederName === 'DatabaseSeeder') {
+          await fetchBarangays();
+        }
+      } else {
+        addResult({
+          success: false,
+          message: data.error || `Failed to run ${seederName}`
+        });
+      }
+    } catch (error) {
+      addResult({
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setIsGenerating(false);
+      setCurrentAction('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
@@ -968,7 +1041,7 @@ export default function ToolsPage() {
 
                 <div className="flex gap-2 flex-wrap">
                   <Button
-                    onClick={generateMockData}
+                    onClick={generateSyntheticData}
                     disabled={
                       isGenerating || 
                       isDeleting || 
@@ -983,7 +1056,7 @@ export default function ToolsPage() {
                      (barangays.find(b => b.id.toString() === barangayId)?.achieved || 0) >= 
                      (barangays.find(b => b.id.toString() === barangayId)?.target || Infinity)
                        ? 'Target Reached' 
-                       : 'Generate Mock Data'}
+                       : 'Generate Synthetic Data'}
                   </Button>
                   <Button
                     onClick={deleteMockData}
@@ -1540,11 +1613,11 @@ export default function ToolsPage() {
 
             <div className="flex gap-2 flex-wrap">
               <Button
-                onClick={generateMockData}
+                onClick={generateSyntheticData}
                 disabled={isGenerating || isDeleting || loadingBarangays || !barangayId}
                 className="flex-1 min-w-[200px]"
               >
-                {isGenerating ? 'Generating...' : 'Generate Mock Data'}
+                {isGenerating ? 'Generating...' : 'Generate Synthetic Data'}
               </Button>
               <Button
                 onClick={deleteMockData}
@@ -1655,6 +1728,69 @@ export default function ToolsPage() {
 
           {/* Database Tab */}
           <TabsContent value="database">
+            {/* Seeding Tools */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  Laravel-Style Seeding System
+                </CardTitle>
+                <CardDescription>
+                  Automated data generation using factories and seeders. Create users, spots, and assignments with customizable options.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => runSeeder('DatabaseSeeder')}
+                    disabled={isGenerating || isDeleting}
+                    className="w-full"
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Run All Seeders
+                  </Button>
+                  <Button
+                    onClick={() => runSeeder('UserSeeder')}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    👥 Seed Users
+                  </Button>
+                  <Button
+                    onClick={() => runSeeder('SpotSeeder', { count: 10 })}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    📍 Seed Spots (10)
+                  </Button>
+                  <Button
+                    onClick={() => runSeeder('AssignmentSeeder', { count: 20, status: 'Pending' })}
+                    disabled={isGenerating || isDeleting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    📋 Seed Assignments (20)
+                  </Button>
+                </div>
+
+                <Alert className="border-blue-500 bg-blue-50">
+                  <AlertDescription className="text-blue-800">
+                    <strong>Laravel-Style Seeding:</strong> Uses factories to generate realistic test data. 
+                    Seeders create users (interviewers, viewers, admins), spots for survey cycles, and assignments linking spots to field interviewers.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div><strong>DatabaseSeeder:</strong> Runs all seeders in order (Users → Spots → Assignments)</div>
+                  <div><strong>UserSeeder:</strong> Creates 5 interviewers, 2 viewers, and 1 admin</div>
+                  <div><strong>SpotSeeder:</strong> Creates unassigned spots for active cycle</div>
+                  <div><strong>AssignmentSeeder:</strong> Assigns spots to active interviewers</div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Database Status */}
             {databaseStatus && (
               <Card>
@@ -1874,7 +2010,7 @@ export default function ToolsPage() {
             <div>
               <h4 className="font-semibold mb-2">Terminal Commands:</h4>
               <ul className="text-sm space-y-1 ml-4 font-mono">
-                <li><strong>Generate Mock Data:</strong> Creates test survey responses for selected barangay</li>
+                <li><strong>Generate Synthetic Data:</strong> Creates spots, questionnaires, and survey responses with CSIS protocol</li>
                 <li><strong>Check Survey Targets:</strong> Validates survey targets and progress</li>
                 <li><strong>Delete Operations:</strong> Removes mock or all survey data</li>
                 <li><strong>Database Status:</strong> Shows current database health and statistics</li>

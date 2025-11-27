@@ -86,7 +86,7 @@ function SurveyDashboardContent() {
   const [barangays, setBarangays] = useState<Barangay[]>([])
   const [myAssignments, setMyAssignments] = useState<Barangay[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'spots'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'spots'>('overview')
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   // Logout handler function
@@ -323,21 +323,7 @@ function SurveyDashboardContent() {
                     >
                       My Spots
                     </button>
-                    <button
-                      onClick={() => setActiveTab('assignments')}
-                      className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors relative ${
-                        activeTab === 'assignments'
-                          ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      Legacy Assignments
-                      {myAssignments.filter(b => b.status === 'In Progress').length > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
-                          {myAssignments.filter(b => b.status === 'In Progress').length}
-                        </span>
-                      )}
-                    </button>
+
                   </>
                 )}
               </div>
