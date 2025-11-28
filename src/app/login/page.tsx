@@ -97,6 +97,7 @@ function PulseLoginContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔐 Login form submitted')
 
     // Validation
     const newErrors = {
@@ -119,21 +120,28 @@ function PulseLoginContent() {
     setErrors(newErrors)
 
     if (newErrors.email || newErrors.password) {
+      console.log('❌ Validation failed:', newErrors)
       return
     }
 
+    console.log('✅ Validation passed, attempting login...')
     setIsSubmitting(true)
     setLoginStatus("idle")
     setRedirectMessage("") // Clear any redirect messages
 
     try {
+      console.log('📡 Calling login API with email:', formData.email)
+      
       // Use the auth context login function
       const result = await login({
         email: formData.email,
         password: formData.password,
       });
 
+      console.log('📥 Login API response:', result)
+
       if (result.success) {
+        console.log('✅ Login successful! Role:', result.role)
         setLoginStatus("success");
 
         // Force refresh the auth state immediately
@@ -141,6 +149,7 @@ function PulseLoginContent() {
 
         // Get redirect URL from search params
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
+        console.log('🔄 Redirect URL:', redirectUrl)
 
         // Validate the redirect URL to prevent open redirect vulnerabilities
         const isValidRedirect = redirectUrl.startsWith('/') &&
@@ -149,20 +158,26 @@ function PulseLoginContent() {
 
         // Redirect based on role immediately
         if (result.role === 'developer') {
+          console.log('🚀 Redirecting to /tools')
           window.location.href = "/tools";
         } else if (result.role === 'interviewer') {
+          console.log('🚀 Redirecting to /survey')
           window.location.href = "/survey";
         } else if (result.role === 'fs') {
+          console.log('🚀 Redirecting to /fs-dashboard')
           window.location.href = "/fs-dashboard";
         } else {
+          console.log('🚀 Redirecting to:', isValidRedirect ? redirectUrl : '/dashboard')
           // Use the redirect URL if valid, otherwise default to dashboard
           window.location.href = isValidRedirect ? redirectUrl : '/dashboard';
         }
       } else {
+        console.error('❌ Login failed:', result.error)
         setLoginStatus("error");
         setErrors(prev => ({ ...prev, password: result.error || 'Login failed' }));
       }
     } catch (error) {
+      console.error('❌ Login error:', error)
       setLoginStatus("error");
       setErrors(prev => ({ ...prev, password: 'Network error occurred' }));
     } finally {
