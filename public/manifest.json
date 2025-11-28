@@ -1,7 +1,8 @@
 {
-  "name": "PULSE - Public Understanding and Local Service Evaluation",
-  "short_name": "PULSE",
-  "description": "A comprehensive survey platform for measuring citizen satisfaction with local government services",
+  "id": "/",
+  "name": "PULSE Field Interviewer",
+  "short_name": "PULSE FI",
+  "description": "Mobile survey collection app for field interviewers conducting citizen satisfaction surveys",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
@@ -22,19 +23,7 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "screenshots": [
-    {
-      "src": "/sdashboard.gif",
-      "sizes": "1280x720",
-      "type": "image/gif",
-      "label": "Survey Dashboard"
-    },
-    {
-      "src": "/spotmap.gif",
-      "sizes": "1280x720",
-      "type": "image/gif",
-      "label": "Spot Map"
-    }
-  ]
+  "categories": ["productivity", "business"],
+  "prefer_related_applications": false,
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7"
 }

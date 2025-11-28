@@ -1,14 +1,15 @@
-// Service Worker for PULSE PWA
-// Implements offline-first caching strategy
+// Service Worker for PULSE Field Interviewer PWA
+// Implements offline-first caching strategy for field data collection
 
-const CACHE_NAME = 'pulse-pwa-v1';
+const CACHE_NAME = 'pulse-fi-pwa-v1';
 const OFFLINE_URL = '/offline.html';
 
-// Static assets to cache on install
+// Static assets to cache on install - focused on field interviewer needs
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
-  '/survey',
+  '/survey/forms',
+  '/survey/barangay',
   '/manifest.json',
 ];
 
@@ -35,7 +36,8 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          // Keep current cache and any pulse-fi-pwa caches
+          if (cacheName !== CACHE_NAME && !cacheName.startsWith('pulse-fi-pwa')) {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
