@@ -78,4 +78,4 @@ curl -X POST https://your-ml-service.up.railway.app/api/predict \
 **Can't connect from Next.js:**
 - Verify ML_API_URL is set correctly
 - Check CORS settings in `app.py`
-- Ensure service is running (check Railway dashboard)
+- Ensure service is running (check Railway dash

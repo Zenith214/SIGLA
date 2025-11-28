@@ -2,7 +2,7 @@
   "name": "PULSE - Public Understanding and Local Service Evaluation",
   "short_name": "PULSE",
   "description": "A comprehensive survey platform for measuring citizen satisfaction with local government services",
-  "start_url": "/survey",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
