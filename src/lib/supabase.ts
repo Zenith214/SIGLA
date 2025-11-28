@@ -1,23 +1,37 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+// Validate required environment variables at runtime (not build time)
+function validateSupabaseConfig() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // During build time, we don't need actual credentials
+    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
+      console.warn('Supabase credentials not found during build. This is expected.')
+    }
+  }
+}
 
 // Client-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('https://placeholder.supabase.co', 'placeholder-key')
 
 // Server-side Supabase client with service role key (for admin operations)
-// Only initialize on server-side where the service role key is available
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-export const supabaseAdmin = supabaseServiceKey 
+export const supabaseAdmin = supabaseServiceKey && supabaseUrl
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     })
-  : supabase // Fallback to regular client on client-side
+  : supabase // Fallback to regular client
+
+// Run validation
+validateSupabaseConfig()
 
 // Database types (will be generated after migration)
 export type Database = {
@@ -87,7 +101,7 @@ export const supabaseHelpers = {
       
       if (error) throw error
       return { success: true, message: 'Connected to Supabase successfully' }
-    } catch (error) {
+    } catch (error: any) {
       return { success: false, error: error.message }
     }
   },

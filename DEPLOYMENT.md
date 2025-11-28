@@ -1,17 +1,17 @@
 # Deployment Guide
 
-## Pre-Deployment Cleanup
+## Pre-Deployment Checklist
 
-Run the cleanup script to remove unnecessary files:
-
-```powershell
-.\cleanup.ps1
-```
-
-This removes:
-- Test output folders (coverage, test-results, playwright-report)
-- Build artifacts (.next, tsconfig.tsbuildinfo)
-- node_modules (will be reinstalled)
+1. **Set up environment variables** - Copy `.env.example` to `.env` and fill in your values
+2. **Test build locally:**
+   ```powershell
+   pnpm build
+   ```
+3. **Run cleanup (optional):**
+   ```powershell
+   .\cleanup.ps1
+   ```
+   This removes test outputs and build artifacts locally
 
 ## Railway Deployment
 
@@ -30,19 +30,28 @@ railway init
 
 ### 2. Configure Environment Variables
 
-Add these in Railway dashboard:
+Add these in Railway dashboard (see `.env.example` for reference):
+
+**Required:**
 - `DATABASE_URL` - Your Supabase connection string
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon key
-- `JWT_SECRET` - Your JWT secret
-- `GEMINI_API_KEY` - Your Gemini API key (if using AI features)
+- `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (for admin operations)
+- `JWT_SECRET` - Your JWT secret (generate with `openssl rand -base64 32`)
 - `NODE_ENV=production`
 
+**Optional:**
+- `GEMINI_API_KEY` - Your Gemini API key (if using AI features)
+
 ### 3. Deploy
+
+Railway will automatically use `next.config.railway.ts` which enables standalone mode for smaller deployments.
 
 ```bash
 railway up
 ```
+
+Or push to GitHub and connect Railway to auto-deploy on push.
 
 ## What Gets Excluded from Build
 
