@@ -1,15 +1,14 @@
 // Service Worker for PULSE Field Interviewer PWA
 // Implements offline-first caching strategy for field data collection
 
-const CACHE_NAME = 'pulse-fi-pwa-v1';
+const CACHE_NAME = 'pulse-fi-pwa-v3';
+const RUNTIME_CACHE = 'pulse-fi-runtime-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install - focused on field interviewer needs
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
-  '/survey/forms',
-  '/survey/barangay',
   '/manifest.json',
 ];
 
@@ -32,12 +31,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating...');
   
+  const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          // Keep current cache and any pulse-fi-pwa caches
-          if (cacheName !== CACHE_NAME && !cacheName.startsWith('pulse-fi-pwa')) {
+          if (!currentCaches.includes(cacheName)) {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -60,42 +60,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // API calls - Network-first strategy
+  // API calls - Network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          
-          // Cache successful responses
+          // Clone and cache successful responses
           if (response.status === 200) {
+            const responseToCache = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, responseToCache);
             });
           }
-          
           return response;
         })
         .catch(() => {
-          // If network fails, try to return cached response
+          // Return cached API response if available
           return caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
+              console.log('[SW] Using cached API response for:', url.pathname);
               return cachedResponse;
             }
-            
-            // If no cached response, return offline page for navigation requests
-            if (request.mode === 'navigate') {
-              return caches.match(OFFLINE_URL);
-            }
-            
-            // For other requests, return a basic error response
-            return new Response('Network error', {
+            // Return error response for failed API calls
+            return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
               status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain',
-              }),
+              headers: { 'Content-Type': 'application/json' },
             });
           });
         })
@@ -103,41 +92,62 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Static assets - Cache-first strategy
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      
-      // If not in cache, fetch from network
-      return fetch(request)
-        .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
+  // HTML pages and Next.js routes - Cache-first for offline support
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      caches.open(RUNTIME_CACHE).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          const fetchPromise = fetch(request)
+            .then((response) => {
+              if (response.status === 200) {
+                cache.put(request, response.clone());
+              }
+              return response;
+            })
+            .catch(() => {
+              // If fetch fails, return cached version or offline page
+              if (cachedResponse) {
+                console.log('[SW] Serving cached page offline:', url.pathname);
+                return cachedResponse;
+              }
+              return caches.match(OFFLINE_URL);
+            });
           
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-          
-          return response;
-        })
-        .catch(() => {
-          // If network fails and it's a navigation request, show offline page
-          if (request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
-          }
-          
-          return new Response('Network error', {
-            status: 503,
-            statusText: 'Service Unavailable',
-          });
+          // Return cached version immediately if available
+          return cachedResponse || fetchPromise;
         });
+      })
+    );
+    return;
+  }
+  
+  // Static assets (JS, CSS, images, fonts) - Aggressive caching for offline
+  event.respondWith(
+    caches.open(RUNTIME_CACHE).then((cache) => {
+      return cache.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          // Return cached version immediately, update in background
+          fetch(request).then((response) => {
+            if (response && response.status === 200) {
+              cache.put(request, response);
+            }
+          }).catch(() => {});
+          return cachedResponse;
+        }
+        
+        // Not in cache, fetch and cache
+        return fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              cache.put(request, response.clone());
+            }
+            return response;
+          })
+          .catch(() => {
+            console.log('[SW] Failed to fetch:', url.pathname);
+            return new Response('Offline', { status: 503 });
+          });
+      });
     })
   );
 });
