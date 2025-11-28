@@ -41,6 +41,16 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   // Compress responses
   compress: true,
+  // Exclude files from build
+  webpack: (config, { isServer }) => {
+    // Exclude test files and documentation from bundle
+    config.module.rules.push({
+      test: /\.(test|spec)\.(ts|tsx|js|jsx)$/,
+      loader: 'ignore-loader',
+    });
+    
+    return config;
+  },
 };
 
 export default nextConfig;
