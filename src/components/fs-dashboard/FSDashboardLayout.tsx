@@ -6,8 +6,8 @@ import FSNavbar from "./FSNavbar";
 
 interface FSDashboardLayoutProps {
   children: ReactNode;
-  activeTab: "assignments" | "spots" | "monitoring";
-  onTabChange: (tab: "assignments" | "spots" | "monitoring") => void;
+  activeTab: "overview" | "assignments" | "spots" | "spot-management" | "monitoring";
+  onTabChange: (tab: "overview" | "assignments" | "spots" | "spot-management" | "monitoring") => void;
 }
 
 export default function FSDashboardLayout({

@@ -57,14 +57,14 @@ export default function SpotCreationModal({
   const [spotName, setSpotName] = useState("");
   const [barangayId, setBarangayId] = useState("");
   const [randomStart, setRandomStart] = useState("");
-  const [numberOfQuestionnaires, setNumberOfQuestionnaires] = useState("5");
+  // Fixed at 5 questionnaires per spot as per survey methodology
+  const numberOfQuestionnaires = 5;
 
   // Validation errors
   const [errors, setErrors] = useState<{
     spotName?: string;
     barangayId?: string;
     randomStart?: string;
-    numberOfQuestionnaires?: string;
   }>({});
 
   // Fetch barangays when modal opens
@@ -81,7 +81,6 @@ export default function SpotCreationModal({
         setSpotName("");
         setBarangayId("");
         setRandomStart("");
-        setNumberOfQuestionnaires("5");
         setErrors({});
         setShowSuccess(false);
         setGeneratedQuestionnaires([]);
@@ -90,28 +89,59 @@ export default function SpotCreationModal({
   }, [open]);
 
   const fetchBarangays = async () => {
+    if (!cycleId) return;
+    
     setLoadingBarangays(true);
     try {
-      const response = await fetch("/api/barangays");
-      if (!response.ok) {
+      // First, try to fetch supervisor's assigned barangays
+      const supervisorResponse = await fetch(`/api/supervisor-assignments/my-barangays?cycle_id=${cycleId}`);
+      
+      if (supervisorResponse.ok) {
+        // Supervisor has assignments - show only their assigned barangays
+        const supervisorData = await supervisorResponse.json();
+        const assignedBarangays = supervisorData.data || [];
+        
+        if (assignedBarangays.length === 0) {
+          toast({
+            title: "No Assigned Barangays",
+            description: "You have not been assigned any barangays for this cycle. Please contact your administrator.",
+            variant: "destructive",
+          });
+          setBarangays([]);
+          return;
+        }
+        
+        setBarangays(
+          assignedBarangays.map((assignment: any) => ({
+            id: assignment.barangay_id,
+            name: assignment.barangay_name,
+          }))
+        );
+      } else if (supervisorResponse.status === 403) {
+        // Not a supervisor - fetch all survey targets (for admins/other roles)
+        const response = await fetch(`/api/survey-targets?cycleId=${cycleId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch survey targets");
+        }
+        const data = await response.json();
+        
+        // Extract barangays from survey targets
+        const targets = data.targets || data;
+        
+        setBarangays(
+          targets.map((target: any) => ({
+            id: target.barangayId || target.barangay_id,
+            name: target.barangayName || target.barangay_name,
+          }))
+        );
+      } else {
         throw new Error("Failed to fetch barangays");
       }
-      const data = await response.json();
-      
-      // Handle both old and new API response formats
-      const barangayList = data.data || data;
-      
-      setBarangays(
-        barangayList.map((b: any) => ({
-          id: b.id || b.barangay_id,
-          name: b.name || b.barangay_name,
-        }))
-      );
     } catch (error) {
       console.error("Error fetching barangays:", error);
       toast({
         title: "Error",
-        description: "Failed to load barangays. Please try again.",
+        description: "Failed to load barangays for this cycle. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -136,15 +166,6 @@ export default function SpotCreationModal({
       const num = parseInt(randomStart, 10);
       if (isNaN(num) || num < 1 || num > 999) {
         newErrors.randomStart = "Must be a number between 1 and 999";
-      }
-    }
-
-    if (!numberOfQuestionnaires) {
-      newErrors.numberOfQuestionnaires = "Number of questionnaires is required";
-    } else {
-      const num = parseInt(numberOfQuestionnaires, 10);
-      if (isNaN(num) || num < 1 || num > 50) {
-        newErrors.numberOfQuestionnaires = "Must be a number between 1 and 50";
       }
     }
 
@@ -173,7 +194,7 @@ export default function SpotCreationModal({
           spotName: spotName.trim(),
           startingPoint,
           randomStart: parseInt(randomStart, 10),
-          numberOfQuestionnaires: parseInt(numberOfQuestionnaires, 10),
+          numberOfQuestionnaires: numberOfQuestionnaires, // Always 5 per survey methodology
         }),
       });
 
@@ -189,7 +210,7 @@ export default function SpotCreationModal({
 
       toast({
         title: "Success",
-        description: `Spot "${spotName}" created successfully with ${numberOfQuestionnaires} questionnaire${parseInt(numberOfQuestionnaires) !== 1 ? 's' : ''}.`,
+        description: `Spot "${spotName}" created successfully with ${numberOfQuestionnaires} questionnaires.`,
       });
 
       // Wait a moment before closing to show the success state
@@ -320,28 +341,20 @@ export default function SpotCreationModal({
                   )}
                 </div>
 
-                {/* Number of Questionnaires */}
+                {/* Questionnaires per Spot - Fixed at 5 */}
                 <div className="space-y-2">
-                  <Label htmlFor="numberOfQuestionnaires">
-                    Number of Questionnaires (1-50) <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="numberOfQuestionnaires"
-                    type="number"
-                    min="1"
-                    max="50"
-                    placeholder="e.g., 10"
-                    value={numberOfQuestionnaires}
-                    onChange={(e) => setNumberOfQuestionnaires(e.target.value)}
-                    disabled={loading}
-                    className={errors.numberOfQuestionnaires ? "border-red-500" : ""}
-                  />
-                  {errors.numberOfQuestionnaires && (
-                    <p className="text-sm text-red-500">{errors.numberOfQuestionnaires}</p>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    How many interviews/households will be covered in this spot
-                  </p>
+                  <Label>Questionnaires per Spot</Label>
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-blue-900">{numberOfQuestionnaires}</span>
+                        <span className="text-sm text-blue-700">questionnaires</span>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Fixed at 5 per survey methodology standard
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Random Start */}

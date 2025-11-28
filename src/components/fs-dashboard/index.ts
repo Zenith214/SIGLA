@@ -1,5 +1,6 @@
 export { default as FSDashboardLayout } from './FSDashboardLayout';
 export { default as FSNavbar } from './FSNavbar';
+export { default as SupervisorOverview } from './SupervisorOverview';
 export { default as AssignmentManagement } from './AssignmentManagement';
 export { default as SpotAllocation } from './SpotAllocation';
 export { default as FieldworkMonitoring } from './FieldworkMonitoring';

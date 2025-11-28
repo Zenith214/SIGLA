@@ -55,13 +55,14 @@ export function verifyAuth(request: NextRequest): AuthResult {
 }
 
 /**
- * Checks if user has admin role
+ * Checks if user has admin role (or developer role)
  * @param request - NextRequest object
  * @returns boolean indicating admin status
  */
 export function isAdmin(request: NextRequest): boolean {
   const authResult = verifyAuth(request);
-  return authResult.success && authResult.user?.role === 'admin';
+  const userRole = authResult.user?.role;
+  return authResult.success && (userRole === 'admin' || userRole === 'developer');
 }
 
 /**
@@ -80,7 +81,7 @@ export function requireAuth(request: NextRequest): AuthResult | null {
 }
 
 /**
- * Middleware to require admin role
+ * Middleware to require admin role (or developer role)
  * @param request - NextRequest object
  * @returns AuthResult or null if authorized
  */
@@ -91,14 +92,16 @@ export function requireAdmin(request: NextRequest): AuthResult | null {
     return authResult;
   }
   
-  if (authResult.user?.role !== 'admin') {
+  // Allow both admin and developer roles
+  const userRole = authResult.user?.role;
+  if (userRole !== 'admin' && userRole !== 'developer') {
     return {
       success: false,
       error: 'Admin access required'
     };
   }
   
-  return null; // No error, user is admin
+  return null; // No error, user is admin or developer
 }
 
 /**

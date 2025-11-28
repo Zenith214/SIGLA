@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { MapPin, Users, Settings, Target, Calendar, Database, HardDrive, Award, Sparkles } from "lucide-react"
+import { MapPin, Users, Settings, Target, Calendar, Database, HardDrive, Award, Sparkles, UserCheck } from "lucide-react"
 
 const navigationItems = [
   {
@@ -33,14 +33,14 @@ const navigationItems = [
     id: "targets",
   },
   {
+    title: "Supervisor Assignments",
+    icon: UserCheck,
+    id: "supervisor-assignments",
+  },
+  {
     title: "Users & Roles",
     icon: Users,
     id: "users",
-  },
-  {
-    title: "Gemini AI",
-    icon: Sparkles,
-    id: "gemini-ai",
   },
   {
     title: "Backup",

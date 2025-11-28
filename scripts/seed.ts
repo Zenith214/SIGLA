@@ -4,6 +4,7 @@
  * Usage: npm run db:seed [SeederName] [-- --options]
  */
 
+import 'dotenv/config';
 import { DatabaseSeeder, UserSeeder, SpotSeeder, AssignmentSeeder } from '../src/lib/seeders';
 
 const seeders = {

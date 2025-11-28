@@ -86,7 +86,15 @@ export async function GET(req: NextRequest) {
     query += ' ORDER BY b.barangay_name ASC';
     
     const result = await client.query(query, queryParams);
-    return NextResponse.json(result.rows);
+    
+    // Return with no-cache headers to prevent stale data
+    return NextResponse.json(result.rows, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (err: any) {
     console.error('Error fetching survey targets:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

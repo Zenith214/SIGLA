@@ -139,9 +139,9 @@ export default function SpotAllocationMap({
     );
   }
 
-  // Default center (Philippines - Zamboanga del Sur area)
-  const defaultCenter: [number, number] = [7.8381, 123.2956];
-  const defaultZoom = 12;
+  // Default center (Sulop, Davao del Sur)
+  const defaultCenter: [number, number] = [6.596189, 125.344906];
+  const defaultZoom = 13;
 
   return (
     <div className="h-full w-full rounded-lg overflow-hidden border border-gray-300">

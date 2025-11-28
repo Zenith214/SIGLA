@@ -148,7 +148,9 @@ function PulseLoginContent() {
           !redirectUrl.includes(':');
 
         // Redirect based on role immediately
-        if (result.role === 'interviewer') {
+        if (result.role === 'developer') {
+          window.location.href = "/tools";
+        } else if (result.role === 'interviewer') {
           window.location.href = "/survey";
         } else if (result.role === 'fs') {
           window.location.href = "/fs-dashboard";

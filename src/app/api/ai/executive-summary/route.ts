@@ -25,6 +25,35 @@ export async function POST(request: NextRequest) {
 
     console.log(`🤖 [GEMINI] Generating executive summary for Barangay ${barangayId}, Cycle ${cycleId}`);
 
+    // Check if survey is complete (100% progress) before generating summary
+    const { data: surveyTarget, error: targetError } = await supabaseAdmin
+      .from('survey_target')
+      .select('percentage')
+      .eq('barangay_id', barangayId)
+      .eq('survey_cycle_id', cycleId)
+      .single();
+
+    if (targetError && targetError.code !== 'PGRST116') {
+      console.error('Error checking survey progress:', targetError);
+    }
+
+    const progress = surveyTarget?.percentage || 0;
+
+    // If survey is not complete, return a special response
+    if (progress < 100) {
+      console.log(`⏳ [GEMINI] Survey not complete for barangay ${barangayId} - Progress: ${progress}%`);
+      return NextResponse.json({
+        success: false,
+        surveyIncomplete: true,
+        progress: progress,
+        message: `Survey is ${progress}% complete. Executive summary will be available when survey reaches 100% completion.`,
+        barangay_id: barangayId,
+        cycle_id: cycleId
+      });
+    }
+
+    console.log(`✅ [GEMINI] Survey complete (${progress}%) - Proceeding with AI generation`);
+
     // Use caching with 7-day TTL (executive summaries don't change often)
     const result = await getCachedOrCompute(
       'ai-executive-summary',
@@ -226,62 +255,114 @@ async function generateAISummary(data: any) {
   // Use gemini-2.5-flash - the latest stable model
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-  const prompt = `
-You are an expert governance analyst tasked with creating an executive summary and action plan for a Philippine barangay based on survey data.
+  // Prepare service data with MoE for the prompt
+  const serviceDataWithMoE = Object.entries(data.analysis.serviceScores).map(([service, scores]: [string, any]) => {
+    const satisfactionScore = scores.satisfaction.percentage !== null ? scores.satisfaction.percentage / 100 : null;
+    const needForActionScore = scores.needForAction?.percentage !== null ? scores.needForAction.percentage / 100 : null;
+    const sampleSize = scores.satisfaction.total || 0;
+    const moe = sampleSize > 0 ? 0.98 / Math.sqrt(sampleSize) : 0;
 
-IMPORTANT: The service scores use a cascading funnel methodology:
-- Awareness is calculated from all respondents
-- Availment is calculated only from aware respondents (denominator = aware count)
-- Satisfaction is calculated only from respondents who availed services (denominator = availed count)
-This reflects the true service delivery journey and provides more accurate metrics.
+    return {
+      service_indicator: service,
+      satisfaction: {
+        score: satisfactionScore,
+        moe: moe
+      },
+      need_for_action: {
+        score: needForActionScore,
+        moe: moe
+      },
+      sample_size: sampleSize
+    };
+  });
 
-BARANGAY INFORMATION:
+  const prompt = `### ROLE ###
+You are an expert data analyst and policy advisor for the Department of the Interior and Local Government (DILG) in the Philippines. You specialize in interpreting Citizen Satisfaction Index System (CSIS) data and writing concise, actionable executive summaries for Local Government Unit (LGU) officials.
+
+### CONTEXT ###
+The CSIS measures citizen feedback on LGU services. The goal of this summary is to quickly inform the LGU of its key strengths and critical weaknesses so they can create an effective Citizen Priority Action Plan (CPAP).
+
+### CRITERIA FOR ANALYSIS ###
+
+# 1. Critical Criterion: The Dynamic Cut-Off Rule
+To classify any score as "High" or "Low," you MUST NOT use a fixed percentage. You must use the official CSIS Dynamic Cut-Off Algorithm.
+
+Follow these steps precisely for each score (satisfaction and need_for_action):
+
+1. Identify the Inputs: For each score, you will be given the Percentage Score and its MoE (Margin of Error).
+2. Calculate the Cut-off: Cut-off = 0.50 + MoE
+3. Assign the Rating:
+   - If a Percentage Score is greater than or equal to the calculated Cut-off, the rating is "High".
+   - If a Percentage Score is less than the calculated Cut-off, the rating is "Low".
+
+# 2. Prioritization Logic: The Official Action Grid Quadrants
+After determining the "High" or "Low" ratings for both Satisfaction and Need for Action, you must categorize each service into one of the four official Action Grid quadrants using the exact terminology below.
+
+- "Opportunities for Improvement" (Highest Priority):
+  Condition: Satisfaction is "Low" AND Need for Action is "High".
+
+- "Continued Emphasis" (High Importance):
+  Condition: Satisfaction is "High" AND Need for Action is "High".
+
+- "Exceeded Expectations" (Key Strength):
+  Condition: Satisfaction is "High" AND Need for Action is "Low".
+
+- "Secondary Priority" (Lowest Priority):
+  Condition: Satisfaction is "Low" AND Need for Action is "Low".
+
+### TASK ###
+Using the input data, perform the following for each service indicator:
+
+1. Apply the Dynamic Cut-Off Rule to determine the adjectival ratings ("High" or "Low") for both its Satisfaction and Need for Action scores, using the provided MoE for each.
+2. Use these ratings to classify the service into its correct Action Grid Quadrant.
+3. Write a professional and easy-to-understand Executive Summary for an LGU Mayor. The summary must:
+   - Start with a brief overview of the LGU's performance.
+   - Clearly identify and celebrate the Key Strengths (services in the "Exceeded Expectations" quadrant).
+   - Emphasize and detail the Critical Priorities (services in the "Opportunities for Improvement" quadrant), explaining that these are the areas requiring the most urgent attention.
+   - Conclude with a forward-looking statement, recommending that the LGU focus its planning and resources on the identified "Opportunities for Improvement" when creating their CPAP.
+
+### BARANGAY INFORMATION ###
 - Name: ${data.barangay.barangay_name}
 - Population: ${data.barangay.population?.toLocaleString() || 'N/A'}
 - Households: ${data.barangay.households?.toLocaleString() || 'N/A'}
 - Survey Cycle: ${data.cycle.name} (${data.cycle.year})
-
-SURVEY DATA:
 - Total Respondents: ${data.responseCount}
-- Demographics: ${JSON.stringify(data.analysis.demographics, null, 2)}
 
-SERVICE AREA SCORES (Cascading Funnel):
-${Object.entries(data.analysis.serviceScores).map(([service, scores]: [string, any]) => {
-  const awareness = scores.awareness.percentage !== null ? `${scores.awareness.percentage}%` : 'N/A';
-  const availment = scores.availment.percentage !== null ? `${scores.availment.percentage}%` : 'N/A';
-  const satisfaction = scores.satisfaction.percentage !== null ? `${scores.satisfaction.percentage}%` : 'N/A';
-  
-  return `- ${service}:
-    * Awareness: ${awareness} (${scores.awareness.count}/${scores.awareness.total} respondents)
-    * Availment: ${availment} (${scores.availment.count}/${scores.availment.total} aware respondents)
-    * Satisfaction: ${satisfaction} (${scores.satisfaction.count}/${scores.satisfaction.total} availed respondents)`;
-}).join('\n')}
+### DATA FOR ANALYSIS ###
+${JSON.stringify(serviceDataWithMoE, null, 2)}
 
-IDENTIFIED ISSUES:
-${data.analysis.commonIssues.map((issue: any) => 
-  `- ${issue.service}: ${issue.score}% satisfaction (${issue.severity} priority)`
-).join('\n') || 'None identified'}
+Note: The MoE is calculated as 0.98 / sqrt(n), where n is the sample size for each service indicator.
 
-STRENGTHS:
-${data.analysis.strengths.map((strength: any) => 
-  `- ${strength.service}: ${strength.score}% satisfaction`
-).join('\n') || 'None identified'}
-
-Please provide a comprehensive analysis in the following JSON format:
+### OUTPUT FORMAT ###
+Provide your analysis in the following JSON format:
 
 {
-  "executiveSummary": "A 3-4 paragraph executive summary highlighting key findings, overall performance, critical issues, and strengths",
-  "keyFindings": [
-    "Finding 1",
-    "Finding 2",
-    "Finding 3"
-  ],
-  "criticalIssues": [
+  "executiveSummary": "A 3-4 paragraph executive summary following the structure described in the TASK section above",
+  "serviceAnalysis": [
     {
-      "issue": "Issue description",
-      "impact": "High/Medium/Low",
-      "affectedArea": "Service area name",
-      "recommendation": "Specific recommendation"
+      "service": "Service name",
+      "satisfactionScore": 0.75,
+      "satisfactionMoE": 0.155,
+      "satisfactionCutoff": 0.655,
+      "satisfactionRating": "High",
+      "needForActionScore": 0.375,
+      "needForActionMoE": 0.155,
+      "needForActionCutoff": 0.655,
+      "needForActionRating": "Low",
+      "actionGridQuadrant": "Exceeded Expectations",
+      "priority": "Key Strength"
+    }
+  ],
+  "keyStrengths": [
+    "Service 1 - Exceeded Expectations with high satisfaction and low need for action",
+    "Service 2 - Continued Emphasis with high satisfaction and high need for action"
+  ],
+  "criticalPriorities": [
+    {
+      "service": "Service name",
+      "quadrant": "Opportunities for Improvement",
+      "issue": "Detailed description of the issue",
+      "recommendation": "Specific actionable recommendation"
     }
   ],
   "actionPlan": {
@@ -289,8 +370,8 @@ Please provide a comprehensive analysis in the following JSON format:
       {
         "action": "Specific action to take",
         "timeline": "1-3 months",
-        "priority": "High/Medium/Low",
-        "resources": "Required resources",
+        "priority": "High",
+        "targetService": "Service name",
         "expectedOutcome": "Expected result"
       }
     ],
@@ -298,33 +379,13 @@ Please provide a comprehensive analysis in the following JSON format:
       {
         "action": "Specific action to take",
         "timeline": "3-6 months",
-        "priority": "High/Medium/Low",
-        "resources": "Required resources",
-        "expectedOutcome": "Expected result"
-      }
-    ],
-    "longTerm": [
-      {
-        "action": "Specific action to take",
-        "timeline": "6-12 months",
-        "priority": "High/Medium/Low",
-        "resources": "Required resources",
+        "priority": "Medium",
+        "targetService": "Service name",
         "expectedOutcome": "Expected result"
       }
     ]
   },
-  "recommendations": {
-    "governance": ["Recommendation 1", "Recommendation 2"],
-    "serviceDelivery": ["Recommendation 1", "Recommendation 2"],
-    "communityEngagement": ["Recommendation 1", "Recommendation 2"]
-  },
-  "successMetrics": [
-    {
-      "metric": "Metric name",
-      "target": "Target value",
-      "timeline": "When to measure"
-    }
-  ]
+  "cpapRecommendation": "A forward-looking statement recommending focus areas for the CPAP based on the Opportunities for Improvement quadrant"
 }
 
 Provide ONLY the JSON response, no additional text.

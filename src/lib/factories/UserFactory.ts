@@ -11,8 +11,8 @@ export interface User {
   lastName: string;
   email: string;
   password: string;
-  role: 'admin' | 'interviewer' | 'viewer';
-  status: 'active' | 'inactive';
+  role: 'admin' | 'interviewer' | 'officer' | 'fs';
+  status: 'Active' | 'Inactive';
   organization?: string;
   jobTitle?: string;
 }
@@ -31,12 +31,22 @@ export class UserFactory extends BaseFactory<User> {
   }
 
   /**
-   * Create a viewer
+   * Create an officer
    */
-  public viewer(): this {
+  public officer(): this {
     return this.with({ 
-      role: 'viewer',
-      jobTitle: 'Data Analyst'
+      role: 'officer',
+      jobTitle: 'Survey Officer'
+    });
+  }
+
+  /**
+   * Create a field supervisor
+   */
+  public fs(): this {
+    return this.with({ 
+      role: 'fs',
+      jobTitle: 'Field Supervisor'
     });
   }
 
@@ -64,7 +74,7 @@ export class UserFactory extends BaseFactory<User> {
       email,
       password: 'password123',
       role: 'interviewer',
-      status: 'active',
+      status: 'Active',
       organization: 'SIGLA Survey Team',
       jobTitle: 'Field Interviewer'
     };
@@ -74,23 +84,31 @@ export class UserFactory extends BaseFactory<User> {
     const data = this.make();
     const users = Array.isArray(data) ? data : [data];
 
-    // Create users via API endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Create users directly in database using Supabase admin client
     const created: User[] = [];
 
     for (const user of users) {
       try {
-        const response = await fetch(`${baseUrl}/api/users`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user)
-        });
+        const { data: createdUser, error } = await supabaseAdmin
+          .from('user')
+          .insert({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            password: user.password, // Note: In production, this should be hashed
+            role: user.role,
+            status: user.status,
+            organization: user.organization,
+            jobTitle: user.jobTitle,
+            createdAt: new Date().toISOString()
+          })
+          .select()
+          .single();
 
-        if (response.ok) {
-          const result = await response.json();
-          created.push(result);
-        } else {
-          console.warn(`Failed to create user ${user.email}`);
+        if (error) {
+          console.warn(`Failed to create user ${user.email}:`, error.message);
+        } else if (createdUser) {
+          created.push(createdUser as User);
         }
       } catch (error) {
         console.error(`Error creating user ${user.email}:`, error);

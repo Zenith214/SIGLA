@@ -268,7 +268,42 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
                 </div>
               )}
 
-              {!loading && !error && satisfactionData && !satisfactionData.hasData && (
+              {!loading && !error && satisfactionData && satisfactionData.surveyIncomplete && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-amber-900 font-medium mb-1">Survey In Progress</p>
+                      <p className="text-amber-700 text-xs mb-3">
+                        {satisfactionData.message || 'The survey for this barangay is still ongoing. ML analysis will be available once the survey reaches 100% completion.'}
+                      </p>
+                      {satisfactionData.progress !== undefined && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-amber-700 font-medium">Survey Progress</span>
+                            <span className="text-amber-900 font-bold">{satisfactionData.progress}%</span>
+                          </div>
+                          <div className="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="h-2 rounded-full bg-amber-500 transition-all duration-500"
+                              style={{ width: `${satisfactionData.progress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-amber-600 mt-2">
+                            {satisfactionData.progress === 0 
+                              ? 'Survey has not started yet.' 
+                              : `${100 - satisfactionData.progress}% remaining to complete.`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!loading && !error && satisfactionData && !satisfactionData.surveyIncomplete && !satisfactionData.hasData && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
                   <div className="flex items-start gap-3">
                     <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

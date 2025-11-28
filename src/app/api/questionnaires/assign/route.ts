@@ -183,16 +183,31 @@ export async function GET(request: NextRequest) {
         spot_id,
         sequence_number,
         status,
-        assigned_interviewer_id,
-        interviewer:user(
-          id,
-          firstName,
-          lastName,
-          email
-        )
+        assigned_interviewer_id
       `)
       .eq('spot_id', spotIdNum)
       .order('sequence_number', { ascending: true });
+    
+    // Fetch interviewer details separately if needed
+    let interviewerMap: Record<number, any> = {};
+    if (questionnaires && questionnaires.length > 0) {
+      const interviewerIds = [...new Set(questionnaires
+        .map(q => q.assigned_interviewer_id)
+        .filter(id => id !== null))];
+      
+      if (interviewerIds.length > 0) {
+        const { data: interviewers } = await supabaseAdmin
+          .from('user')
+          .select('id, firstName, lastName, email')
+          .in('id', interviewerIds);
+        
+        if (interviewers) {
+          interviewerMap = Object.fromEntries(
+            interviewers.map(i => [i.id, i])
+          );
+        }
+      }
+    }
 
     if (questionnairesError) {
       throw handleDatabaseError(questionnairesError, 'fetch questionnaires');
@@ -216,9 +231,7 @@ export async function GET(request: NextRequest) {
     questionnaires.forEach(q => {
       if (q.assigned_interviewer_id) {
         if (!byInterviewer[q.assigned_interviewer_id]) {
-          const interviewer = q.interviewer && Array.isArray(q.interviewer) && q.interviewer.length > 0 
-            ? q.interviewer[0] 
-            : null;
+          const interviewer = interviewerMap[q.assigned_interviewer_id];
           byInterviewer[q.assigned_interviewer_id] = {
             interviewerId: q.assigned_interviewer_id,
             interviewerName: interviewer ? `${interviewer.firstName} ${interviewer.lastName}` : 'Unknown',

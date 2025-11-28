@@ -19,7 +19,7 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
-// Helper to verify admin role
+// Helper to verify admin role (or developer role)
 async function verifyAdminRole(request: NextRequest) {
   const token = request.cookies.get('pulse_token')?.value;
   if (!token) {
@@ -27,14 +27,15 @@ async function verifyAdminRole(request: NextRequest) {
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    return decoded.role === 'admin';
+    const role = decoded.role?.toLowerCase();
+    return role === 'admin' || role === 'developer';
   } catch {
     return false;
   }
 }
 
 export async function GET(request: NextRequest) {
-  // Check if user is admin or FS (Field Supervisors need to see interviewers)
+  // Check if user is admin, developer, or FS (Field Supervisors need to see interviewers)
   const token = request.cookies.get('pulse_token')?.value;
   if (!token) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -43,13 +44,13 @@ export async function GET(request: NextRequest) {
   let userRole;
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    userRole = decoded.role;
+    userRole = decoded.role?.toLowerCase();
   } catch {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   
-  // Allow admin and FS to view users
-  if (userRole !== 'admin' && userRole !== 'fs') {
+  // Allow admin, developer, and FS to view users
+  if (userRole !== 'admin' && userRole !== 'developer' && userRole !== 'fs') {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 

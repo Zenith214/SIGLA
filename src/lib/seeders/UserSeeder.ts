@@ -19,13 +19,13 @@ export class UserSeeder extends BaseSeeder {
         .create();
       this.success('Created 5 interviewers');
 
-      // Create viewers
-      this.log('Creating viewers...');
+      // Create officers
+      this.log('Creating officers...');
       await userFactory()
-        .viewer()
+        .officer()
         .times(2)
         .create();
-      this.success('Created 2 viewers');
+      this.success('Created 2 officers');
 
       // Create admin
       this.log('Creating admin...');

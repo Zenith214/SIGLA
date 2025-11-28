@@ -26,9 +26,11 @@ function MapView({ position, setPosition }: { position: [number, number]; setPos
       // Fix for default marker icon in Next.js
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconUrl: '/marker-icon.png',
+        shadowUrl: '/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
       })
       
       // Load Leaflet CSS
@@ -44,6 +46,7 @@ function MapView({ position, setPosition }: { position: [number, number]; setPos
   }
 
   // Import React-Leaflet components dynamically
+  const { customIcon } = require('@/lib/leafletConfig') // Fix marker icons
   const { MapContainer, TileLayer, Marker, useMapEvents } = require('react-leaflet')
   
   function LocationMarker() {
@@ -52,7 +55,7 @@ function MapView({ position, setPosition }: { position: [number, number]; setPos
         setPosition([e.latlng.lat, e.latlng.lng])
       },
     })
-    return position ? <Marker position={position} /> : null
+    return position ? <Marker position={position} icon={customIcon} /> : null
   }
 
   return (

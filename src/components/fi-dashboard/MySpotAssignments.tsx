@@ -55,11 +55,14 @@ export function MySpotAssignments({ cycleId }: MySpotAssignmentsProps) {
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch assignments');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch assignments');
       }
 
       const data = await response.json();
+      // Empty assignments array is valid, not an error
       setAssignments(data.assignments || []);
+      setError(null); // Clear any previous errors
     } catch (err) {
       console.error('Error fetching assignments:', err);
       setError(err instanceof Error ? err.message : 'Failed to load assignments');

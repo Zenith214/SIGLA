@@ -264,20 +264,9 @@ function SurveyAppContent() {
               // You could store the last section in surveyData
               setCurrentSection(existingRecord.surveyData.currentSection || 'respondent-selection');
               
-              // Increment visit count by adding a new visit
-              try {
-                const { addVisit } = await import('@/lib/indexedDB');
-                await addVisit(
-                  questionnaireIdParam,
-                  existingRecord.cycleId,
-                  'Interview Started',
-                  `Visit ${existingRecord.visits.length + 1} - Resuming interview`,
-                  undefined
-                );
-                console.log(`📝 Incremented visit count to ${existingRecord.visits.length + 1}`);
-              } catch (error) {
-                console.error('Error incrementing visit count:', error);
-              }
+              // Note: Visit logging is now handled by the Survey Initialization section
+              // No need to increment visit count here to avoid duplicates
+              console.log(`📝 Resuming interview - visit will be logged in initialization section`);
             }
             
             console.log(`✅ Loaded survey data from IndexedDB for callback scenario`);

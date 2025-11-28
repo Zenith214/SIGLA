@@ -450,3 +450,325 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+
+/**
+ * PATCH /api/spots
+ * Update an existing spot (reassign, rename, update location, change status)
+ * 
+ * Body Parameters:
+ * - spotId: (required) ID of the spot to update
+ * - spotName: (optional) New name for the spot
+ * - assignedFiId: (optional) New field interviewer ID (null to unassign)
+ * - startingPoint: (optional) New GPS coordinates { lat, lng }
+ * - status: (optional) New status ('Pending', 'In_Progress', 'Completed')
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      throw createValidationError('Invalid JSON in request body');
+    }
+
+    const { spotId, spotName, assignedFiId, startingPoint, status } = body;
+
+    // Validate required field
+    if (!spotId) {
+      throw createValidationError('spotId is required');
+    }
+
+    if (typeof spotId !== 'number' || spotId <= 0) {
+      throw createValidationError('spotId must be a positive integer', 'spotId', spotId);
+    }
+
+    // Verify spot exists
+    const { data: existingSpot, error: spotError } = await supabaseAdmin
+      .from('spots')
+      .select('spot_id, spot_name, assigned_fi_id, status')
+      .eq('spot_id', spotId)
+      .single();
+
+    if (spotError) {
+      if (spotError.code === 'PGRST116') {
+        throw createNotFoundError('Spot');
+      }
+      throw handleDatabaseError(spotError, 'fetch spot');
+    }
+
+    if (!existingSpot) {
+      throw createNotFoundError('Spot');
+    }
+
+    // Build update object
+    const updates: any = {};
+
+    // Validate and add spotName if provided
+    if (spotName !== undefined) {
+      if (typeof spotName !== 'string' || spotName.trim().length === 0) {
+        throw createValidationError('spotName must be a non-empty string', 'spotName');
+      }
+      updates.spot_name = spotName.trim();
+    }
+
+    // Validate and add assignedFiId if provided
+    if (assignedFiId !== undefined) {
+      if (assignedFiId === null) {
+        updates.assigned_fi_id = null;
+      } else {
+        if (typeof assignedFiId !== 'number' || assignedFiId <= 0) {
+          throw createValidationError('assignedFiId must be a positive integer or null', 'assignedFiId', assignedFiId);
+        }
+
+        // Verify interviewer exists and is active
+        const { data: interviewer, error: interviewerError } = await supabaseAdmin
+          .from('user')
+          .select('id, role, status')
+          .eq('id', assignedFiId)
+          .single();
+
+        if (interviewerError || !interviewer) {
+          throw createNotFoundError('Field Interviewer');
+        }
+
+        if (interviewer.role !== 'interviewer') {
+          throw createValidationError('User must have interviewer role', 'assignedFiId', assignedFiId);
+        }
+
+        if (interviewer.status !== 'active') {
+          throw createValidationError('Interviewer must be active', 'assignedFiId', assignedFiId);
+        }
+
+        updates.assigned_fi_id = assignedFiId;
+      }
+    }
+
+    // Validate and add startingPoint if provided
+    if (startingPoint !== undefined) {
+      if (!startingPoint || typeof startingPoint !== 'object') {
+        throw createValidationError('startingPoint must be an object with lat and lng');
+      }
+
+      if (typeof startingPoint.lat !== 'number' || typeof startingPoint.lng !== 'number') {
+        throw createValidationError('startingPoint must contain numeric lat and lng coordinates');
+      }
+
+      if (startingPoint.lat < -90 || startingPoint.lat > 90) {
+        throw createValidationError('Latitude must be between -90 and 90', 'startingPoint.lat', startingPoint.lat);
+      }
+
+      if (startingPoint.lng < -180 || startingPoint.lng > 180) {
+        throw createValidationError('Longitude must be between -180 and 180', 'startingPoint.lng', startingPoint.lng);
+      }
+
+      updates.starting_point = startingPoint;
+    }
+
+    // Validate and add status if provided
+    if (status !== undefined) {
+      const validStatuses = ['Pending', 'In_Progress', 'Completed'];
+      if (!validStatuses.includes(status)) {
+        throw createValidationError(
+          `status must be one of: ${validStatuses.join(', ')}`,
+          'status',
+          status
+        );
+      }
+      updates.status = status;
+    }
+
+    // Check if there are any updates
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({
+        message: 'No updates provided',
+        spot: existingSpot
+      });
+    }
+
+    // Add updated_at timestamp
+    updates.updated_at = new Date().toISOString();
+
+    // Perform update
+    const { data: updatedSpot, error: updateError } = await supabaseAdmin
+      .from('spots')
+      .update(updates)
+      .eq('spot_id', spotId)
+      .select(`
+        spot_id,
+        cycle_id,
+        barangay_id,
+        spot_name,
+        starting_point,
+        random_start,
+        assigned_fi_id,
+        status,
+        created_at,
+        updated_at,
+        barangay:barangay_id (
+          barangay_name
+        ),
+        assigned_fi:assigned_fi_id (
+          id,
+          firstName,
+          lastName,
+          email
+        )
+      `)
+      .single();
+
+    if (updateError) {
+      throw handleDatabaseError(updateError, 'update spot');
+    }
+
+    const barangay = Array.isArray(updatedSpot.barangay) ? updatedSpot.barangay[0] : updatedSpot.barangay;
+    const assignedFi = Array.isArray(updatedSpot.assigned_fi) ? updatedSpot.assigned_fi[0] : updatedSpot.assigned_fi;
+
+    return NextResponse.json({
+      message: 'Spot updated successfully',
+      spot: {
+        spotId: updatedSpot.spot_id,
+        cycleId: updatedSpot.cycle_id,
+        barangayId: updatedSpot.barangay_id,
+        barangayName: barangay?.barangay_name || null,
+        spotName: updatedSpot.spot_name,
+        startingPoint: updatedSpot.starting_point,
+        randomStart: updatedSpot.random_start,
+        assignedFiId: updatedSpot.assigned_fi_id,
+        assignedFiName: assignedFi 
+          ? `${assignedFi.firstName} ${assignedFi.lastName}`
+          : null,
+        assignedFiEmail: assignedFi?.email || null,
+        status: updatedSpot.status,
+        createdAt: updatedSpot.created_at,
+        updatedAt: updatedSpot.updated_at
+      },
+      changes: updates
+    });
+
+  } catch (error: any) {
+    return createErrorResponse(error, 'PATCH /api/spots', {
+      body: request.body
+    });
+  }
+}
+
+/**
+ * DELETE /api/spots
+ * Delete a spot and all its associated questionnaires
+ * 
+ * Query Parameters:
+ * - spotId: (required) ID of the spot to delete
+ * - confirm: (required) Must be 'DELETE' to confirm deletion
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const spotId = searchParams.get('spotId');
+    const confirm = searchParams.get('confirm');
+
+    // Validate required parameters
+    if (!spotId) {
+      throw createValidationError('spotId is required');
+    }
+
+    if (confirm !== 'DELETE') {
+      throw createValidationError('confirm parameter must be "DELETE" to proceed with deletion');
+    }
+
+    const parsedSpotId = parseInt(spotId);
+    if (isNaN(parsedSpotId) || parsedSpotId <= 0) {
+      throw createValidationError('spotId must be a positive integer', 'spotId', spotId);
+    }
+
+    // Verify spot exists and get details
+    const { data: spot, error: spotError } = await supabaseAdmin
+      .from('spots')
+      .select(`
+        spot_id,
+        spot_name,
+        barangay_id,
+        cycle_id,
+        questionnaires (
+          questionnaire_id,
+          status
+        )
+      `)
+      .eq('spot_id', parsedSpotId)
+      .single();
+
+    if (spotError) {
+      if (spotError.code === 'PGRST116') {
+        throw createNotFoundError('Spot');
+      }
+      throw handleDatabaseError(spotError, 'fetch spot');
+    }
+
+    if (!spot) {
+      throw createNotFoundError('Spot');
+    }
+
+    // Check if any questionnaires have responses
+    const questionnaireIds = spot.questionnaires?.map(q => q.questionnaire_id) || [];
+    
+    if (questionnaireIds.length > 0) {
+      const { count: responseCount, error: responseError } = await supabaseAdmin
+        .from('survey_response')
+        .select('survey_number', { count: 'exact', head: true })
+        .in('survey_number', questionnaireIds);
+
+      if (responseError) {
+        throw handleDatabaseError(responseError, 'check for survey responses');
+      }
+
+      if (responseCount && responseCount > 0) {
+        throw createValidationError(
+          `Cannot delete spot: ${responseCount} survey response(s) exist for this spot's questionnaires. Delete responses first.`,
+          'spotId',
+          parsedSpotId
+        );
+      }
+    }
+
+    // Delete questionnaires first (cascade)
+    if (questionnaireIds.length > 0) {
+      const { error: deleteQuestionnairesError } = await supabaseAdmin
+        .from('questionnaires')
+        .delete()
+        .eq('spot_id', parsedSpotId);
+
+      if (deleteQuestionnairesError) {
+        throw handleDatabaseError(deleteQuestionnairesError, 'delete questionnaires');
+      }
+    }
+
+    // Delete the spot
+    const { error: deleteSpotError } = await supabaseAdmin
+      .from('spots')
+      .delete()
+      .eq('spot_id', parsedSpotId);
+
+    if (deleteSpotError) {
+      throw handleDatabaseError(deleteSpotError, 'delete spot');
+    }
+
+    return NextResponse.json({
+      message: 'Spot deleted successfully',
+      deletedSpot: {
+        spotId: spot.spot_id,
+        spotName: spot.spot_name,
+        barangayId: spot.barangay_id,
+        cycleId: spot.cycle_id
+      },
+      deletedQuestionnaires: questionnaireIds.length
+    });
+
+  } catch (error: any) {
+    const { searchParams } = new URL(request.url);
+    return createErrorResponse(error, 'DELETE /api/spots', {
+      queryParams: {
+        spotId: searchParams.get('spotId'),
+        confirm: searchParams.get('confirm')
+      }
+    });
+  }
+}

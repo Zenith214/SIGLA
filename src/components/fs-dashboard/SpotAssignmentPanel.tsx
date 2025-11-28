@@ -57,35 +57,40 @@ export default function SpotAssignmentPanel({
   const [assigningSpots, setAssigningSpots] = useState<Set<number>>(new Set());
   const [managingSpot, setManagingSpot] = useState<{ spotId: number; spotName: string } | null>(null);
 
-  // Fetch barangays on mount
+  // Fetch barangays when cycleId changes
   useEffect(() => {
-    fetchBarangays();
+    if (cycleId) {
+      fetchBarangays();
+    }
     fetchFieldInterviewers();
-  }, []);
+  }, [cycleId]);
 
   const fetchBarangays = async () => {
+    if (!cycleId) return;
+    
     setLoadingBarangays(true);
     try {
-      const response = await fetch("/api/barangays");
+      // Fetch survey targets for the current cycle
+      const response = await fetch(`/api/survey-targets?cycleId=${cycleId}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch barangays");
+        throw new Error("Failed to fetch survey targets");
       }
       const data = await response.json();
       
-      // Handle both old and new API response formats
-      const barangayList = data.data || data;
+      // Extract barangays from survey targets
+      const targets = data.targets || data;
       
       setBarangays(
-        barangayList.map((b: any) => ({
-          id: b.id || b.barangay_id,
-          name: b.name || b.barangay_name,
+        targets.map((target: any) => ({
+          id: target.barangayId || target.barangay_id,
+          name: target.barangayName || target.barangay_name,
         }))
       );
     } catch (error) {
-      console.error("Error fetching barangays:", error);
+      console.error("Error fetching survey targets:", error);
       toast({
         title: "Error",
-        description: "Failed to load barangays",
+        description: "Failed to load survey targets for this cycle",
         variant: "destructive",
       });
     } finally {

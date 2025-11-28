@@ -763,11 +763,11 @@ function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: Barangay
           <div>
             <h3 className="text-lg font-semibold mb-3">Action Priority Matrix</h3>
             <div className="grid grid-cols-2 gap-4">
-              {/* Maintain */}
+              {/* Exceeded Expectations */}
               <div className="bg-green-100 border-2 border-green-300 rounded-lg p-4">
                 <div className="text-center mb-2">
-                  <h4 className="text-green-800 font-bold">MAINTAIN</h4>
-                  <p className="text-xs text-green-600">High Satisfaction, Low Need</p>
+                  <h4 className="text-green-800 font-bold text-xs">EXCEEDED EXPECTATIONS</h4>
+                  <p className="text-[10px] text-green-600">High Satisfaction, Low Need</p>
                 </div>
                 <div className="space-y-1">
                   {barangay.action_grid.maintain.length > 0 ? (
@@ -782,11 +782,11 @@ function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: Barangay
                 </div>
               </div>
 
-              {/* Opportunities */}
+              {/* Continued Emphasis */}
               <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-4">
                 <div className="text-center mb-2">
-                  <h4 className="text-blue-800 font-bold">OPPORTUNITIES</h4>
-                  <p className="text-xs text-blue-600">High Satisfaction, High Need</p>
+                  <h4 className="text-blue-800 font-bold text-xs">CONTINUED EMPHASIS</h4>
+                  <p className="text-[10px] text-blue-600">High Satisfaction, High Need</p>
                 </div>
                 <div className="space-y-1">
                   {barangay.action_grid.opportunities.length > 0 ? (
@@ -801,11 +801,11 @@ function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: Barangay
                 </div>
               </div>
 
-              {/* Monitor */}
+              {/* Secondary Priority */}
               <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-4">
                 <div className="text-center mb-2">
-                  <h4 className="text-yellow-800 font-bold">MONITOR</h4>
-                  <p className="text-xs text-yellow-600">Low Satisfaction, Low Need</p>
+                  <h4 className="text-yellow-800 font-bold text-xs">SECONDARY PRIORITY</h4>
+                  <p className="text-[10px] text-yellow-600">Low Satisfaction, Low Need</p>
                 </div>
                 <div className="space-y-1">
                   {barangay.action_grid.monitor.length > 0 ? (
@@ -820,11 +820,11 @@ function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: Barangay
                 </div>
               </div>
 
-              {/* Fix Now */}
+              {/* Opportunities for Improvement */}
               <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4">
                 <div className="text-center mb-2">
-                  <h4 className="text-red-800 font-bold">FIX NOW</h4>
-                  <p className="text-xs text-red-600">Low Satisfaction, High Need</p>
+                  <h4 className="text-red-800 font-bold text-[11px]">OPPORTUNITIES FOR IMPROVEMENT</h4>
+                  <p className="text-[10px] text-red-600">Low Satisfaction, High Need</p>
                 </div>
                 <div className="space-y-1">
                   {barangay.action_grid.fix_now.length > 0 ? (

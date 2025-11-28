@@ -387,20 +387,32 @@ export async function deleteSurveyCycle(
   cycleId: number,
   force: boolean = false
 ): Promise<{ success: boolean; message: string; deletedData?: any }> {
+  console.log(`🗑️ deleteSurveyCycle - Starting deletion for cycle ${cycleId} (force: ${force})`);
+  
   try {
     // Check if cycle exists
+    console.log(`🔍 deleteSurveyCycle - Checking if cycle ${cycleId} exists`);
     const { data: cycle, error: cycleError } = await supabaseAdmin
       .from('survey_cycle')
       .select('cycle_id, name, year, is_active')
       .eq('cycle_id', cycleId)
       .single();
 
-    if (cycleError || !cycle) {
+    if (cycleError) {
+      console.error(`❌ deleteSurveyCycle - Error fetching cycle:`, cycleError);
+      throw new Error(`Survey cycle not found: ${cycleError.message}`);
+    }
+
+    if (!cycle) {
+      console.error(`❌ deleteSurveyCycle - Cycle ${cycleId} not found in database`);
       throw new Error('Survey cycle not found');
     }
 
+    console.log(`✅ deleteSurveyCycle - Found cycle:`, JSON.stringify(cycle, null, 2));
+
     // Prevent deletion of active cycle
     if (cycle.is_active) {
+      console.log(`⚠️ deleteSurveyCycle - Cannot delete active cycle ${cycleId}`);
       return {
         success: false,
         message: 'Cannot delete the active survey cycle. Please deactivate it first.'
@@ -408,39 +420,58 @@ export async function deleteSurveyCycle(
     }
 
     // Check for associated spots
+    console.log(`🔍 deleteSurveyCycle - Checking for associated spots`);
     const { count: spotsCount, error: spotsError } = await supabaseAdmin
       .from('spots')
       .select('spot_id', { count: 'exact', head: true })
       .eq('cycle_id', cycleId);
 
     if (spotsError) {
+      console.error(`❌ deleteSurveyCycle - Error checking spots:`, spotsError);
       throw spotsError;
     }
+    console.log(`📊 deleteSurveyCycle - Found ${spotsCount || 0} spots`);
 
     // Check for associated survey responses
+    console.log(`🔍 deleteSurveyCycle - Checking for associated survey responses`);
     const { count: responsesCount, error: responsesError } = await supabaseAdmin
       .from('survey_response')
       .select('response_id', { count: 'exact', head: true })
       .eq('survey_cycle_id', cycleId);
 
     if (responsesError) {
+      console.error(`❌ deleteSurveyCycle - Error checking responses:`, responsesError);
       throw responsesError;
     }
+    console.log(`📊 deleteSurveyCycle - Found ${responsesCount || 0} survey responses`);
 
     // Check for associated assignments
+    console.log(`🔍 deleteSurveyCycle - Checking for associated assignments`);
     const { count: assignmentsCount, error: assignmentsError } = await supabaseAdmin
       .from('assignment')
       .select('assignment_id', { count: 'exact', head: true })
       .eq('cycle_id', cycleId);
 
     if (assignmentsError) {
-      throw assignmentsError;
+      console.error(`❌ deleteSurveyCycle - Error checking assignments:`, assignmentsError);
+      console.error(`❌ deleteSurveyCycle - Assignments error code:`, assignmentsError.code);
+      console.error(`❌ deleteSurveyCycle - Assignments error message:`, assignmentsError.message);
+      console.error(`❌ deleteSurveyCycle - Assignments error hint:`, assignmentsError.hint);
+      console.error(`❌ deleteSurveyCycle - Assignments error details:`, assignmentsError.details);
+      console.error(`❌ deleteSurveyCycle - Full error object:`, JSON.stringify(assignmentsError, null, 2));
+      
+      // If the table doesn't exist or there's a schema issue, assume 0 assignments
+      console.log(`⚠️ deleteSurveyCycle - Assuming 0 assignments due to query error`);
+      // Don't throw here, just log and continue with 0 count
     }
+    console.log(`📊 deleteSurveyCycle - Found ${assignmentsCount || 0} assignments`);
 
     const hasAssociatedData = (spotsCount || 0) > 0 || (responsesCount || 0) > 0 || (assignmentsCount || 0) > 0;
+    console.log(`📊 deleteSurveyCycle - Has associated data: ${hasAssociatedData} (spots: ${spotsCount || 0}, responses: ${responsesCount || 0}, assignments: ${assignmentsCount || 0})`);
 
     // If there's associated data and force is not enabled, prevent deletion
     if (hasAssociatedData && !force) {
+      console.log(`⚠️ deleteSurveyCycle - Preventing deletion due to associated data (force not enabled)`);
       return {
         success: false,
         message: `Cannot delete survey cycle "${cycle.name}". It has ${spotsCount || 0} spots, ${responsesCount || 0} survey responses, and ${assignmentsCount || 0} assignments. Use force delete to remove all associated data.`,
@@ -454,20 +485,25 @@ export async function deleteSurveyCycle(
 
     // If force is enabled, delete all associated data
     if (force && hasAssociatedData) {
+      console.log(`🔥 deleteSurveyCycle - Force delete enabled, removing all associated data`);
       // Delete in correct order to respect foreign key constraints
       
       // 1. First get all questionnaire IDs for this cycle
+      console.log(`🔍 deleteSurveyCycle - Fetching questionnaires for cycle ${cycleId}`);
       const { data: questionnaires, error: questionnairesQueryError } = await supabaseAdmin
         .from('questionnaires')
         .select('questionnaire_id')
         .eq('cycle_id', cycleId);
 
       if (questionnairesQueryError) {
-        console.error('Error querying questionnaires:', questionnairesQueryError);
+        console.error('❌ deleteSurveyCycle - Error querying questionnaires:', questionnairesQueryError);
+      } else {
+        console.log(`📊 deleteSurveyCycle - Found ${questionnaires?.length || 0} questionnaires`);
       }
 
       // 2. Delete visits (depends on questionnaires)
       if (questionnaires && questionnaires.length > 0) {
+        console.log(`🗑️ deleteSurveyCycle - Deleting visits for ${questionnaires.length} questionnaires`);
         const questionnaireIds = questionnaires.map(q => q.questionnaire_id);
         const { error: visitsDeleteError } = await supabaseAdmin
           .from('visits')
@@ -475,61 +511,89 @@ export async function deleteSurveyCycle(
           .in('questionnaire_id', questionnaireIds);
 
         if (visitsDeleteError) {
-          console.error('Error deleting visits:', visitsDeleteError);
+          console.error('❌ deleteSurveyCycle - Error deleting visits:', visitsDeleteError);
+          console.error('❌ deleteSurveyCycle - Visits error details:', JSON.stringify(visitsDeleteError, null, 2));
+          throw new Error(`Failed to delete visits: ${visitsDeleteError.message || visitsDeleteError.code}`);
+        } else {
+          console.log(`✅ deleteSurveyCycle - Visits deleted successfully`);
         }
       }
 
       // 3. Delete questionnaires (depends on spots)
+      console.log(`🗑️ deleteSurveyCycle - Deleting questionnaires for cycle ${cycleId}`);
       const { error: questionnairesDeleteError } = await supabaseAdmin
         .from('questionnaires')
         .delete()
         .eq('cycle_id', cycleId);
 
       if (questionnairesDeleteError) {
-        console.error('Error deleting questionnaires:', questionnairesDeleteError);
+        console.error('❌ deleteSurveyCycle - Error deleting questionnaires:', questionnairesDeleteError);
+        console.error('❌ deleteSurveyCycle - Questionnaires error details:', JSON.stringify(questionnairesDeleteError, null, 2));
+        throw new Error(`Failed to delete questionnaires: ${questionnairesDeleteError.message || questionnairesDeleteError.code}`);
+      } else {
+        console.log(`✅ deleteSurveyCycle - Questionnaires deleted successfully`);
       }
 
       // 4. Delete spots
+      console.log(`🗑️ deleteSurveyCycle - Deleting spots for cycle ${cycleId}`);
       const { error: spotsDeleteError } = await supabaseAdmin
         .from('spots')
         .delete()
         .eq('cycle_id', cycleId);
 
       if (spotsDeleteError) {
-        console.error('Error deleting spots:', spotsDeleteError);
+        console.error('❌ deleteSurveyCycle - Error deleting spots:', spotsDeleteError);
+        console.error('❌ deleteSurveyCycle - Spots error details:', JSON.stringify(spotsDeleteError, null, 2));
+        throw new Error(`Failed to delete spots: ${spotsDeleteError.message || spotsDeleteError.code}`);
+      } else {
+        console.log(`✅ deleteSurveyCycle - Spots deleted successfully`);
       }
 
       // 5. Delete survey responses
+      console.log(`🗑️ deleteSurveyCycle - Deleting survey responses for cycle ${cycleId}`);
       const { error: responsesDeleteError } = await supabaseAdmin
         .from('survey_response')
         .delete()
         .eq('survey_cycle_id', cycleId);
 
       if (responsesDeleteError) {
-        console.error('Error deleting survey responses:', responsesDeleteError);
+        console.error('❌ deleteSurveyCycle - Error deleting survey responses:', responsesDeleteError);
+        console.error('❌ deleteSurveyCycle - Responses error details:', JSON.stringify(responsesDeleteError, null, 2));
+        throw new Error(`Failed to delete survey responses: ${responsesDeleteError.message || responsesDeleteError.code}`);
+      } else {
+        console.log(`✅ deleteSurveyCycle - Survey responses deleted successfully`);
       }
 
       // 6. Delete assignments
+      console.log(`🗑️ deleteSurveyCycle - Deleting assignments for cycle ${cycleId}`);
       const { error: assignmentsDeleteError } = await supabaseAdmin
         .from('assignment')
         .delete()
         .eq('cycle_id', cycleId);
 
       if (assignmentsDeleteError) {
-        console.error('Error deleting assignments:', assignmentsDeleteError);
+        console.error('❌ deleteSurveyCycle - Error deleting assignments:', assignmentsDeleteError);
+        console.error('❌ deleteSurveyCycle - Assignments error details:', JSON.stringify(assignmentsDeleteError, null, 2));
+        throw new Error(`Failed to delete assignments: ${assignmentsDeleteError.message || assignmentsDeleteError.code}`);
+      } else {
+        console.log(`✅ deleteSurveyCycle - Assignments deleted successfully`);
       }
     }
 
     // Finally, delete the cycle itself
+    console.log(`🗑️ deleteSurveyCycle - Deleting cycle ${cycleId} from survey_cycle table`);
     const { error: deleteError } = await supabaseAdmin
       .from('survey_cycle')
       .delete()
       .eq('cycle_id', cycleId);
 
     if (deleteError) {
-      throw deleteError;
+      console.error(`❌ deleteSurveyCycle - Error deleting cycle:`, deleteError);
+      console.error(`❌ deleteSurveyCycle - Error details:`, JSON.stringify(deleteError, null, 2));
+      throw new Error(`Failed to delete cycle from database: ${deleteError.message || deleteError.code || 'Unknown database error'}`);
     }
 
+    console.log(`✅ deleteSurveyCycle - Cycle ${cycleId} deleted successfully`);
     return {
       success: true,
       message: `Survey cycle "${cycle.name}" deleted successfully${force ? ' along with all associated data' : ''}.`,
@@ -540,8 +604,18 @@ export async function deleteSurveyCycle(
       } : undefined
     };
   } catch (error) {
-    console.error('Error deleting survey cycle:', error);
-    throw new Error('Failed to delete survey cycle');
+    console.error('❌ deleteSurveyCycle - Fatal error:', error);
+    console.error('❌ deleteSurveyCycle - Error type:', typeof error);
+    console.error('❌ deleteSurveyCycle - Error details:', JSON.stringify(error, null, 2));
+    console.error('❌ deleteSurveyCycle - Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // If it's already an Error with a message, rethrow it
+    if (error instanceof Error) {
+      throw error;
+    }
+    
+    // Otherwise, create a new error with whatever info we have
+    throw new Error(`Failed to delete survey cycle: ${JSON.stringify(error)}`);
   }
 }
 

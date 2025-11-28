@@ -28,18 +28,23 @@ export class SpotSeeder extends BaseSeeder {
       // Get cycle
       let cycleId = this.options.cycleId;
       if (!cycleId) {
-        const { data: cycles } = await supabaseAdmin
+        const { data: cycles, error: cycleError } = await supabaseAdmin
           .from('survey_cycle')
-          .select('cycle_id, year')
-          .eq('status', 'Active')
+          .select('cycle_id, year, name')
+          .eq('is_active', true)
           .limit(1);
         
+        if (cycleError) {
+          this.error(`Error fetching active cycle: ${cycleError.message}`);
+          throw cycleError;
+        }
+        
         if (!cycles || cycles.length === 0) {
-          this.warn('No active survey cycle found. Create a cycle first.');
+          this.warn('No active survey cycle found. Create and activate a cycle first.');
           return;
         }
         cycleId = cycles[0].cycle_id;
-        this.log(`Using active cycle: ${cycles[0].year}`);
+        this.log(`Using active cycle: ${cycles[0].name} (${cycles[0].year})`);
       }
 
       // Get barangays
@@ -60,6 +65,12 @@ export class SpotSeeder extends BaseSeeder {
 
       if (!barangays || barangays.length === 0) {
         this.warn('No barangays found.');
+        return;
+      }
+
+      // Ensure we have a valid cycle ID
+      if (!cycleId) {
+        this.error('No cycle ID available. Cannot create spots.');
         return;
       }
 

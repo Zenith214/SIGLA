@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { UserCheck, Users, Trash2, Search } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserCheck, Users, Trash2, Search, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 
 interface Assignment {
@@ -59,7 +61,10 @@ export default function InterviewerAssignmentTable({ onAddAssignment }: Intervie
   const [barangays, setBarangays] = useState<Barangay[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deletingAssignment, setDeletingAssignment] = useState<Assignment | null>(null);
+  const [editingInterviewer, setEditingInterviewer] = useState<Interviewer | null>(null);
+  const [deletingInterviewer, setDeletingInterviewer] = useState<{ interviewer: Interviewer; assignments: Assignment[] } | null>(null);
+  const [selectedBarangayIds, setSelectedBarangayIds] = useState<Set<number>>(new Set());
+  const [originalAssignments, setOriginalAssignments] = useState<Assignment[]>([]);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -76,14 +81,25 @@ export default function InterviewerAssignmentTable({ onAddAssignment }: Intervie
         fetch("/api/barangays?awardees_only=true", { credentials: "include" }),
       ]);
 
-      if (!assignmentsRes.ok || !interviewersRes.ok || !barangaysRes.ok) {
-        throw new Error("Failed to fetch data");
+      // Check each response individually and only throw error if request actually failed
+      if (!assignmentsRes.ok) {
+        console.error("Failed to fetch assignments:", assignmentsRes.status);
+        throw new Error("Failed to fetch assignments");
+      }
+      if (!interviewersRes.ok) {
+        console.error("Failed to fetch interviewers:", interviewersRes.status);
+        throw new Error("Failed to fetch interviewers");
+      }
+      if (!barangaysRes.ok) {
+        console.error("Failed to fetch barangays:", barangaysRes.status);
+        throw new Error("Failed to fetch barangays");
       }
 
       const assignmentsData = await assignmentsRes.json();
       const interviewersData = await interviewersRes.json();
       const barangaysData = await barangaysRes.json();
 
+      // Empty arrays are valid - not an error
       setAssignments(assignmentsData || []);
       setInterviewers(interviewersData || []);
       // Handle the new barangays API response structure
@@ -93,49 +109,124 @@ export default function InterviewerAssignmentTable({ onAddAssignment }: Intervie
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load assignment data",
+        description: error instanceof Error ? error.message : "Failed to load assignment data",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteClick = (assignment: Assignment) => {
-    setDeletingAssignment(assignment);
+  const handleEditInterviewerAssignments = (interviewer: Interviewer, assignments: Assignment[]) => {
+    setEditingInterviewer(interviewer);
+    setOriginalAssignments(assignments);
+    // Set currently assigned barangay IDs
+    const assignedIds = new Set(assignments.map(a => a.barangay_id));
+    setSelectedBarangayIds(assignedIds);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deletingAssignment) return;
+  const handleToggleBarangay = (barangayId: number) => {
+    const newSelected = new Set(selectedBarangayIds);
+    if (newSelected.has(barangayId)) {
+      newSelected.delete(barangayId);
+    } else {
+      newSelected.add(barangayId);
+    }
+    setSelectedBarangayIds(newSelected);
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!editingInterviewer) return;
     setSaving(true);
 
     try {
-      const res = await fetch(`/api/assignments/${deletingAssignment.assignment_id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      });
+      const originalIds = new Set(originalAssignments.map(a => a.barangay_id));
+      const toAdd = Array.from(selectedBarangayIds).filter(id => !originalIds.has(id));
+      const toRemove = originalAssignments.filter(a => !selectedBarangayIds.has(a.barangay_id));
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to delete assignment");
+      // Delete removed assignments
+      for (const assignment of toRemove) {
+        const res = await fetch(`/api/assignments/${assignment.assignment_id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to remove assignment for ${assignment.barangay_name}`);
+        }
       }
 
-      setAssignments(assignments.filter((a) => a.assignment_id !== deletingAssignment.assignment_id));
-      setDeletingAssignment(null);
+      // Add new assignments
+      for (const barangayId of toAdd) {
+        const res = await fetch("/api/assignments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: editingInterviewer.id,
+            barangay_id: barangayId,
+            status: "Assigned",
+            progress: 0,
+          }),
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to add assignment`);
+        }
+      }
+
+      await loadData();
+      setEditingInterviewer(null);
       toast({
-        title: "Assignment Deleted",
-        description: "Assignment has been removed successfully.",
+        title: "Assignments Updated",
+        description: `Updated assignments for ${editingInterviewer.firstName} ${editingInterviewer.lastName}`,
       });
     } catch (error: any) {
-      console.error("Delete assignment error:", error);
+      console.error("Update assignments error:", error);
       toast({
         variant: "destructive",
-        title: "Delete Failed",
-        description: error.message || "An unexpected error occurred while deleting the assignment.",
+        title: "Update Failed",
+        description: error.message || "Failed to update assignments.",
       });
     } finally {
       setSaving(false);
     }
   };
+
+  const handleDeleteAllAssignments = (interviewer: Interviewer, assignments: Assignment[]) => {
+    setDeletingInterviewer({ interviewer, assignments });
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    if (!deletingInterviewer) return;
+    setSaving(true);
+
+    try {
+      // Delete all assignments for this interviewer
+      for (const assignment of deletingInterviewer.assignments) {
+        const res = await fetch(`/api/assignments/${assignment.assignment_id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to delete assignment`);
+        }
+      }
+
+      await loadData();
+      setDeletingInterviewer(null);
+      toast({
+        title: "All Assignments Removed",
+        description: `Removed all ${deletingInterviewer.assignments.length} assignment(s) for ${deletingInterviewer.interviewer.firstName} ${deletingInterviewer.interviewer.lastName}`,
+      });
+    } catch (error: any) {
+      console.error("Delete all assignments error:", error);
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: error.message || "Failed to delete assignments.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
 
   // Group assignments by interviewer
   const interviewerAssignments = interviewers.map((interviewer) => {
@@ -313,23 +404,29 @@ export default function InterviewerAssignmentTable({ onAddAssignment }: Intervie
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-center space-x-1">
-                          {ia.assignments.map((assignment) => (
+                        <div className="flex justify-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-3 hover:bg-blue-100"
+                            onClick={() => handleEditInterviewerAssignments(ia.interviewer, ia.assignments)}
+                            title="Edit barangay assignments"
+                          >
+                            <Edit className="w-4 h-4 mr-1 text-blue-600" />
+                            <span className="text-xs">Edit</span>
+                          </Button>
+                          {ia.assignmentCount > 0 && (
                             <Button
-                              key={assignment.assignment_id}
                               size="sm"
                               variant="ghost"
-                              className="h-8 w-8 p-0 hover:bg-red-100"
-                              onClick={() => handleDeleteClick(assignment)}
-                              title={`Unassign from ${
-                                barangays.find((b) => b.id === assignment.barangay_id)?.name ||
-                                assignment.barangay_name ||
-                                "barangay"
-                              }`}
+                              className="h-8 px-3 hover:bg-red-100"
+                              onClick={() => handleDeleteAllAssignments(ia.interviewer, ia.assignments)}
+                              title="Remove all assignments"
                             >
-                              <Trash2 className="w-4 h-4 text-red-600" />
+                              <Trash2 className="w-4 h-4 mr-1 text-red-600" />
+                              <span className="text-xs">Delete All</span>
                             </Button>
-                          ))}
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -341,40 +438,99 @@ export default function InterviewerAssignmentTable({ onAddAssignment }: Intervie
         </CardContent>
       </Card>
 
-      {/* Delete Assignment Modal */}
-      {deletingAssignment && (
-        <Dialog open={!!deletingAssignment} onOpenChange={(open) => !open && setDeletingAssignment(null)}>
+      {/* Delete All Assignments Confirmation Modal */}
+      {deletingInterviewer && (
+        <Dialog open={!!deletingInterviewer} onOpenChange={(open) => !open && setDeletingInterviewer(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Unassign Interviewer</DialogTitle>
+              <DialogTitle>Remove All Assignments?</DialogTitle>
             </DialogHeader>
             <div className="flex items-center gap-2 mt-4 text-amber-600">
               <AlertTriangle className="w-5 h-5" />
-              <span className="font-semibold">Confirm Unassignment</span>
+              <span className="font-semibold">Confirm Removal</span>
             </div>
             <div className="mt-2 text-gray-700">
-              Are you sure you want to unassign{" "}
+              Are you sure you want to remove all {deletingInterviewer.assignments.length} assignment(s) for{" "}
               <span className="font-semibold">
-                {deletingAssignment.firstName || deletingAssignment.user?.firstName}{" "}
-                {deletingAssignment.lastName || deletingAssignment.user?.lastName}
-              </span>{" "}
-              from{" "}
-              <span className="font-semibold">
-                {barangays.find((b) => b.id === deletingAssignment.barangay_id)?.name ||
-                  deletingAssignment.barangay_name ||
-                  deletingAssignment.barangay?.barangay_name ||
-                  "this barangay"}
+                {deletingInterviewer.interviewer.firstName} {deletingInterviewer.interviewer.lastName}
               </span>
               ?
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => setDeletingAssignment(null)} disabled={saving}>
+            <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <div className="text-sm font-medium text-gray-700 mb-2">Assigned Barangays:</div>
+              <div className="flex flex-wrap gap-1">
+                {deletingInterviewer.assignments.map((assignment) => (
+                  <Badge key={assignment.assignment_id} variant="outline" className="text-xs">
+                    {barangays.find((b) => b.id === assignment.barangay_id)?.name || assignment.barangay_name || "Unknown"}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setDeletingInterviewer(null)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleDeleteConfirm} disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
-                {saving ? "Removing..." : "Unassign"}
+              <Button onClick={handleConfirmDeleteAll} disabled={saving} variant="destructive">
+                {saving ? "Removing..." : "Remove All"}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Interviewer Assignments Modal */}
+      {editingInterviewer && (
+        <Dialog open={!!editingInterviewer} onOpenChange={(open) => !open && setEditingInterviewer(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Edit Assignments for {editingInterviewer.firstName} {editingInterviewer.lastName}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <Label className="text-sm font-medium mb-3 block">
+                Select Barangays to Assign (Awardee Barangays Only)
+              </Label>
+              <div className="space-y-2 max-h-96 overflow-y-auto border rounded-md p-3">
+                {barangays.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    No awardee barangays found
+                  </div>
+                ) : (
+                  barangays.map((barangay) => (
+                    <div
+                      key={barangay.id}
+                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      onClick={() => handleToggleBarangay(barangay.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBarangayIds.has(barangay.id)}
+                        onChange={() => handleToggleBarangay(barangay.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <label className="flex-1 text-sm cursor-pointer">
+                        {barangay.name}
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({barangay.population?.toLocaleString()} pop, {barangay.households?.toLocaleString()} households)
+                        </span>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="mt-3 text-xs text-gray-600">
+                Selected: {selectedBarangayIds.size} barangay{selectedBarangayIds.size !== 1 ? 's' : ''}
+              </div>
             </div>
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setEditingInterviewer(null)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveAssignments} disabled={saving}>
+                {saving ? "Saving..." : "Save Assignments"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

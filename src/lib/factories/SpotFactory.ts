@@ -13,7 +13,7 @@ export interface Spot {
   starting_point: { lat: number; lng: number };
   random_start: number;
   assigned_fi_id?: string | null;
-  status: 'Pending' | 'In Progress' | 'Completed';
+  status: 'Pending' | 'In_Progress' | 'Completed';
 }
 
 export class SpotFactory extends BaseFactory<Spot> {

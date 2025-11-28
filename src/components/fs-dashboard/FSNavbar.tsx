@@ -5,8 +5,8 @@ import { CycleDisplay } from "@/components/survey-cycle";
 import UserDropdown from "@/components/dashboard/UserDropdown";
 
 interface FSNavbarProps {
-  activeTab: "assignments" | "spots" | "monitoring";
-  onTabChange: (tab: "assignments" | "spots" | "monitoring") => void;
+  activeTab: "overview" | "assignments" | "spots" | "spot-management" | "monitoring";
+  onTabChange: (tab: "overview" | "assignments" | "spots" | "spot-management" | "monitoring") => void;
 }
 
 export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
@@ -64,10 +64,20 @@ export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
         </div>
 
         {/* Bottom row - Tabs */}
-        <div className="flex items-center gap-1 border-t border-slate-700 pt-3">
+        <div className="flex items-center gap-1 border-t border-slate-700 pt-3 overflow-x-auto">
+          <button
+            onClick={() => onTabChange("overview")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              activeTab === "overview"
+                ? "bg-slate-700 text-white"
+                : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+            }`}
+          >
+            Overview
+          </button>
           <button
             onClick={() => onTabChange("assignments")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === "assignments"
                 ? "bg-slate-700 text-white"
                 : "text-slate-300 hover:text-white hover:bg-slate-700/50"
@@ -77,7 +87,7 @@ export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
           </button>
           <button
             onClick={() => onTabChange("spots")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === "spots"
                 ? "bg-slate-700 text-white"
                 : "text-slate-300 hover:text-white hover:bg-slate-700/50"
@@ -86,8 +96,18 @@ export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
             Spot Allocation
           </button>
           <button
+            onClick={() => onTabChange("spot-management")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+              activeTab === "spot-management"
+                ? "bg-slate-700 text-white"
+                : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+            }`}
+          >
+            Spot Management
+          </button>
+          <button
             onClick={() => onTabChange("monitoring")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === "monitoring"
                 ? "bg-slate-700 text-white"
                 : "text-slate-300 hover:text-white hover:bg-slate-700/50"

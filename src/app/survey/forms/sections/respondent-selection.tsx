@@ -46,15 +46,28 @@ const calculateAge = (birthdate: string): number => {
 
 /**
  * Extract numeric questionnaire number from full survey number
- * Handles formats: "BB-2024-0001" → 1, "123" → 123
+ * Handles formats: 
+ * - New format: "2025-18-01-001" → 1 (YYYY-BB-SS-QQQ)
+ * - Old format: "BB-2024-0001" → 1
+ * - Direct number: "123" → 123
  */
 const extractQuestionnaireNumber = (surveyNumber: string): number => {
   if (surveyNumber.includes('-')) {
     const parts = surveyNumber.split('-')
+    
+    // New format: YYYY-BB-SS-QQQ (4 parts)
+    if (parts.length === 4) {
+      // Last part is the questionnaire number (QQQ)
+      return parseInt(parts[3], 10)
+    }
+    
+    // Old format: BB-YYYY-QQQQ (3 parts)
     if (parts.length === 3) {
       return parseInt(parts[2], 10)
     }
   }
+  
+  // Direct number
   return parseInt(surveyNumber, 10)
 }
 

@@ -4,6 +4,7 @@
  * Tracks and runs SQL migrations
  */
 
+import 'dotenv/config';
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { supabaseAdmin } from '../src/lib/supabase';

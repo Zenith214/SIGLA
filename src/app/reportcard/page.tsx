@@ -39,7 +39,12 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
 
       if (response.ok) {
         const result = await response.json();
-        setSummary(result.data);
+        // Check if survey is incomplete
+        if (result.surveyIncomplete) {
+          setSummary({ surveyIncomplete: true, progress: result.progress, message: result.message });
+        } else {
+          setSummary(result.data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch executive summary:', error);
@@ -87,6 +92,57 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
         <p className="mb-4">
           Executive summary is not available yet. This will be automatically generated when the survey is completed.
         </p>
+      </div>
+    );
+  }
+
+  // Handle incomplete survey
+  if (summary.surveyIncomplete) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-amber-900 mb-2">Survey Data Collection In Progress</h4>
+            <p className="text-sm text-amber-700 mb-4">
+              {summary.message || 'The survey for this barangay is currently ongoing. The AI-generated executive summary and comprehensive analysis will become available once data collection reaches 100% completion.'}
+            </p>
+            {summary.progress !== undefined && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-amber-700 font-medium">Survey Completion Progress</span>
+                  <span className="text-amber-900 font-bold">{summary.progress}%</span>
+                </div>
+                <div className="w-full bg-amber-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="h-3 rounded-full bg-amber-500 transition-all duration-500"
+                    style={{ width: `${summary.progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-amber-600 mt-2">
+                  {summary.progress === 0 
+                    ? 'Data collection has not yet commenced.' 
+                    : `${100 - summary.progress}% remaining to complete data collection.`}
+                </p>
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-amber-200">
+              <p className="text-xs text-amber-600">
+                <strong>Note:</strong> Once the survey reaches 100% completion, this section will automatically display:
+              </p>
+              <ul className="text-xs text-amber-600 mt-2 ml-4 list-disc space-y-1">
+                <li>AI-generated executive summary</li>
+                <li>Key findings and insights</li>
+                <li>Critical issues identification</li>
+                <li>Strategic recommendations</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -270,15 +326,23 @@ function ReportCardContent() {
         const funnelResponse = await fetch(apiUrl);
         if (funnelResponse.ok) {
           const funnelData = await funnelResponse.json();
-          console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
-          console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
-          console.log('📊 [REPORT CARD] Action grid with trends:', funnelData.action_grid);
+          
+          // Check if survey is incomplete
+          if (funnelData.surveyIncomplete) {
+            console.log(`⏳ [REPORT CARD] Survey incomplete - Progress: ${funnelData.progress}%`);
+            // Store incomplete status in funnel data
+            setFunnelData({ surveyIncomplete: true, progress: funnelData.progress, message: funnelData.message });
+          } else {
+            console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
+            console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
+            console.log('📊 [REPORT CARD] Action grid with trends:', funnelData.action_grid);
 
-          // Cache the funnel data
-          reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
+            // Cache the funnel data
+            reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
 
-          // Process ML-enhanced funnel data
-          processFunnelData(funnelData);
+            // Process ML-enhanced funnel data
+            processFunnelData(funnelData);
+          }
         } else {
           console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
         }
@@ -1150,25 +1214,8 @@ function ReportCardContent() {
 
           {/* Right Column - Detailed Analysis */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6 print:full-width">
-            {/* Executive Summary */}
-            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 print:section">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-purple-900 text-base sm:text-lg">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
-                  <h2 className="hidden print:show">Executive Summary & Action Plan</h2>
-                  <span className="print:hidden">📋 Executive Summary & Action Plan</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ExecutiveSummarySection
-                  barangayId={barangayData.barangayId}
-                  cycleId={barangayData.cycleId || activeCycle?.cycle_id || 0}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Service Area Performance */}
-            <Card className="print:section print:page-break-before">
+            {/* Service Area Performance - Moved to top, always visible */}
+            <Card className="print:section">
               <CardHeader className="pb-3 sm:pb-6">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 print:hidden" />
@@ -1318,6 +1365,23 @@ function ReportCardContent() {
               </CardContent>
             </Card>
 
+            {/* Executive Summary - Moved after Service Area Performance */}
+            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 print:section print:page-break-before">
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="flex items-center gap-2 text-purple-900 text-base sm:text-lg">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
+                  <h2 className="hidden print:show">Executive Summary</h2>
+                  <span className="print:hidden">📋 Executive Summary</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ExecutiveSummarySection
+                  barangayId={barangayData.barangayId}
+                  cycleId={barangayData.cycleId || activeCycle?.cycle_id || 0}
+                />
+              </CardContent>
+            </Card>
+
             {/* Community Voice Section */}
             <Card className="print:section">
               <CardHeader>
@@ -1332,7 +1396,28 @@ function ReportCardContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {funnelData.surveyIncomplete ? (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-900 mb-2">Community Feedback Collection In Progress</h4>
+                        <p className="text-sm text-amber-700 mb-3">
+                          Community voice analysis will be available once survey data collection reaches 100% completion.
+                        </p>
+                        {funnelData.progress !== undefined && (
+                          <div className="text-sm text-amber-600">
+                            Current progress: <span className="font-bold">{funnelData.progress}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : loading ? (
                   <div className="text-center py-8 text-gray-500">Loading community insights...</div>
                 ) : !communityVoiceData || communityVoiceData.total_comments === 0 ? (
                   <div className="text-center py-8 text-gray-500">No community feedback available yet</div>
@@ -1401,11 +1486,17 @@ function ReportCardContent() {
                       <div className="mt-4">
                         <h4 className="font-semibold text-gray-800 mb-3">Sample Community Feedback:</h4>
                         <div className="space-y-2">
-                          {communityVoiceData.sample_comments.slice(0, 3).map((comment: string, index: number) => (
-                            <div key={index} className="p-3 bg-gray-50 rounded-lg border-l-2 border-gray-300">
-                              <p className="text-sm italic text-gray-700">"{comment}"</p>
-                            </div>
-                          ))}
+                          {communityVoiceData.sample_comments.slice(0, 3).map((comment: string, index: number) => {
+                            // Replace conditional_skip with N/A
+                            const displayComment = comment === 'conditional_skip' || comment === '*conditional_skip*' ? 'N/A' : comment;
+                            return (
+                              <div key={index} className="p-3 bg-gray-50 rounded-lg border-l-2 border-gray-300">
+                                <p className="text-sm italic text-gray-700">
+                                  {displayComment === 'N/A' ? displayComment : `"${displayComment}"`}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1423,12 +1514,34 @@ function ReportCardContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 print:action-matrix">
-                  {/* Maintain */}
+                {funnelData.surveyIncomplete ? (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-900 mb-2">Action Priority Analysis Pending</h4>
+                        <p className="text-sm text-amber-700 mb-3">
+                          The action priority matrix will be generated once survey data collection reaches 100% completion.
+                        </p>
+                        {funnelData.progress !== undefined && (
+                          <div className="text-sm text-amber-600">
+                            Current progress: <span className="font-bold">{funnelData.progress}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 print:action-matrix">
+                  {/* Exceeded Expectations */}
                   <div className="bg-green-100 border-2 border-green-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
                     <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
-                      <h3 className="text-green-800 font-bold text-sm sm:text-base mb-1">MAINTAIN</h3>
-                      <span className="text-green-600 font-medium text-[10px] sm:text-xs print:text-sm">High Satisfaction, Low Need for Action</span>
+                      <h3 className="text-green-800 font-bold text-[11px] sm:text-sm mb-1">EXCEEDED EXPECTATIONS</h3>
+                      <span className="text-green-600 font-medium text-[9px] sm:text-[10px] print:text-xs">High Satisfaction, Low Need for Action</span>
                     </div>
                     <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-green-800">
                       {[
@@ -1469,11 +1582,11 @@ function ReportCardContent() {
                     </div>
                   </div>
 
-                  {/* Opportunities */}
+                  {/* Continued Emphasis */}
                   <div className="bg-blue-100 border-2 border-blue-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
                     <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
-                      <h3 className="text-blue-800 font-bold text-sm sm:text-base mb-1">OPPORTUNITIES</h3>
-                      <span className="text-blue-600 font-medium text-[10px] sm:text-xs print:text-sm">High Satisfaction, High Need for Action</span>
+                      <h3 className="text-blue-800 font-bold text-[11px] sm:text-sm mb-1">CONTINUED EMPHASIS</h3>
+                      <span className="text-blue-600 font-medium text-[9px] sm:text-[10px] print:text-xs">High Satisfaction, High Need for Action</span>
                     </div>
                     <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-blue-800">
                       {[
@@ -1514,11 +1627,11 @@ function ReportCardContent() {
                     </div>
                   </div>
 
-                  {/* Monitor */}
+                  {/* Secondary Priority */}
                   <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
                     <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
-                      <h3 className="text-yellow-800 font-bold text-sm sm:text-base mb-1">MONITOR</h3>
-                      <span className="text-yellow-600 font-medium text-[10px] sm:text-xs print:text-sm">Low Satisfaction, Low Need for Action</span>
+                      <h3 className="text-yellow-800 font-bold text-[11px] sm:text-sm mb-1">SECONDARY PRIORITY</h3>
+                      <span className="text-yellow-600 font-medium text-[9px] sm:text-[10px] print:text-xs">Low Satisfaction, Low Need for Action</span>
                     </div>
                     <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-yellow-800">
                       {[
@@ -1559,11 +1672,11 @@ function ReportCardContent() {
                     </div>
                   </div>
 
-                  {/* Fix Now */}
+                  {/* Opportunities for Improvement */}
                   <div className="bg-red-100 border-2 border-red-300 rounded-lg sm:rounded-xl p-3 sm:p-4 min-h-24 sm:min-h-32 print:action-quadrant">
                     <div className="text-center mb-2 sm:mb-3 print:quadrant-header">
-                      <h3 className="text-red-800 font-bold text-sm sm:text-base mb-1">FIX NOW</h3>
-                      <span className="text-red-600 font-medium text-[10px] sm:text-xs print:text-sm">Low Satisfaction, High Need for Action</span>
+                      <h3 className="text-red-800 font-bold text-[10px] sm:text-xs mb-1">OPPORTUNITIES FOR IMPROVEMENT</h3>
+                      <span className="text-red-600 font-medium text-[9px] sm:text-[10px] print:text-xs">Low Satisfaction, High Need for Action</span>
                     </div>
                     <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-red-800">
                       {[
@@ -1604,6 +1717,7 @@ function ReportCardContent() {
                     </div>
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
 

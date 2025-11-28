@@ -266,12 +266,19 @@ export function UsersRoles() {
     }
   }
 
-  // Role stats
+  // Role stats (case-insensitive, includes developer in admin count)
   const roleStats = [
-    { role: "admin", count: users.filter(u => u.role === "admin").length, color: "bg-red-100 text-red-800" },
-    { role: "fs", count: users.filter(u => u.role === "fs").length, color: "bg-purple-100 text-purple-800" },
-    { role: "interviewer", count: users.filter(u => u.role === "interviewer").length, color: "bg-blue-100 text-blue-800" },
-    { role: "officer", count: users.filter(u => u.role === "officer").length, color: "bg-gray-100 text-gray-800" },
+    { 
+      role: "admin", 
+      count: users.filter(u => {
+        const role = u.role?.toLowerCase();
+        return role === "admin" || role === "developer";
+      }).length, 
+      color: "bg-red-100 text-red-800" 
+    },
+    { role: "fs", count: users.filter(u => u.role?.toLowerCase() === "fs").length, color: "bg-purple-100 text-purple-800" },
+    { role: "interviewer", count: users.filter(u => u.role?.toLowerCase() === "interviewer").length, color: "bg-blue-100 text-blue-800" },
+    { role: "officer", count: users.filter(u => u.role?.toLowerCase() === "officer").length, color: "bg-gray-100 text-gray-800" },
   ]
 
   if (loading) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3, HelpCircle, Terminal } from "lucide-react";
-import { useEffect } from "react";
+import { AlertTriangle, CheckCircle, Database, Trash2, Settings, BarChart3, HelpCircle, Terminal, Lock } from "lucide-react";
 import { CycleDisplay } from "@/components/survey-cycle";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { reportCardCache } from "@/utils/reportCardCache";
+import { GeminiSettings } from "@/app/settings/ui/sections/gemini-settings";
+import { getCurrentUser } from "@/lib/auth";
 
 interface GenerationResult {
   success: boolean;
@@ -40,6 +42,8 @@ interface Barangay {
 }
 
 export default function ToolsPage() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [barangayId, setBarangayId] = useState(""); // Will be set when barangays load
   const [responseCount, setResponseCount] = useState("50");
   const [profile, setProfile] = useState("balanced");
@@ -60,16 +64,52 @@ export default function ToolsPage() {
   const [trendsDebug, setTrendsDebug] = useState<any>(null);
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle();
 
+  // Check if user has Developer role (case-insensitive)
+  useEffect(() => {
+    const checkAuthorization = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          setIsAuthorized(false);
+          router.push('/forbidden');
+          return;
+        }
+
+        // Check if user has Developer role (case-insensitive)
+        const hasDeveloperRole = user.role?.toLowerCase() === 'developer';
+        setIsAuthorized(hasDeveloperRole);
+
+        if (!hasDeveloperRole) {
+          router.push('/forbidden');
+        }
+      } catch (error) {
+        console.error('Authorization check failed:', error);
+        setIsAuthorized(false);
+        router.push('/forbidden');
+      }
+    };
+
+    checkAuthorization();
+  }, [router]);
+
   // Fetch barangays from database on component mount
   useEffect(() => {
-    fetchBarangays();
-  }, []);
+    if (isAuthorized) {
+      fetchBarangays();
+    }
+  }, [isAuthorized]);
 
   const fetchBarangays = async () => {
     try {
       setLoadingBarangays(true);
       // Fetch barangays that have survey targets for the active cycle
-      const response = await fetch('/api/survey-targets');
+      // Add timestamp to bust cache
+      const response = await fetch(`/api/survey-targets?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (response.ok) {
         const surveyTargets = await response.json();
         
@@ -122,27 +162,16 @@ export default function ToolsPage() {
       return;
     }
 
-    // Get active cycle
-    let activeCycleId = null;
-    try {
-      const cycleResponse = await fetch('/api/survey-cycles?status=Active');
-      if (cycleResponse.ok) {
-        const cycles = await cycleResponse.json();
-        if (cycles.length > 0) {
-          activeCycleId = cycles[0].cycle_id;
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching active cycle:', error);
-    }
-
-    if (!activeCycleId) {
+    // Check if active cycle is available
+    if (!activeCycle || !activeCycle.cycle_id) {
       addResult({
         success: false,
-        message: `❌ No active survey cycle found. Please create and activate a cycle first.`
+        message: `❌ No active survey cycle found. Please create and activate a cycle in Settings → Survey Cycles.`
       });
       return;
     }
+
+    const activeCycleId = activeCycle.cycle_id;
 
     // Calculate spots needed (5 questionnaires per spot)
     const totalQuestionnaires = parseInt(responseCount);
@@ -289,6 +318,11 @@ export default function ToolsPage() {
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
+        
+        // Reload page after a short delay to ensure all caches are cleared
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         addResult({
           success: false,
@@ -348,6 +382,11 @@ export default function ToolsPage() {
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
+        
+        // Reload page after a short delay to ensure all caches are cleared
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         addResult({
           success: false,
@@ -836,6 +875,45 @@ export default function ToolsPage() {
     }
   };
 
+  // Show loading state while checking authorization
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show unauthorized state (shouldn't normally be seen due to redirect)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <Lock className="w-6 h-6" />
+              Access Denied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">
+              This page is restricted to users with the <strong>Developer</strong> role.
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              If you believe you should have access, please contact your system administrator.
+            </p>
+            <Button onClick={() => router.push('/dashboard')} className="w-full">
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
@@ -861,12 +939,125 @@ export default function ToolsPage() {
           )}
         </div>
 
+        {/* Dashboard Navigation - Developer Access */}
+        <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Terminal className="w-5 h-5 text-yellow-600" />
+              Quick Access to All Dashboards
+            </CardTitle>
+            <CardDescription>
+              Developer role grants full access to all system dashboards
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-blue-50 hover:border-blue-300"
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                <BarChart3 className="w-5 h-5 mb-2 text-blue-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Main Dashboard</div>
+                  <div className="text-xs text-gray-500">Overview & Analytics</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-green-50 hover:border-green-300"
+                onClick={() => window.location.href = '/fs-dashboard'}
+              >
+                <Database className="w-5 h-5 mb-2 text-green-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">FS Dashboard</div>
+                  <div className="text-xs text-gray-500">Field Operations</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-purple-50 hover:border-purple-300"
+                onClick={() => window.location.href = '/cpap'}
+              >
+                <Settings className="w-5 h-5 mb-2 text-purple-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">CPAP Module</div>
+                  <div className="text-xs text-gray-500">Action Plans</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-red-50 hover:border-red-300"
+                onClick={() => window.location.href = '/admin/cpap'}
+              >
+                <AlertTriangle className="w-5 h-5 mb-2 text-red-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Admin CPAP</div>
+                  <div className="text-xs text-gray-500">Review & Approve</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-orange-50 hover:border-orange-300"
+                onClick={() => window.location.href = '/survey/forms'}
+              >
+                <CheckCircle className="w-5 h-5 mb-2 text-orange-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Survey Forms</div>
+                  <div className="text-xs text-gray-500">Data Collection</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-indigo-50 hover:border-indigo-300"
+                onClick={() => window.location.href = '/analytics'}
+              >
+                <BarChart3 className="w-5 h-5 mb-2 text-indigo-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Analytics</div>
+                  <div className="text-xs text-gray-500">Advanced Reports</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 hover:bg-gray-50 hover:border-gray-300"
+                onClick={() => window.location.href = '/settings'}
+              >
+                <Settings className="w-5 h-5 mb-2 text-gray-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Settings</div>
+                  <div className="text-xs text-gray-500">Configuration</div>
+                </div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto flex-col items-start p-4 bg-yellow-50 border-yellow-300 hover:bg-yellow-100"
+                onClick={() => window.location.href = '/tools'}
+              >
+                <Terminal className="w-5 h-5 mb-2 text-yellow-600" />
+                <div className="text-left">
+                  <div className="font-semibold text-sm">Dev Tools</div>
+                  <div className="text-xs text-gray-500">Current Page</div>
+                </div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabbed Tools Interface */}
         <Tabs defaultValue="mock-data" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1">
             <TabsTrigger value="mock-data" className="text-xs sm:text-sm">Mock Data</TabsTrigger>
             <TabsTrigger value="cache" className="text-xs sm:text-sm">ML Cache</TabsTrigger>
             <TabsTrigger value="community" className="text-xs sm:text-sm">Community Voice</TabsTrigger>
+            <TabsTrigger value="gemini" className="text-xs sm:text-sm">Gemini AI</TabsTrigger>
             <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
           </TabsList>
 
@@ -1726,6 +1917,11 @@ export default function ToolsPage() {
 
           </TabsContent>
 
+          {/* Gemini AI Tab */}
+          <TabsContent value="gemini">
+            <GeminiSettings />
+          </TabsContent>
+
           {/* Database Tab */}
           <TabsContent value="database">
             {/* Seeding Tools */}
@@ -1778,13 +1974,13 @@ export default function ToolsPage() {
                 <Alert className="border-blue-500 bg-blue-50">
                   <AlertDescription className="text-blue-800">
                     <strong>Laravel-Style Seeding:</strong> Uses factories to generate realistic test data. 
-                    Seeders create users (interviewers, viewers, admins), spots for survey cycles, and assignments linking spots to field interviewers.
+                    Seeders create users (interviewers, officers, admins), spots for survey cycles, and assignments linking spots to field interviewers.
                   </AlertDescription>
                 </Alert>
 
                 <div className="text-xs text-gray-600 space-y-1">
                   <div><strong>DatabaseSeeder:</strong> Runs all seeders in order (Users → Spots → Assignments)</div>
-                  <div><strong>UserSeeder:</strong> Creates 5 interviewers, 2 viewers, and 1 admin</div>
+                  <div><strong>UserSeeder:</strong> Creates 5 interviewers, 2 officers, and 1 admin</div>
                   <div><strong>SpotSeeder:</strong> Creates unassigned spots for active cycle</div>
                   <div><strong>AssignmentSeeder:</strong> Assigns spots to active interviewers</div>
                 </div>

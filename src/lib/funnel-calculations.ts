@@ -24,12 +24,26 @@ export interface FunnelStageMetrics {
 }
 
 /**
- * Complete funnel metrics for a service area
+ * Complete funnel metrics for a service area with CSIS calculations
  */
 export interface ServiceFunnelMetrics {
   awareness: FunnelStageMetrics;
   availment: FunnelStageMetrics;
   satisfaction: FunnelStageMetrics;
+  needForAction?: FunnelStageMetrics;
+  actionGrid?: ActionGridClassification;
+}
+
+/**
+ * Action Grid classification using CSIS methodology
+ */
+export interface ActionGridClassification {
+  quadrant: string;
+  priority: string;
+  satisfactionRating: string;
+  needForActionRating: string;
+  satisfactionCutoff: number;
+  needForActionCutoff: number;
 }
 
 /**
@@ -47,6 +61,77 @@ export interface SurveyResponse {
 export interface SurveySection {
   section_key: string;
   data: string | Record<string, any>;
+}
+
+// ============================================================================
+// CSIS Calculation Functions
+// ============================================================================
+
+/**
+ * Calculate Margin of Error (MoE) using the CSIS formula
+ * Formula: MoE = 0.98 / sqrt(n)
+ */
+export function calculateMarginOfError(sampleSize: number): number {
+  if (sampleSize <= 0) return 0;
+  return 0.98 / Math.sqrt(sampleSize);
+}
+
+/**
+ * Calculate the dynamic cut-off threshold using the CSIS formula
+ * Formula: Cut-off = 0.50 + MoE
+ */
+export function calculateDynamicCutoff(moe: number): number {
+  return 0.50 + moe;
+}
+
+/**
+ * Classify a score as "High" or "Low" using the Dynamic Cut-Off Rule
+ */
+export function classifyScore(score: number, moe: number): string {
+  const cutoff = calculateDynamicCutoff(moe);
+  return score >= cutoff ? "High" : "Low";
+}
+
+/**
+ * Determine the Action Grid Quadrant using the official CSIS methodology
+ */
+export function determineActionGridQuadrant(
+  satisfactionScore: number,
+  satisfactionMoE: number,
+  needForActionScore: number,
+  needForActionMoE: number
+): ActionGridClassification {
+  const satisfactionRating = classifyScore(satisfactionScore, satisfactionMoE);
+  const needForActionRating = classifyScore(needForActionScore, needForActionMoE);
+  
+  const satisfactionCutoff = calculateDynamicCutoff(satisfactionMoE);
+  const needForActionCutoff = calculateDynamicCutoff(needForActionMoE);
+  
+  let quadrant: string;
+  let priority: string;
+  
+  if (satisfactionRating === "Low" && needForActionRating === "High") {
+    quadrant = "Opportunities for Improvement";
+    priority = "Highest Priority";
+  } else if (satisfactionRating === "High" && needForActionRating === "High") {
+    quadrant = "Continued Emphasis";
+    priority = "High Importance";
+  } else if (satisfactionRating === "High" && needForActionRating === "Low") {
+    quadrant = "Exceeded Expectations";
+    priority = "Key Strength";
+  } else {
+    quadrant = "Secondary Priority";
+    priority = "Lowest Priority";
+  }
+  
+  return {
+    quadrant,
+    priority,
+    satisfactionRating,
+    needForActionRating,
+    satisfactionCutoff,
+    needForActionCutoff
+  };
 }
 
 // ============================================================================
@@ -85,6 +170,21 @@ export function findSatisfactionQuestions(data: Record<string, any>): string[] {
   return Object.keys(data).filter(key => {
     const keyLower = key.toLowerCase();
     return keyLower.includes('satisf') || keyLower.includes('rate') || keyLower.includes('quality');
+  });
+}
+
+/**
+ * Finds need for action questions for a service area by pattern matching
+ */
+export function findNeedForActionQuestions(data: Record<string, any>): string[] {
+  const needActionKeywords = [
+    'improve', 'problem', 'issue', 'concern', 'suggest',
+    'recommend', 'change', 'need', 'priority'
+  ];
+  
+  return Object.keys(data).filter(key => {
+    const keyLower = key.toLowerCase();
+    return needActionKeywords.some(keyword => keyLower.includes(keyword));
   });
 }
 
@@ -314,12 +414,63 @@ export function calculateSatisfactionFromAvailed(
 }
 
 /**
- * Orchestrates three-stage funnel calculation for a service area.
+ * Calculates need for action metrics from survey responses.
+ * 
+ * @param responses - Array of survey responses
+ * @param serviceArea - Service area key
+ * @returns Need for action metrics with count, total, and percentage
+ */
+export function calculateNeedForActionMetrics(
+  responses: SurveyResponse[],
+  serviceArea: string
+): FunnelStageMetrics {
+  const respondentsWithNeed = new Set<number>();
+  const allRespondentIds = new Set<number>();
+  
+  responses.forEach(response => {
+    const respondentId = response.respondent_id || response.response_id;
+    allRespondentIds.add(respondentId);
+    
+    const sections = Array.isArray(response.survey_section) 
+      ? response.survey_section 
+      : [response.survey_section];
+    
+    sections.forEach(section => {
+      if (section.section_key !== serviceArea) return;
+      
+      const data = parseSectionData(section.data);
+      const needForActionQuestions = findNeedForActionQuestions(data);
+      
+      // If respondent provided any non-empty answer to need for action questions
+      for (const questionKey of needForActionQuestions) {
+        const answer = data[questionKey];
+        if (answer && String(answer).trim() && 
+            !['none', 'n/a', 'wala', 'nan'].includes(String(answer).toLowerCase())) {
+          respondentsWithNeed.add(respondentId);
+          break;
+        }
+      }
+    });
+  });
+  
+  const total = allRespondentIds.size;
+  const count = respondentsWithNeed.size;
+  const percentage = total > 0 ? Math.round((count / total) * 1000) / 10 : null;
+  
+  return {
+    count,
+    total,
+    percentage
+  };
+}
+
+/**
+ * Orchestrates four-stage funnel calculation for a service area with CSIS methodology.
  * This is the main entry point for funnel calculations.
  * 
  * @param responses - Array of survey responses
  * @param serviceArea - Service area key
- * @returns Complete funnel metrics with awareness, availment, and satisfaction
+ * @returns Complete funnel metrics with awareness, availment, satisfaction, need for action, and action grid
  */
 export function calculateServiceFunnelMetrics(
   responses: SurveyResponse[],
@@ -390,6 +541,30 @@ export function calculateServiceFunnelMetrics(
   // Stage 3: Calculate satisfaction from availed respondents only
   const satisfactionMetrics = calculateSatisfactionFromAvailed(responses, serviceArea, availedIds);
   
+  // Stage 4: Calculate need for action
+  const needForActionMetrics = calculateNeedForActionMetrics(responses, serviceArea);
+  
+  // Calculate CSIS metrics with MoE and Action Grid classification
+  const satisfactionTotal = satisfactionMetrics.total;
+  const needForActionTotal = needForActionMetrics.total;
+  
+  let actionGrid: ActionGridClassification | undefined;
+  
+  if (satisfactionTotal > 0 && needForActionTotal > 0) {
+    const satisfactionMoE = calculateMarginOfError(satisfactionTotal);
+    const needForActionMoE = calculateMarginOfError(needForActionTotal);
+    
+    const satisfactionScore = satisfactionMetrics.percentage ? satisfactionMetrics.percentage / 100 : 0;
+    const needForActionScore = needForActionMetrics.percentage ? needForActionMetrics.percentage / 100 : 0;
+    
+    actionGrid = determineActionGridQuadrant(
+      satisfactionScore,
+      satisfactionMoE,
+      needForActionScore,
+      needForActionMoE
+    );
+  }
+  
   return {
     awareness: {
       count: awarenessCount,
@@ -401,6 +576,8 @@ export function calculateServiceFunnelMetrics(
       total: awarenessCount,
       percentage: Math.round((availmentCount / awarenessCount) * 1000) / 10
     },
-    satisfaction: satisfactionMetrics
+    satisfaction: satisfactionMetrics,
+    needForAction: needForActionMetrics,
+    actionGrid
   };
 }

@@ -37,14 +37,14 @@ const SurveyTargets = dynamic(() => import("./ui/sections/survey-targets").then(
 const UsersRoles = dynamic(() => import("./ui/sections/users-roles").then(mod => ({ default: mod.UsersRoles })), {
   loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
 })
+const SupervisorAssignments = dynamic(() => import("./ui/sections/supervisor-assignments").then(mod => ({ default: mod.SupervisorAssignments })), {
+  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
+})
 // Legacy Assignments section removed - now handled by FS Dashboard with spot-based assignments
 // const Assignments = dynamic(() => import("./ui/sections/assignments").then(mod => ({ default: mod.Assignments })), {
 //   loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
 // })
 const Backup = dynamic(() => import("./ui/sections/backup").then(mod => ({ default: mod.Backup })), {
-  loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
-})
-const GeminiSettings = dynamic(() => import("./ui/sections/gemini-settings").then(mod => ({ default: mod.GeminiSettings })), {
   loading: () => <div className="p-8"><Skeleton className="h-96 w-full" /></div>
 })
 
@@ -53,8 +53,8 @@ const sectionTitles = {
   barangays: "Barangays",
   "award-management": "Award Management",
   targets: "Survey Targets",
+  "supervisor-assignments": "Supervisor Assignments",
   users: "Users & Roles",
-  "gemini-ai": "Gemini AI Settings",
   dashboard: "Dashboard Settings",
   backup: "Backup",
 }
@@ -103,10 +103,10 @@ export default function AdminSettingsPanel() {
         return <AwardManagement />
       case "targets":
         return <SurveyTargets />
+      case "supervisor-assignments":
+        return <SupervisorAssignments />
       case "users":
         return <UsersRoles />
-      case "gemini-ai":
-        return <GeminiSettings />
       case "backup":
         return <Backup />
       default:

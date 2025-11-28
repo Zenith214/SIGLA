@@ -60,6 +60,7 @@ const PROTECTED_ROUTES = [
   '/fs-dashboard',
   '/cpap',
   '/admin/cpap',
+  '/tools',
   '/api/users',
   '/api/barangays',
   '/api/survey-cycles',
@@ -75,6 +76,7 @@ const PROTECTED_ROUTES = [
   '/api/survey-responses',
   '/api/cpap',
   '/api/me',
+  '/api/tools',
 ];
 
 // Helper to check if the path is public
@@ -221,6 +223,16 @@ export function middleware(request: NextRequest) {
 
   const user = tokenValidation.user!;
   const userRole = (user.role || 'officer').toLowerCase();
+
+  // Developer role has access to everything - bypass all checks
+  if (userRole === 'developer') {
+    console.log('🔓 MIDDLEWARE - Developer role detected, granting full access');
+    const response = NextResponse.next();
+    response.headers.set('x-user-id', user.id.toString());
+    response.headers.set('x-user-role', userRole);
+    response.headers.set('x-user-email', user.email);
+    return response;
+  }
 
   // Special redirect for interviewers accessing dashboard
   if (pathname === '/dashboard' && userRole === 'interviewer') {

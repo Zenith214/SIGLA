@@ -44,12 +44,48 @@ export default function SpotAllocation() {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/spots?cycleId=${activeCycle.cycle_id}`);
-      if (!response.ok) {
+      // First, check if user is a supervisor and get their assigned barangays
+      const supervisorResponse = await fetch(`/api/supervisor-assignments/my-barangays?cycle_id=${activeCycle.cycle_id}`);
+      
+      let allSpots: Spot[] = [];
+      
+      if (supervisorResponse.ok) {
+        // Supervisor - fetch spots only for assigned barangays
+        const supervisorData = await supervisorResponse.json();
+        const assignedBarangays = supervisorData.data || [];
+        
+        if (assignedBarangays.length === 0) {
+          toast({
+            title: "No Assigned Barangays",
+            description: "You have not been assigned any barangays for this cycle.",
+            variant: "destructive",
+          });
+          setSpots([]);
+          return;
+        }
+        
+        // Fetch spots for each assigned barangay
+        const spotPromises = assignedBarangays.map((assignment: any) =>
+          fetch(`/api/spots?cycleId=${activeCycle.cycle_id}&barangayId=${assignment.barangay_id}`)
+            .then(res => res.json())
+            .then(data => data.spots || [])
+        );
+        
+        const spotsArrays = await Promise.all(spotPromises);
+        allSpots = spotsArrays.flat();
+      } else if (supervisorResponse.status === 403) {
+        // Not a supervisor - fetch all spots (for admins/other roles)
+        const response = await fetch(`/api/spots?cycleId=${activeCycle.cycle_id}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch spots");
+        }
+        const data = await response.json();
+        allSpots = data.spots || [];
+      } else {
         throw new Error("Failed to fetch spots");
       }
-      const data = await response.json();
-      setSpots(data.spots || []);
+      
+      setSpots(allSpots);
     } catch (error) {
       console.error("Error fetching spots:", error);
       toast({

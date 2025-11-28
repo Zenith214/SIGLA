@@ -75,9 +75,21 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
   useEffect(() => {
     fetchSpotDetails();
     
-    // Import Leaflet CSS dynamically
+    // Import Leaflet CSS and configure icons dynamically
     if (typeof window !== "undefined") {
       require("leaflet/dist/leaflet.css");
+      
+      // Fix marker icons
+      import('leaflet').then((L) => {
+        delete (L.default.Icon.Default.prototype as any)._getIconUrl;
+        L.default.Icon.Default.mergeOptions({
+          iconUrl: '/marker-icon.png',
+          shadowUrl: '/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+        });
+      });
     }
   }, [spotId]);
 
@@ -182,13 +194,13 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-slate-800 sticky top-0 z-10 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <button
             onClick={handleBack}
-            className="mb-3 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="mb-3 flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Assignments
@@ -196,31 +208,31 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
           
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              <h1 className="text-2xl font-bold text-white mb-1">
                 {spot.spotName}
               </h1>
-              <p className="text-gray-600 flex items-center gap-1">
+              <p className="text-slate-300 flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {spot.barangayName}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-blue-400">
                 {spot.completedCount}/{spot.totalCount}
               </div>
-              <div className="text-sm text-gray-600">Completed</div>
+              <div className="text-sm text-slate-300">Completed</div>
             </div>
           </div>
 
           {/* Progress Bar */}
           <div className="mt-4">
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-slate-700 rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all duration-300 ${
                   progressPercentage === 100 ? 'bg-green-500' :
-                  progressPercentage >= 60 ? 'bg-blue-600' :
+                  progressPercentage >= 60 ? 'bg-blue-500' :
                   progressPercentage >= 20 ? 'bg-blue-400' :
-                  progressPercentage > 0 ? 'bg-orange-500' : 'bg-gray-400'
+                  progressPercentage > 0 ? 'bg-orange-500' : 'bg-slate-600'
                 }`}
                 style={{ width: `${progressPercentage}%` }}
               />
@@ -237,13 +249,17 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">
               Spot Location
             </h2>
-            <div className="h-64 rounded-lg overflow-hidden border border-gray-300">
-              {typeof window !== 'undefined' && (
+            <div className="h-64 rounded-lg overflow-hidden border border-gray-300 relative z-0">
+              {typeof window !== 'undefined' && spot.startingPoint && (
                 <MapContainer
+                  key={`map-${spotId}`}
                   center={[spot.startingPoint.lat, spot.startingPoint.lng]}
                   zoom={16}
                   style={{ height: '100%', width: '100%' }}
                   scrollWheelZoom={false}
+                  whenReady={() => {
+                    console.log('Map is ready');
+                  }}
                 >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

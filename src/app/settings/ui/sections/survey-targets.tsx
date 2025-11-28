@@ -22,6 +22,7 @@ export function SurveyTargets() {
   const [editingTarget, setEditingTarget] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<any | null>(null)
+  const [bulkCreating, setBulkCreating] = useState(false)
   const { toast } = useToast()
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
@@ -218,6 +219,58 @@ export function SurveyTargets() {
     }
   }
 
+  // Bulk Create Targets for All Awardees
+  const handleBulkCreateTargets = async () => {
+    if (!activeCycle) {
+      toast({
+        title: "No Active Cycle",
+        description: "Please set an active cycle first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!confirm(`Create survey targets (150 responses each) for all awardees in ${activeCycle.name}?\n\nThis will only create targets for awardees that don't already have targets.`)) {
+      return;
+    }
+
+    setBulkCreating(true);
+    try {
+      const response = await fetch('/api/survey-targets/bulk-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cycle_id: activeCycle.cycle_id,
+          default_target: 150
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Targets Created",
+          description: `Successfully created ${data.created} survey targets for awardees.`,
+        });
+        
+        // Refresh targets list
+        const targetsResponse = await fetch("/api/survey-targets");
+        const targetsData = await targetsResponse.json();
+        setTargets(targetsData);
+      } else {
+        throw new Error(data.error || 'Failed to create targets');
+      }
+    } catch (err: any) {
+      toast({
+        title: "Bulk Create Failed",
+        description: err.message || "Failed to create survey targets.",
+        variant: "destructive"
+      });
+    } finally {
+      setBulkCreating(false);
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-6xl">
       <div className="flex items-center justify-between">
@@ -235,10 +288,20 @@ export function SurveyTargets() {
             </p>
           )}
         </div>
-        <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
-          <Target className="w-4 h-4 mr-2" />
-          Add Target
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            className="bg-green-500 hover:bg-green-600 text-white" 
+            onClick={handleBulkCreateTargets}
+            disabled={bulkCreating || !hasActiveCycle}
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            {bulkCreating ? 'Creating...' : 'Bulk Create Targets'}
+          </Button>
+          <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
+            <Target className="w-4 h-4 mr-2" />
+            Add Target
+          </Button>
+        </div>
       </div>
 
       {/* Add Target Modal */}

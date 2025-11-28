@@ -289,7 +289,7 @@ function SurveyDashboardContent() {
           {/* Welcome Card */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#111827] mb-2">
-              Welcome, {user ? getRoleDisplayName(user.role) : 'User'}!
+              Welcome, {user ? `${user.firstName} ${user.lastName}` : 'User'}!
             </h2>
             <p className="text-sm sm:text-base text-[#6b7280]">
               {user ? getRoleDescription(user.role) : 'Access survey information and track progress.'}

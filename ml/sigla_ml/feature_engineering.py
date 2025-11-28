@@ -5,6 +5,13 @@ import sys
 import pandas as pd
 import numpy as np
 from math import sqrt
+from .csis_calculations import (
+    calculate_margin_of_error,
+    calculate_dynamic_cutoff,
+    classify_score,
+    determine_action_grid_quadrant,
+    calculate_service_metrics_with_moe
+)
 
 class FeatureEngineer:
     """Class for engineering features from survey data for machine learning."""
@@ -159,16 +166,58 @@ class FeatureEngineer:
             'percentage': round(percentage, 1)
         }
     
+    def _calculate_need_for_action_from_responses(self, responses, service_area):
+        """Calculate need for action score from survey responses.
+        
+        Looks for questions about improvements needed, problems, or suggestions.
+        
+        Args:
+            responses (list): List of response dictionaries
+            service_area (str): Service area to calculate for
+        
+        Returns:
+            dict: Dictionary with 'count', 'total', 'percentage'
+        """
+        need_action_count = 0
+        total_respondents = set()
+        
+        # Keywords that indicate need for action questions
+        need_action_keywords = ['improve', 'problem', 'issue', 'concern', 'suggest', 
+                               'recommend', 'change', 'need', 'priority']
+        
+        for response in responses:
+            respondent_id = response.get('respondent_id')
+            total_respondents.add(respondent_id)
+            
+            question_text = str(response.get('question_text', '')).lower()
+            answer = response.get('answer')
+            
+            # Check if this is a need for action question
+            if any(keyword in question_text for keyword in need_action_keywords):
+                # Non-empty answer indicates need for action
+                if answer and str(answer).strip() and str(answer).lower() not in ['none', 'n/a', 'wala', 'nan']:
+                    need_action_count += 1
+                    break  # Count each respondent only once
+        
+        total = len(total_respondents)
+        percentage = (need_action_count / total * 100) if total > 0 else None
+        
+        return {
+            'count': need_action_count,
+            'total': total,
+            'percentage': round(percentage, 1) if percentage is not None else None
+        }
+    
     def _calculate_funnel_metrics(self, responses, service_area):
-        """Orchestrate three-stage funnel calculation.
+        """Orchestrate three-stage funnel calculation with CSIS methodology.
         
         Args:
             responses (list): List of response dictionaries
             service_area (str): Service area to calculate metrics for
         
         Returns:
-            dict: Dictionary with 'awareness', 'availment', 'satisfaction' keys,
-                  each containing 'count', 'total', 'percentage'
+            dict: Dictionary with 'awareness', 'availment', 'satisfaction', 'need_for_action' keys,
+                  each containing 'count', 'total', 'percentage', and CSIS metrics
         """
         # Get all unique respondent IDs
         all_respondent_ids = set(r.get('respondent_id') for r in responses if r.get('respondent_id'))
@@ -187,11 +236,41 @@ class FeatureEngineer:
         # Stage 3: Calculate satisfaction from availed respondents
         satisfaction_metrics = self._calculate_satisfaction_from_availed(responses, service_area, availed_ids)
         
+        # Stage 4: Calculate need for action
+        need_for_action_metrics = self._calculate_need_for_action_from_responses(responses, service_area)
+        
         # Validation: Ensure subset relationships
         if not availed_ids.issubset(aware_ids):
             print(f"Warning: Validation failed for {service_area} - availed respondents not subset of aware", file=sys.stderr)
         if not aware_ids.issubset(all_respondent_ids):
             print(f"Warning: Validation failed for {service_area} - aware respondents not subset of all", file=sys.stderr)
+        
+        # Calculate CSIS metrics with MoE and Action Grid classification
+        satisfaction_total = satisfaction_metrics.get('total', 0)
+        satisfaction_count = satisfaction_metrics.get('count', 0)
+        need_for_action_total = need_for_action_metrics.get('total', 0)
+        need_for_action_count = need_for_action_metrics.get('count', 0)
+        
+        # Calculate MoE for satisfaction and need for action
+        satisfaction_moe = calculate_margin_of_error(satisfaction_total) if satisfaction_total > 0 else 0.0
+        need_for_action_moe = calculate_margin_of_error(need_for_action_total) if need_for_action_total > 0 else 0.0
+        
+        # Calculate scores as decimals (0-1)
+        satisfaction_score = (satisfaction_count / satisfaction_total) if satisfaction_total > 0 else 0.0
+        need_for_action_score = (need_for_action_count / need_for_action_total) if need_for_action_total > 0 else 0.0
+        
+        # Determine Action Grid Quadrant using CSIS methodology
+        if satisfaction_total > 0 and need_for_action_total > 0:
+            quadrant, priority, details = determine_action_grid_quadrant(
+                satisfaction_score,
+                satisfaction_moe,
+                need_for_action_score,
+                need_for_action_moe
+            )
+        else:
+            quadrant = "Insufficient Data"
+            priority = "N/A"
+            details = {}
         
         return {
             'awareness': {
@@ -204,7 +283,23 @@ class FeatureEngineer:
                 'total': awareness_count,
                 'percentage': round(availment_percentage, 1) if availment_percentage is not None else None
             },
-            'satisfaction': satisfaction_metrics
+            'satisfaction': {
+                **satisfaction_metrics,
+                'moe': satisfaction_moe,
+                'cutoff': calculate_dynamic_cutoff(satisfaction_moe),
+                'rating': classify_score(satisfaction_score, satisfaction_moe) if satisfaction_total > 0 else "N/A"
+            },
+            'need_for_action': {
+                **need_for_action_metrics,
+                'moe': need_for_action_moe,
+                'cutoff': calculate_dynamic_cutoff(need_for_action_moe),
+                'rating': classify_score(need_for_action_score, need_for_action_moe) if need_for_action_total > 0 else "N/A"
+            },
+            'action_grid': {
+                'quadrant': quadrant,
+                'priority': priority,
+                'details': details
+            }
         }
     
     def calculate_service_scores(self, survey_data, use_funnel=True):
@@ -233,28 +328,29 @@ class FeatureEngineer:
                 # Convert DataFrame to list of response dictionaries for funnel calculation
                 responses = self._dataframe_to_responses(group)
                 
-                # Use cascading funnel calculation
+                # Use cascading funnel calculation with CSIS methodology
                 funnel_metrics = self._calculate_funnel_metrics(responses, section_key)
-                
-                # Calculate need action score (look for suggestions/comments as proxy)
-                suggestion_questions = [col for col in group.columns if 'suggest' in col.lower() or 'comment' in col.lower()]
-                need_action_score = self._calculate_need_action_score(group, suggestion_questions)
                 
                 # Calculate confidence level
                 confidence = self._calculate_confidence(total_responses)
                 
-                # Store scores with new structured format
+                # Store scores with new structured format including CSIS metrics
                 service_scores[section_key] = {
                     'awareness': funnel_metrics['awareness'],
                     'availment': funnel_metrics['availment'],
                     'satisfaction': funnel_metrics['satisfaction'],
+                    'need_for_action': funnel_metrics['need_for_action'],
+                    'action_grid': funnel_metrics['action_grid'],
                     # Legacy fields for backward compatibility
                     'awareness_score': funnel_metrics['awareness']['percentage'] or 0,
                     'availment_score': funnel_metrics['availment']['percentage'] or 0,
                     'satisfaction_score': funnel_metrics['satisfaction']['percentage'] or 0,
-                    'need_action_score': need_action_score,
+                    'need_action_score': funnel_metrics['need_for_action']['percentage'] or 0,
                     'sample_size': total_responses,
-                    'confidence': confidence
+                    'confidence': confidence,
+                    # CSIS-specific fields
+                    'csis_quadrant': funnel_metrics['action_grid']['quadrant'],
+                    'csis_priority': funnel_metrics['action_grid']['priority']
                 }
             else:
                 # Legacy calculation method

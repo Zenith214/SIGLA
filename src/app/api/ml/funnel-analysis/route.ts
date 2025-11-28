@@ -32,6 +32,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if survey is complete (100% progress) before running ML
+    const { data: surveyTarget, error: targetError } = await supabaseAdmin
+      .from('survey_target')
+      .select('percentage')
+      .eq('barangay_id', barangayId)
+      .eq('survey_cycle_id', cycleId)
+      .single();
+
+    if (targetError && targetError.code !== 'PGRST116') {
+      console.error('Error checking survey progress:', targetError);
+    }
+
+    const progress = surveyTarget?.percentage || 0;
+
+    // If survey is not complete, return a special response
+    if (progress < 100) {
+      console.log(`⏳ [ML FUNNEL] Survey not complete for barangay ${barangayId} - Progress: ${progress}%`);
+      return NextResponse.json({
+        surveyIncomplete: true,
+        progress: progress,
+        message: `Survey is ${progress}% complete. ML analysis will be available when survey reaches 100% completion.`,
+        barangay_id: parseInt(barangayId),
+        cycle_id: parseInt(cycleId)
+      });
+    }
+
+    console.log(`✅ [ML FUNNEL] Survey complete (${progress}%) - Proceeding with ML analysis`);
+
+
     // Use caching with 12-hour TTL for funnel analysis
     const result = await getCachedOrCompute(
       'ml-funnel-analysis',

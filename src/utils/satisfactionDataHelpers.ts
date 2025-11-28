@@ -18,6 +18,9 @@ export interface SatisfactionData {
   serviceScores: ServiceScores;
   responseCount: number;
   hasData: boolean;
+  surveyIncomplete?: boolean;
+  progress?: number;
+  message?: string;
 }
 
 /**
@@ -88,6 +91,31 @@ export async function fetchSatisfactionData(
       }
 
       const data = await response.json();
+
+      // Check if survey is incomplete
+      if (data.surveyIncomplete) {
+        return {
+          barangayId,
+          cycleId: effectiveCycleId,
+          cycleName: `Cycle ${effectiveCycleId}`,
+          cycleYear: new Date().getFullYear(),
+          overallSatisfaction: null,
+          surveyStatus: data.progress > 0 ? 'in_progress' : 'not_started',
+          serviceScores: {
+            financial: null,
+            disaster: null,
+            safety: null,
+            social: null,
+            business: null,
+            environmental: null,
+          },
+          responseCount: 0,
+          hasData: false,
+          surveyIncomplete: true,
+          progress: data.progress,
+          message: data.message
+        };
+      }
 
       // Transform the API response to match our SatisfactionData interface
       const satisfactionData = transformMLFunnelToSatisfactionData(data, barangayId, effectiveCycleId);

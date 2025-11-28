@@ -9,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 interface AssignmentSeederOptions {
   count?: number;
-  status?: 'Pending' | 'In Progress' | 'Completed';
+  status?: 'Pending' | 'In_Progress' | 'Completed';
   cycleId?: number;
   barangayId?: number;
 }
@@ -43,7 +43,7 @@ export class AssignmentSeeder extends BaseSeeder {
         .from('user')
         .select('id, firstName, lastName')
         .eq('role', 'interviewer')
-        .eq('status', 'active');
+        .eq('status', 'Active');
 
       if (interviewersError || !interviewers || interviewers.length === 0) {
         this.warn('No active interviewers found. Create interviewers first.');
@@ -60,7 +60,7 @@ export class AssignmentSeeder extends BaseSeeder {
       // Apply status filter if provided
       if (this.options.status === 'Pending') {
         factory.pending();
-      } else if (this.options.status === 'In Progress') {
+      } else if (this.options.status === 'In_Progress') {
         factory.inProgress();
       } else if (this.options.status === 'Completed') {
         factory.completed();

@@ -370,7 +370,13 @@ class SiglaMLAPI:
         return insights, recommendations
     
     def _calculate_action_grid(self, service_scores: Dict, barangay_id: Optional[int] = None, save_to_db: bool = True) -> Dict:
-        """Calculate Action Grid classification for services and optionally save to database.
+        """Calculate Action Grid classification for services using CSIS methodology and optionally save to database.
+        
+        Uses the Dynamic Cut-Off Rule and official CSIS Action Grid Quadrants:
+        - "Opportunities for Improvement" (Highest Priority): Low Satisfaction + High Need for Action
+        - "Continued Emphasis" (High Importance): High Satisfaction + High Need for Action
+        - "Exceeded Expectations" (Key Strength): High Satisfaction + Low Need for Action
+        - "Secondary Priority" (Lowest Priority): Low Satisfaction + Low Need for Action
         
         Args:
             service_scores: Dictionary with service scores
@@ -384,24 +390,44 @@ class SiglaMLAPI:
         timestamp = pd.Timestamp.now().isoformat()
         
         for service, scores in service_scores.items():
-            satisfaction = scores.get('satisfaction_score', 0)
-            need_action = scores.get('need_action_score', 0)
-            
-            # Determine quadrant based on satisfaction and need for action
-            if satisfaction >= 70 and need_action <= 30:
-                quadrant = 'MAINTAIN'  # High satisfaction, low need for action
-            elif satisfaction >= 70 and need_action > 30:
-                quadrant = 'OPPORTUNITIES'  # High satisfaction, high need for action
-            elif satisfaction < 70 and need_action <= 30:
-                quadrant = 'MONITOR'  # Low satisfaction, low need for action
+            # Check if CSIS action grid data is already calculated
+            if 'action_grid' in scores and isinstance(scores['action_grid'], dict):
+                # Use pre-calculated CSIS action grid
+                csis_grid = scores['action_grid']
+                quadrant = csis_grid.get('quadrant', 'Insufficient Data')
+                priority = csis_grid.get('priority', 'N/A')
+                details = csis_grid.get('details', {})
+                
+                satisfaction = scores.get('satisfaction_score', 0)
+                need_action = scores.get('need_action_score', 0)
             else:
-                quadrant = 'FIX_NOW'  # Low satisfaction, high need for action
+                # Fallback to legacy calculation if CSIS data not available
+                satisfaction = scores.get('satisfaction_score', 0)
+                need_action = scores.get('need_action_score', 0)
+                
+                # Use fixed thresholds as fallback (not CSIS compliant)
+                if satisfaction >= 70 and need_action <= 30:
+                    quadrant = 'Exceeded Expectations'
+                    priority = 'Key Strength'
+                elif satisfaction >= 70 and need_action > 30:
+                    quadrant = 'Continued Emphasis'
+                    priority = 'High Importance'
+                elif satisfaction < 70 and need_action <= 30:
+                    quadrant = 'Secondary Priority'
+                    priority = 'Lowest Priority'
+                else:
+                    quadrant = 'Opportunities for Improvement'
+                    priority = 'Highest Priority'
+                
+                details = {}
             
             action_grid[service] = {
                 'quadrant': quadrant,
+                'priority': priority,
                 'satisfaction_score': satisfaction,
                 'need_action_score': need_action,
-                'confidence': scores.get('confidence', 0)
+                'confidence': scores.get('confidence', 0),
+                'csis_details': details
             }
             
             # Save classification to database if requested

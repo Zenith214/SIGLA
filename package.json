@@ -26,8 +26,12 @@
     "questionnaire:reset": "node scripts/reset-questionnaire-counter.js",
     "db:migrate": "npx tsx scripts/migrate.ts",
     "db:seed": "npx tsx scripts/seed.ts",
+    "db:unseed": "npx tsx scripts/db-unseed.ts",
+    "db:truncate": "npx tsx scripts/db-truncate.ts",
+    "migrate:supervisor-assignments": "npx tsx scripts/apply-supervisor-assignments-migration.ts",
     "db:fresh": "npx tsx scripts/db-fresh.ts",
     "seed:users": "npx tsx scripts/seed.ts UserSeeder",
+    "create-dev-user": "npx tsx scripts/create-developer-user.ts",
     "seed:spots": "npx tsx scripts/seed.ts SpotSeeder",
     "seed:assignments": "npx tsx scripts/seed.ts AssignmentSeeder",
     "seed:test": "npx tsx scripts/test-seeding-system.ts"

@@ -14,13 +14,16 @@ import {
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { spotId: string } }
+  { params }: { params: Promise<{ spotId: string }> }
 ) {
   try {
+    // Await params in Next.js 15
+    const { spotId: spotIdParam } = await params;
+    
     // Validate spotId parameter
-    const spotId = parseInt(params.spotId);
+    const spotId = parseInt(spotIdParam);
     if (isNaN(spotId) || spotId <= 0) {
-      throw createValidationError('spotId must be a positive integer', 'spotId', params.spotId);
+      throw createValidationError('spotId must be a positive integer', 'spotId', spotIdParam);
     }
 
     // Parse request body with error handling
@@ -121,8 +124,9 @@ export async function PUT(
     });
 
   } catch (error: any) {
+    const { spotId: spotIdParam } = await params;
     return createErrorResponse(error, 'PUT /api/spots/:spotId/assign', {
-      spotId: params.spotId,
+      spotId: spotIdParam,
       fiId: request.body
     });
   }

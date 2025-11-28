@@ -461,10 +461,10 @@ export default function BarangaySatisfactionIndex({
                     <h4 className="font-semibold text-gray-800 mb-1">Action Grid</h4>
                     <p>Categorizes services based on satisfaction levels and action priority:</p>
                     <ul className="mt-1 ml-2 space-y-1">
-                      <li><span className="text-green-700 font-medium">• MAINTAIN:</span> Keep up good work</li>
-                      <li><span className="text-blue-700 font-medium">• OPPORTUNITIES:</span> Build on strengths</li>
-                      <li><span className="text-yellow-700 font-medium">• MONITOR:</span> Watch for changes</li>
-                      <li><span className="text-red-700 font-medium">• FIX NOW:</span> Immediate attention needed</li>
+                      <li><span className="text-green-700 font-medium">• EXCEEDED EXPECTATIONS:</span> Keep up good work</li>
+                      <li><span className="text-blue-700 font-medium">• CONTINUED EMPHASIS:</span> Build on strengths</li>
+                      <li><span className="text-yellow-700 font-medium">• SECONDARY PRIORITY:</span> Watch for changes</li>
+                      <li><span className="text-red-700 font-medium">• OPPORTUNITIES FOR IMPROVEMENT:</span> Immediate attention needed</li>
                     </ul>
                   </div>
                 </div>
@@ -536,11 +536,11 @@ export default function BarangaySatisfactionIndex({
                   ) : (
                     /* 2x2 Grid */
                     <div className="grid grid-cols-2 gap-4 min-h-80">
-                    {/* Top Left - Maintain */}
+                    {/* Top Left - Exceeded Expectations */}
                     <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
-                        <h3 className="text-green-800 font-bold text-base mb-1">MAINTAIN</h3>
-                        <span className="text-green-600 font-medium text-xs">High Satisfaction, Low Need for Action</span>
+                        <h3 className="text-green-800 font-bold text-sm mb-1">EXCEEDED EXPECTATIONS</h3>
+                        <span className="text-green-600 font-medium text-[10px]">High Satisfaction, Low Need for Action</span>
                       </div>
                       <div className="space-y-2 text-xs text-green-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
@@ -577,11 +577,11 @@ export default function BarangaySatisfactionIndex({
                       </div>
                     </div>
 
-                    {/* Top Right - Opportunities */}
+                    {/* Top Right - Continued Emphasis */}
                     <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
-                        <h3 className="text-blue-800 font-bold text-base mb-1">OPPORTUNITIES</h3>
-                        <span className="text-blue-600 font-medium text-xs">High Satisfaction, High Need for Action</span>
+                        <h3 className="text-blue-800 font-bold text-sm mb-1">CONTINUED EMPHASIS</h3>
+                        <span className="text-blue-600 font-medium text-[10px]">High Satisfaction, High Need for Action</span>
                       </div>
                       <div className="space-y-2 text-xs text-blue-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
@@ -618,11 +618,11 @@ export default function BarangaySatisfactionIndex({
                       </div>
                     </div>
 
-                    {/* Bottom Left - Monitor */}
+                    {/* Bottom Left - Secondary Priority */}
                     <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
-                        <h3 className="text-yellow-800 font-bold text-base mb-1">MONITOR</h3>
-                        <span className="text-yellow-600 font-medium text-xs">Low Satisfaction, Low Need for Action</span>
+                        <h3 className="text-yellow-800 font-bold text-sm mb-1">SECONDARY PRIORITY</h3>
+                        <span className="text-yellow-600 font-medium text-[10px]">Low Satisfaction, Low Need for Action</span>
                       </div>
                       <div className="space-y-2 text-xs text-yellow-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
@@ -659,11 +659,11 @@ export default function BarangaySatisfactionIndex({
                       </div>
                     </div>
 
-                    {/* Bottom Right - Fix Now */}
+                    {/* Bottom Right - Opportunities for Improvement */}
                     <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex flex-col min-h-32">
                       <div className="text-center mb-3">
-                        <h3 className="text-red-800 font-bold text-base mb-1">FIX NOW</h3>
-                        <span className="text-red-600 font-medium text-xs">Low Satisfaction, High Need for Action</span>
+                        <h3 className="text-red-800 font-bold text-xs mb-1">OPPORTUNITIES FOR IMPROVEMENT</h3>
+                        <span className="text-red-600 font-medium text-[10px]">Low Satisfaction, High Need for Action</span>
                       </div>
                       <div className="space-y-2 text-xs text-red-800">
                         {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>

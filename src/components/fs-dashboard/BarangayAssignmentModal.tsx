@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 
 interface Interviewer {
   id: number;
@@ -38,6 +39,7 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
     status: "Assigned",
   });
   const { toast } = useToast();
+  const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   useEffect(() => {
     if (open) {
@@ -46,23 +48,72 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
   }, [open]);
 
   const loadData = async () => {
+    if (!hasActiveCycle || !activeCycle) {
+      toast({
+        variant: "destructive",
+        title: "No Active Cycle",
+        description: "Please activate a survey cycle first.",
+      });
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const [interviewersRes, barangaysRes] = await Promise.all([
-        fetch("/api/interviewers", { credentials: "include" }),
-        fetch("/api/barangays?awardees_only=true", { credentials: "include" }),
-      ]);
+      // Try to fetch supervisor's assigned barangays first
+      const supervisorRes = await fetch(`/api/supervisor-assignments/my-barangays?cycle_id=${activeCycle.cycle_id}`, { 
+        credentials: "include" 
+      });
 
-      if (!interviewersRes.ok || !barangaysRes.ok) {
-        throw new Error("Failed to fetch data");
+      let barangaysList: Barangay[] = [];
+
+      if (supervisorRes.ok) {
+        // Supervisor - use only assigned barangays
+        const supervisorData = await supervisorRes.json();
+        const assignedBarangays = supervisorData.data || [];
+        
+        if (assignedBarangays.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "No Assigned Barangays",
+            description: "You have not been assigned any barangays for this cycle.",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        barangaysList = assignedBarangays.map((assignment: any) => ({
+          id: assignment.barangay_id,
+          name: assignment.barangay_name,
+          households: 0,
+          population: 0,
+        }));
+      } else if (supervisorRes.status === 403) {
+        // Not a supervisor - fetch all barangays (for admins)
+        const barangaysRes = await fetch("/api/barangays?awardees_only=true", { credentials: "include" });
+        if (!barangaysRes.ok) {
+          throw new Error("Failed to fetch barangays");
+        }
+        const barangaysData = await barangaysRes.json();
+        barangaysList = barangaysData?.data || barangaysData || [];
+      } else {
+        throw new Error("Failed to fetch barangays");
+      }
+
+      // Fetch interviewers
+      const interviewersRes = await fetch("/api/users?role=interviewer&status=active", { credentials: "include" });
+      if (!interviewersRes.ok) {
+        throw new Error("Failed to fetch interviewers");
       }
 
       const interviewersData = await interviewersRes.json();
-      const barangaysData = await barangaysRes.json();
-
-      setInterviewers(interviewersData || []);
-      // Handle the new barangays API response structure
-      setBarangays(barangaysData?.data || barangaysData || []);
+      const interviewersList = interviewersData.users || interviewersData || [];
+      const activeInterviewers = interviewersList.filter((i: any) => 
+        i.status?.toLowerCase() === 'active'
+      );
+      
+      setInterviewers(activeInterviewers);
+      setBarangays(barangaysList);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({

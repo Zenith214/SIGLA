@@ -9,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export interface Assignment {
   spot_id: number;
   assigned_fi_id: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
+  status: 'Pending' | 'In_Progress' | 'Completed';
   assigned_at?: string;
   started_at?: string;
   completed_at?: string;
@@ -47,7 +47,7 @@ export class AssignmentFactory extends BaseFactory<Assignment> {
    */
   public inProgress(): this {
     return this.with({ 
-      status: 'In Progress',
+      status: 'In_Progress',
       started_at: new Date().toISOString()
     });
   }
@@ -90,24 +90,30 @@ export class AssignmentFactory extends BaseFactory<Assignment> {
     const data = this.make();
     const assignments = Array.isArray(data) ? data : [data];
 
-    const { data: created, error } = await supabaseAdmin
-      .from('spots')
-      .upsert(
-        assignments.map(a => ({
-          spot_id: a.spot_id,
-          assigned_fi_id: a.assigned_fi_id,
-          status: a.status
-        })),
-        { onConflict: 'spot_id' }
-      )
-      .select();
+    // Update each spot individually to assign it
+    const created: Assignment[] = [];
+    for (const assignment of assignments) {
+      const { data: updatedSpot, error } = await supabaseAdmin
+        .from('spots')
+        .update({
+          assigned_fi_id: assignment.assigned_fi_id,
+          status: assignment.status
+        })
+        .eq('spot_id', assignment.spot_id)
+        .select()
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to create assignments: ${error.message}`);
+      if (error) {
+        throw new Error(`Failed to create assignment for spot ${assignment.spot_id}: ${error.message}`);
+      }
+
+      if (updatedSpot) {
+        created.push(assignment);
+      }
     }
 
     this.reset();
-    return Array.isArray(data) ? (created || []) : (created?.[0] || data);
+    return Array.isArray(data) ? created : created[0];
   }
 
   private async loadAvailableSpots(): Promise<void> {
@@ -146,8 +152,8 @@ export class AssignmentFactory extends BaseFactory<Assignment> {
     return this.availableInterviewers[Math.floor(Math.random() * this.availableInterviewers.length)];
   }
 
-  private randomStatus(): 'Pending' | 'In Progress' | 'Completed' {
-    const statuses: Array<'Pending' | 'In Progress' | 'Completed'> = ['Pending', 'In Progress', 'Completed'];
+  private randomStatus(): 'Pending' | 'In_Progress' | 'Completed' {
+    const statuses: Array<'Pending' | 'In_Progress' | 'Completed'> = ['Pending', 'In_Progress', 'Completed'];
     return statuses[Math.floor(Math.random() * statuses.length)];
   }
 }

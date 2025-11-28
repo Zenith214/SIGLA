@@ -247,8 +247,8 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           
           alert(message);
           
-          // Redirect to spots page
-          window.location.href = `/survey/spots`;
+          // Redirect back to survey dashboard
+          window.location.href = `/survey`;
           return;
         }
       }
