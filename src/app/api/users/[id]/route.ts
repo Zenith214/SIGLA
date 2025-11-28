@@ -43,36 +43,74 @@ export async function PATCH(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
-  const { role } = await request.json();
+  const body = await request.json();
   const resolvedParams = await params;
   const userId = parseInt(resolvedParams.id);
 
-  if (!role || !['admin', 'fs', 'interviewer', 'officer'].includes(role)) {
+  // Validate role if provided
+  if (body.role && !['admin', 'fs', 'interviewer', 'officer', 'developer'].includes(body.role)) {
     return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
   }
 
   let client;
   try {
     client = await pool.connect();
+    
+    // Build dynamic update query based on provided fields
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (body.firstName !== undefined) {
+      updateFields.push(`"firstName" = $${paramIndex++}`);
+      values.push(body.firstName);
+    }
+    if (body.lastName !== undefined) {
+      updateFields.push(`"lastName" = $${paramIndex++}`);
+      values.push(body.lastName);
+    }
+    if (body.role !== undefined) {
+      updateFields.push(`role = $${paramIndex++}`);
+      values.push(body.role);
+    }
+    if (body.status !== undefined) {
+      updateFields.push(`status = $${paramIndex++}`);
+      values.push(body.status);
+    }
+    if (body.lastLogin !== undefined) {
+      updateFields.push(`"lastLogin" = $${paramIndex++}`);
+      values.push(body.lastLogin);
+    }
+
+    if (updateFields.length === 0) {
+      return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
+    }
+
+    values.push(userId);
+    
     const query = `
       UPDATE "user" 
-      SET role = $1 
-      WHERE id = $2 
-      RETURNING id, "firstName", "lastName", email, role
+      SET ${updateFields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING id, "firstName", "lastName", email, role, status, "lastLogin", "createdAt"
     `;
     
-    const result = await client.query(query, [role, userId]);
+    const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
-      throw new Error('Failed to update user role');
+      throw new Error('Failed to update user');
     }
 
     return NextResponse.json({ 
-      message: 'User role updated successfully',
+      message: 'User updated successfully',
       user: result.rows[0]
     });
   } catch (error) {
-    return NextResponse.json({ message: 'Failed to update user role' }, { status: 500 });
+    console.error('Update user error:', error);
+    return NextResponse.json({ 
+      message: 'Failed to update user',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   } finally {
     if (client) {
       client.release();

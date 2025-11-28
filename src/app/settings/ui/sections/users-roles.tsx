@@ -109,11 +109,17 @@ export function UsersRoles() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
-      // Update user role
+      // Update user with all edited fields
       const res = await fetch(`/api/users/${editForm.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: editForm.role }),
+        body: JSON.stringify({ 
+          firstName: editForm.firstName,
+          lastName: editForm.lastName,
+          role: editForm.role,
+          status: editForm.status,
+          lastLogin: editForm.lastLogin
+        }),
       })
       if (!res.ok) throw new Error("Failed to update user")
       const updated = await res.json()

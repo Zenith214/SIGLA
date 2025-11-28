@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { InterviewSlotCard } from "./InterviewSlotCard";
+import type { Icon } from 'leaflet';
 
 // Dynamically import Leaflet to avoid SSR issues
 const MapContainer = dynamic(
@@ -71,6 +72,7 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
   const [spot, setSpot] = useState<SpotDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [markerIcon, setMarkerIcon] = useState<Icon | null>(null);
 
   useEffect(() => {
     fetchSpotDetails();
@@ -82,6 +84,17 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
       // Fix marker icons
       import('leaflet').then((L) => {
         delete (L.default.Icon.Default.prototype as any)._getIconUrl;
+        
+        const icon = new L.Icon({
+          iconUrl: '/marker-icon.png',
+          shadowUrl: '/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+        });
+        
+        setMarkerIcon(icon);
+        
         L.default.Icon.Default.mergeOptions({
           iconUrl: '/marker-icon.png',
           shadowUrl: '/marker-shadow.png',
@@ -250,7 +263,7 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
               Spot Location
             </h2>
             <div className="h-64 rounded-lg overflow-hidden border border-gray-300 relative z-0">
-              {typeof window !== 'undefined' && spot.startingPoint && (
+              {typeof window !== 'undefined' && spot.startingPoint && markerIcon && (
                 <MapContainer
                   key={`map-${spotId}`}
                   center={[spot.startingPoint.lat, spot.startingPoint.lng]}
@@ -265,7 +278,10 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <Marker position={[spot.startingPoint.lat, spot.startingPoint.lng]}>
+                  <Marker 
+                    position={[spot.startingPoint.lat, spot.startingPoint.lng]}
+                    icon={markerIcon}
+                  >
                     <Popup>
                       <div className="text-sm">
                         <p className="font-semibold">{spot.spotName}</p>

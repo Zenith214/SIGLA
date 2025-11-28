@@ -134,24 +134,43 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  // Check if user is admin
+  const isAdmin = await verifyAdminRole(req);
+  if (!isAdmin) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+  }
+
   let client;
   try {
     client = await pool.connect();
     const data = await req.json();
     const { id, ...updateData } = data;
     
+    // If password is being updated, hash it
+    if (updateData.password) {
+      const saltRounds = 10;
+      updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+    }
+    
     const setClause = Object.keys(updateData).map((key, index) => `"${key}" = $${index + 2}`).join(', ');
     const values = [id, ...Object.values(updateData)];
     
-    const query = `UPDATE "user" SET ${setClause} WHERE id = $1 RETURNING *`;
+    console.log('Update query:', `UPDATE "user" SET ${setClause} WHERE id = $1`);
+    console.log('Update values:', values);
+    
+    const query = `UPDATE "user" SET ${setClause} WHERE id = $1 RETURNING id, "firstName", "lastName", email, role, status, organization, "jobTitle", "createdAt", "lastLogin"`;
     const result = await client.query(query, values);
 
     if (result.rows.length === 0) {
-      throw new Error('Failed to update user');
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json({ 
+      message: 'User updated successfully',
+      user: result.rows[0]
+    });
   } catch (error) {
+    console.error('Update user error:', error);
     return NextResponse.json({ 
       message: 'Failed to update user', 
       error: error instanceof Error ? error.message : 'Unknown error'

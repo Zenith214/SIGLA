@@ -22,6 +22,14 @@
 # production
 /build
 
+# android builds and config
+/android-builds/*.apk
+/android-builds/*.aab
+/android-builds/*.idsig
+/android-builds/android.keystore
+/android-config/.gradle
+/android-config/build
+
 # misc
 .DS_Store
 *.pem
