@@ -9,10 +9,15 @@ export function ServiceWorkerRegistration() {
   useEffect(() => {
     setMounted(true);
     
-    // Only register service worker in production or when explicitly enabled
-    // AND only in browser environment
-    if (typeof window !== 'undefined' && (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_SW === 'true')) {
-      register();
+    // Register service worker in production or when explicitly enabled
+    // Skip only in development unless explicitly enabled
+    if (typeof window !== 'undefined') {
+      const isDev = process.env.NODE_ENV === 'development';
+      const isEnabled = process.env.NEXT_PUBLIC_ENABLE_SW === 'true';
+      
+      if (!isDev || isEnabled) {
+        register();
+      }
     }
   }, []);
 
