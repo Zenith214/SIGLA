@@ -4,13 +4,13 @@ nixPkgs = ["nodejs_20", "pnpm"]
 
 [phases.install]
 cmds = [
+  "pnpm config set auto-install-peers true",
   "pnpm install --frozen-lockfile --prod=false"
 ]
 
 [phases.build]
 cmds = [
   "cp next.config.railway.ts next.config.ts",
-  "pnpm prisma generate",
   "pnpm build"
 ]
 
