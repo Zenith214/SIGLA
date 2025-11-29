@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CycleDisplay } from "@/components/survey-cycle";
 import UserDropdown from "./UserDropdown";
@@ -38,9 +39,16 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
   return (
     <nav className="bg-slate-800 px-4 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center justify-between">
-        {/* Left side - Project Name */}
+        {/* Left side - Logo */}
         <div className="flex items-center">
-          <h1 className="text-lg sm:text-xl font-semibold text-white">PULSE</h1>
+          <Image 
+            src="/headerlogo4k.png" 
+            alt="PULSE" 
+            width={120}
+            height={43}
+            className="h-8 sm:h-10 w-auto"
+            priority
+          />
         </div>
 
         {/* Right side - Date/Time, Cycle Selector, Toggle Button, User Menu */}

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { MapPin, FileText, User, Navigation, AlertCircle, ChevronDown, LogOut, LayoutDashboard } from "lucide-react"
 import { useState, useEffect } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
@@ -148,15 +149,20 @@ export function Header({ user, currentSection }: HeaderProps) {
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">
-                PULSE Survey Forms
+            <Image 
+              src="/headerlogo4k.png" 
+              alt="PULSE Survey" 
+              width={100}
+              height={36}
+              className="h-8 w-auto"
+              priority
+            />
+            <div className="border-l border-gray-600 pl-3">
+              <h1 className="text-base font-semibold text-white">
+                Survey Forms
               </h1>
-              <p className="text-sm text-gray-300">
-                {currentSection ? `${currentSection} • Community Assessment Survey Tool` : "Community Assessment Survey Tool"}
+              <p className="text-xs text-gray-300">
+                {currentSection || "Community Assessment"}
               </p>
             </div>
           </div>

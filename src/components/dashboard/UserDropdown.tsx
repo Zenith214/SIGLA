@@ -7,8 +7,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, BarChart3, LogOut, ClipboardList, CheckSquare } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Settings, BarChart3, LogOut, ClipboardList, CheckSquare, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -19,6 +19,9 @@ export default function UserDropdown() {
 
   const handleMenuClick = async (action: string) => {
     switch (action) {
+      case "profile":
+        router.push("/profile");
+        break;
       case "settings":
         router.push("/settings");
         break;
@@ -53,11 +56,19 @@ export default function UserDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-slate-700">
           <Avatar className="h-8 w-8">
+            {user?.profilePicture && (
+              <AvatarImage src={user.profilePicture} alt={user?.firstName || 'User'} />
+            )}
             <AvatarFallback className="bg-white text-slate-800">{getUserInitials()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
+        {/* Profile - Available for all users */}
+        <DropdownMenuItem onClick={() => handleMenuClick("profile")}>
+          <User className="mr-2 h-4 w-4" />
+          <span>My Profile</span>
+        </DropdownMenuItem>
         {/* Show CPAP Submission for Officer role only */}
         {user?.role?.toLowerCase() === 'officer' && (
           <DropdownMenuItem onClick={() => handleMenuClick("cpap")}>

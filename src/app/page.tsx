@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ImageCarousel } from "@/components/ImageCarousel";
 import {
   BarChart3,
   Users,
@@ -59,15 +58,6 @@ export default function LandingPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Screenshot images for hero carousel
-  const heroImages = [
-    "/Screenshot 2025-10-30 at 08-06-47 PULSE - Public Understanding and Local Service Evaluation.png",
-    "/Screenshot 2025-10-30 at 08-09-11 PULSE - Public Understanding and Local Service Evaluation.png",
-    "/Screenshot 2025-10-30 at 08-09-54 PULSE - Public Understanding and Local Service Evaluation.png",
-    "/Screenshot 2025-10-30 at 08-25-51 PULSE - Public Understanding and Local Service Evaluation.png",
-    "/Screenshot 2025-10-30 at 08-28-15 PULSE - Public Understanding and Local Service Evaluation.png",
-  ];
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -83,11 +73,15 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">PULSE</span>
+            <div className="flex items-center">
+              <Image 
+                src="/headerlogo4k.png" 
+                alt="PULSE" 
+                width={120}
+                height={43}
+                className="h-8 sm:h-10 w-auto"
+                priority
+              />
             </div>
 
             {/* Desktop Navigation */}
@@ -182,8 +176,31 @@ export default function LandingPage() {
               transform: translateY(0);
             }
           }
+          @keyframes rotate {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          @keyframes rotate3d {
+            0% {
+              transform: perspective(1000px) rotateY(0deg);
+            }
+            100% {
+              transform: perspective(1000px) rotateY(360deg);
+            }
+          }
           .animate-blob {
             animation: blob 20s infinite;
+          }
+          .animate-rotate {
+            animation: rotate 20s linear infinite;
+          }
+          .animate-rotate-3d {
+            animation: rotate3d 8s linear infinite;
+            transform-style: preserve-3d;
           }
           .animate-fade-in {
             animation: fadeIn 1s ease-out forwards;
@@ -253,14 +270,24 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Content - Hero Carousel */}
-            <div className="relative">
-              <ImageCarousel 
-                images={heroImages} 
-                aspectRatio="video" 
-                autoplay={true} 
-                loop={true} 
-              />
+            {/* Right Content - 3D Rotating Logo */}
+            <div className="relative flex items-center justify-center">
+              <div className="relative w-full max-w-md mx-auto">
+                {/* Glow effect behind logo */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+                
+                {/* 3D Horizontal Rotating Logo (like spinning a basketball) */}
+                <div className="relative animate-rotate-3d">
+                  <Image 
+                    src="/logo4k.png" 
+                    alt="PULSE Logo" 
+                    width={400}
+                    height={400}
+                    className="w-full h-auto drop-shadow-2xl"
+                    priority
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -611,11 +638,14 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* About Column */}
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">PULSE</span>
+              <div className="flex items-center mb-4">
+                <Image 
+                  src="/headerlogo4k.png" 
+                  alt="PULSE" 
+                  width={140}
+                  height={50}
+                  className="h-10 w-auto"
+                />
               </div>
               <p className="text-gray-400 mb-4">
                 Public Understanding and Local Service Evaluation system for efficient government survey management.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { CycleDisplay } from "@/components/survey-cycle";
 import UserDropdown from "@/components/dashboard/UserDropdown";
 
@@ -35,9 +36,17 @@ export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
       <div className="flex flex-col gap-3">
         {/* Top row - Project Name, Time, Cycle, User */}
         <div className="flex items-center justify-between">
-          {/* Left side - Project Name */}
-          <div className="flex items-center">
-            <h1 className="text-lg sm:text-xl font-semibold text-white">PULSE - Field Supervisor</h1>
+          {/* Left side - Logo */}
+          <div className="flex items-center gap-3">
+            <Image 
+              src="/headerlogo4k.png" 
+              alt="PULSE" 
+              width={120}
+              height={43}
+              className="h-8 sm:h-10 w-auto"
+              priority
+            />
+            <span className="text-sm sm:text-base text-gray-300 hidden sm:inline">Field Supervisor</span>
           </div>
 
           {/* Right side - Date/Time, Cycle Display, User Menu */}
