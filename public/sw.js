@@ -1,8 +1,8 @@
 // Service Worker for PULSE Field Interviewer PWA
 // Implements offline-first caching strategy for field data collection
 
-const CACHE_NAME = 'pulse-fi-pwa-v3';
-const RUNTIME_CACHE = 'pulse-fi-runtime-v3';
+const CACHE_NAME = 'pulse-fi-pwa-v4';
+const RUNTIME_CACHE = 'pulse-fi-runtime-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install - focused on field interviewer needs

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { SurveyCycleProvider } from "@/contexts/SurveyCycleContext";
 import { ToastProviderWrapper } from "@/components/providers/ToastProviderWrapper";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import "./globals.css";
 
@@ -62,6 +63,7 @@ export default function RootLayout({
           <AuthProvider>
             <SurveyCycleProvider>
               <ServiceWorkerRegistration />
+              <PWAUpdatePrompt />
               <OfflineIndicator />
               {children}
             </SurveyCycleProvider>

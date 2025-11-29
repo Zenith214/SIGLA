@@ -86,7 +86,7 @@ function SurveyDashboardContent() {
   const [barangays, setBarangays] = useState<Barangay[]>([])
   const [myAssignments, setMyAssignments] = useState<Barangay[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'spots'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'spots' | 'assignments'>('overview')
   const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   // Logout handler function
@@ -291,9 +291,19 @@ function SurveyDashboardContent() {
             <h2 className="text-2xl sm:text-3xl font-bold text-[#111827] mb-2">
               Welcome, {user ? `${user.firstName} ${user.lastName}` : 'User'}!
             </h2>
-            <p className="text-sm sm:text-base text-[#6b7280]">
+            <p className="text-sm sm:text-base text-[#6b7280] mb-3">
               {user ? getRoleDescription(user.role) : 'Access survey information and track progress.'}
             </p>
+            {hasActiveCycle && (
+              <div className="text-sm text-gray-700 font-medium">
+                Current Survey Cycle: <span className="text-blue-600">{activeCycle?.name}</span>
+              </div>
+            )}
+            {!hasActiveCycle && !cycleLoading && (
+              <div className="text-sm text-amber-600 font-medium">
+                ⚠️ No active survey cycle
+              </div>
+            )}
           </div>
 
           {/* Tabs Navigation */}
@@ -335,22 +345,10 @@ function SurveyDashboardContent() {
                 <div className="space-y-6">
                   {/* Overall Assignment Progress Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="mb-4">
                       <h3 className="text-base sm:text-lg font-semibold text-[#111827]">
-                        {hasActiveCycle ? `${activeCycle?.name} - Survey Progress Overview` : 'Survey Progress Overview'}
+                        Survey Progress Overview
                       </h3>
-                      <div className="text-sm text-gray-600">
-                        {hasActiveCycle ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">Survey Cycle:</span>
-                            <CycleDisplay />
-                          </div>
-                        ) : (
-                          <div className="text-amber-600 font-medium">
-                            ⚠️ No active survey cycle
-                          </div>
-                        )}
-                      </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                       <div className="text-center">

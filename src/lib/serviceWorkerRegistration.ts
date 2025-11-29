@@ -15,26 +15,27 @@ export function register() {
         .then((registration) => {
           console.log('[SW] Service Worker registered:', registration);
 
-          // Check for updates periodically
+          // Check for updates more frequently (every 30 seconds)
           setInterval(() => {
             registration.update();
-          }, 60000); // Check every minute
+          }, 30000);
 
-          // Handle updates
+          // Also check for updates when page becomes visible
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+              registration.update();
+            }
+          });
+
+          // Handle updates - PWAUpdatePrompt component will show the UI
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (!newWorker) return;
 
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New service worker available
-                console.log('[SW] New content available, please refresh.');
-                
-                // Optionally show a notification to the user
-                if (window.confirm('New version available! Reload to update?')) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  window.location.reload();
-                }
+                console.log('[SW] New content available');
+                // PWAUpdatePrompt component will handle the user notification
               }
             });
           });

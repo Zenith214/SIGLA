@@ -2,6 +2,7 @@
   "id": "/",
   "name": "PULSE Field Interviewer",
   "short_name": "PULSE FI",
+  "version": "1.1.0",
   "description": "Mobile survey collection app for field interviewers conducting citizen satisfaction surveys",
   "start_url": "/login",
   "scope": "/",
