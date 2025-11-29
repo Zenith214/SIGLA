@@ -2,18 +2,24 @@
 // Handles registration, updates, and lifecycle management
 
 export function register() {
+  console.log('🔧 [SW Registration] register() called');
+  
   if (typeof window === 'undefined') {
+    console.log('❌ [SW Registration] Window is undefined, skipping');
     return;
   }
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      const swUrl = '/sw.js';
+    console.log('✅ [SW Registration] Service Worker API is available');
+    
+    // Register immediately instead of waiting for load event
+    const swUrl = '/sw.js';
+    console.log('🔧 [SW Registration] Registering /sw.js immediately...');
 
-      navigator.serviceWorker
-        .register(swUrl)
-        .then((registration) => {
-          console.log('[SW] Service Worker registered:', registration);
+    navigator.serviceWorker
+      .register(swUrl)
+      .then((registration) => {
+        console.log('✅ [SW] Service Worker registered successfully:', registration);
 
           // Check for updates more frequently (every 30 seconds)
           setInterval(() => {
@@ -40,18 +46,17 @@ export function register() {
             });
           });
         })
-        .catch((error) => {
-          console.error('[SW] Service Worker registration failed:', error);
-        });
-
-      // Handle controller change (new SW activated)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[SW] Controller changed, reloading page');
-        window.location.reload();
+      .catch((error) => {
+        console.error('❌ [SW] Service Worker registration failed:', error);
       });
+
+    // Handle controller change (new SW activated)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('🔄 [SW] Controller changed, reloading page');
+      window.location.reload();
     });
   } else {
-    console.log('[SW] Service Workers not supported');
+    console.log('❌ [SW] Service Workers not supported in this browser');
   }
 }
 

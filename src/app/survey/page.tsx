@@ -9,6 +9,7 @@ import { useActiveCycle } from "@/hooks/useSurveyCycle"
 import { MySpotAssignments } from "@/components/fi-dashboard"
 import { OfflineIndicator } from "@/components/OfflineIndicator"
 import { AutoSync } from "@/components/AutoSync"
+import '@/utils/cacheDebug' // Load cache debugging utilities
 
 interface Barangay {
   id: number;

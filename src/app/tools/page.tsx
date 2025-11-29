@@ -19,6 +19,7 @@ import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { reportCardCache } from "@/utils/reportCardCache";
 import { GeminiSettings } from "@/app/settings/ui/sections/gemini-settings";
 import { getCurrentUser } from "@/lib/auth";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface GenerationResult {
   success: boolean;
@@ -43,6 +44,7 @@ interface Barangay {
 
 export default function ToolsPage() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [barangayId, setBarangayId] = useState(""); // Will be set when barangays load
   const [responseCount, setResponseCount] = useState("50");
@@ -918,25 +920,35 @@ export default function ToolsPage() {
     <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
-          <p className="text-sm sm:text-base text-gray-600">Mock data generation and testing utilities</p>
-          <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-white px-3 sm:px-4 py-2 rounded-lg border w-full sm:w-auto justify-center">
-              <span className="font-medium">Active Cycle:</span>
-              <CycleDisplay />
+        <div className="relative">
+          <div className="text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">🛠️ Development Tools</h1>
+            <p className="text-sm sm:text-base text-gray-600">Mock data generation and testing utilities</p>
+            <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-white px-3 sm:px-4 py-2 rounded-lg border w-full sm:w-auto justify-center">
+                <span className="font-medium">Active Cycle:</span>
+                <CycleDisplay />
+              </div>
+              {hasActiveCycle && !cycleLoading && (
+                <Badge variant="outline" className="text-xs sm:text-sm">
+                  Working with {activeCycle?.name} targets
+                </Badge>
+              )}
             </div>
-            {hasActiveCycle && !cycleLoading && (
-              <Badge variant="outline" className="text-xs sm:text-sm">
-                Working with {activeCycle?.name} targets
-              </Badge>
+            {!hasActiveCycle && !cycleLoading && (
+              <div className="mt-2 text-amber-600 text-xs sm:text-sm">
+                ⚠️ No active survey cycle set. Please set an active cycle in settings.
+              </div>
             )}
           </div>
-          {!hasActiveCycle && !cycleLoading && (
-            <div className="mt-2 text-amber-600 text-xs sm:text-sm">
-              ⚠️ No active survey cycle set. Please set an active cycle in settings.
-            </div>
-          )}
+          {/* Logout Button - Top Right */}
+          <Button
+            onClick={logout}
+            variant="outline"
+            className="absolute top-0 right-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+          >
+            Logout
+          </Button>
         </div>
 
         {/* Dashboard Navigation - Developer Access */}

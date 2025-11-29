@@ -1,8 +1,8 @@
 // Service Worker for PULSE Field Interviewer PWA
 // Implements offline-first caching strategy for field data collection
 
-const CACHE_NAME = 'pulse-fi-pwa-v4';
-const RUNTIME_CACHE = 'pulse-fi-runtime-v4';
+const CACHE_NAME = 'pulse-fi-pwa-v5';
+const RUNTIME_CACHE = 'pulse-fi-runtime-v5';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install - focused on field interviewer needs
@@ -63,31 +63,34 @@ self.addEventListener('fetch', (event) => {
   // API calls - Network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache successful responses
-          if (response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
+      caches.open(CACHE_NAME).then((cache) => {
+        return fetch(request)
+          .then((response) => {
+            // Clone and cache successful responses
+            if (response.status === 200) {
+              const responseToCache = response.clone();
               cache.put(request, responseToCache);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Return cached API response if available
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              console.log('[SW] Using cached API response for:', url.pathname);
-              return cachedResponse;
+              console.log('[SW] Cached API response:', url.pathname);
             }
-            // Return error response for failed API calls
-            return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
-              status: 503,
-              headers: { 'Content-Type': 'application/json' },
+            return response;
+          })
+          .catch((error) => {
+            console.log('[SW] Network failed for:', url.pathname, 'Checking cache...');
+            // Return cached API response if available
+            return cache.match(request).then((cachedResponse) => {
+              if (cachedResponse) {
+                console.log('[SW] ✅ Using cached API response for:', url.pathname);
+                return cachedResponse;
+              }
+              console.log('[SW] ❌ No cache available for:', url.pathname);
+              // Return error response for failed API calls
+              return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' },
+              });
             });
           });
-        })
+      })
     );
     return;
   }

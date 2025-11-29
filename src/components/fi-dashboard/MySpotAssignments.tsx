@@ -56,16 +56,36 @@ export function MySpotAssignments({ cycleId }: MySpotAssignmentsProps) {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // Check if this is an offline error from service worker (503 status)
+        if (response.status === 503 || errorData.offline) {
+          throw new Error('OFFLINE');
+        }
+        
         throw new Error(errorData.error || 'Failed to fetch assignments');
       }
 
       const data = await response.json();
+      
+      // Check if this is cached offline data
+      if (data.offline) {
+        console.log('[MySpotAssignments] Using cached offline data');
+      }
+      
       // Empty assignments array is valid, not an error
       setAssignments(data.assignments || []);
       setError(null); // Clear any previous errors
     } catch (err) {
       console.error('Error fetching assignments:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load assignments');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load assignments';
+      
+      // Special handling for offline errors
+      // Check for "Failed to fetch" which indicates network failure
+      if (errorMessage === 'OFFLINE' || errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        setError('OFFLINE');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +105,33 @@ export function MySpotAssignments({ cycleId }: MySpotAssignmentsProps) {
   }
 
   if (error) {
+    // Special handling for offline mode
+    if (error === 'OFFLINE') {
+      return (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-amber-900 font-semibold mb-1">You're Offline</h3>
+              <p className="text-amber-700 text-sm mb-3">
+                No cached assignment data is available. Please connect to the internet at least once to load your assignments, then you can work offline.
+              </p>
+              <button
+                onClick={fetchAssignments}
+                className="text-sm text-amber-700 hover:text-amber-900 font-medium underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-start space-x-3">

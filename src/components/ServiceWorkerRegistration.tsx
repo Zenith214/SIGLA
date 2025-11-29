@@ -9,15 +9,12 @@ export function ServiceWorkerRegistration() {
   useEffect(() => {
     setMounted(true);
     
-    // Register service worker in production or when explicitly enabled
-    // Skip only in development unless explicitly enabled
+    // Always register service worker for PWA functionality
     if (typeof window !== 'undefined') {
-      const isDev = process.env.NODE_ENV === 'development';
-      const isEnabled = process.env.NEXT_PUBLIC_ENABLE_SW === 'true';
+      console.log('🔧 [ServiceWorkerRegistration] Attempting to register service worker...');
+      console.log('🔧 [ServiceWorkerRegistration] Service Worker API available:', 'serviceWorker' in navigator);
       
-      if (!isDev || isEnabled) {
-        register();
-      }
+      register();
     }
   }, []);
 
