@@ -25,6 +25,11 @@ export default function ProfilePage() {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   
+  // Barangay Logo State (for officers)
+  const [barangayLogo, setBarangayLogo] = useState<string | null>(null);
+  const [barangayName, setBarangayName] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  
   // Password State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,12 +41,36 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
+      console.log('[Profile] User data:', JSON.stringify(user, null, 2));
+      console.log('[Profile] Role:', user.role);
+      console.log('[Profile] Barangay Designation:', user.barangayDesignation);
+      console.log('[Profile] Has barangayDesignation property:', 'barangayDesignation' in user);
+      console.log('[Profile] Should show logo section:', user.role?.toLowerCase() === 'officer' && user.barangayDesignation);
+      
       setFirstName(user.firstName || "");
       setLastName(user.lastName || "");
       setEmail(user.email || "");
       setProfilePicture(user.profilePicture || null);
+      
+      // Fetch barangay info if user is an officer with designation
+      if (user.role?.toLowerCase() === 'officer' && user.barangayDesignation) {
+        fetchBarangayInfo(user.barangayDesignation);
+      }
     }
   }, [user]);
+  
+  const fetchBarangayInfo = async (barangayId: number) => {
+    try {
+      const response = await fetch(`/api/barangays/${barangayId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBarangayName(data.name || data.barangay_name);
+        setBarangayLogo(data.logo_url || null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch barangay info:', error);
+    }
+  };
 
   const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,6 +115,85 @@ export default function ProfilePage() {
       console.error('[Profile] FileReader error:', error);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleBarangayLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    console.log('[Profile] Barangay logo file selected:', file?.name);
+    
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Image size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      // Upload to server
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('barangay_id', user?.barangayDesignation?.toString() || '');
+
+      const uploadResponse = await fetch('/api/barangays/upload-logo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload logo');
+      }
+
+      const uploadData = await uploadResponse.json();
+      const logoUrl = uploadData.logo_url;
+
+      // Update barangay with new logo URL
+      const updateResponse = await fetch(`/api/barangays/${user?.barangayDesignation}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          logo_url: logoUrl,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update barangay logo');
+      }
+
+      setBarangayLogo(logoUrl);
+      
+      toast({
+        title: "Success",
+        description: "Barangay logo updated successfully",
+      });
+    } catch (error) {
+      console.error('Barangay logo upload error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload barangay logo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -354,6 +462,64 @@ export default function ProfilePage() {
                   </Button>
                 </CardContent>
               </Card>
+
+              {/* Barangay Logo Section - Only for Officers */}
+              {user?.role?.toLowerCase() === 'officer' && user?.barangayDesignation && (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Barangay Logo</CardTitle>
+                    <CardDescription>
+                      Upload your barangay logo to personalize reports and dashboards
+                      {barangayName && ` for ${barangayName}`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Barangay Logo Display */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        <div className="w-48 h-48 rounded-lg overflow-hidden bg-gray-100 border-4 border-white shadow-lg flex items-center justify-center">
+                          {barangayLogo ? (
+                            <Image
+                              src={barangayLogo}
+                              alt="Barangay Logo"
+                              width={192}
+                              height={192}
+                              className="w-full h-full object-contain p-4"
+                            />
+                          ) : (
+                            <div className="text-center p-4">
+                              <div className="text-4xl font-bold text-gray-400 mb-2">BLGU</div>
+                              <p className="text-sm text-gray-500">No logo uploaded</p>
+                            </div>
+                          )}
+                        </div>
+                        <label
+                          htmlFor="barangay-logo"
+                          className="absolute bottom-2 right-2 bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-lg text-sm font-medium"
+                        >
+                          {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                          <input
+                            id="barangay-logo"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleBarangayLogoChange}
+                            disabled={isUploadingLogo}
+                          />
+                        </label>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-1">
+                          This logo will appear on your barangay reports and dashboard
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Recommended: Square image, max 5MB (PNG, JPG, or SVG)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Security Tab */}

@@ -106,6 +106,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
                 currentStatus: barangayData.currentStatus || barangayData.status,
                 description: barangayData.description || `No data available`,
                 seal: barangayData.seal || 'no',
+                logo_url: barangayData.logo_url || null,
                 survey_count: barangayData.survey_count || 0,
                 completion_rate: barangayData.completion_rate || 0,
                 year: cycleId ? 'cycle' : new Date().getFullYear().toString(),

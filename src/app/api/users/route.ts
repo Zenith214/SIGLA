@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
     
-    let query = 'SELECT * FROM "user"';
+    let query = 'SELECT id, email, "firstName", "lastName", role, status, "lastLogin", "createdAt", organization, "jobTitle", phone, "barangayDesignation" FROM "user"';
     let queryParams: any[] = [];
     
     if (role) {
@@ -104,6 +104,13 @@ export async function POST(req: NextRequest) {
       data.password = await bcrypt.hash(data.password, saltRounds);
     }
     
+    // Handle barangayDesignation - convert empty string to null
+    if (data.barangayDesignation !== undefined) {
+      data.barangayDesignation = data.barangayDesignation === '' || data.barangayDesignation === null 
+        ? null 
+        : parseInt(data.barangayDesignation);
+    }
+    
     const columns = Object.keys(data).map(key => `"${key}"`).join(', ');
     const values = Object.values(data);
     const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
     const query = `
       INSERT INTO "user" (${columns}, "createdAt") 
       VALUES (${placeholders}, NOW()) 
-      RETURNING id, "firstName", "lastName", email, role, status, organization, "jobTitle", "createdAt", "lastLogin"
+      RETURNING id, "firstName", "lastName", email, role, status, organization, "jobTitle", "createdAt", "lastLogin", "barangayDesignation"
     `;
     
     const result = await client.query(query, values);

@@ -81,6 +81,10 @@ export async function PATCH(
       updateFields.push(`"lastLogin" = $${paramIndex++}`);
       values.push(body.lastLogin);
     }
+    if (body.barangayDesignation !== undefined) {
+      updateFields.push(`"barangayDesignation" = $${paramIndex++}`);
+      values.push(body.barangayDesignation === '' || body.barangayDesignation === null ? null : parseInt(body.barangayDesignation));
+    }
 
     if (updateFields.length === 0) {
       return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
@@ -92,7 +96,7 @@ export async function PATCH(
       UPDATE "user" 
       SET ${updateFields.join(', ')} 
       WHERE id = $${paramIndex}
-      RETURNING id, "firstName", "lastName", email, role, status, "lastLogin", "createdAt"
+      RETURNING id, "firstName", "lastName", email, role, status, "lastLogin", "barangayDesignation", "createdAt"
     `;
     
     const result = await client.query(query, values);

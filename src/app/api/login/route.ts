@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     console.log('✅ [LOGIN API] Updated lastLogin for user:', user.id);
     
     console.log('🎫 [LOGIN API] Generating JWT token')
-    // Generate JWT with user info including role
+    // Generate JWT with user info including role and barangayDesignation
     const token = jwt.sign(
       {
         id: user.id,
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
         lastName: user.lastName,
         email: user.email,
         role: (user.role || 'officer').toLowerCase(), // Ensure role is lowercase
+        barangayDesignation: user.barangayDesignation || null,
       },
       JWT_SECRET,
       { expiresIn: '7d' }

@@ -31,7 +31,7 @@ export function UsersRoles() {
     role: "officer",
     status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
-    barangay_id: "",
+    barangayDesignation: null,
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
@@ -82,26 +82,9 @@ export function UsersRoles() {
     setEditForm({ 
       ...user,
       role: user.role?.toLowerCase() || 'officer',
-      barangay_id: ""
+      barangayDesignation: user.barangayDesignation || ""
     })
     setEditingUser(user)
-    
-    // Fetch user's barangay assignment if they're an officer
-    if (user.role?.toLowerCase() === 'officer') {
-      try {
-        const assignmentRes = await fetch(`/api/users/${user.id}/assignment`);
-        if (assignmentRes.ok) {
-          const assignmentData = await assignmentRes.json();
-          // Update form with barangay assignment
-          setEditForm((prev: any) => ({ 
-            ...prev,
-            barangay_id: assignmentData.barangay_id || ""
-          }))
-        }
-      } catch (err) {
-        console.error("Failed to fetch user assignment:", err);
-      }
-    }
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
@@ -118,33 +101,12 @@ export function UsersRoles() {
           lastName: editForm.lastName,
           role: editForm.role,
           status: editForm.status,
-          lastLogin: editForm.lastLogin
+          lastLogin: editForm.lastLogin,
+          barangayDesignation: editForm.barangayDesignation
         }),
       })
       if (!res.ok) throw new Error("Failed to update user")
       const updated = await res.json()
-      
-      // If officer role and barangay selected, create/update assignment
-      if (editForm.role === 'officer' && editForm.barangay_id) {
-        try {
-          await fetch("/api/assignments", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: editForm.id,
-              barangay_id: parseInt(editForm.barangay_id),
-              status: "Active"
-            }),
-          });
-        } catch (assignErr) {
-          console.error("Failed to create assignment:", assignErr);
-          toast({
-            variant: "destructive",
-            title: "Warning",
-            description: "User updated but barangay assignment failed. Please assign manually in the Assignments tab.",
-          });
-        }
-      }
       
       setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
@@ -204,7 +166,7 @@ export function UsersRoles() {
       role: "officer",
       status: "Active",
       lastLogin: new Date().toISOString().slice(0, 10),
-      barangay_id: "",
+      barangayDesignation: null,
     })
   }
   const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -214,7 +176,11 @@ export function UsersRoles() {
     setSaving(true)
     try {
       // Ensure lastLogin is a full ISO string
-      const payload = { ...addForm, lastLogin: addForm.lastLogin ? new Date(addForm.lastLogin).toISOString() : undefined };
+      const payload = { 
+        ...addForm, 
+        lastLogin: addForm.lastLogin ? new Date(addForm.lastLogin).toISOString() : undefined,
+        barangayDesignation: addForm.barangayDesignation || null
+      };
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -222,28 +188,6 @@ export function UsersRoles() {
       })
       if (!res.ok) throw new Error("Failed to add user")
       const response = await res.json()
-      
-      // If officer role and barangay selected, create assignment
-      if (addForm.role === 'officer' && addForm.barangay_id) {
-        try {
-          await fetch("/api/assignments", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: response.user.id,
-              barangay_id: parseInt(addForm.barangay_id),
-              status: "Active"
-            }),
-          });
-        } catch (assignErr) {
-          console.error("Failed to create assignment:", assignErr);
-          toast({
-            variant: "destructive",
-            title: "Warning",
-            description: "User created but barangay assignment failed. Please assign manually in the Assignments tab.",
-          });
-        }
-      }
       
       setUsers([response.user, ...users])
       setAddingUser(false)
@@ -255,7 +199,7 @@ export function UsersRoles() {
         role: "officer",
         status: "active",
         lastLogin: new Date().toISOString().slice(0, 10),
-        barangay_id: "",
+        barangayDesignation: null,
       })
       toast({
         title: "User Added Successfully!",
@@ -437,6 +381,7 @@ export function UsersRoles() {
                   <TableHead className="font-medium">Name</TableHead>
                   <TableHead className="font-medium">Email</TableHead>
                   <TableHead className="font-medium">Role</TableHead>
+                  <TableHead className="font-medium">Barangay</TableHead>
                   <TableHead className="font-medium">Status</TableHead>
                   <TableHead className="font-medium">Last Login</TableHead>
                   <TableHead className="font-medium">Actions</TableHead>
@@ -477,6 +422,15 @@ export function UsersRoles() {
                       >
                         {user.role === "fs" ? "Supervisor" : user.role}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {user.role?.toLowerCase() === 'officer' && user.barangayDesignation ? (
+                        barangays.find(b => (b.id || b.barangay_id) === user.barangayDesignation)?.name || 
+                        barangays.find(b => (b.id || b.barangay_id) === user.barangayDesignation)?.barangay_name || 
+                        '-'
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
@@ -529,18 +483,20 @@ export function UsersRoles() {
                 </select>
               </div>
               {editForm.role === 'officer' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assigned Barangay</label>
-                  <select name="barangay_id" value={editForm.barangay_id || ""} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                    <option value="">Select Barangay</option>
-                    {Array.isArray(barangays) && barangays.map(barangay => (
-                      <option key={barangay.id} value={barangay.id}>
-                        {barangay.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Required for CPAP submission access</p>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Barangay Designation</label>
+                    <select name="barangayDesignation" value={editForm.barangayDesignation || ""} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                      <option value="">No Designation</option>
+                      {Array.isArray(barangays) && barangays.map(barangay => (
+                        <option key={barangay.id || barangay.barangay_id} value={barangay.id || barangay.barangay_id}>
+                          {barangay.name || barangay.barangay_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Officer's designated barangay (optional)</p>
+                  </div>
+                </>
               )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
@@ -615,18 +571,20 @@ export function UsersRoles() {
                 </select>
               </div>
               {addForm.role === 'officer' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assigned Barangay</label>
-                  <select name="barangay_id" value={addForm.barangay_id || ""} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
-                    <option value="">Select Barangay</option>
-                    {Array.isArray(barangays) && barangays.map(barangay => (
-                      <option key={barangay.id} value={barangay.id}>
-                        {barangay.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">Required for CPAP submission access</p>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Barangay Designation</label>
+                    <select name="barangayDesignation" value={addForm.barangayDesignation || ""} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
+                      <option value="">No Designation</option>
+                      {Array.isArray(barangays) && barangays.map(barangay => (
+                        <option key={barangay.id || barangay.barangay_id} value={barangay.id || barangay.barangay_id}>
+                          {barangay.name || barangay.barangay_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Officer's designated barangay (optional)</p>
+                  </div>
+                </>
               )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>

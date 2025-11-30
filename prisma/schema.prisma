@@ -15,25 +15,28 @@ datasource db {
 // ============================================================================
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique @db.VarChar(191)
-  password     String    @db.VarChar(191)
-  createdAt    DateTime  @default(now()) @map("createdAt")
-  firstName    String    @db.VarChar(191)
-  jobTitle     String?   @db.VarChar(191)
-  lastName     String    @db.VarChar(191)
-  organization String?   @db.VarChar(191)
-  phone        String?   @db.VarChar(191)
-  role         String?   @default("officer") @db.VarChar(32)
-  status       String?   @default("Active") @db.VarChar(16)
-  lastLogin    DateTime?
+  id                   Int       @id @default(autoincrement())
+  email                String    @unique @db.VarChar(191)
+  password             String    @db.VarChar(191)
+  createdAt            DateTime  @default(now()) @map("createdAt")
+  firstName            String    @db.VarChar(191)
+  jobTitle             String?   @db.VarChar(191)
+  lastName             String    @db.VarChar(191)
+  organization         String?   @db.VarChar(191)
+  phone                String?   @db.VarChar(191)
+  role                 String?   @default("officer") @db.VarChar(32)
+  status               String?   @default("Active") @db.VarChar(16)
+  lastLogin            DateTime?
+  barangayDesignation  Int?
 
   // Relations
   assignments      Assignment[]
   survey_responses SurveyResponse[]
   created_awards   CycleAward[]
   assigned_spots   Spot[]
+  designated_barangay Barangay? @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
 
+  @@index([barangayDesignation])
   @@map("user")
 }
 
@@ -64,6 +67,7 @@ model Barangay {
   cycle_awards     CycleAward[]
   spots            Spot[]
   cpaps            CPAP[]
+  designated_officers User[] @relation("OfficerDesignation")
 
   @@map("barangay")
 }

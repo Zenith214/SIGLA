@@ -421,6 +421,11 @@ export default function BarangaySatisfactionIndex({
             <div className="col-span-2 space-y-4">
               {/* Barangay Logo */}
               <div className="border-2 border-gray-200 rounded-xl p-6 h-40 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
+                {(() => {
+                  console.log('[BarangaySatisfactionIndex] Barangay logo_url:', barangay.logo_url);
+                  console.log('[BarangaySatisfactionIndex] Full barangay data:', barangay);
+                  return null;
+                })()}
                 {barangay.logo_url ? (
                   <img 
                     src={barangay.logo_url} 
