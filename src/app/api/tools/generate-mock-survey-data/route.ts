@@ -285,7 +285,8 @@ async function generateResponseData(surveyNumber: number, sections: string[], pr
 
 // Generate realistic demographics
 function generateDemographics() {
-  const genders = ['Male', 'Female'];
+  const sexOptions = ['Male', 'Female'];
+  const genderIdentityOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
   const educations = ['Elementary', 'High School', 'College', 'Post Graduate'];
   const incomes = ['Below 10,000', '10,001-20,000', '20,001-50,000', 'Above 50,000'];
   
@@ -310,9 +311,16 @@ function generateDemographics() {
     }
   }
 
+  const sex = sexOptions[Math.floor(Math.random() * sexOptions.length)];
+  // 90% of the time, gender identity matches biological sex
+  const genderIdentity = Math.random() > 0.1 
+    ? sex 
+    : genderIdentityOptions[Math.floor(Math.random() * genderIdentityOptions.length)];
+
   return {
     age: 18 + Math.floor(Math.random() * 62), // 18-80 years old
-    gender: genders[Math.floor(Math.random() * genders.length)],
+    sex: sex, // Biological sex (used for Kish Grid)
+    genderIdentity: genderIdentity, // Gender identity (self-identified)
     educationalAttainment: educations[Math.floor(Math.random() * educations.length)],
     householdIncome: incomes[Math.floor(Math.random() * incomes.length)],
     purok: purok
@@ -958,12 +966,12 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
     const insertQuery = `
       INSERT INTO survey_response (
         survey_number, barangay_id, interviewer_id, survey_cycle_id, respondent_name,
-        respondent_age, respondent_gender, respondent_educational_attainment,
+        respondent_age, biological_sex, gender_identity, respondent_educational_attainment,
         respondent_household_income, respondent_purok, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
 
@@ -974,7 +982,8 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       activeCycle.cycle_id,
       responseData.selectedMember,
       responseData.respondentDemographics.age,
-      responseData.respondentDemographics.gender,
+      responseData.respondentDemographics.sex,
+      responseData.respondentDemographics.genderIdentity,
       responseData.respondentDemographics.educationalAttainment,
       responseData.respondentDemographics.householdIncome,
       responseData.respondentDemographics.purok || null,

@@ -70,6 +70,7 @@ async function createMockSurveyData() {
       
       const respondentNames = ['Juan Dela Cruz', 'Maria Santos', 'Jose Rizal', 'Ana Garcia', 'Pedro Martinez'];
       const respondentName = respondentNames[Math.floor(Math.random() * respondentNames.length)];
+      const sex = Math.random() > 0.5 ? 'Male' : 'Female';
       
       const mockResponse = {
         survey_number: surveyNumber,
@@ -77,7 +78,8 @@ async function createMockSurveyData() {
         interviewer_id: interviewer.id,
         respondent_name: respondentName,
         respondent_age: 25 + Math.floor(Math.random() * 40), // 25-65 years old
-        respondent_gender: Math.random() > 0.5 ? 'Male' : 'Female',
+        biological_sex: sex,
+        gender_identity: sex, // Default to same as biological sex
         location_lat: lat,
         location_lng: lng,
         location_address: `${Math.floor(Math.random() * 999) + 1} Sample Street, ${barangay.barangay_name}`,
@@ -100,18 +102,18 @@ async function createMockSurveyData() {
       const insertQuery = `
         INSERT INTO survey_response (
           survey_number, barangay_id, interviewer_id, respondent_name, 
-          respondent_age, respondent_gender, location_lat, location_lng,
+          respondent_age, biological_sex, gender_identity, location_lat, location_lng,
           location_address, location_barangay, location_municipality, 
           location_province, location_accuracy, status, progress,
           started_at, completed_at, submitted_at, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW()
         ) RETURNING response_id
       `;
 
       const result = await client.query(insertQuery, [
         response.survey_number, response.barangay_id, response.interviewer_id,
-        response.respondent_name, response.respondent_age, response.respondent_gender,
+        response.respondent_name, response.respondent_age, response.biological_sex, response.gender_identity,
         response.location_lat, response.location_lng, response.location_address,
         response.location_barangay, response.location_municipality, response.location_province,
         response.location_accuracy, response.status, response.progress,
