@@ -91,6 +91,36 @@ export async function GET(request: NextRequest) {
     const result = await client.query(barangaysQuery, queryParams);
     let barangays = result.rows;
 
+    // Fetch officers designated to each barangay
+    const officersQuery = `
+      SELECT 
+        "barangayDesignation",
+        "firstName",
+        "lastName",
+        email
+      FROM "user"
+      WHERE role = 'officer' 
+        AND "barangayDesignation" IS NOT NULL
+        AND LOWER(status) = 'active'
+      ORDER BY "firstName", "lastName"
+    `;
+    const officersResult = await client.query(officersQuery);
+    
+    // Group officers by barangay
+    const officersByBarangay = new Map<number, any[]>();
+    officersResult.rows.forEach(officer => {
+      const barangayId = officer.barangayDesignation;
+      if (!officersByBarangay.has(barangayId)) {
+        officersByBarangay.set(barangayId, []);
+      }
+      officersByBarangay.get(barangayId)!.push({
+        firstName: officer.firstName,
+        lastName: officer.lastName,
+        email: officer.email,
+        fullName: `${officer.firstName} ${officer.lastName}`
+      });
+    });
+
     // Get award information if needed
     let awardeeIds: number[] = [];
     let cycleAwards: any[] = [];
@@ -131,6 +161,8 @@ export async function GET(request: NextRequest) {
         status = "In Progress";
       }
 
+      const officers = officersByBarangay.get(barangay.barangay_id) || [];
+      
       const baseBarangay: any = {
         id: barangay.barangay_id, // Transform barangay_id to id
         barangay_id: barangay.barangay_id, // Keep original for updates
@@ -140,6 +172,7 @@ export async function GET(request: NextRequest) {
         population: barangay.population || 0,
         households: barangay.households || 0,
         captain: barangay.captain,
+        officers: officers, // Add officers array
         description: barangay.description,
         currentStatus: barangay.currentStatus || status,
         seal: barangay.seal, // Keep for backward compatibility

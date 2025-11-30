@@ -14,10 +14,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Calendar, CheckCircle, Clock, Upload, Eye, Search } from "lucide-react"
+import { MapPin, Edit, Trash2, Award, History, AlertTriangle, Upload, Eye, Search, Users } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])
@@ -177,6 +182,15 @@ export function Barangays() {
     } finally {
       setUploadingLogo(false);
     }
+  }
+
+  // Handle logo removal
+  const handleLogoRemove = () => {
+    setEditForm({ ...editForm, logo_url: null });
+    toast({
+      title: "Logo Removed",
+      description: "The barangay logo will be removed when you save.",
+    });
   }
 
   // Handle save
@@ -415,7 +429,7 @@ export function Barangays() {
                     <TableHead className="font-medium">Barangay Name</TableHead>
                     <TableHead className="font-medium">Households</TableHead>
                     <TableHead className="font-medium">Population</TableHead>
-                    <TableHead className="font-medium">Captain</TableHead>
+                    <TableHead className="font-medium">Officers</TableHead>
                     <TableHead className="font-medium">Award Status</TableHead>
                     <TableHead className="font-medium">Logo</TableHead>
                     <TableHead className="font-medium">Actions</TableHead>
@@ -443,7 +457,49 @@ export function Barangays() {
                       <TableCell className="font-medium">{barangay.name}</TableCell>
                       <TableCell>{barangay.households ?? "-"}</TableCell>
                       <TableCell>{barangay.population ? barangay.population.toLocaleString() : "-"}</TableCell>
-                      <TableCell className="text-gray-600">{barangay.captain ?? "-"}</TableCell>
+                      <TableCell className="text-gray-600">
+                        {(() => {
+                          const officers = barangay.officers || [];
+                          if (officers.length === 0) {
+                            return "-";
+                          } else if (officers.length === 1) {
+                            return officers[0].fullName;
+                          } else {
+                            return (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">
+                                    {officers[0].fullName} and {officers.length - 1} more
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2 pb-2 border-b">
+                                      <Users className="w-4 h-4 text-blue-600" />
+                                      <h4 className="font-semibold text-sm">Officers Designated to {barangay.name}</h4>
+                                    </div>
+                                    <div className="max-h-60 overflow-y-auto space-y-2">
+                                      {officers.map((officer: any, idx: number) => (
+                                        <div key={idx} className="flex items-start gap-2 p-2 bg-gray-50 rounded text-sm">
+                                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span className="text-blue-600 text-xs font-medium">
+                                              {officer.firstName[0]}{officer.lastName[0]}
+                                            </span>
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-gray-900">{officer.fullName}</p>
+                                            <p className="text-xs text-gray-500 truncate">{officer.email}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            );
+                          }
+                        })()}
+                      </TableCell>
                       <TableCell>
                         {(() => {
                           const awardStatus = getAwardStatus(barangay);
@@ -577,7 +633,7 @@ export function Barangays() {
                 <Input name="population" type="number" value={editForm.population ?? ""} onChange={handleEditChange} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Captain</label>
+                <label className="block text-sm font-medium mb-1">Officer</label>
                 <Input name="captain" value={editForm.captain ?? ""} onChange={handleEditChange} />
               </div>
               <div>
@@ -592,21 +648,34 @@ export function Barangays() {
                       />
                       <div className="flex-1">
                         <p className="text-sm text-gray-700">Current logo uploaded</p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="mt-1 text-xs"
-                          onClick={() => {
-                            setSelectedBarangayLogo({
-                              name: editForm.name,
-                              logo_url: editForm.logo_url
-                            });
-                            setLogoViewModal(true);
-                          }}
-                        >
-                          View Full Size
-                        </Button>
+                        <div className="flex gap-2 mt-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            onClick={() => {
+                              setSelectedBarangayLogo({
+                                name: editForm.name,
+                                logo_url: editForm.logo_url
+                              });
+                              setLogoViewModal(true);
+                            }}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="text-xs"
+                            onClick={handleLogoRemove}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -630,11 +699,11 @@ export function Barangays() {
                       className="cursor-pointer flex flex-col items-center gap-2"
                     >
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 text-lg">📷</span>
+                        <Upload className="w-4 h-4 text-blue-600" />
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-medium text-gray-700">
-                          {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                          {uploadingLogo ? 'Uploading...' : editForm.logo_url ? 'Replace Logo' : 'Upload Logo'}
                         </p>
                         <p className="text-xs text-gray-500">
                           PNG, JPG up to 5MB
@@ -724,21 +793,68 @@ export function Barangays() {
                 }}
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-between gap-2">
               <Button
-                variant="outline"
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = selectedBarangayLogo.logo_url;
-                  link.download = `${selectedBarangayLogo.name}-logo`;
-                  link.click();
+                variant="destructive"
+                onClick={async () => {
+                  // Find the barangay and remove its logo
+                  const barangay = barangays.find(b => b.logo_url === selectedBarangayLogo.logo_url);
+                  if (barangay) {
+                    try {
+                      const res = await fetch("/api/barangays/all", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          barangayId: barangay.barangay_id || barangay.id,
+                          logo_url: null
+                        }),
+                      });
+                      
+                      if (!res.ok) throw new Error("Failed to remove logo");
+                      
+                      // Update local state
+                      setBarangays(barangays.map(b => 
+                        (b.id === barangay.id || b.barangay_id === barangay.barangay_id)
+                          ? { ...b, logo_url: null }
+                          : b
+                      ));
+                      
+                      setLogoViewModal(false);
+                      setSelectedBarangayLogo(null);
+                      
+                      toast({
+                        title: "Logo Removed",
+                        description: "The barangay logo has been removed.",
+                      });
+                    } catch (error) {
+                      toast({
+                        variant: "destructive",
+                        title: "Failed to Remove Logo",
+                        description: "An error occurred while removing the logo.",
+                      });
+                    }
+                  }
                 }}
               >
-                Download
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Logo
               </Button>
-              <Button onClick={() => setLogoViewModal(false)}>
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = selectedBarangayLogo.logo_url;
+                    link.download = `${selectedBarangayLogo.name}-logo`;
+                    link.click();
+                  }}
+                >
+                  Download
+                </Button>
+                <Button onClick={() => setLogoViewModal(false)}>
+                  Close
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

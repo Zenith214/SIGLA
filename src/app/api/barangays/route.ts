@@ -15,6 +15,12 @@ interface BarangayWithAwards {
   logo_url?: string;
   description: string;
   isActive: boolean;
+  officers?: Array<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    fullName: string;
+  }>;
   awardStatus?: {
     isAwardee: boolean;
     awardedDate: string | null;
@@ -146,6 +152,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
+    // Fetch officers designated to each barangay
+    const { data: officers, error: officersError } = await supabaseAdmin
+      .from('user')
+      .select('barangayDesignation, firstName, lastName, email')
+      .eq('role', 'officer')
+      .not('barangayDesignation', 'is', null)
+      .ilike('status', 'active');
+
+    // Group officers by barangay
+    const officersByBarangay = new Map<number, any[]>();
+    if (officers && !officersError) {
+      officers.forEach(officer => {
+        const barangayId = officer.barangayDesignation;
+        if (!officersByBarangay.has(barangayId)) {
+          officersByBarangay.set(barangayId, []);
+        }
+        officersByBarangay.get(barangayId)!.push({
+          firstName: officer.firstName,
+          lastName: officer.lastName,
+          email: officer.email,
+          fullName: `${officer.firstName} ${officer.lastName}`
+        });
+      });
+    }
+
     // Get award information if needed
     let awardeeIds: number[] = [];
     let cycleAwards: any[] = [];
@@ -177,6 +208,8 @@ export async function GET(request: NextRequest) {
 
     // Format barangays with award information
     let formattedBarangays: BarangayWithAwards[] = barangays.map(row => {
+      const officers = officersByBarangay.get(row.barangay_id) || [];
+      
       const baseBarangay: BarangayWithAwards = {
         id: row.barangay_id,
         name: row.barangay_name,
@@ -187,7 +220,8 @@ export async function GET(request: NextRequest) {
         seal: row.seal === 'yes', // Keep for backward compatibility
         logo_url: row.logo_url,
         description: row.description || '',
-        isActive: row.is_active === true
+        isActive: row.is_active === true,
+        officers: officers as any // Add officers array
       };
 
       if (includeAwards && targetCycleId) {

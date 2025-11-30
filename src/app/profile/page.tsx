@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Lock, Camera, ArrowLeft, Save, Eye, EyeOff } from "lucide-react";
+import { User, Lock, Camera, ArrowLeft, Save, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
@@ -189,6 +189,45 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to upload barangay logo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveBarangayLogo = async () => {
+    if (!barangayLogo) return;
+
+    setIsUploadingLogo(true);
+
+    try {
+      // Update barangay to remove logo URL
+      const updateResponse = await fetch(`/api/barangays/${user?.barangayDesignation}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          logo_url: null,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error('Failed to remove barangay logo');
+      }
+
+      setBarangayLogo(null);
+      
+      toast({
+        title: "Success",
+        description: "Barangay logo removed successfully",
+      });
+    } catch (error) {
+      console.error('Barangay logo removal error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove barangay logo",
         variant: "destructive",
       });
     } finally {
@@ -493,20 +532,33 @@ export default function ProfilePage() {
                             </div>
                           )}
                         </div>
-                        <label
-                          htmlFor="barangay-logo"
-                          className="absolute bottom-2 right-2 bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-lg text-sm font-medium"
-                        >
-                          {isUploadingLogo ? "Uploading..." : "Upload Logo"}
-                          <input
-                            id="barangay-logo"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleBarangayLogoChange}
-                            disabled={isUploadingLogo}
-                          />
-                        </label>
+                        <div className="absolute bottom-2 right-2 flex gap-2">
+                          {barangayLogo && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={handleRemoveBarangayLogo}
+                              disabled={isUploadingLogo}
+                              className="shadow-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <label
+                            htmlFor="barangay-logo"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-lg text-sm font-medium flex items-center"
+                          >
+                            {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                            <input
+                              id="barangay-logo"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleBarangayLogoChange}
+                              disabled={isUploadingLogo}
+                            />
+                          </label>
+                        </div>
                       </div>
                       <div className="text-center">
                         <p className="text-sm text-gray-600 mb-1">

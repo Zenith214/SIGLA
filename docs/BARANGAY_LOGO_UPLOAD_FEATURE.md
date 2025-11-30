@@ -104,7 +104,11 @@ All components that display barangay information already support `logo_url`:
    - Select an image file (PNG, JPG, SVG recommended)
    - Logo is automatically uploaded and saved
 
-3. **View Updated Logo**
+3. **Remove Barangay Logo**
+   - Click the red trash icon button next to "Upload Logo"
+   - Logo is immediately removed from the barangay
+
+4. **View Updated Logo**
    - Logo immediately appears in profile
    - Navigate to dashboard to see logo in barangay cards
    - View report card to see logo in reports
@@ -112,6 +116,9 @@ All components that display barangay information already support `logo_url`:
 ### For Admins
 
 - Can upload logos for any barangay through the barangay management interface
+- Can remove logos through:
+  - Edit barangay modal → Remove button in logo section
+  - Logo view modal → Remove Logo button
 - Can also update other barangay properties
 
 ## Security & Permissions
@@ -162,7 +169,11 @@ Example: `barangay-5-1701234567890.png`
 ## Testing Checklist
 
 - [ ] Officer can upload logo for their designated barangay
+- [ ] Officer can remove logo for their designated barangay
 - [ ] Officer cannot upload logo for other barangays
+- [ ] Admin can upload logo for any barangay
+- [ ] Admin can remove logo through edit modal
+- [ ] Admin can remove logo through logo view modal
 - [ ] Logo appears in dashboard barangay cards
 - [ ] Logo appears in satisfaction index modal
 - [ ] Logo appears in report card (screen view)
@@ -171,6 +182,7 @@ Example: `barangay-5-1701234567890.png`
 - [ ] File type validation works (non-images rejected)
 - [ ] Fallback to "BLGU LOGO" works when no logo
 - [ ] Error handling shows appropriate messages
+- [ ] Logo removal updates all views immediately
 
 ## Related Files
 
@@ -187,6 +199,16 @@ Example: `barangay-5-1701234567890.png`
 
 ### Types
 - `src/lib/auth.ts` - User interface with barangayDesignation
+
+## Recent Updates
+
+### Logo Removal Feature (Added)
+- Officers can now remove their barangay logo from their profile page
+- Admins can remove logos through:
+  - Edit barangay modal with dedicated Remove button
+  - Logo view modal with Remove Logo button
+- Logo removal immediately updates the barangay record
+- All views automatically fall back to "BLGU LOGO" placeholder
 
 ## Future Enhancements
 
