@@ -111,15 +111,33 @@ export async function PUT(
       throw new Error('Failed to update spot assignment: No data returned');
     }
 
+    // Automatically assign all questionnaires in this spot to the same interviewer
+    const { data: questionnaires, error: questionnairesError } = await supabaseAdmin
+      .from('questionnaires')
+      .update({
+        assigned_fi_id: fiId
+      })
+      .eq('spot_id', spotId)
+      .select('questionnaire_id');
+
+    if (questionnairesError) {
+      console.error('Error auto-assigning questionnaires:', questionnairesError);
+      // Don't throw - spot assignment succeeded, questionnaire assignment is secondary
+    }
+
+    const assignedCount = questionnaires?.length || 0;
+    console.log(`✅ Auto-assigned ${assignedCount} questionnaires to interviewer ${fiId}`);
+
     return NextResponse.json({
       success: true,
       spotId: updatedSpot.spot_id,
       spotName: updatedSpot.spot_name,
       assignedTo: `${user.firstName} ${user.lastName}`,
       assignedToEmail: user.email,
-      message: "Spot assigned successfully",
+      assignedQuestionnaires: assignedCount,
+      message: `Spot and ${assignedCount} questionnaires assigned successfully`,
       ...(spot.assigned_fi_id && spot.assigned_fi_id !== fiId && {
-        warning: 'Spot was previously assigned to another interviewer'
+        warning: 'Spot was previously assigned to another interviewer. All questionnaires have been reassigned.'
       })
     });
 
