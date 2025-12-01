@@ -35,6 +35,7 @@ import { AutoSync } from "@/components/AutoSync"
 import { OfflineIndicator } from "@/components/OfflineIndicator"
 import type { Question } from "@/types/survey"
 import { transformNFAFields, validateAllSections } from "./utils/nfaFieldTransform"
+import { calculateDisplayId } from "@/utils/displayIdCalculator"
 
 export interface GPSCoordinates {
   lat: number
@@ -161,6 +162,7 @@ function SurveyAppContent() {
   const [questionnaireIdFromUrl, setQuestionnaireIdFromUrl] = useState<string | null>(null)
   const [cycleIdFromUrl, setCycleIdFromUrl] = useState<number | null>(null)
   const [spotIdFromUrl, setSpotIdFromUrl] = useState<number | null>(null)
+  const [displayIdForHeader, setDisplayIdForHeader] = useState<number | null>(null)
 
   // Initialize with base sections - assigned sections will be added dynamically
   const [sections, setSections] = useState<SectionStatus[]>([
@@ -310,16 +312,44 @@ function SurveyAppContent() {
     }
   }, [barangayIdParam])
 
+  // Calculate display_id for header when questionnaire ID is available
+  useEffect(() => {
+    if (questionnaireIdFromUrl) {
+      const displayId = calculateDisplayId(questionnaireIdFromUrl)
+      setDisplayIdForHeader(displayId)
+      if (displayId !== null) {
+        console.log(`🔢 Calculated display_id for header: ${displayId} from ${questionnaireIdFromUrl}`)
+      }
+    } else if (surveyData.surveyNumber && surveyData.surveyNumber !== "PENDING") {
+      const displayId = calculateDisplayId(surveyData.surveyNumber)
+      setDisplayIdForHeader(displayId)
+      if (displayId !== null) {
+        console.log(`🔢 Calculated display_id for header: ${displayId} from ${surveyData.surveyNumber}`)
+      }
+    }
+  }, [questionnaireIdFromUrl, surveyData.surveyNumber])
+
   // Update assigned sections based on questionnaire number (CSIS 6-section randomization)
   useEffect(() => {
     console.log(`🔄 Survey number or current section changed: ${surveyData.surveyNumber}, current: ${currentSection}`);
 
     if (surveyData.surveyNumber && surveyData.surveyNumber !== "PENDING") {
-      // Extract questionnaire number from survey number format
-      const questionnaireNumber = extractQuestionnaireNumber(surveyData.surveyNumber);
+      // Calculate display_id from full_id for CSIS algorithms
+      const displayId = calculateDisplayId(surveyData.surveyNumber);
+      
+      // Fallback: if display_id is null or out of range, use parsed questionnaire_number
+      let questionnaireNumberForCSIS: number;
+      if (displayId === null || displayId < 1 || displayId > 150) {
+        const questionnaireNumber = extractQuestionnaireNumber(surveyData.surveyNumber);
+        console.warn(`⚠️ Display ID is ${displayId === null ? 'null' : 'out of range'} for ${surveyData.surveyNumber}, using fallback questionnaire_number: ${questionnaireNumber}`);
+        questionnaireNumberForCSIS = questionnaireNumber;
+      } else {
+        questionnaireNumberForCSIS = displayId;
+        console.log(`✅ Using display_id ${displayId} for CSIS Section Order Randomization`);
+      }
       
       // Get all 6 sections in randomized order using CSIS methodology
-      const assignedSectionIds = getSectionOrder(questionnaireNumber);
+      const assignedSectionIds = getSectionOrder(questionnaireNumberForCSIS);
       
       // Map section IDs to full section objects
       const SECTION_MAP: Record<string, { id: string; name: string }> = {
@@ -333,7 +363,7 @@ function SurveyAppContent() {
 
       const assignedSections = assignedSectionIds.map(id => SECTION_MAP[id]);
       
-      console.log(`📋 Assigned sections for questionnaire ${surveyData.surveyNumber} (Q#${questionnaireNumber}):`, assignedSectionIds);
+      console.log(`📋 Assigned sections for questionnaire ${surveyData.surveyNumber} (Q#${questionnaireNumberForCSIS}):`, assignedSectionIds);
 
       // Update survey data with assigned sections (no questionnaireType)
       if (JSON.stringify(surveyData.assignedSections) !== JSON.stringify(assignedSectionIds)) {
@@ -926,7 +956,12 @@ function SurveyAppContent() {
       {/* Auto-sync on reconnection */}
       <AutoSync />
       
-      <Header user={formattedUser} currentSection={getCurrentSectionName()} />
+      <Header 
+        user={formattedUser} 
+        currentSection={getCurrentSectionName()} 
+        questionnaireId={questionnaireIdFromUrl || surveyData.surveyNumber}
+        displayId={displayIdForHeader}
+      />
       <div className="p-6 pt-32"> {/* Adjusted pt- from pt-24 to pt-32 */}
         <div className="max-w-7xl mx-auto">
           {/* Show sidebar only after initialization when sections are assigned */}

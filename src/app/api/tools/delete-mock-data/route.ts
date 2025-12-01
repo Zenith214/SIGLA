@@ -39,61 +39,83 @@ export async function DELETE(request: NextRequest) {
 
     console.log(`🗑️ Deleting all mock data for Barangay ${barangayId}`);
 
-    // Get count of responses before deletion
-    const countResult = await client.query(
+    // Get counts before deletion
+    const responseCountResult = await client.query(
       'SELECT COUNT(*) as count FROM survey_response WHERE barangay_id = $1',
       [parseInt(barangayId)]
     );
-    const responseCount = parseInt(countResult.rows[0].count);
+    const responseCount = parseInt(responseCountResult.rows[0].count);
 
-    if (responseCount === 0) {
+    const questionnaireCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM questionnaires WHERE barangay_id = $1',
+      [parseInt(barangayId)]
+    );
+    const questionnaireCount = parseInt(questionnaireCountResult.rows[0].count);
+
+    const spotCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM spots WHERE barangay_id = $1',
+      [parseInt(barangayId)]
+    );
+    const spotCount = parseInt(spotCountResult.rows[0].count);
+
+    console.log(`📊 Found ${responseCount} responses, ${questionnaireCount} questionnaires, and ${spotCount} spots to delete`);
+
+    if (responseCount === 0 && questionnaireCount === 0 && spotCount === 0) {
       return NextResponse.json({
         success: true,
-        message: `No survey responses found for Barangay ${barangayId}`,
+        message: `No data found for Barangay ${barangayId}`,
         deletedCount: 0,
         barangayId: parseInt(barangayId)
       });
     }
 
     // Delete all related data in correct order (foreign key constraints)
-    console.log(`📊 Found ${responseCount} responses to delete`);
-
-    // For mock data, we can identify by the survey number format (BB-YYYY-NNNN)
-    // But for now, we'll delete all responses for the barangay as requested
     
-    // Delete survey sections
+    // 1. Delete survey sections (depends on survey_response)
     const sectionsResult = await client.query(
       'DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
 
-    // Delete survey metadata
+    // 2. Delete survey metadata (depends on survey_response)
     const metadataResult = await client.query(
       'DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
 
-    // Delete survey answers
+    // 3. Delete survey answers (depends on survey_response)
     const answersResult = await client.query(
       'DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
 
-    // Delete survey attachments
+    // 4. Delete survey attachments (depends on survey_response)
     const attachmentsResult = await client.query(
       'DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
 
-    // Delete survey validations
+    // 5. Delete survey validations (depends on survey_response)
     const validationsResult = await client.query(
       'DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
 
-    // Finally delete survey responses
+    // 6. Delete survey responses
     const responsesResult = await client.query(
       'DELETE FROM survey_response WHERE barangay_id = $1',
+      [parseInt(barangayId)]
+    );
+
+    // 7. Delete questionnaires (depends on spots)
+    const questionnairesResult = await client.query(
+      'DELETE FROM questionnaires WHERE barangay_id = $1',
+      [parseInt(barangayId)]
+    );
+
+    // 8. Delete spots
+    const spotsResult = await client.query(
+      'DELETE FROM spots WHERE barangay_id = $1',
       [parseInt(barangayId)]
     );
 
@@ -111,15 +133,19 @@ export async function DELETE(request: NextRequest) {
       console.log(`📈 Reset survey target progress for Barangay ${barangayId}`);
     }
 
-    console.log(`✅ Successfully deleted ${responseCount} responses and all related data for Barangay ${barangayId}`);
+    const totalDeleted = responseCount + questionnaireCount + spotCount;
+    
+    console.log(`✅ Successfully deleted ${responseCount} responses, ${questionnaireCount} questionnaires, ${spotCount} spots, and all related data for Barangay ${barangayId}`);
 
     return NextResponse.json({
       success: true,
-      message: `Successfully deleted all mock data for Barangay ${barangayId}`,
-      deletedCount: responseCount,
+      message: `Successfully deleted all data for Barangay ${barangayId}`,
+      deletedCount: totalDeleted,
       barangayId: parseInt(barangayId),
       details: {
         responses: responsesResult.rowCount || 0,
+        questionnaires: questionnairesResult.rowCount || 0,
+        spots: spotsResult.rowCount || 0,
         sections: sectionsResult.rowCount || 0,
         metadata: metadataResult.rowCount || 0,
         answers: answersResult.rowCount || 0,

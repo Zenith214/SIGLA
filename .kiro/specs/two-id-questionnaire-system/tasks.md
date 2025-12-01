@@ -80,7 +80,12 @@
   - Verify display_id matches expected formula for known full_ids
   - _Requirements: 3.2, 8.1_
 
-- [ ] 5. Update FI Dashboard - InterviewSlotCard component
+- [x] 5. Update FI Dashboard - InterviewSlotCard component
+
+
+
+
+
   - Locate `src/components/fi-dashboard/InterviewSlotCard.tsx`
   - Update display logic to show `Interview #{display_id}` instead of full_id
   - Add fallback: if `display_id` is null, calculate it using `calculateDisplayId(questionnaire_id)`
@@ -88,21 +93,36 @@
   - Ensure internal logic (onClick handlers, URL construction) still uses `questionnaire_id` (full_id)
   - _Requirements: 1.1, 1.3, 4.1, 4.3_
 
-- [ ] 6. Update Spot Assignment Panel component
+- [x] 6. Update Spot Assignment Panel component
+
+
+
+
+
   - Locate `src/components/fs-dashboard/SpotAssignmentPanel.tsx`
   - Update questionnaire display to show `Interview #{display_id}`
   - Add fallback logic for null display_id
   - Ensure internal operations (assignment, API calls) use full_id
   - _Requirements: 1.3, 4.1_
 
-- [ ] 7. Update Questionnaire Assignment Modal component
+- [x] 7. Update Questionnaire Assignment Modal component
+
+
+
+
+
   - Locate `src/components/fs-dashboard/QuestionnaireAssignmentModal.tsx` (or similar)
   - Update questionnaire list display to show `Interview #{display_id}`
   - Add fallback logic for null display_id
   - Ensure assignment operations use full_id
   - _Requirements: 1.3, 4.1_
 
-- [ ] 8. Update Survey Form Header component
+- [x] 8. Update Survey Form Header component
+
+
+
+
+
   - Locate `src/app/survey/forms/sections/header.tsx` or survey form header component
   - Update header to display `Interview #{display_id}` instead of full_id
   - Fetch questionnaire data from API or IndexedDB to get display_id
@@ -114,7 +134,13 @@
   - **Property 3: UI Display Consistency**
   - **Validates: Requirements 1.1, 1.2, 1.3**
 
-- [ ] 9. Update CSIS Kish Grid integration
+- [x] 9. Update CSIS Kish Grid integration
+
+
+
+
+
+
   - Locate survey initialization code that calls `selectRespondentKishGrid()`
   - Update to pass `display_id` instead of parsed `questionnaire_number` from full_id
   - Calculate display_id from full_id using `calculateDisplayId()`
@@ -122,7 +148,11 @@
   - Log warning if fallback is used
   - _Requirements: 5.1, 5.3, 5.5_
 
-- [ ] 10. Update CSIS Section Order Randomization integration
+- [x] 10. Update CSIS Section Order Randomization integration
+
+
+
+
   - Locate survey initialization code that calls `getSectionOrder()`
   - Update to pass `display_id` instead of parsed `questionnaire_number` from full_id
   - Calculate display_id from full_id using `calculateDisplayId()`
@@ -141,7 +171,12 @@
   - Test fallback behavior when display_id is out of range
   - _Requirements: 5.3, 5.4_
 
-- [ ] 11. Verify IndexedDB operations use full_id
+- [x] 11. Verify IndexedDB operations use full_id
+
+
+
+
+
   - Review `src/lib/indexedDB.ts` to confirm keyPath is `questionnaire_id` (full_id)
   - Verify all IndexedDB put/get/delete operations use full_id as key
   - Ensure no changes are needed (full_id should already be used)
@@ -152,14 +187,23 @@
   - **Property 4: Internal Operations Use Full ID**
   - **Validates: Requirements 1.5, 4.1, 4.2, 4.3, 4.4, 4.5**
 
-- [ ] 12. Verify database schema uses full_id
+- [x] 12. Verify database schema uses full_id
+
+
+
+
   - Review database schema to confirm `questionnaire_id` is primary key
   - Verify foreign key references use `questionnaire_id` (full_id)
   - Confirm no `display_id` column exists in database
   - Document that display_id is calculated dynamically, not stored
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 13. Verify sync operations use full_id
+- [x] 13. Verify sync operations use full_id
+
+
+
+
+
   - Review `src/app/api/sync/route.ts` to confirm sync matching uses `questionnaire_id` (full_id)
   - Ensure offline-to-online sync uses full_id for record matching
   - Verify no changes are needed (full_id should already be used)
@@ -169,7 +213,12 @@
   - **Property 7: Sync Operation Identifier**
   - **Validates: Requirements 2.5**
 
-- [ ] 14. Add accessibility improvements
+- [x] 14. Add accessibility improvements
+
+
+
+
+
   - Update UI components to include `aria-label` attributes
   - Example: `<div aria-label="Interview number 6">Interview #6</div>`
   - Ensure screen readers announce "Interview number 6" instead of complex full_id

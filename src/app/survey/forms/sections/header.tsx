@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { calculateDisplayId } from "@/utils/displayIdCalculator"
 
 interface HeaderProps {
   user: {
@@ -16,6 +17,8 @@ interface HeaderProps {
     avatar: string
   }
   currentSection?: string
+  questionnaireId?: string
+  displayId?: number | null
 }
 
 interface LocationData {
@@ -26,10 +29,11 @@ interface LocationData {
   address?: string
 }
 
-export function Header({ user, currentSection }: HeaderProps) {
+export function Header({ user, currentSection, questionnaireId, displayId }: HeaderProps) {
   const [location, setLocation] = useState<LocationData | null>(null)
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState<string>('')
+  const [calculatedDisplayId, setCalculatedDisplayId] = useState<number | null>(null)
   const router = useRouter()
   const { logout } = useAuth()
 
@@ -106,6 +110,23 @@ export function Header({ user, currentSection }: HeaderProps) {
     getCurrentLocation()
   }, [])
 
+  // Calculate display_id as fallback if not provided
+  useEffect(() => {
+    if (displayId !== undefined && displayId !== null) {
+      // Use provided display_id
+      setCalculatedDisplayId(displayId)
+    } else if (questionnaireId) {
+      // Calculate from questionnaireId (full_id) as fallback
+      const calculated = calculateDisplayId(questionnaireId)
+      setCalculatedDisplayId(calculated)
+      if (calculated === null) {
+        console.warn(`Could not calculate display_id from questionnaireId: ${questionnaireId}`)
+      }
+    } else {
+      setCalculatedDisplayId(null)
+    }
+  }, [displayId, questionnaireId])
+
   // Get location status display
   const getLocationStatusDisplay = () => {
     switch (locationStatus) {
@@ -158,8 +179,11 @@ export function Header({ user, currentSection }: HeaderProps) {
               priority
             />
             <div className="border-l border-gray-600 pl-3">
-              <h1 className="text-base font-semibold text-white">
-                Survey Forms
+              <h1 
+                className="text-base font-semibold text-white"
+                aria-label={calculatedDisplayId !== null ? `Interview number ${calculatedDisplayId}` : (questionnaireId ? `Questionnaire ${questionnaireId}` : "Survey Forms")}
+              >
+                {calculatedDisplayId !== null ? `Interview #${calculatedDisplayId}` : (questionnaireId || "Survey Forms")}
               </h1>
               <p className="text-xs text-gray-300">
                 {currentSection || "Community Assessment"}

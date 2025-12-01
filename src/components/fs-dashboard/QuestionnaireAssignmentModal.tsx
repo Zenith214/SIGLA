@@ -21,6 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, User, CheckCircle2, AlertCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { calculateDisplayId } from "@/utils/displayIdCalculator";
 
 interface Questionnaire {
   questionnaireId: string;
@@ -29,6 +30,7 @@ interface Questionnaire {
   assignedInterviewerId: number | null;
   assignedInterviewerName: string | null;
   assignedInterviewerEmail: string | null;
+  display_id?: number | null;
 }
 
 interface FieldInterviewer {
@@ -221,6 +223,23 @@ export default function QuestionnaireAssignmentModal({
     }
   };
 
+  // Get display ID with fallback logic
+  const getDisplayId = (questionnaire: Questionnaire): number | null => {
+    // First, try to use display_id from API response
+    if (questionnaire.display_id !== undefined && questionnaire.display_id !== null) {
+      return questionnaire.display_id;
+    }
+    
+    // Fallback: calculate display_id from questionnaireId (full_id)
+    const calculated = calculateDisplayId(questionnaire.questionnaireId);
+    if (calculated !== null) {
+      return calculated;
+    }
+    
+    // Ultimate fallback: return null (will show full_id)
+    return null;
+  };
+
   const getInterviewerColor = (interviewerId: number | null) => {
     if (!interviewerId) return "bg-gray-100 text-gray-800";
     
@@ -340,41 +359,55 @@ export default function QuestionnaireAssignmentModal({
                   No questionnaires found for this spot
                 </div>
               ) : (
-                questionnaires.map((q) => (
-                  <div
-                    key={q.questionnaireId}
-                    className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
-                      selectedQuestionnaires.has(q.questionnaireId)
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={selectedQuestionnaires.has(q.questionnaireId)}
-                      onCheckedChange={() => handleToggleQuestionnaire(q.questionnaireId)}
-                    />
-                    <div className="flex-1">
-                      <div className="font-mono text-sm font-medium text-gray-900">
-                        {q.questionnaireId}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Interview #{q.sequenceNumber}
-                      </div>
-                    </div>
-                    {q.assignedInterviewerId ? (
-                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${getInterviewerColor(q.assignedInterviewerId)}`}>
-                        <div className="flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          {q.assignedInterviewerName}
+                questionnaires.map((q) => {
+                  const displayId = getDisplayId(q);
+                  return (
+                    <div
+                      key={q.questionnaireId}
+                      className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
+                        selectedQuestionnaires.has(q.questionnaireId)
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      aria-label={`${displayId !== null ? `Interview number ${displayId}` : `Questionnaire ${q.questionnaireId}`}, ${q.assignedInterviewerId ? `assigned to ${q.assignedInterviewerName}` : 'unassigned'}`}
+                    >
+                      <Checkbox
+                        checked={selectedQuestionnaires.has(q.questionnaireId)}
+                        onCheckedChange={() => handleToggleQuestionnaire(q.questionnaireId)}
+                        aria-label={`Select ${displayId !== null ? `interview ${displayId}` : `questionnaire ${q.questionnaireId}`}`}
+                      />
+                      <div className="flex-1">
+                        <div 
+                          className="text-sm font-semibold text-gray-900"
+                          aria-label={displayId !== null ? `Interview number ${displayId}` : `Questionnaire ${q.questionnaireId}`}
+                        >
+                          {displayId !== null ? `Interview #${displayId}` : q.questionnaireId}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Slot #{q.sequenceNumber}
                         </div>
                       </div>
-                    ) : (
-                      <div className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                        Unassigned
-                      </div>
-                    )}
-                  </div>
-                ))
+                      {q.assignedInterviewerId ? (
+                        <div 
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getInterviewerColor(q.assignedInterviewerId)}`}
+                          aria-label={`Assigned to ${q.assignedInterviewerName}`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            {q.assignedInterviewerName}
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600"
+                          aria-label="Unassigned"
+                        >
+                          Unassigned
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </>

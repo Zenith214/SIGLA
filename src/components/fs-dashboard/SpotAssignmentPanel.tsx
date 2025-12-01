@@ -281,10 +281,12 @@ export default function SpotAssignmentPanel({
                 {/* Spot Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{spot.spotName}</h4>
+                    <h4 className="font-semibold text-gray-900 mb-1" aria-label={`Spot ${spot.spotName}`}>
+                      {spot.spotName}
+                    </h4>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                       <MapPin className="h-3 w-3" />
-                      <span className="font-mono text-xs">
+                      <span className="font-mono text-xs" aria-label={`Location coordinates: ${spot.startingPoint.lat.toFixed(4)}, ${spot.startingPoint.lng.toFixed(4)}`}>
                         {spot.startingPoint.lat.toFixed(4)}, {spot.startingPoint.lng.toFixed(4)}
                       </span>
                     </div>
@@ -297,6 +299,7 @@ export default function SpotAssignmentPanel({
                         ? "bg-blue-100 text-blue-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
+                    aria-label={`Status: ${spot.status.replace("_", " ")}`}
                   >
                     {spot.status.replace("_", " ")}
                   </span>

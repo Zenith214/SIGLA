@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from '@/lib/supabase';
 import { formatQuestionnaireId } from '@/utils/questionnaireIdParser';
 import { getSectionOrder } from '@/app/survey/forms/utils/sectionAssignment';
+import { calculateDisplayId } from '@/utils/displayIdCalculator';
 
 /**
  * Generate Synthetic Survey Data
@@ -297,8 +298,21 @@ async function generateSurveyResponse(
       lng: spotLocation.lng + (Math.random() - 0.5) * 0.002
     };
 
+    // Calculate display_id from full_id for CSIS algorithms
+    const displayId = calculateDisplayId(questionnaireId);
+    
+    // Fallback: if display_id is null or out of range, use passed questionnaireNumber
+    let questionnaireNumberForCSIS: number;
+    if (displayId === null || displayId < 1 || displayId > 150) {
+      console.warn(`⚠️ Display ID is ${displayId === null ? 'null' : 'out of range'} for ${questionnaireId}, using fallback questionnaire_number: ${questionnaireNumber}`);
+      questionnaireNumberForCSIS = questionnaireNumber;
+    } else {
+      questionnaireNumberForCSIS = displayId;
+      console.log(`✅ Using display_id ${displayId} for CSIS Section Order Randomization in synthetic data`);
+    }
+
     // Get randomized section order using CSIS methodology
-    const sections = getSectionOrder(questionnaireNumber);
+    const sections = getSectionOrder(questionnaireNumberForCSIS);
 
     // Generate section data
     const sectionData: any = {};

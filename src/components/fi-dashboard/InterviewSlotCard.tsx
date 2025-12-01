@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CheckCircle, Clock, AlertTriangle, MapPin, PlayCircle, History } from "lucide-react";
 import { VisitStatusModal } from "./VisitStatusModal";
 import { VisitHistoryDisplay } from "./VisitHistoryDisplay";
+import { calculateDisplayId } from "@/utils/displayIdCalculator";
 
 interface Visit {
   visitId: number;
@@ -20,6 +21,7 @@ interface Interview {
   status: string;
   visitCount: number;
   visits?: Visit[];
+  display_id?: number | null;
 }
 
 interface InterviewSlotCardProps {
@@ -33,6 +35,25 @@ interface InterviewSlotCardProps {
 export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUpdate }: InterviewSlotCardProps) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Get display ID with fallback logic
+  const getDisplayId = (): number | null => {
+    // First, try to use display_id from API response
+    if (interview.display_id !== undefined && interview.display_id !== null) {
+      return interview.display_id;
+    }
+    
+    // Fallback: calculate display_id from questionnaireId
+    const calculated = calculateDisplayId(interview.questionnaireId);
+    if (calculated !== null) {
+      return calculated;
+    }
+    
+    // Ultimate fallback: return null (will show full_id)
+    return null;
+  };
+
+  const displayId = getDisplayId();
 
   // Determine status display
   const getStatusDisplay = () => {
@@ -136,8 +157,11 @@ export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUp
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-mono font-semibold text-gray-900">
-                {interview.questionnaireId}
+              <span 
+                className="text-sm font-semibold text-gray-900"
+                aria-label={displayId !== null ? `Interview number ${displayId}` : `Questionnaire ${interview.questionnaireId}`}
+              >
+                {displayId !== null ? `Interview #${displayId}` : interview.questionnaireId}
               </span>
               <span className="text-xs text-gray-500">
                 Slot #{interview.sequenceNumber}

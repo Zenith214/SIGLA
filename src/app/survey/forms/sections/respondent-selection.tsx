@@ -8,6 +8,7 @@ import { selectRespondentKishGrid, getKishGridErrorMessage, isKishGridErrorRetry
 import { useGeotagging } from "../utils/useGeotagging"
 import { parseGPSCaptureError, getGPSCaptureErrorMessage, isGPSCaptureErrorRetryable, GPSCaptureErrorType } from "../utils/gpsVerification"
 import { ManualLocationPicker } from "./ManualLocationPicker"
+import { calculateDisplayId } from "@/utils/displayIdCalculator"
 
 interface GPSCoordinates {
   lat: number
@@ -96,7 +97,18 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
   // Auto-populate gender when survey number changes
   useEffect(() => {
     if (surveyNumber) {
-      const requiredGender = getRequiredGender(extractQuestionnaireNumber(surveyNumber))
+      // Calculate display_id from full_id
+      let displayId = calculateDisplayId(surveyNumber)
+      
+      // Fallback: if display_id is null or out of range, use parsed questionnaire_number
+      if (displayId === null || displayId < 1 || displayId > 150) {
+        console.warn(`⚠️ Display ID fallback triggered for ${surveyNumber}. Display ID: ${displayId}`)
+        const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+        console.warn(`Using parsed questionnaire_number ${questionnaireNumber} as fallback`)
+        displayId = questionnaireNumber
+      }
+      
+      const requiredGender = getRequiredGender(displayId)
       // Update all existing members with the required gender
       setHouseholdMembers(prev => prev.map(member => ({
         ...member,
@@ -121,8 +133,22 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
     setNumberOfMembers(num)
     
-    // Auto-populate gender based on questionnaire number
-    const requiredGender = surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : ""
+    // Auto-populate gender based on display_id
+    let requiredGender = ""
+    if (surveyNumber) {
+      // Calculate display_id from full_id
+      let displayId = calculateDisplayId(surveyNumber)
+      
+      // Fallback: if display_id is null or out of range, use parsed questionnaire_number
+      if (displayId === null || displayId < 1 || displayId > 150) {
+        console.warn(`⚠️ Display ID fallback triggered for ${surveyNumber}. Display ID: ${displayId}`)
+        const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+        console.warn(`Using parsed questionnaire_number ${questionnaireNumber} as fallback`)
+        displayId = questionnaireNumber
+      }
+      
+      requiredGender = getRequiredGender(displayId)
+    }
     
     const newMembers = Array.from({ length: num }, (_, index) => ({
       name: householdMembers[index]?.name || "",
@@ -210,11 +236,19 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
       return
     }
 
-    // Extract questionnaire number from survey number
-    const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+    // Calculate display_id from full_id (surveyNumber)
+    let displayId = calculateDisplayId(surveyNumber)
     
-    // Determine required sex based on questionnaire number (odd = Male, even = Female)
-    const requiredSex = getRequiredGender(questionnaireNumber)
+    // Fallback: if display_id is null or out of range (1-150), use parsed questionnaire_number from full_id
+    if (displayId === null || displayId < 1 || displayId > 150) {
+      console.warn(`⚠️ Display ID fallback triggered for ${surveyNumber}. Display ID: ${displayId}`)
+      const questionnaireNumber = extractQuestionnaireNumber(surveyNumber)
+      console.warn(`Using parsed questionnaire_number ${questionnaireNumber} as fallback for Kish Grid`)
+      displayId = questionnaireNumber
+    }
+    
+    // Determine required sex based on display_id (odd = Male, even = Female)
+    const requiredSex = getRequiredGender(displayId)
     
     // Filter eligible members (age 18+ AND matching required sex)
     const eligibleMembersList = householdMembers.filter((member) => {
@@ -228,13 +262,13 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
     // Check if there are any eligible members of the required sex
     if (eligibleMembersList.length === 0) {
-      alert(`No eligible ${requiredSex.toLowerCase()} household members found.\n\nQuestionnaire #${questionnaireNumber} requires interviewing ${requiredSex.toLowerCase()} respondents only.\n\nPlease ensure:\n- At least one ${requiredSex.toLowerCase()} member is 18 years or older\n- All required information is complete`)
+      alert(`No eligible ${requiredSex.toLowerCase()} household members found.\n\nQuestionnaire #${displayId} requires interviewing ${requiredSex.toLowerCase()} respondents only.\n\nPlease ensure:\n- At least one ${requiredSex.toLowerCase()} member is 18 years or older\n- All required information is complete`)
       return
     }
     
     // Use Kish Grid selection with comprehensive error handling
     try {
-      const result = selectRespondentKishGrid(questionnaireNumber, eligibleMembersList)
+      const result = selectRespondentKishGrid(displayId, eligibleMembersList)
       
       // Prepare eligible members with ages for Kish Grid display
       const eligibleWithAges = eligibleMembersList.map((member) => ({
@@ -305,21 +339,31 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Survey Questionnaire Number</label>
           <div className="text-lg font-semibold text-blue-900">{surveyNumber || "Not provided"}</div>
-          {surveyNumber && (
-            <div className="mt-2 pt-2 border-t border-blue-200">
-              <p className="text-sm text-gray-700">
-                <span className="font-medium">Required Respondent Sex:</span>{" "}
-                <span className="font-semibold text-blue-900">
-                  {getRequiredGender(extractQuestionnaireNumber(surveyNumber))}
-                </span>
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {extractQuestionnaireNumber(surveyNumber) % 2 !== 0 
-                  ? "Odd questionnaire numbers interview male respondents only" 
-                  : "Even questionnaire numbers interview female respondents only"}
-              </p>
-            </div>
-          )}
+          {surveyNumber && (() => {
+            // Calculate display_id from full_id
+            let displayId = calculateDisplayId(surveyNumber)
+            
+            // Fallback: if display_id is null or out of range, use parsed questionnaire_number
+            if (displayId === null || displayId < 1 || displayId > 150) {
+              displayId = extractQuestionnaireNumber(surveyNumber)
+            }
+            
+            return (
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">Required Respondent Sex:</span>{" "}
+                  <span className="font-semibold text-blue-900">
+                    {getRequiredGender(displayId)}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  {displayId % 2 !== 0 
+                    ? "Odd questionnaire numbers interview male respondents only" 
+                    : "Even questionnaire numbers interview female respondents only"}
+                </p>
+              </div>
+            )
+          })()}
         </div>
 
         {/* GPS Capture Section */}
@@ -438,19 +482,39 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
         {/* Household Members */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Household Member Details</h3>
-          {surveyNumber && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <strong>Note:</strong> Only list household members who are{" "}
-                <strong>{getRequiredGender(extractQuestionnaireNumber(surveyNumber)).toLowerCase()}</strong> and{" "}
-                <strong>18 years or older</strong>. The Kish Grid will automatically select from eligible members.
-              </p>
-            </div>
-          )}
+          {surveyNumber && (() => {
+            // Calculate display_id from full_id
+            let displayId = calculateDisplayId(surveyNumber)
+            
+            // Fallback: if display_id is null or out of range, use parsed questionnaire_number
+            if (displayId === null || displayId < 1 || displayId > 150) {
+              displayId = extractQuestionnaireNumber(surveyNumber)
+            }
+            
+            return (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <strong>Note:</strong> Only list household members who are{" "}
+                  <strong>{getRequiredGender(displayId).toLowerCase()}</strong> and{" "}
+                  <strong>18 years or older</strong>. The Kish Grid will automatically select from eligible members.
+                </p>
+              </div>
+            )
+          })()}
           <div className="space-y-4">
             {householdMembers.map((member, index) => {
               const age = member.birthdate ? calculateAge(member.birthdate) : 0
-              const requiredSex = surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : null
+              
+              // Calculate display_id from full_id with fallback
+              let displayIdForMember = null
+              if (surveyNumber) {
+                displayIdForMember = calculateDisplayId(surveyNumber)
+                if (displayIdForMember === null || displayIdForMember < 1 || displayIdForMember > 150) {
+                  displayIdForMember = extractQuestionnaireNumber(surveyNumber)
+                }
+              }
+              
+              const requiredSex = displayIdForMember ? getRequiredGender(displayIdForMember) : null
               const isEligible = age >= 18 && member.gender === requiredSex && member.name.trim() !== ""
               const isWrongSex = member.gender && requiredSex && member.gender !== requiredSex
               
@@ -508,7 +572,7 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                 <div className="mt-3 flex items-center space-x-2 text-sm">
                   <span className="text-gray-600">Sex:</span>
                   <span className="font-semibold text-gray-900">
-                    {surveyNumber ? getRequiredGender(extractQuestionnaireNumber(surveyNumber)) : 'Not set'}
+                    {displayIdForMember ? getRequiredGender(displayIdForMember) : 'Not set'}
                   </span>
                   <span className="text-xs text-gray-500">(auto-set based on questionnaire)</span>
                 </div>

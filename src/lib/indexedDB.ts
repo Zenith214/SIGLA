@@ -1,6 +1,27 @@
 /**
  * IndexedDB utilities for offline survey data storage
  * Implements the CSIS workflow offline-first architecture
+ * 
+ * IMPORTANT: Two-ID System Architecture
+ * =====================================
+ * This module uses the hierarchical full_id (questionnaire_id) as the primary identifier
+ * for all IndexedDB operations. The full_id format is YYYY-BB-SS-QQQ where:
+ * - YYYY: Year
+ * - BB: Barangay ID
+ * - SS: Spot number
+ * - QQQ: Questionnaire number within spot
+ * 
+ * The display_id (1-150) is calculated dynamically for UI display purposes only
+ * and is NOT stored in IndexedDB. All internal operations (put/get/delete/query)
+ * use the full_id to maintain data integrity and traceability.
+ * 
+ * Key Design Decisions:
+ * - Primary Key: Composite key `${questionnaireId}_${cycleId}` where questionnaireId is the full_id
+ * - Index: 'by-questionnaire' index uses full_id (questionnaireId) for efficient lookups
+ * - All CRUD operations accept questionnaireId parameter which is the full_id
+ * - No display_id is stored or used in any IndexedDB operations
+ * 
+ * @see Requirements 4.2, 4.4 - Internal operations must use full_id
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
@@ -51,8 +72,8 @@ export interface SurveyData {
 }
 
 export interface SurveyRecord {
-  id: string; // `${questionnaireId}_${cycleId}`
-  questionnaireId: string;
+  id: string; // Composite key: `${questionnaireId}_${cycleId}` where questionnaireId is the full_id (YYYY-BB-SS-QQQ)
+  questionnaireId: string; // IMPORTANT: This is the full_id (YYYY-BB-SS-QQQ), NOT the display_id. Used as primary identifier for all operations.
   cycleId: number;
   spotId: number;
   status: SurveyRecordStatus;
@@ -64,13 +85,14 @@ export interface SurveyRecord {
 }
 
 // IndexedDB Schema definition
+// IMPORTANT: All keys and indexes use full_id (questionnaire_id), not display_id
 interface SurveyDBSchema extends DBSchema {
   [STORE_NAME]: {
-    key: string;
+    key: string; // Composite key: `${questionnaireId}_${cycleId}` where questionnaireId is full_id
     value: SurveyRecord;
     indexes: {
       'by-status': SurveyRecordStatus;
-      'by-questionnaire': string;
+      'by-questionnaire': string; // Index on full_id (questionnaireId) for efficient lookups
       'by-cycle': number;
       'by-spot': number;
     };
@@ -128,6 +150,15 @@ export async function initDB(): Promise<IDBPDatabase<SurveyDBSchema>> {
 /**
  * Create a new survey record in IndexedDB
  * Does NOT automatically log a visit - visits should be logged explicitly when meaningful progress is made
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @param spotId - The spot ID
+ * @param initialData - Optional initial survey data
+ * @param verificationLocation - Optional GPS coordinates for verification
+ * @returns The created survey record
+ * 
+ * IMPORTANT: Uses full_id as primary identifier (Requirement 4.2)
  */
 export async function createSurveyRecord(
   questionnaireId: string,
@@ -171,29 +202,47 @@ export async function createSurveyRecord(
 /**
  * Get a survey record by ID
  * Returns complete record including verificationLocation if present
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @returns The survey record or undefined if not found
+ * 
+ * IMPORTANT: Uses full_id for lookup (Requirement 4.4)
  */
 export async function getSurveyRecord(
   questionnaireId: string,
   cycleId: number
 ): Promise<SurveyRecord | undefined> {
   const db = await initDB();
-  const id = `${questionnaireId}_${cycleId}`;
+  const id = `${questionnaireId}_${cycleId}`; // Composite key using full_id
   return await db.get(STORE_NAME, id);
 }
 
 /**
  * Get a survey record by questionnaire ID (searches across all cycles)
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @returns The survey record or undefined if not found
+ * 
+ * IMPORTANT: Uses full_id with 'by-questionnaire' index (Requirement 4.4)
  */
 export async function getSurveyRecordByQuestionnaire(
   questionnaireId: string
 ): Promise<SurveyRecord | undefined> {
   const db = await initDB();
   const index = db.transaction(STORE_NAME).store.index('by-questionnaire');
-  return await index.get(questionnaireId);
+  return await index.get(questionnaireId); // Query using full_id
 }
 
 /**
  * Update an existing survey record
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @param updates - Partial updates to apply to the record
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id for get and put operations (Requirement 4.4)
  */
 export async function updateSurveyRecord(
   questionnaireId: string,
@@ -201,9 +250,9 @@ export async function updateSurveyRecord(
   updates: Partial<Omit<SurveyRecord, 'id' | 'questionnaireId' | 'cycleId' | 'createdAt'>>
 ): Promise<SurveyRecord> {
   const db = await initDB();
-  const id = `${questionnaireId}_${cycleId}`;
+  const id = `${questionnaireId}_${cycleId}`; // Composite key using full_id
   
-  const existing = await db.get(STORE_NAME, id);
+  const existing = await db.get(STORE_NAME, id); // Get using full_id
   if (!existing) {
     throw new Error(`Survey record not found: ${id}`);
   }
@@ -214,13 +263,20 @@ export async function updateSurveyRecord(
     updatedAt: new Date(),
   };
   
-  await db.put(STORE_NAME, updated);
+  await db.put(STORE_NAME, updated); // Put using full_id
   return updated;
 }
 
 /**
  * Update survey data (partial update of surveyData field)
  * Supports updating verificationLocation and all other survey data fields
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @param dataUpdates - Partial updates to apply to the survey data
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id for get and put operations (Requirement 4.4)
  */
 export async function updateSurveyData(
   questionnaireId: string,
@@ -228,9 +284,9 @@ export async function updateSurveyData(
   dataUpdates: Partial<SurveyData>
 ): Promise<SurveyRecord> {
   const db = await initDB();
-  const id = `${questionnaireId}_${cycleId}`;
+  const id = `${questionnaireId}_${cycleId}`; // Composite key using full_id
   
-  const existing = await db.get(STORE_NAME, id);
+  const existing = await db.get(STORE_NAME, id); // Get using full_id
   if (!existing) {
     throw new Error(`Survey record not found: ${id}`);
   }
@@ -245,7 +301,7 @@ export async function updateSurveyData(
     updatedAt: new Date(),
   };
   
-  await db.put(STORE_NAME, updated);
+  await db.put(STORE_NAME, updated); // Put using full_id
   
   // Log if GPS verification data was updated
   if (dataUpdates.verificationLocation) {
@@ -257,6 +313,15 @@ export async function updateSurveyData(
 
 /**
  * Add a visit to a survey record
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @param outcome - The visit outcome
+ * @param notes - Visit notes
+ * @param location - Optional GPS location of the visit
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id for get and put operations (Requirement 4.4)
  */
 export async function addVisit(
   questionnaireId: string,
@@ -266,9 +331,9 @@ export async function addVisit(
   location?: { lat: number; lng: number }
 ): Promise<SurveyRecord> {
   const db = await initDB();
-  const id = `${questionnaireId}_${cycleId}`;
+  const id = `${questionnaireId}_${cycleId}`; // Composite key using full_id
   
-  const existing = await db.get(STORE_NAME, id);
+  const existing = await db.get(STORE_NAME, id); // Get using full_id
   if (!existing) {
     throw new Error(`Survey record not found: ${id}`);
   }
@@ -287,12 +352,19 @@ export async function addVisit(
     updatedAt: new Date(),
   };
   
-  await db.put(STORE_NAME, updated);
+  await db.put(STORE_NAME, updated); // Put using full_id
   return updated;
 }
 
 /**
  * Update the status of a survey record
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @param status - The new status
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id via updateSurveyRecord (Requirement 4.4)
  */
 export async function updateStatus(
   questionnaireId: string,
@@ -304,6 +376,12 @@ export async function updateStatus(
 
 /**
  * Mark a survey record as completed and pending sync
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id via updateSurveyRecord (Requirement 4.4)
  */
 export async function markCompletedPendingSync(
   questionnaireId: string,
@@ -316,6 +394,12 @@ export async function markCompletedPendingSync(
 
 /**
  * Mark a survey record as synced
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @returns The updated survey record
+ * 
+ * IMPORTANT: Uses full_id via updateSurveyRecord (Requirement 4.4)
  */
 export async function markSynced(
   questionnaireId: string,
@@ -377,14 +461,19 @@ export async function getPendingSyncRecords(): Promise<SurveyRecord[]> {
 
 /**
  * Delete a survey record
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * 
+ * IMPORTANT: Uses full_id for delete operation (Requirement 4.4)
  */
 export async function deleteSurveyRecord(
   questionnaireId: string,
   cycleId: number
 ): Promise<void> {
   const db = await initDB();
-  const id = `${questionnaireId}_${cycleId}`;
-  await db.delete(STORE_NAME, id);
+  const id = `${questionnaireId}_${cycleId}`; // Composite key using full_id
+  await db.delete(STORE_NAME, id); // Delete using full_id
 }
 
 /**
@@ -418,6 +507,12 @@ export async function getDBStats(): Promise<{
 
 /**
  * Check if a record exists
+ * 
+ * @param questionnaireId - The full_id (YYYY-BB-SS-QQQ format), NOT the display_id
+ * @param cycleId - The survey cycle ID
+ * @returns True if the record exists, false otherwise
+ * 
+ * IMPORTANT: Uses full_id via getSurveyRecord (Requirement 4.4)
  */
 export async function recordExists(
   questionnaireId: string,
