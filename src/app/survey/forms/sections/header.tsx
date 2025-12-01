@@ -168,14 +168,6 @@ export function Header({ user, currentSection }: HeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Location Status (visible outside dropdown for quick glance) */}
-            <div className="hidden md:flex items-center space-x-2 text-white">
-              {getLocationStatusDisplay()}
-            </div>
-
-            {/* Separator */}
-            <div className="text-gray-400">|</div>
-
             {/* User Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -187,9 +179,6 @@ export function Header({ user, currentSection }: HeaderProps) {
                   />
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-white">{user.name}</p>
-                    <p className="text-xs text-gray-300">
-                      {user.role} • {user.id}
-                    </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-300" />
                 </Button>
@@ -197,8 +186,6 @@ export function Header({ user, currentSection }: HeaderProps) {
               <DropdownMenuContent align="end" className="w-64 bg-card border-border shadow-lg">
                 <div className="p-4">
                   <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                  <p className="text-xs text-gray-600">{user.role}</p>
-                  <p className="text-xs text-gray-600">{user.id}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={getCurrentLocation} disabled={locationStatus === 'requesting'} className="cursor-pointer">

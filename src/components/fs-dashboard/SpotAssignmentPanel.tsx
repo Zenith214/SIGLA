@@ -56,6 +56,8 @@ export default function SpotAssignmentPanel({
   const [loadingFIs, setLoadingFIs] = useState(false);
   const [assigningSpots, setAssigningSpots] = useState<Set<number>>(new Set());
   const [managingSpot, setManagingSpot] = useState<{ spotId: number; spotName: string } | null>(null);
+  const [assignedBarangayIds, setAssignedBarangayIds] = useState<number[]>([]);
+  const [isSupervisor, setIsSupervisor] = useState(false);
 
   // Fetch barangays when cycleId changes
   useEffect(() => {
@@ -70,27 +72,56 @@ export default function SpotAssignmentPanel({
     
     setLoadingBarangays(true);
     try {
-      // Fetch survey targets for the current cycle
-      const response = await fetch(`/api/survey-targets?cycleId=${cycleId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch survey targets");
+      // First, try to fetch supervisor's assigned barangays
+      const supervisorResponse = await fetch(`/api/supervisor-assignments/my-barangays?cycle_id=${cycleId}`);
+      
+      if (supervisorResponse.ok) {
+        // User is a supervisor - fetch their assigned barangays
+        setIsSupervisor(true);
+        const supervisorData = await supervisorResponse.json();
+        const assignedBarangays = supervisorData.data || [];
+        
+        // Store assigned barangay IDs for permission checks
+        setAssignedBarangayIds(assignedBarangays.map((b: any) => b.barangay_id));
+        
+        // Fetch all survey targets to show all barangays (read-only for non-assigned)
+        const response = await fetch(`/api/survey-targets?cycleId=${cycleId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch survey targets");
+        }
+        const data = await response.json();
+        const targets = data.targets || data;
+        
+        setBarangays(
+          targets.map((target: any) => ({
+            id: target.barangayId || target.barangay_id,
+            name: target.barangayName || target.barangay_name,
+          }))
+        );
+      } else if (supervisorResponse.status === 403) {
+        // Not a supervisor - show all barangays with full access (admin/other roles)
+        setIsSupervisor(false);
+        const response = await fetch(`/api/survey-targets?cycleId=${cycleId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch survey targets");
+        }
+        const data = await response.json();
+        const targets = data.targets || data;
+        
+        setBarangays(
+          targets.map((target: any) => ({
+            id: target.barangayId || target.barangay_id,
+            name: target.barangayName || target.barangay_name,
+          }))
+        );
+      } else {
+        throw new Error("Failed to fetch barangays");
       }
-      const data = await response.json();
-      
-      // Extract barangays from survey targets
-      const targets = data.targets || data;
-      
-      setBarangays(
-        targets.map((target: any) => ({
-          id: target.barangayId || target.barangay_id,
-          name: target.barangayName || target.barangay_name,
-        }))
-      );
     } catch (error) {
-      console.error("Error fetching survey targets:", error);
+      console.error("Error fetching barangays:", error);
       toast({
         title: "Error",
-        description: "Failed to load survey targets for this cycle",
+        description: "Failed to load barangays for this cycle",
         variant: "destructive",
       });
     } finally {
@@ -177,6 +208,10 @@ export default function SpotAssignmentPanel({
   const filteredSpots = selectedBarangay
     ? spots.filter((spot) => spot.barangayName === selectedBarangay)
     : [];
+
+  // Check if current barangay is editable by the supervisor
+  const selectedBarangayObj = barangays.find(b => b.name === selectedBarangay);
+  const canEditCurrentBarangay = !isSupervisor || (selectedBarangayObj && assignedBarangayIds.includes(selectedBarangayObj.id));
 
   if (!cycleId) {
     return (
@@ -295,6 +330,8 @@ export default function SpotAssignmentPanel({
                     size="sm"
                     className="w-full"
                     onClick={() => setManagingSpot({ spotId: spot.spotId, spotName: spot.spotName })}
+                    disabled={!canEditCurrentBarangay}
+                    title={!canEditCurrentBarangay ? "You can only edit spots in your assigned barangays" : ""}
                   >
                     <Users className="h-4 w-4 mr-2" />
                     Manage Questionnaire Assignments
@@ -309,7 +346,7 @@ export default function SpotAssignmentPanel({
                         </p>
                       </div>
                     </div>
-                  ) : (
+                  ) : canEditCurrentBarangay ? (
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-gray-400" />
                       <Select
@@ -336,6 +373,13 @@ export default function SpotAssignmentPanel({
                       {assigningSpots.has(spot.spotId) && (
                         <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                       )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                      <AlertCircle className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-600">
+                        Not assigned - View only
+                      </p>
                     </div>
                   )}
                 </div>

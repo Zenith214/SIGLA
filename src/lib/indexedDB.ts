@@ -127,7 +127,7 @@ export async function initDB(): Promise<IDBPDatabase<SurveyDBSchema>> {
 
 /**
  * Create a new survey record in IndexedDB
- * Automatically logs Visit 1 with "Interview Started" outcome
+ * Does NOT automatically log a visit - visits should be logged explicitly when meaningful progress is made
  */
 export async function createSurveyRecord(
   questionnaireId: string,
@@ -140,14 +140,6 @@ export async function createSurveyRecord(
   
   const id = `${questionnaireId}_${cycleId}`;
   const now = new Date();
-  
-  // Create Visit 1 automatically when record is created
-  const visit1: Visit = {
-    visitNumber: 1,
-    timestamp: now,
-    outcome: 'Interview Started',
-    notes: 'First visit - interview initiated',
-  };
   
   // Merge initial data with verification location if provided
   const surveyData: SurveyData = {
@@ -165,14 +157,14 @@ export async function createSurveyRecord(
     cycleId,
     spotId,
     status: 'In Progress',
-    visits: [visit1], // Include Visit 1 automatically
+    visits: [], // Start with no visits - will be logged when respondent demographics is completed
     surveyData,
     createdAt: now,
     updatedAt: now,
   };
   
   await db.add(STORE_NAME, record);
-  console.log(`✅ Created survey record with Visit 1 for ${questionnaireId}${verificationLocation ? ' (with GPS verification)' : ''}`);
+  console.log(`✅ Created survey record for ${questionnaireId}${verificationLocation ? ' (with GPS verification)' : ''} - visit will be logged when respondent demographics is completed`);
   return record;
 }
 

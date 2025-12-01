@@ -35,7 +35,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
   // Get questionnaire context from URL
   const questionnaireIdParam = searchParams.get('questionnaireId')
   const cycleIdParam = searchParams.get('cycleId')
-  const isCallback = !!questionnaireIdParam
+  const isCallback = !!questionnaireIdParam && currentVisitCount > 0 // Only show visit form if there are existing visits
 
   // Ensure client-side rendering
   useEffect(() => {
@@ -222,35 +222,33 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     setIsLoggingVisit(isCallback)
 
     try {
-      // Log visit if this is a callback
-      if (isCallback && outcome) {
+      // Log visit if this is a callback AND outcome is NOT "Interview_Started"
+      // For "Interview_Started", the visit will be logged when demographics is completed
+      if (isCallback && outcome && outcome !== "Interview_Started") {
         await logVisit()
         
-        // If outcome is not "Interview_Started", redirect back to spots dashboard
-        if (outcome !== "Interview_Started") {
-          console.log(`📍 Visit logged with outcome: ${outcome}. Redirecting to spots dashboard...`)
-          
-          // Different messages based on outcome type
-          let message = "Visit logged successfully. ";
-          
-          if (outcome === "Callback_Needed") {
-            message += "You can return later to complete the interview. Remember: up to 3 total visits allowed for callbacks.";
-          } else if (outcome === "No_Qualified_Respondent") {
-            message += "No Qualified Respondent (NQR). Move to the next household following the interval rule (skip one house).";
-          } else if (outcome === "Outright_Refusal") {
-            message += "Outright Refusal (OR). Move to the next household following the interval rule (skip one house).";
-          } else if (outcome === "Household_Moved") {
-            message += "Household moved. Move to the next household following the interval rule (skip one house).";
-          } else {
-            message += "Returning to spots dashboard.";
-          }
-          
-          alert(message);
-          
-          // Redirect back to survey dashboard
-          window.location.href = `/survey`;
-          return;
+        console.log(`📍 Visit logged with outcome: ${outcome}. Redirecting to spots dashboard...`)
+        
+        // Different messages based on outcome type
+        let message = "Visit logged successfully. ";
+        
+        if (outcome === "Callback_Needed") {
+          message += "You can return later to complete the interview. Remember: up to 3 total visits allowed for callbacks.";
+        } else if (outcome === "No_Qualified_Respondent") {
+          message += "No Qualified Respondent (NQR). Move to the next household following the interval rule (skip one house).";
+        } else if (outcome === "Outright_Refusal") {
+          message += "Outright Refusal (OR). Move to the next household following the interval rule (skip one house).";
+        } else if (outcome === "Household_Moved") {
+          message += "Household moved. Move to the next household following the interval rule (skip one house).";
+        } else {
+          message += "Returning to spots dashboard.";
         }
+        
+        alert(message);
+        
+        // Redirect back to survey dashboard
+        window.location.href = `/survey`;
+        return;
       }
 
       // Check if we already have a survey number (from localStorage after refresh)

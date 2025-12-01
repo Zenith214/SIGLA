@@ -255,14 +255,14 @@ function calculateSectionScores(responses: any[]): any {
         }
       });
 
-      // Count need for action questions (questions containing 'need' or 'action')
+      // Count need for action using binary fields only
+      // Field naming pattern: need_for_action_binary_{indicator}
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('need') || key.toLowerCase().includes('action')) {
+        if (key.startsWith('need_for_action_binary_')) {
           totalNeedActionQuestions++;
-          // Handle various positive response formats
-          const stringValue = String(value).toLowerCase();
-          if (value === 1 || value === true || value === '1' || 
-              stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
+          // Check for "Yes" (English) or "Oo" (Tagalog)
+          const stringValue = String(value).toLowerCase().trim();
+          if (stringValue === 'yes' || stringValue === 'oo') {
             needActionCount++;
           }
         }

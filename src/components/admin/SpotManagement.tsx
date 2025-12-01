@@ -58,6 +58,7 @@ export function SpotManagement() {
   
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [forceDelete, setForceDelete] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export function SpotManagement() {
 
   const openDeleteDialog = (spot: Spot) => {
     setSelectedSpot(spot);
+    setForceDelete(false); // Reset force delete checkbox
     setDeleteDialogOpen(true);
     setMessage(null);
   };
@@ -179,23 +181,43 @@ export function SpotManagement() {
   const handleDelete = async () => {
     if (!selectedSpot) return;
 
+    // Require force delete checkbox if there are completed questionnaires
+    if (selectedSpot.completedCount > 0 && !forceDelete) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Please check the "Force Delete" checkbox to confirm deletion of survey data' 
+      });
+      return;
+    }
+
     setDeleting(true);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/spots?spotId=${selectedSpot.spotId}&confirm=DELETE`, {
+      const url = forceDelete 
+        ? `/api/spots?spotId=${selectedSpot.spotId}&confirm=DELETE&force=true`
+        : `/api/spots?spotId=${selectedSpot.spotId}&confirm=DELETE`;
+      
+      const response = await fetch(url, {
         method: 'DELETE'
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Deleted spot and ${data.deletedQuestionnaires} questionnaires` });
+        const deletedInfo = [
+          `${data.deletedQuestionnaires} questionnaires`,
+          data.deletedResponses ? `${data.deletedResponses} survey responses` : null,
+          data.deletedVisits ? `${data.deletedVisits} visits` : null
+        ].filter(Boolean).join(', ');
+        
+        setMessage({ type: 'success', text: `Deleted spot and ${deletedInfo}` });
         await fetchSpots();
         setTimeout(() => {
           setDeleteDialogOpen(false);
           setMessage(null);
-        }, 1500);
+          setForceDelete(false);
+        }, 2000);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to delete spot' });
       }
@@ -314,7 +336,7 @@ export function SpotManagement() {
                         variant="outline"
                         size="sm"
                         className="text-red-600 hover:bg-red-50"
-                        disabled={spot.completedCount > 0}
+                        title="Delete this spot"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -445,13 +467,46 @@ export function SpotManagement() {
               <AlertDescription className="text-red-800">
                 <strong>Warning:</strong> This will permanently delete the spot "{selectedSpot?.spotName}" 
                 and all {selectedSpot?.totalCount} associated questionnaires.
+                
+                {selectedSpot && selectedSpot.totalCount > 0 && (
+                  <div className="mt-3 space-y-1">
+                    <div><strong>Questionnaire Status:</strong></div>
+                    <ul className="list-disc list-inside text-sm">
+                      <li>Completed: {selectedSpot.completedCount}</li>
+                      <li>In Progress: {selectedSpot.questionnaires?.filter(q => q.status === 'In_Progress').length || 0}</li>
+                      <li>Pending: {selectedSpot.questionnaires?.filter(q => q.status === 'Pending').length || 0}</li>
+                    </ul>
+                  </div>
+                )}
+                
                 {selectedSpot && selectedSpot.completedCount > 0 && (
-                  <div className="mt-2">
-                    <strong>Cannot delete:</strong> This spot has {selectedSpot.completedCount} completed questionnaires with survey responses.
+                  <div className="mt-2 font-semibold text-red-900">
+                    ⚠️ Warning: This spot has {selectedSpot.completedCount} completed questionnaires with submitted survey data!
                   </div>
                 )}
               </AlertDescription>
             </Alert>
+
+            {selectedSpot && selectedSpot.completedCount > 0 && (
+              <div className="border-2 border-red-600 bg-red-100 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="forceDelete"
+                    checked={forceDelete}
+                    onChange={(e) => setForceDelete(e.target.checked)}
+                    className="mt-1 h-5 w-5 text-red-600 border-red-300 rounded focus:ring-red-500"
+                  />
+                  <label htmlFor="forceDelete" className="text-sm text-red-900 font-medium cursor-pointer">
+                    <div className="font-bold text-base mb-1">WARNING: FORCE DELETE - PERMANENT DATA LOSS</div>
+                    <div>
+                      I understand that this will <strong>permanently delete all survey responses, visits, and questionnaires</strong> associated with this spot. 
+                      This action <strong>CANNOT be undone</strong> and will result in loss of {selectedSpot.completedCount} completed survey(s).
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {message && (
               <Alert className={message.type === 'success' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}>
@@ -470,7 +525,10 @@ export function SpotManagement() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setForceDelete(false);
+              }}
               disabled={deleting}
             >
               Cancel
@@ -478,9 +536,10 @@ export function SpotManagement() {
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={deleting || (selectedSpot?.completedCount || 0) > 0}
+              disabled={deleting || (!!selectedSpot && selectedSpot.completedCount > 0 && !forceDelete)}
+              className={forceDelete && selectedSpot && selectedSpot.completedCount > 0 ? 'bg-red-700 hover:bg-red-800' : ''}
             >
-              {deleting ? 'Deleting...' : 'Delete Spot'}
+              {deleting ? 'Deleting...' : forceDelete ? 'FORCE DELETE' : 'Delete Spot'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { User, ArrowLeft } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import type { SurveyData } from "../page"
+import { getSurveyRecordByQuestionnaire, addVisit } from "@/lib/indexedDB"
 
 interface RespondentDemographicsProps {
   data: SurveyData
@@ -12,6 +14,10 @@ interface RespondentDemographicsProps {
 }
 
 export function RespondentDemographics({ data, onUpdate, onNext, onBack }: RespondentDemographicsProps) {
+  const searchParams = useSearchParams()
+  const questionnaireIdParam = searchParams.get('questionnaireId')
+  const cycleIdParam = searchParams.get('cycleId')
+  
   const [demographics, setDemographics] = useState({
     age: data.respondentDemographics?.age ?? 0,
     birthdate: data.respondentDemographics?.birthdate ?? "",
@@ -21,6 +27,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
     householdIncome: data.respondentDemographics?.householdIncome ?? "",
     purok: data.respondentDemographics?.purok ?? ""
   })
+  const [isLoggingVisit, setIsLoggingVisit] = useState(false)
 
   // Update local state when data changes
   useEffect(() => {
@@ -34,16 +41,90 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
     setDemographics(updatedDemographics)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate required fields
     if (!demographics.educationalAttainment || !demographics.householdIncome) {
       alert("Please complete all required demographic information.")
       return
     }
 
-    // Update survey data
-    onUpdate("respondentDemographics", demographics)
-    onNext()
+    setIsLoggingVisit(true)
+
+    try {
+      // Update survey data first
+      onUpdate("respondentDemographics", demographics)
+
+      // Log Visit 1 if this is a new survey (not a callback) and no visits exist yet
+      if (questionnaireIdParam && cycleIdParam) {
+        const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
+        
+        // Only log Visit 1 if no visits exist yet (new survey)
+        if (record && record.visits.length === 0) {
+          console.log(`📝 Logging Visit 1 for new survey ${questionnaireIdParam}`)
+          
+          // Get current location if available
+          let location = null
+          if (navigator.geolocation) {
+            try {
+              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  timeout: 5000,
+                  enableHighAccuracy: false,
+                })
+              })
+              location = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }
+            } catch (error) {
+              console.log("Could not get location for visit logging:", error)
+            }
+          }
+
+          // Log to IndexedDB
+          await addVisit(
+            questionnaireIdParam,
+            parseInt(cycleIdParam),
+            'Interview Started',
+            'Visit 1 - Respondent demographics completed',
+            location || undefined
+          )
+
+          // Log to API
+          try {
+            const response = await fetch("/api/visits", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                questionnaireId: questionnaireIdParam,
+                outcome: 'Interview Started',
+                notes: 'Visit 1 - Respondent demographics completed',
+                location,
+              }),
+            })
+
+            if (response.ok) {
+              console.log(`✅ Visit 1 logged successfully for ${questionnaireIdParam}`)
+            } else {
+              console.warn(`⚠️ Failed to log visit to API, but continuing...`)
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error logging visit to API:`, error)
+            // Continue anyway - IndexedDB has the visit logged
+          }
+        } else if (record && record.visits.length > 0) {
+          console.log(`ℹ️ Visit already logged for ${questionnaireIdParam}, skipping duplicate`)
+        }
+      }
+
+      // Continue to next section
+      onNext()
+    } catch (error) {
+      console.error("Error in handleSubmit:", error)
+      alert("An error occurred. Please try again.")
+    } finally {
+      setIsLoggingVisit(false)
+    }
   }
 
   return (
@@ -180,9 +261,10 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
           <div className="flex justify-end mt-6">
             <button
               onClick={handleSubmit}
-              className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+              disabled={isLoggingVisit}
+              className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue to Survey →
+              {isLoggingVisit ? 'Saving...' : 'Continue to Survey →'}
             </button>
           </div>
         </div>

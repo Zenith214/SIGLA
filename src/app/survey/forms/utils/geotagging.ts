@@ -40,13 +40,13 @@ export class GeotaggingService {
   async getCurrentLocation(options: GeotaggingOptions = {}): Promise<LocationData> {
     const {
       enableHighAccuracy = true,
-      timeout = 10000,
+      timeout = 30000, // Increased default to 30 seconds
       maximumAge = 60000,
       requireAddress = true
     } = options
 
-    // Check if we have a valid cached location
-    if (this.locationCache && this.isCacheValid()) {
+    // Check if we have a valid cached location (only if maximumAge allows it)
+    if (maximumAge > 0 && this.locationCache && this.isCacheValid()) {
       return this.locationCache
     }
 
@@ -56,8 +56,14 @@ export class GeotaggingService {
         return
       }
 
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Location request timed out. Please ensure GPS is enabled and you have a clear view of the sky.'))
+      }, timeout)
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          clearTimeout(timeoutId)
+          
           const locationData: LocationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -80,16 +86,17 @@ export class GeotaggingService {
           resolve(locationData)
         },
         (error) => {
+          clearTimeout(timeoutId)
           let errorMessage = 'Unknown error occurred'
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = 'Location permission denied'
+              errorMessage = 'Location permission denied. Please enable location access in your browser settings.'
               break
             case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable'
+              errorMessage = 'Location information unavailable. Please check your GPS settings and try again.'
               break
             case error.TIMEOUT:
-              errorMessage = 'Location request timed out'
+              errorMessage = 'Location request timed out. Please ensure GPS is enabled and you have a clear view of the sky.'
               break
           }
           reject(new Error(errorMessage))

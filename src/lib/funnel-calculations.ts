@@ -414,7 +414,10 @@ export function calculateSatisfactionFromAvailed(
 }
 
 /**
- * Calculates need for action metrics from survey responses.
+ * Calculates need for action metrics from survey responses using binary field.
+ * Uses only the need_for_action_binary field to determine if improvement is needed.
+ * 
+ * Formula: NFA Rate = (COUNT where binary = "Yes" or "Oo") / (TOTAL COUNT) × 100
  * 
  * @param responses - Array of survey responses
  * @param serviceArea - Service area key
@@ -439,15 +442,22 @@ export function calculateNeedForActionMetrics(
       if (section.section_key !== serviceArea) return;
       
       const data = parseSectionData(section.data);
-      const needForActionQuestions = findNeedForActionQuestions(data);
       
-      // If respondent provided any non-empty answer to need for action questions
-      for (const questionKey of needForActionQuestions) {
-        const answer = data[questionKey];
-        if (answer && String(answer).trim() && 
-            !['none', 'n/a', 'wala', 'nan'].includes(String(answer).toLowerCase())) {
+      // Look for need_for_action_binary fields for this service area
+      // Field naming pattern: need_for_action_binary_{indicator}
+      const binaryFields = Object.keys(data).filter(key => 
+        key.startsWith('need_for_action_binary_')
+      );
+      
+      // If respondent answered "Yes" or "Oo" to any binary question, they need action
+      for (const fieldKey of binaryFields) {
+        const answer = data[fieldKey];
+        const stringValue = String(answer).toLowerCase().trim();
+        
+        // Check for "Yes" (English) or "Oo" (Tagalog)
+        if (stringValue === 'yes' || stringValue === 'oo') {
           respondentsWithNeed.add(respondentId);
-          break;
+          break; // No need to check other binary fields for this respondent
         }
       }
     });
@@ -455,7 +465,9 @@ export function calculateNeedForActionMetrics(
   
   const total = allRespondentIds.size;
   const count = respondentsWithNeed.size;
-  const percentage = total > 0 ? Math.round((count / total) * 1000) / 10 : null;
+  
+  // Handle edge case: return 0 when no responses exist
+  const percentage = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
   
   return {
     count,

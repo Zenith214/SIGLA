@@ -375,11 +375,20 @@ async function getExportData(client: any, whereClause: string, queryParams: any[
     if (row.section_data && row.section_key) {
       try {
         const parsedData = JSON.parse(row.section_data);
-        Object.keys(parsedData).forEach((key) => {
-          responseMap.get(row.response_id)[`${row.section_key}_${key}`] = parsedData[key];
-        });
+        
+        // Scenario 8: Validate that parsed data is an object
+        if (parsedData && typeof parsedData === 'object') {
+          Object.keys(parsedData).forEach((key) => {
+            responseMap.get(row.response_id)[`${row.section_key}_${key}`] = parsedData[key];
+          });
+        } else {
+          console.warn(`Malformed JSONB data in section ${row.section_key} (response ${row.response_id}): not an object`);
+          responseMap.get(row.response_id)[`${row.section_key}_error`] = 'malformed_data';
+        }
       } catch (e) {
-        responseMap.get(row.response_id)[`${row.section_key}_raw`] = row.section_data;
+        // Scenario 8: Log and mark malformed data
+        console.warn(`Failed to parse JSONB data in section ${row.section_key} (response ${row.response_id}):`, e);
+        responseMap.get(row.response_id)[`${row.section_key}_error`] = 'parse_error';
       }
     }
   });
@@ -414,6 +423,7 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
   // Aggregate section responses
   const sectionAggregations: any = {};
   const questionAggregations: any = {};
+  let malformedDataCount = 0;
 
   result.rows.forEach((row: any) => {
     if (row.section_key) {
@@ -435,6 +445,14 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
       if (row.section_data) {
         try {
           const sectionData = JSON.parse(row.section_data);
+          
+          // Scenario 8: Validate that parsed data is an object
+          if (!sectionData || typeof sectionData !== 'object') {
+            console.warn(`Malformed JSONB data in section ${row.section_key} (response ${row.response_id}): not an object, skipping`);
+            malformedDataCount++;
+            return;
+          }
+          
           Object.keys(sectionData).forEach((questionKey) => {
             const fullKey = `${row.section_key}_${questionKey}`;
 
@@ -458,7 +476,9 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
             }
           });
         } catch (e) {
-          // Handle non-JSON data
+          // Scenario 8: Log and skip malformed JSONB data
+          console.warn(`Failed to parse JSONB data in section ${row.section_key} (response ${row.response_id}), skipping:`, e);
+          malformedDataCount++;
         }
       }
     }
@@ -486,11 +506,19 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
     }
   });
 
-  return NextResponse.json({
+  // Scenario 8: Include count of excluded responses in response
+  const response: any = {
     aggregated: {
       sections: sectionAggregations,
       questions: questionAggregations,
       totalResponses: result.rows.length,
     },
-  });
+  };
+
+  if (malformedDataCount > 0) {
+    response.aggregated.malformedDataCount = malformedDataCount;
+    response.aggregated.warning = `Excluded ${malformedDataCount} responses with malformed JSONB data`;
+  }
+
+  return NextResponse.json(response);
 }

@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { Pool } from 'pg';
 import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 import { verifyGPSLocation, validateGPSCoordinates, type GPSCoordinates } from '@/app/survey/forms/utils/gpsVerification';
+import { validateSurveyNFAData } from '@/lib/validation/nfa-storage-validation';
+import { getClientWithRetry, withRetry } from '@/lib/db/retry-utils';
+import {
+  badRequestResponse,
+  missingFieldsResponse,
+  nfaValidationErrorResponse,
+  handleDatabaseError,
+  validateRequiredFields
+} from '@/lib/api/error-responses';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -20,7 +29,6 @@ const pool = new Pool({
 export async function POST(request: NextRequest) {
   let client;
   try {
-    client = await pool.connect();
     const body = await request.json()
     
     const {
@@ -36,13 +44,31 @@ export async function POST(request: NextRequest) {
       spotId
     } = body
 
-    // Validate required fields
-    if (!location || !interviewerId || !barangayId) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      )
+    // Requirement 3.1, 3.2: Validate required fields
+    const missingFields = validateRequiredFields(body, ['location', 'interviewerId', 'barangayId']);
+    if (missingFields.length > 0) {
+      return missingFieldsResponse(missingFields);
     }
+
+    // Requirement 3.3: Validate NFA data structure completeness before storage
+    if (sections) {
+      const nfaValidation = validateSurveyNFAData(sections);
+      if (!nfaValidation.valid) {
+        console.warn('NFA validation errors:', nfaValidation.errors);
+        if (nfaValidation.warnings) {
+          console.warn('NFA validation warnings:', nfaValidation.warnings);
+        }
+        return nfaValidationErrorResponse(nfaValidation.errors, nfaValidation.warnings);
+      }
+      
+      // Log warnings even if validation passes
+      if (nfaValidation.warnings && nfaValidation.warnings.length > 0) {
+        console.warn('NFA validation warnings:', nfaValidation.warnings);
+      }
+    }
+
+    // Requirement 3.3: Get database client with retry logic for connection failures
+    client = await getClientWithRetry(pool, { maxAttempts: 3 });
 
     // Get active survey cycle
     const activeCycle = await getActiveCycle();
@@ -352,11 +378,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Error saving survey response:", error)
-    return NextResponse.json(
-      { error: "Failed to save survey response" },
-      { status: 500 }
-    )
+    // Requirement 3.3: Return appropriate HTTP status codes and error messages
+    return handleDatabaseError(error, 'save survey response');
   } finally {
     if (client) {
       client.release();

@@ -1,5 +1,6 @@
 // Survey validation utilities
 import type { Question } from "../page";
+import { validateSuggestionField, isSuggestionRequired } from "@/lib/validation/nfa-validation";
 
 export interface ValidationError {
   questionId: string;
@@ -9,8 +10,77 @@ export interface ValidationError {
 
 /**
  * Validate a single answer against question requirements
+ * 
+ * Task 12: Enhanced error handling for survey form
+ * - Implements error messages for missing binary answer (Requirement 1.3)
+ * - Implements error messages for "Yes" with empty suggestion (Requirement 1.4)
+ * - Handles form state inconsistencies gracefully (Requirement 6.5)
+ * - Provides user-friendly error message display
+ * 
+ * @param question - The question to validate
+ * @param answer - The answer to validate
+ * @param allAnswers - All answers in the form (needed for conditional validation)
  */
-export function validateAnswer(question: Question, answer: any): ValidationError | null {
+export function validateAnswer(question: Question, answer: any, allAnswers?: Record<string, any>): ValidationError | null {
+  // Special handling for NFA binary questions (Requirement 1.3)
+  if (question.id.startsWith('nfaBinary')) {
+    // This is a binary NFA question - always required
+    if (!answer || answer.trim() === '') {
+      return {
+        questionId: question.id,
+        message: 'Please indicate whether this service needs improvement',
+        type: 'required'
+      };
+    }
+    
+    // Trim the answer for validation
+    const trimmedAnswer = answer.trim();
+    
+    // Validate that it's a valid binary option
+    const isBinaryYes = trimmedAnswer === 'Yes' || trimmedAnswer === 'Oo' || trimmedAnswer === 'Oo (Yes)';
+    const isBinaryNo = trimmedAnswer === 'No' || trimmedAnswer === 'Hindi' || trimmedAnswer === 'Hindi (No)';
+    
+    if (!isBinaryYes && !isBinaryNo) {
+      return {
+        questionId: question.id,
+        message: 'Please select a valid option',
+        type: 'format'
+      };
+    }
+    
+    return null;
+  }
+
+  // Special handling for suggestion fields with conditional validation (Requirements 1.4, 1.5, 6.5)
+  if (question.id.startsWith('suggestions') && question.dependsOn?.startsWith('nfaBinary')) {
+    // This is a suggestion field that depends on a binary NFA question
+    const binaryFieldId = question.dependsOn;
+    const binaryAnswer = allAnswers?.[binaryFieldId];
+    
+    // Handle form state inconsistency gracefully
+    if (!binaryAnswer) {
+      // Binary question not answered yet - don't show error for suggestion field
+      return null;
+    }
+    
+    // Use NFA validation logic (Requirements 1.4, 1.5, 6.4, 6.5)
+    const validationResult = validateSuggestionField(binaryAnswer, answer);
+    if (!validationResult.valid) {
+      return {
+        questionId: question.id,
+        message: validationResult.error || 'Invalid suggestion',
+        type: 'required'
+      };
+    }
+    
+    // If validation passed, continue with normal textarea validation
+    if (answer && answer.trim() !== '') {
+      return validateTextareaAnswer(question, answer);
+    }
+    
+    return null;
+  }
+
   // Skip validation for non-required questions if no answer provided
   if (!question.required && (answer === undefined || answer === null || answer === '')) {
     return null;
@@ -133,12 +203,15 @@ function validateRadioAnswer(question: Question, answer: string): ValidationErro
   }
 
   // Validate that the answer is one of the valid options
-  if (question.options && !question.options.includes(answer)) {
-    return {
-      questionId: question.id,
-      message: 'Please select a valid option',
-      type: 'format'
-    };
+  if (question.options && Array.isArray(question.options)) {
+    const options = question.options as string[];
+    if (!options.includes(answer)) {
+      return {
+        questionId: question.id,
+        message: 'Please select a valid option',
+        type: 'format'
+      };
+    }
   }
 
   return null;
@@ -153,8 +226,9 @@ function validateCheckboxAnswer(question: Question, answer: string[]): Validatio
   }
 
   // Validate that all selected options are valid
-  if (question.options) {
-    const invalidOptions = answer.filter(opt => !question.options!.includes(opt));
+  if (question.options && Array.isArray(question.options)) {
+    const options = question.options as string[];
+    const invalidOptions = answer.filter(opt => !options.includes(opt));
     if (invalidOptions.length > 0) {
       return {
         questionId: question.id,

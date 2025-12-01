@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { Pool } from 'pg';
 import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 import { verifyGPSLocation, GPSCoordinates } from '@/app/survey/forms/utils/gpsVerification';
+import { validateSurveyNFAData } from '@/lib/validation/nfa-storage-validation';
+import { getClientWithRetry } from '@/lib/db/retry-utils';
+import {
+  badRequestResponse,
+  handleDatabaseError,
+  validateRequiredFields
+} from '@/lib/api/error-responses';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -29,25 +36,25 @@ interface SyncResponse {
 export async function POST(request: NextRequest) {
   let client;
   try {
-    client = await pool.connect();
     const body = await request.json();
     
     const { responses } = body;
 
-    // Validate input
+    // Requirement 3.1, 3.2: Validate input structure
     if (!responses || !Array.isArray(responses) || responses.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid request: 'responses' must be a non-empty array" },
-        { status: 400 }
+      return badRequestResponse(
+        "Invalid request: 'responses' must be a non-empty array"
       );
     }
+
+    // Requirement 3.3: Get database client with retry logic for connection failures
+    client = await getClientWithRetry(pool, { maxAttempts: 3 });
 
     // Get active survey cycle
     const activeCycle = await getActiveCycle();
     if (!activeCycle) {
-      return NextResponse.json(
-        { error: "No active survey cycle found. Please set an active cycle before syncing survey responses." },
-        { status: 400 }
+      return badRequestResponse(
+        "No active survey cycle found. Please set an active cycle before syncing survey responses."
       );
     }
 
@@ -71,15 +78,36 @@ export async function POST(request: NextRequest) {
           verificationLocation
         } = response;
 
-        // Validate required fields for this response
-        if (!location || !interviewerId || !barangayId) {
+        // Requirement 3.1, 3.2: Validate required fields for this response
+        const missingFields = validateRequiredFields(response, ['location', 'interviewerId', 'barangayId']);
+        if (missingFields.length > 0) {
           results.push({
             questionnaireId: questionnaireId || 'unknown',
             status: 'error',
-            error: 'Missing required fields (location, interviewerId, or barangayId)'
+            error: `Missing required fields: ${missingFields.join(', ')}`
           });
           failedCount++;
           continue;
+        }
+
+        // Requirement 3.3: Validate NFA data structure completeness before storage
+        if (sections) {
+          const nfaValidation = validateSurveyNFAData(sections);
+          if (!nfaValidation.valid) {
+            console.warn(`NFA validation errors for ${questionnaireId}:`, nfaValidation.errors);
+            results.push({
+              questionnaireId: questionnaireId || 'unknown',
+              status: 'error',
+              error: `NFA validation failed: ${nfaValidation.errors.join('; ')}`
+            });
+            failedCount++;
+            continue;
+          }
+          
+          // Log warnings even if validation passes
+          if (nfaValidation.warnings && nfaValidation.warnings.length > 0) {
+            console.warn(`NFA validation warnings for ${questionnaireId}:`, nfaValidation.warnings);
+          }
         }
 
         // Check if this is an update (multi-visit scenario) or new record
@@ -425,14 +453,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Error in bulk sync:", error);
-    return NextResponse.json(
-      { 
-        error: "Failed to process bulk sync",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    // Requirement 3.3: Return appropriate HTTP status codes and error messages
+    return handleDatabaseError(error, 'process bulk sync');
   } finally {
     if (client) {
       client.release();

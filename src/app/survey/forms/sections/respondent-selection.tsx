@@ -144,7 +144,8 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
     try {
       const locationData = await getLocation({
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: 30000, // Increased to 30 seconds for better reliability
+        maximumAge: 0, // Don't use cached positions for verification
         requireAddress: false // Don't need address, just coordinates
       })
       

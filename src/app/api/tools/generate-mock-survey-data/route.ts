@@ -419,7 +419,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
     }
   }
   
-  sectionData['suggestionsProjects'] = generateRealisticTextareaResponse('projects', needActionScore);
+  // Generate NFA data using two-step generation
+  const nfaProjects = generateNeedForActionData('projects', needActionScore, 'tl');
+  sectionData['need_for_action_binary_projects'] = nfaProjects.binary;
+  sectionData['need_for_action_suggestion_projects'] = nfaProjects.suggestion;
 
   // Debug logging for first response
   if (Math.random() < 0.01) { // Log 1% of responses
@@ -453,7 +456,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
     }
   }
   
-  sectionData['suggestionsFinancial'] = generateRealisticTextareaResponse('financial', needActionScore);
+  // Generate NFA data using two-step generation
+  const nfaFinancial = generateNeedForActionData('financial', needActionScore, 'tl');
+  sectionData['need_for_action_binary_financial'] = nfaFinancial.binary;
+  sectionData['need_for_action_suggestion_financial'] = nfaFinancial.suggestion;
 
   // Part C: Social Programs
   // Use threshold of 0.3 instead of 0.55 to ensure high-performer profiles get "Oo" responses
@@ -470,7 +476,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
     }
   }
   
-  sectionData['suggestionsSocialPrograms'] = generateRealisticTextareaResponse('socialPrograms', needActionScore);
+  // Generate NFA data using two-step generation
+  const nfaSocialPrograms = generateNeedForActionData('socialPrograms', needActionScore, 'tl');
+  sectionData['need_for_action_binary_socialPrograms'] = nfaSocialPrograms.binary;
+  sectionData['need_for_action_suggestion_socialPrograms'] = nfaSocialPrograms.suggestion;
 
   // Part D: Corruption Perception
   // Use threshold of 0.3 instead of 0.7 to ensure high-performer profiles get "Oo (Yes)" responses
@@ -489,14 +498,12 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
         sectionData['satisfactionReportResponse'] = "3";
       }
 
-      sectionData['suggestionsCorruption'] = generateRealisticTextareaResponse('corruption', needActionScore);
+      // Generate NFA data for corruption using two-step generation
+      const nfaCorruption = generateNeedForActionData('corruption', needActionScore, 'tl');
+      sectionData['need_for_action_binary_corruption'] = nfaCorruption.binary;
+      sectionData['need_for_action_suggestion_corruption'] = nfaCorruption.suggestion;
     }
   }
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionProjects'] = needActionScore > 0.5 ? "Oo" : "Hindi";
-  sectionData['needActionFinancial'] = needActionScore > 0.5 ? "Oo" : "Hindi";
-  sectionData['needActionSocialPrograms'] = needActionScore > 0.5 ? "Oo" : "Hindi";
 }
 
 // Generate realistic responses for Disaster Preparedness section
@@ -528,7 +535,10 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
     }
   }
   
-  sectionData['suggestionsDisasterInfo'] = generateRealisticTextareaResponse('disasterInfo', satisfactionScore);
+  // Generate NFA data using two-step generation
+  const nfaDisasterInfo = generateNeedForActionData('disasterInfo', needActionScore, 'en');
+  sectionData['need_for_action_binary_disasterInfo'] = nfaDisasterInfo.binary;
+  sectionData['need_for_action_suggestion_disasterInfo'] = nfaDisasterInfo.suggestion;
 
   // Part B: Evacuation Resources
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
@@ -545,11 +555,10 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
     }
   }
   
-  sectionData['suggestionsEvacuation'] = generateRealisticTextareaResponse('evacuation', satisfactionScore);
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionDisasterInfo'] = needActionScore > 0.5 ? "Yes" : "No";
-  sectionData['needActionEvacuation'] = needActionScore > 0.5 ? "Yes" : "No";
+  // Generate NFA data using two-step generation
+  const nfaEvacuation = generateNeedForActionData('evacuation', needActionScore, 'en');
+  sectionData['need_for_action_binary_evacuation'] = nfaEvacuation.binary;
+  sectionData['need_for_action_suggestion_evacuation'] = nfaEvacuation.suggestion;
 }
 
 // Generate realistic responses for Safety & Peace Order section
@@ -581,7 +590,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsTanods'] = generateRealisticTextareaResponse('tanods', satisfactionScore);
+  // Generate NFA data using two-step generation
+  const nfaTanods = generateNeedForActionData('tanods', needActionScore, 'en');
+  sectionData['need_for_action_binary_tanods'] = nfaTanods.binary;
+  sectionData['need_for_action_suggestion_tanods'] = nfaTanods.suggestion;
 
   // Part B: Lupon (Dispute Resolution)
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
@@ -598,7 +610,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsLupon'] = generateRealisticTextareaResponse('lupon', satisfactionScore);
+  // Generate NFA data using two-step generation
+  const nfaLupon = generateNeedForActionData('lupon', needActionScore, 'en');
+  sectionData['need_for_action_binary_lupon'] = nfaLupon.binary;
+  sectionData['need_for_action_suggestion_lupon'] = nfaLupon.suggestion;
 
   // Part C: Anti-Drug Programs
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
@@ -615,12 +630,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsAntiDrug'] = generateRealisticTextareaResponse('antiDrug', satisfactionScore);
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionTanods'] = needActionScore > 0.5 ? "Yes" : "No";
-  sectionData['needActionLupon'] = needActionScore > 0.5 ? "Yes" : "No";
-  sectionData['needActionAntiDrug'] = needActionScore > 0.5 ? "Yes" : "No";
+  // Generate NFA data using two-step generation
+  const nfaAntiDrug = generateNeedForActionData('antiDrug', needActionScore, 'en');
+  sectionData['need_for_action_binary_antiDrug'] = nfaAntiDrug.binary;
+  sectionData['need_for_action_suggestion_antiDrug'] = nfaAntiDrug.suggestion;
 }
 
 // Generate realistic responses for Social Protection section
@@ -652,7 +665,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsHealthServices'] = generateRealisticTextareaResponse('health', satisfactionScore);
+  // Generate NFA data using two-step generation
+  const nfaHealthServices = generateNeedForActionData('health', needActionScore, 'en');
+  sectionData['need_for_action_binary_healthServices'] = nfaHealthServices.binary;
+  sectionData['need_for_action_suggestion_healthServices'] = nfaHealthServices.suggestion;
 
   // Part B: Women & Children Protection
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
@@ -669,7 +685,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsWomenChildrenProtection'] = generateRealisticTextareaResponse('womenChildren', satisfactionScore);
+  // Generate NFA data using two-step generation
+  const nfaWomenChildrenProtection = generateNeedForActionData('womenChildren', needActionScore, 'en');
+  sectionData['need_for_action_binary_womenChildrenProtection'] = nfaWomenChildrenProtection.binary;
+  sectionData['need_for_action_suggestion_womenChildrenProtection'] = nfaWomenChildrenProtection.suggestion;
 
   // Part C: Community Participation
   // Use threshold of 0.3 to ensure high-performer profiles get "Yes" responses
@@ -686,12 +705,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
     }
   }
   
-  sectionData['suggestionsCommunityParticipation'] = generateRealisticTextareaResponse('community', satisfactionScore);
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionHealthServices'] = needActionScore > 0.5 ? "Yes" : "No";
-  sectionData['needActionWomenChildrenProtection'] = needActionScore > 0.5 ? "Yes" : "No";
-  sectionData['needActionCommunityParticipation'] = needActionScore > 0.5 ? "Yes" : "No";
+  // Generate NFA data using two-step generation
+  const nfaCommunityParticipation = generateNeedForActionData('community', needActionScore, 'en');
+  sectionData['need_for_action_binary_communityParticipation'] = nfaCommunityParticipation.binary;
+  sectionData['need_for_action_suggestion_communityParticipation'] = nfaCommunityParticipation.suggestion;
 }
 
 // Generate realistic responses for Business Friendliness section
@@ -723,10 +740,10 @@ function generateBusinessSectionData(sectionData: { [key: string]: any }, profil
     }
   }
   
-  sectionData['suggestionsBusinessClearance'] = generateRealisticTextareaResponse('business', satisfactionScore);
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionBusinessClearance'] = needActionScore > 0.5 ? "Yes" : "No";
+  // Generate NFA data using two-step generation
+  const nfaBusinessClearance = generateNeedForActionData('business', needActionScore, 'en');
+  sectionData['need_for_action_binary_businessClearance'] = nfaBusinessClearance.binary;
+  sectionData['need_for_action_suggestion_businessClearance'] = nfaBusinessClearance.suggestion;
 }
 
 // Generate realistic responses for Environmental Management section
@@ -758,15 +775,44 @@ function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, p
     }
   }
   
-  sectionData['suggestionsWasteManagement'] = generateRealisticTextareaResponse('waste', satisfactionScore);
-
-  // Add need for action questions for proper scoring
-  sectionData['needActionWasteManagement'] = needActionScore > 0.5 ? "Yes" : "No";
+  // Generate NFA data using two-step generation
+  const nfaWasteManagement = generateNeedForActionData('waste', needActionScore, 'en');
+  sectionData['need_for_action_binary_wasteManagement'] = nfaWasteManagement.binary;
+  sectionData['need_for_action_suggestion_wasteManagement'] = nfaWasteManagement.suggestion;
 }
 
-// Generate realistic textarea responses with more variety
-function generateRealisticTextareaResponse(type: string, score: number): string {
-  const responses = {
+// Generate Need for Action data with two-step generation
+// Step 1: Determine binary value based on needActionScore
+// Step 2: Conditionally generate suggestion based on binary value
+function generateNeedForActionData(
+  type: string,
+  needActionScore: number,
+  language: 'en' | 'tl' = 'en'
+): { binary: string; suggestion: string | null } {
+  // Step 1: Determine binary answer based on needActionScore
+  const binary = needActionScore > 0.5 
+    ? (language === 'tl' ? 'Oo' : 'Yes')
+    : (language === 'tl' ? 'Hindi' : 'No');
+  
+  // Step 2: Generate suggestion conditionally
+  let suggestion: string | null = null;
+  
+  if (binary === 'Yes' || binary === 'Oo') {
+    // Always generate a suggestion when binary is Yes
+    suggestion = generateImprovementSuggestion(type);
+  } else {
+    // 10-15% chance of suggestion when binary is No (using 12.5% average)
+    if (Math.random() < 0.125) {
+      suggestion = generateNeutralComment(type);
+    }
+  }
+  
+  return { binary, suggestion };
+}
+
+// Generate actionable improvement suggestions for "Yes" responses
+function generateImprovementSuggestion(type: string): string {
+  const suggestions = {
     projects: [
       "We need better road quality and more frequent maintenance.",
       "The barangay hall needs renovation and more facilities.",
@@ -886,26 +932,26 @@ function generateRealisticTextareaResponse(type: string, score: number): string 
     ]
   };
 
-  const typeResponses = responses[type as keyof typeof responses] || responses.projects;
-  
-  // Use deterministic selection based on score instead of random
-  const scoreBasedIndex = Math.floor(score * typeResponses.length) % typeResponses.length;
-  const selectedResponse = typeResponses[scoreBasedIndex];
-  
-  // Add slight variation to make responses more unique, but deterministically
-  const variations = [
-    selectedResponse,
-    selectedResponse + " This is important for our community.",
-    selectedResponse + " We hope this can be addressed soon.",
-    selectedResponse + " Many residents have mentioned this concern.",
-    "I think " + selectedResponse.toLowerCase(),
-    "In my opinion, " + selectedResponse.toLowerCase(),
-    selectedResponse + " Thank you for considering our feedback."
+  const typeResponses = suggestions[type as keyof typeof suggestions] || suggestions.projects;
+  return typeResponses[Math.floor(Math.random() * typeResponses.length)];
+}
+
+// Generate neutral/positive comments for "No" responses
+function generateNeutralComment(type: string): string {
+  const neutralComments = [
+    "Service is generally good.",
+    "Keep up the current level of service.",
+    "No major issues to report.",
+    "The service meets our needs.",
+    "We appreciate the current efforts.",
+    "Things are working well overall.",
+    "Satisfied with the current situation.",
+    "The barangay is doing a good job here.",
+    "No complaints at this time.",
+    "Continue the good work."
   ];
   
-  // Use score to determine which variation to use (deterministic)
-  const variationIndex = Math.floor((score * 10) % variations.length);
-  return score > 0.7 ? selectedResponse : variations[variationIndex];
+  return neutralComments[Math.floor(Math.random() * neutralComments.length)];
 }
 
 // Ensure assignment exists for the barangay and interviewer

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Question } from '../page';
+import type { Question } from '@/types/survey';
 import { validateAnswer, type ValidationError } from '../utils/validation';
 
 interface QuestionRendererProps {
@@ -8,27 +8,76 @@ interface QuestionRendererProps {
   onAnswerChange: (value: any) => void;
   isEnabled: boolean;
   showValidation?: boolean;
+  allAnswers?: Record<string, any>; // For conditional validation
 }
 
-export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEnabled, showValidation = false }: QuestionRendererProps) {
+export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEnabled, showValidation = false, allAnswers }: QuestionRendererProps) {
   const [validationError, setValidationError] = useState<ValidationError | null>(null);
   const [touched, setTouched] = useState(false);
   
   const disabledClass = isEnabled ? "" : "opacity-50 pointer-events-none";
   const isSatisfactionQuestion = question.options?.some((opt: string) => ["1", "2", "3", "4", "5"].includes(opt));
 
+  /**
+   * Dynamic Validation Implementation for Task 5
+   * 
+   * This component implements dynamic validation updates for NFA binary questions:
+   * - Requirement 6.1: Removes required validation when binary changes from "Yes" to "No"
+   * - Requirement 6.2: Applies required validation when binary changes from "No" to "Yes"
+   * - Requirement 6.3: Preserves existing text when validation rules change
+   * 
+   * The validation updates happen immediately without page refresh through React's
+   * useEffect hooks that monitor changes to allAnswers (which includes the binary answer).
+   */
+
   // Validate on answer change or when showValidation changes
+  // IMPORTANT: Also re-validate when allAnswers changes (for conditional validation)
   useEffect(() => {
     if (isEnabled && (touched || showValidation)) {
-      const error = validateAnswer(question, currentAnswer);
+      const error = validateAnswer(question, currentAnswer, allAnswers);
       setValidationError(error);
     }
-  }, [currentAnswer, question, isEnabled, touched, showValidation]);
+  }, [currentAnswer, question, isEnabled, touched, showValidation, allAnswers]);
+
+  // Dynamic validation update: Re-validate when binary answer changes
+  // This ensures suggestion fields update their required status immediately
+  // Requirement 6.1, 6.2: Update validation when binary answer changes
+  useEffect(() => {
+    // Check if this is a suggestion field that depends on a binary NFA question
+    if (question.id.startsWith('suggestions') && question.dependsOn?.startsWith('nfaBinary')) {
+      const binaryFieldId = question.dependsOn;
+      const binaryAnswer = allAnswers?.[binaryFieldId];
+      
+      // Re-validate whenever the binary answer changes, even if not touched yet
+      // This ensures the required status updates immediately
+      if (binaryAnswer !== undefined) {
+        const error = validateAnswer(question, currentAnswer, allAnswers);
+        setValidationError(error);
+        
+        // If the binary answer changed to "No" and we have an error, clear it
+        // since the field is no longer required
+        const isNo = binaryAnswer === 'No' || binaryAnswer === 'Hindi';
+        if (isNo && error?.type === 'required') {
+          setValidationError(null);
+        }
+      }
+    }
+  }, [allAnswers, question, currentAnswer, touched]);
 
   // Handle answer change with validation
+  // Requirement 6.3: Preserve existing text when validation rules change
   const handleChange = (value: any) => {
     setTouched(true);
     onAnswerChange(value);
+    
+    // For binary NFA questions, trigger re-validation of dependent suggestion fields
+    // Requirement 6.1, 6.2: Dynamic validation updates when binary answer changes
+    // This ensures the suggestion field's required status updates immediately
+    if (question.id.startsWith('nfaBinary')) {
+      // The dependent suggestion field will re-validate via the useEffect above
+      // The suggestion text is preserved in the parent state and will remain unchanged
+      // Only the validation status (required/optional) will update
+    }
   };
 
   // Render validation error message

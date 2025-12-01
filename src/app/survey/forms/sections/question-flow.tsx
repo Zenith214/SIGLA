@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, JSX } from "react"
 import { getQuestionsForSection } from "../utils/questions"
-import type { SurveyData, Question, SectionStatus } from "../page"
+import type { SurveyData, SectionStatus } from "../page"
+import type { Question } from "@/types/survey"
 import { Card, CardContent } from "@/components/ui/card"
 
 // Import new modular components
@@ -200,7 +201,8 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     const answer = answers[currentQuestion.id];
 
     // Use validation to check if answer is valid
-    const validationError = validateAnswer(currentQuestion, answer);
+    // Pass all answers for conditional validation (e.g., NFA suggestion fields)
+    const validationError = validateAnswer(currentQuestion, answer, answers);
     
     // Question is answered if there's no validation error
     return validationError === null;
@@ -404,6 +406,7 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
               onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               isEnabled={true}
               showValidation={showValidation}
+              allAnswers={answers}
             />
           </Card>
         ) : (

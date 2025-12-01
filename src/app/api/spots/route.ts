@@ -665,6 +665,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const spotId = searchParams.get('spotId');
     const confirm = searchParams.get('confirm');
+    const force = searchParams.get('force') === 'true';
 
     // Validate required parameters
     if (!spotId) {
@@ -709,6 +710,8 @@ export async function DELETE(request: NextRequest) {
 
     // Check if any questionnaires have responses
     const questionnaireIds = spot.questionnaires?.map(q => q.questionnaire_id) || [];
+    let deletedResponses = 0;
+    let deletedVisits = 0;
     
     if (questionnaireIds.length > 0) {
       const { count: responseCount, error: responseError } = await supabaseAdmin
@@ -721,22 +724,89 @@ export async function DELETE(request: NextRequest) {
       }
 
       if (responseCount && responseCount > 0) {
-        throw createValidationError(
-          `Cannot delete spot: ${responseCount} survey response(s) exist for this spot's questionnaires. Delete responses first.`,
-          'spotId',
-          parsedSpotId
-        );
+        if (!force) {
+          throw createValidationError(
+            `Cannot delete spot: ${responseCount} survey response(s) exist for this spot's questionnaires. Use force=true to delete anyway.`,
+            'spotId',
+            parsedSpotId
+          );
+        }
+
+        // Force delete: First get the response records to find their integer IDs
+        const { data: responses, error: getResponsesError } = await supabaseAdmin
+          .from('survey_response')
+          .select('*')
+          .in('survey_number', questionnaireIds);
+
+        if (getResponsesError) {
+          console.error('Error fetching survey responses:', getResponsesError);
+          throw handleDatabaseError(getResponsesError, 'fetch survey responses');
+        }
+
+        // Find the ID column (could be 'response_id', 'id', or similar)
+        const responseIds = responses?.map(r => r.response_id || r.id || r.survey_response_id) || [];
+
+        if (responseIds.length > 0 && responseIds[0] !== undefined) {
+          // Delete survey sections FIRST (they reference survey_response by integer ID)
+          console.log(`⚠️ FORCE DELETE: Deleting survey sections for ${responseIds.length} responses`);
+          const { error: deleteSectionsError } = await supabaseAdmin
+            .from('survey_section')
+            .delete()
+            .in('response_id', responseIds);
+
+          if (deleteSectionsError) {
+            console.error('Error deleting survey sections:', deleteSectionsError);
+            throw handleDatabaseError(deleteSectionsError, 'delete survey sections');
+          }
+        }
+
+        // Then delete survey responses
+        console.log(`⚠️ FORCE DELETE: Deleting ${responseCount} survey responses for spot ${parsedSpotId}`);
+        const { error: deleteResponsesError } = await supabaseAdmin
+          .from('survey_response')
+          .delete()
+          .in('survey_number', questionnaireIds);
+
+        if (deleteResponsesError) {
+          console.error('Error deleting survey responses:', deleteResponsesError);
+          throw handleDatabaseError(deleteResponsesError, 'delete survey responses');
+        }
+
+        deletedResponses = responseCount;
       }
+
     }
 
-    // Delete questionnaires first (cascade)
+    // Delete visits BEFORE deleting questionnaires (foreign key constraint)
     if (questionnaireIds.length > 0) {
+      const { count: visitCount, error: visitCountError } = await supabaseAdmin
+        .from('visits')
+        .select('visit_id', { count: 'exact', head: true })
+        .in('questionnaire_id', questionnaireIds);
+
+      if (!visitCountError && visitCount && visitCount > 0) {
+        console.log(`⚠️ Deleting ${visitCount} visits for spot ${parsedSpotId}`);
+        const { error: deleteVisitsError } = await supabaseAdmin
+          .from('visits')
+          .delete()
+          .in('questionnaire_id', questionnaireIds);
+
+        if (deleteVisitsError) {
+          console.error('Error deleting visits:', deleteVisitsError);
+          throw handleDatabaseError(deleteVisitsError, 'delete visits');
+        }
+
+        deletedVisits = visitCount;
+      }
+
+      // Delete questionnaires AFTER visits are deleted
       const { error: deleteQuestionnairesError } = await supabaseAdmin
         .from('questionnaires')
         .delete()
         .eq('spot_id', parsedSpotId);
 
       if (deleteQuestionnairesError) {
+        console.error('Error deleting questionnaires:', deleteQuestionnairesError);
         throw handleDatabaseError(deleteQuestionnairesError, 'delete questionnaires');
       }
     }
@@ -751,8 +821,8 @@ export async function DELETE(request: NextRequest) {
       throw handleDatabaseError(deleteSpotError, 'delete spot');
     }
 
-    return NextResponse.json({
-      message: 'Spot deleted successfully',
+    const response: any = {
+      message: force ? 'Spot force deleted successfully (including all survey data)' : 'Spot deleted successfully',
       deletedSpot: {
         spotId: spot.spot_id,
         spotName: spot.spot_name,
@@ -760,14 +830,25 @@ export async function DELETE(request: NextRequest) {
         cycleId: spot.cycle_id
       },
       deletedQuestionnaires: questionnaireIds.length
-    });
+    };
+
+    if (deletedResponses > 0) {
+      response.deletedResponses = deletedResponses;
+    }
+
+    if (deletedVisits > 0) {
+      response.deletedVisits = deletedVisits;
+    }
+
+    return NextResponse.json(response);
 
   } catch (error: any) {
     const { searchParams } = new URL(request.url);
     return createErrorResponse(error, 'DELETE /api/spots', {
       queryParams: {
         spotId: searchParams.get('spotId'),
-        confirm: searchParams.get('confirm')
+        confirm: searchParams.get('confirm'),
+        force: searchParams.get('force')
       }
     });
   }

@@ -33,6 +33,8 @@ import { fixSurveyDataInIndexedDB, fixCurrentSurveyData, listAllSurveys, diagnos
 import { getSurveyRecordByQuestionnaire } from "@/lib/indexedDB"
 import { AutoSync } from "@/components/AutoSync"
 import { OfflineIndicator } from "@/components/OfflineIndicator"
+import type { Question } from "@/types/survey"
+import { transformNFAFields, validateAllSections } from "./utils/nfaFieldTransform"
 
 export interface GPSCoordinates {
   lat: number
@@ -81,23 +83,8 @@ export interface SectionStatus {
   status: "pending" | "in-progress" | "completed"
 }
 
-export interface Question {
-  id: string
-  type: "radio" | "checkbox" | "text" | "textarea" | "grouped"
-  question: string
-  options?: string[]
-  required?: boolean
-  dependsOn?: string
-  dependsOnValue?: string
-  partHeader?: string; // New property for section part headers
-  mainQuestion?: string
-  mainOptions?: string[]
-  followUpQuestions?: Question[]
-  conditionalNext?: {
-    value: string; // The value that triggers the jump
-    skipToId: string; // The ID of the question to jump to
-  }[];
-}
+// Re-export Question type for backward compatibility
+export type { Question }
 
 // Helper function to extract numeric questionnaire number from survey number
 function extractQuestionnaireNumber(surveyNumber: string): number {
@@ -787,24 +774,13 @@ function SurveyAppContent() {
 
                 console.log(`📝 Submitting survey with number: ${finalSurveyNumber}`);
 
-                // Prepare survey data for submission with proper NULL handling
-                const submissionData = {
-                  surveyNumber: finalSurveyNumber,
-                  location: surveyData.location,
-                  verificationLocation: surveyData.verificationLocation,
-                  selectedMember: surveyData.selectedMember,
-                  respondentDemographics: surveyData.respondentDemographics,
-                  interviewerId: user?.id,
-                  barangayId: barangayId,
-                  questionnaireId: questionnaireIdFromUrl, // Include for visit logging and status update
-                  spotId: spotIdFromUrl, // Include for GPS verification
-                  // Include all 6 assigned sections + overall evaluation
-                  sections: (() => {
-                    const assignedSectionIds = surveyData.assignedSections || [];
-                    // Add overall section to the list
-                    const allSectionIds = [...assignedSectionIds, 'overall'];
-                    
-                    return allSectionIds.reduce((acc, sectionId) => {
+                // Prepare survey data for submission with proper NULL handling and NFA field transformation
+                const sections = (() => {
+                  const assignedSectionIds = surveyData.assignedSections || [];
+                  // Add overall section to the list
+                  const allSectionIds = [...assignedSectionIds, 'overall'];
+                  
+                  return allSectionIds.reduce((acc, sectionId) => {
                     const sectionDataKey = getSectionDataKey(sectionId);
                     const sectionData = surveyData[sectionDataKey];
 
@@ -824,15 +800,44 @@ function SurveyAppContent() {
                       });
                     }
 
+                    // Transform NFA field names to standardized format
+                    // Requirements: 2.2, 2.3, 2.4, 3.1, 3.2
+                    const transformedData = transformNFAFields(cleanedData);
+
                     acc[sectionId] = {
-                      data: cleanedData,
+                      data: transformedData,
                       skipReasons: skipReasons,
-                      completed: Object.keys(cleanedData).filter(k => cleanedData[k] !== null).length > 0
+                      completed: Object.keys(transformedData).filter(k => transformedData[k] !== null).length > 0
                     };
 
                     return acc;
                   }, {} as Record<string, any>);
-                  })() // Immediately invoke the function
+                })();
+
+                // Validate NFA fields before submission
+                // Requirements: 2.2, 2.3, 2.4, 3.1, 3.2
+                const validation = validateAllSections(sections);
+                if (!validation.isValid) {
+                  console.error('NFA field validation failed:', validation.errors);
+                  setSubmissionModal({
+                    isOpen: true,
+                    type: 'error',
+                    message: `Data validation failed: ${validation.errors.join('; ')}`
+                  });
+                  return;
+                }
+
+                const submissionData = {
+                  surveyNumber: finalSurveyNumber,
+                  location: surveyData.location,
+                  verificationLocation: surveyData.verificationLocation,
+                  selectedMember: surveyData.selectedMember,
+                  respondentDemographics: surveyData.respondentDemographics,
+                  interviewerId: user?.id,
+                  barangayId: barangayId,
+                  questionnaireId: questionnaireIdFromUrl, // Include for visit logging and status update
+                  spotId: spotIdFromUrl, // Include for GPS verification
+                  sections: sections
                 }
 
                 // Submit to database

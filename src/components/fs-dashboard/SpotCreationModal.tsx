@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, MapPin, CheckCircle2 } from "lucide-react";
+import { Loader2, MapPin, CheckCircle2, Dices } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Barangay {
@@ -164,8 +164,8 @@ export default function SpotCreationModal({
       newErrors.randomStart = "Random start number is required";
     } else {
       const num = parseInt(randomStart, 10);
-      if (isNaN(num) || num < 1 || num > 999) {
-        newErrors.randomStart = "Must be a number between 1 and 999";
+      if (isNaN(num) || num < 1 || num > 5) {
+        newErrors.randomStart = "Must be a number between 1 and 5";
       }
     }
 
@@ -360,19 +360,31 @@ export default function SpotCreationModal({
                 {/* Random Start */}
                 <div className="space-y-2">
                   <Label htmlFor="randomStart">
-                    Random Start (1-999) <span className="text-red-500">*</span>
+                    Random Start (1-5) <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="randomStart"
-                    type="number"
-                    min="1"
-                    max="999"
-                    placeholder="e.g., 123"
-                    value={randomStart}
-                    onChange={(e) => setRandomStart(e.target.value)}
-                    disabled={loading}
-                    className={errors.randomStart ? "border-red-500" : ""}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="randomStart"
+                      type="number"
+                      min="1"
+                      max="5"
+                      placeholder="e.g., 3"
+                      value={randomStart}
+                      onChange={(e) => setRandomStart(e.target.value)}
+                      disabled={loading}
+                      className={errors.randomStart ? "border-red-500" : ""}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setRandomStart(String(Math.floor(Math.random() * 5) + 1))}
+                      disabled={loading}
+                      title="Generate random number (1-5)"
+                    >
+                      <Dices className="h-4 w-4" />
+                    </Button>
+                  </div>
                   {errors.randomStart && (
                     <p className="text-sm text-red-500">{errors.randomStart}</p>
                   )}
