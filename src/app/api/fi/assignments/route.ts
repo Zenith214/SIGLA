@@ -7,6 +7,7 @@ import {
   createValidationError,
   handleDatabaseError
 } from '@/lib/api-error-handler';
+import { calculateDisplayId } from '@/utils/displayIdCalculator';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
@@ -149,25 +150,36 @@ export async function GET(request: NextRequest) {
         updatedAt: spot.updated_at,
         interviews: questionnaires
           .sort((a, b) => a.sequence_number - b.sequence_number)
-          .map(q => ({
-            questionnaireId: q.questionnaire_id,
-            sequenceNumber: q.sequence_number,
-            status: q.status,
-            visitCount: q.visit_count || 0,
-            visits: (q.visits || [])
-              .sort((a: any, b: any) => a.visit_number - b.visit_number)
-              .map((v: any) => ({
-                visitId: v.visit_id,
-                visitNumber: v.visit_number,
-                timestamp: v.visit_timestamp,
-                outcome: v.outcome,
-                notes: v.notes,
-                location: v.location_lat && v.location_lng ? {
-                  lat: parseFloat(v.location_lat),
-                  lng: parseFloat(v.location_lng)
-                } : null
-              }))
-          }))
+          .map(q => {
+            // Calculate display_id for each questionnaire
+            const display_id = calculateDisplayId(q.questionnaire_id);
+            
+            // Log warning if display_id calculation fails
+            if (display_id === null) {
+              console.warn(`Failed to calculate display_id for questionnaire: ${q.questionnaire_id}`);
+            }
+            
+            return {
+              questionnaireId: q.questionnaire_id,
+              displayId: display_id,
+              sequenceNumber: q.sequence_number,
+              status: q.status,
+              visitCount: q.visit_count || 0,
+              visits: (q.visits || [])
+                .sort((a: any, b: any) => a.visit_number - b.visit_number)
+                .map((v: any) => ({
+                  visitId: v.visit_id,
+                  visitNumber: v.visit_number,
+                  timestamp: v.visit_timestamp,
+                  outcome: v.outcome,
+                  notes: v.notes,
+                  location: v.location_lat && v.location_lng ? {
+                    lat: parseFloat(v.location_lat),
+                    lng: parseFloat(v.location_lng)
+                  } : null
+                }))
+            };
+          })
       };
     });
 

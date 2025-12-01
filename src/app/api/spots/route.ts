@@ -13,6 +13,7 @@ import {
   createPaginatedResponse,
   getSupabaseRange
 } from '@/utils/pagination';
+import { calculateDisplayId } from '@/utils/displayIdCalculator';
 
 /**
  * Generate questionnaire ID in format: {YEAR}-{BARANGAY_ID}-{SPOT_NUMBER}-{QUESTIONNAIRE_NUMBER}
@@ -414,6 +415,7 @@ export async function GET(request: NextRequest) {
         totalCount,
         questionnaires: questionnaires.map(q => ({
           questionnaireId: q.questionnaire_id,
+          displayId: calculateDisplayId(q.questionnaire_id),
           status: q.status,
           visitCount: q.visit_count
         })),

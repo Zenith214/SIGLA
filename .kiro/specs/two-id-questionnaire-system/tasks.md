@@ -37,7 +37,12 @@
   - **Property 10: Creation Order Independence**
   - **Validates: Requirements 6.5**
 
-- [ ] 2. Update GET /api/assignments endpoint
+- [x] 2. Update GET /api/assignments endpoint
+
+
+
+
+
   - Fetch questionnaires from database using existing query
   - Import `calculateDisplayId()` utility
   - Map over questionnaires array to add `display_id` field to each record
@@ -45,14 +50,23 @@
   - Handle cases where `calculateDisplayId()` returns null (log warning, include null in response)
   - _Requirements: 3.1, 3.2_
 
-- [ ] 3. Update GET /api/spots endpoint
+- [x] 3. Update GET /api/spots endpoint
+
+
+
+
+
   - Fetch spots with nested questionnaires
   - Import `calculateDisplayId()` utility
   - Map over nested questionnaires to add `display_id` field
   - Ensure response includes both `questionnaire_id` and `display_id` for each questionnaire
   - _Requirements: 3.1, 3.2_
 
-- [ ] 4. Update GET /api/fi/my-interviews endpoint
+- [x] 4. Update GET /api/fi/my-interviews endpoint
+
+
+
+
   - Fetch FI's assigned questionnaires
   - Import `calculateDisplayId()` utility
   - Add `display_id` field to each questionnaire in response
