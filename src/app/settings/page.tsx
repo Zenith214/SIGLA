@@ -20,6 +20,7 @@ import { Menu, X } from "lucide-react"
 import { ToastProvider } from "@/hooks/use-toast"
 import { CycleDisplay } from "@/components/survey-cycle"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 // Dynamic imports for better performance - sections load only when needed
 const SurveyCycles = dynamic(() => import("./ui/sections/survey-cycles").then(mod => ({ default: mod.SurveyCycles })), {
@@ -152,10 +153,11 @@ export default function AdminSettingsPanel() {
 
   return (
     <ProtectedRoute>
-      <ToastProvider>
-        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-          <SidebarInset>
+      <ErrorBoundary>
+        <ToastProvider>
+          <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <AdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+            <SidebarInset>
           {/* Header */}
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-slate-800 px-4 sticky top-0 z-10">
           <Button
@@ -210,9 +212,10 @@ export default function AdminSettingsPanel() {
           <main className="flex-1 overflow-auto" style={{ backgroundColor: '#dbeafe' }}>
             <div className="container mx-auto p-6 max-w-7xl">{renderSection()}</div>
           </main>
-        </SidebarInset>
-        </SidebarProvider>
-      </ToastProvider>
+          </SidebarInset>
+          </SidebarProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </ProtectedRoute>
   )
 }

@@ -13,18 +13,14 @@ interface SurveyCycleContextType {
   setActiveCycle: (cycleId: number) => Promise<void>;
 }
 
-const SurveyCycleContext = createContext<SurveyCycleContextType>({
-  activeCycle: null,
-  allCycles: [],
-  loading: true,
-  error: null,
-  refreshActiveCycle: async () => {},
-  refreshAllCycles: async () => {},
-  setActiveCycle: async () => {},
-});
+const SurveyCycleContext = createContext<SurveyCycleContextType | undefined>(undefined);
 
 export function useSurveyCycle() {
-  return useContext(SurveyCycleContext);
+  const context = useContext(SurveyCycleContext);
+  if (context === undefined) {
+    throw new Error('useSurveyCycle must be used within a SurveyCycleProvider');
+  }
+  return context;
 }
 
 interface SurveyCycleProviderProps {
