@@ -119,12 +119,39 @@ export async function POST(request: NextRequest) {
     console.log(`🎯 Generating synthetic data for ${barangay.barangay_name} (Cycle: ${cycle.year})`);
     console.log(`📊 Configuration: ${numberOfSpots} spots × ${questionnairesPerSpot} questionnaires = ${numberOfSpots * questionnairesPerSpot} total`);
 
+    // Find the highest existing spot number for this barangay and cycle
+    const { data: existingSpots } = await supabaseAdmin
+      .from('spots')
+      .select('spot_name')
+      .eq('barangay_id', barangayId)
+      .eq('cycle_id', cycleId)
+      .order('spot_id', { ascending: false });
+
+    // Extract spot numbers from existing spots and find the max
+    let maxSpotNumber = 0;
+    if (existingSpots && existingSpots.length > 0) {
+      existingSpots.forEach(spot => {
+        // Try to extract number from spot name (e.g., "Balasinon Test Spot 5" -> 5)
+        const match = spot.spot_name.match(/(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxSpotNumber) {
+            maxSpotNumber = num;
+          }
+        }
+      });
+    }
+
+    const startingSpotNumber = maxSpotNumber + 1;
+    console.log(`📍 Starting from spot number ${startingSpotNumber} (found ${existingSpots?.length || 0} existing spots)`);
+
     const spotsCreated = [];
     let totalQuestionnaires = 0;
     let totalResponses = 0;
 
-    // Create spots
-    for (let spotNum = 1; spotNum <= numberOfSpots; spotNum++) {
+    // Create spots starting from the next available number
+    for (let i = 0; i < numberOfSpots; i++) {
+      const spotNum = startingSpotNumber + i;
       const spotResult = await createSpotWithData(
         barangayId,
         cycleId,

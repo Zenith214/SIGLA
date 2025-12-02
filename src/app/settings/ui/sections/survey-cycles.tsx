@@ -17,7 +17,7 @@ import { useActiveCycle, useSurveyCycle } from "@/hooks/useSurveyCycle"
 
 export function SurveyCycles() {
   const [surveyCycles, setSurveyCycles] = useState<any[]>([])
-  const [selectedYear, setSelectedYear] = useState("2024")
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [archivePrevious, setArchivePrevious] = useState(false)
   const [dateTime, setDateTime] = useState("")
   const [loading, setLoading] = useState(true)
@@ -97,6 +97,17 @@ export function SurveyCycles() {
         variant: "destructive",
         title: "Invalid Date Range",
         description: "End date must be after start date.",
+      });
+      return
+    }
+
+    // Warn if cycle name contains a year that doesn't match selected year
+    const yearInName = cycleName.match(/\d{4}/);
+    if (yearInName && yearInName[0] !== selectedYear) {
+      toast({
+        variant: "destructive",
+        title: "Year Mismatch",
+        description: `The cycle name contains "${yearInName[0]}" but you selected year ${selectedYear}. Please make sure they match.`,
       });
       return
     }
@@ -411,10 +422,10 @@ export function SurveyCycles() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2026">2026</SelectItem>
-                  <SelectItem value="2027">2027</SelectItem>
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const year = new Date().getFullYear() - 2 + i;
+                    return <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  })}
                 </SelectContent>
               </Select>
             </div>
