@@ -1,164 +1,198 @@
-import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
-import { getActiveCycle } from "@/utils/surveyCycleHelpers";
+import { NextRequest, NextResponse } from 'next/server'
+import { Pool } from 'pg'
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers'
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
-});
+})
 
 export async function GET(request: NextRequest) {
-  let client;
+  let client
   try {
-    const { searchParams } = new URL(request.url);
-    const barangayId = searchParams.get('barangayId');
-    const cycleId = searchParams.get('cycleId');
+    client = await pool.connect()
+    const { searchParams } = new URL(request.url)
+    const cycleId = searchParams.get('cycleId') || await getActiveCycleId()
 
-    client = await pool.connect();
-
-    // Get active cycle if not specified
-    let targetCycleId = cycleId;
-    if (!targetCycleId) {
-      const activeCycle = await getActiveCycle();
-      if (!activeCycle) {
-        return NextResponse.json({ error: "No active cycle found" }, { status: 400 });
-      }
-      targetCycleId = activeCycle.cycle_id.toString();
+    if (!cycleId) {
+      return NextResponse.json({ error: 'No active cycle' }, { status: 400 })
     }
 
-    // Build WHERE clause
-    let whereClause = `WHERE sr.survey_cycle_id = $1`;
-    const queryParams: any[] = [parseInt(targetCycleId)];
-    let paramIndex = 2;
+    console.log('[Demographics] Fetching data for cycle:', cycleId)
 
-    if (barangayId) {
-      whereClause += ` AND sr.barangay_id = $${paramIndex}`;
-      queryParams.push(parseInt(barangayId));
-      paramIndex++;
+    // First check what gender data exists
+    const genderCheckQuery = `
+      SELECT DISTINCT gender_identity, COUNT(*) as count
+      FROM survey_response
+      WHERE survey_cycle_id = $1
+      GROUP BY gender_identity
+    `
+    const genderCheck = await client.query(genderCheckQuery, [cycleId])
+    console.log('[Demographics] Gender identity values in database:', genderCheck.rows)
+
+    // Get all responses with demographics and overall satisfaction
+    const query = `
+      SELECT 
+        sr.respondent_age,
+        sr.gender_identity as sr_gender,
+        sr.respondent_purok,
+        rd.data->>'genderIdentity' as rd_gender,
+        rd.data->>'householdIncome' as household_income,
+        rd.data->>'educationalAttainment' as educational_attainment,
+        rd.data->>'purok' as rd_purok,
+        os.data->>'overallSatisfaction' as overall_satisfaction
+      FROM survey_response sr
+      LEFT JOIN survey_section rd ON sr.response_id = rd.response_id AND rd.section_key = 'respondent_demographics'
+      LEFT JOIN survey_section os ON sr.response_id = os.response_id AND os.section_key = 'overall'
+      WHERE sr.survey_cycle_id = $1
+        AND sr.status IN ('completed', 'submitted')
+        AND sr.progress = 100
+    `
+
+    const result = await client.query(query, [cycleId])
+    console.log('[Demographics] Found responses:', result.rows.length)
+    
+    // Log sample data to see what we're getting
+    if (result.rows.length > 0) {
+      console.log('[Demographics] Sample row:', {
+        sr_gender: result.rows[0].sr_gender,
+        rd_gender: result.rows[0].rd_gender,
+        household_income: result.rows[0].household_income,
+        educational_attainment: result.rows[0].educational_attainment
+      })
     }
 
-    // Gender Distribution
-    const genderQuery = `
-      SELECT 
-        respondent_gender as gender,
-        COUNT(*) as count
-      FROM survey_response sr
-      ${whereClause}
-      GROUP BY respondent_gender
-      ORDER BY count DESC
-    `;
-    const genderResult = await client.query(genderQuery, queryParams);
+    // Process data
+    const ageGroups: Record<string, { count: number, satisfactionSum: number }> = {}
+    const genders: Record<string, { count: number, satisfactionSum: number }> = {}
+    const incomes: Record<string, { count: number, satisfactionSum: number }> = {}
+    const educations: Record<string, { count: number, satisfactionSum: number }> = {}
+    const puroks: Record<string, { count: number, satisfactionSum: number }> = {}
 
-    // Age Group Distribution
-    const ageGroupQuery = `
-      SELECT 
-        age_group,
-        COUNT(*) as count
-      FROM (
-        SELECT 
-          CASE 
-            WHEN respondent_age < 18 THEN 'Under 18'
-            WHEN respondent_age BETWEEN 18 AND 24 THEN '18-24'
-            WHEN respondent_age BETWEEN 25 AND 34 THEN '25-34'
-            WHEN respondent_age BETWEEN 35 AND 44 THEN '35-44'
-            WHEN respondent_age BETWEEN 45 AND 54 THEN '45-54'
-            WHEN respondent_age BETWEEN 55 AND 64 THEN '55-64'
-            WHEN respondent_age >= 65 THEN '65+'
-            ELSE 'Unknown'
-          END as age_group
-        FROM survey_response sr
-        ${whereClause}
-      ) age_data
-      GROUP BY age_group
-      ORDER BY 
-        CASE age_group
-          WHEN 'Under 18' THEN 1
-          WHEN '18-24' THEN 2
-          WHEN '25-34' THEN 3
-          WHEN '35-44' THEN 4
-          WHEN '45-54' THEN 5
-          WHEN '55-64' THEN 6
-          WHEN '65+' THEN 7
-          ELSE 8
-        END
-    `;
-    const ageGroupResult = await client.query(ageGroupQuery, queryParams);
-
-    // Educational Attainment Distribution
-    const educationQuery = `
-      SELECT 
-        respondent_educational_attainment as education,
-        COUNT(*) as count
-      FROM survey_response sr
-      ${whereClause}
-      GROUP BY respondent_educational_attainment
-      ORDER BY count DESC
-    `;
-    const educationResult = await client.query(educationQuery, queryParams);
-
-    // Household Income Distribution
-    const incomeQuery = `
-      SELECT 
-        respondent_household_income as income,
-        COUNT(*) as count
-      FROM survey_response sr
-      ${whereClause}
-      GROUP BY respondent_household_income
-      ORDER BY count DESC
-    `;
-    const incomeResult = await client.query(incomeQuery, queryParams);
-
-    // Purok Distribution
-    const purokQuery = `
-      SELECT 
-        COALESCE(respondent_purok, 'Not specified') as purok,
-        COUNT(*) as count
-      FROM survey_response sr
-      ${whereClause}
-      GROUP BY respondent_purok
-      ORDER BY count DESC
-    `;
-    const purokResult = await client.query(purokQuery, queryParams);
-
-    // Total respondents
-    const totalQuery = `
-      SELECT COUNT(*) as total
-      FROM survey_response sr
-      ${whereClause}
-    `;
-    const totalResult = await client.query(totalQuery, queryParams);
-    const total = parseInt(totalResult.rows[0].total);
-
-    // Calculate percentages and format data
-    const formatDistribution = (rows: any[]) => {
-      return rows.map(row => ({
-        label: row.gender || row.age_group || row.education || row.income || row.purok || 'Unknown',
-        count: parseInt(row.count),
-        percentage: total > 0 ? ((parseInt(row.count) / total) * 100).toFixed(1) : '0.0'
-      }));
-    };
-
-    return NextResponse.json({
-      success: true,
-      cycleId: parseInt(targetCycleId),
-      barangayId: barangayId ? parseInt(barangayId) : null,
-      totalRespondents: total,
-      demographics: {
-        gender: formatDistribution(genderResult.rows),
-        ageGroups: formatDistribution(ageGroupResult.rows),
-        education: formatDistribution(educationResult.rows),
-        income: formatDistribution(incomeResult.rows),
-        purok: formatDistribution(purokResult.rows)
+    result.rows.forEach((row: any) => {
+      // Calculate satisfaction (1-5 scale to percentage)
+      let satisfaction = 0
+      if (row.overall_satisfaction) {
+        const satValue = parseInt(String(row.overall_satisfaction).charAt(0))
+        if (!isNaN(satValue) && satValue >= 1 && satValue <= 5) {
+          satisfaction = (satValue / 5) * 100
+        }
       }
-    });
+
+      // Age groups
+      const age = row.respondent_age
+      let ageGroup = 'Unknown'
+      if (age >= 18 && age <= 24) ageGroup = '18-24'
+      else if (age >= 25 && age <= 34) ageGroup = '25-34'
+      else if (age >= 35 && age <= 44) ageGroup = '35-44'
+      else if (age >= 45 && age <= 54) ageGroup = '45-54'
+      else if (age >= 55 && age <= 64) ageGroup = '55-64'
+      else if (age >= 65) ageGroup = '65+'
+
+      if (!ageGroups[ageGroup]) {
+        ageGroups[ageGroup] = { count: 0, satisfactionSum: 0 }
+      }
+      ageGroups[ageGroup].count++
+      ageGroups[ageGroup].satisfactionSum += satisfaction
+
+      // Gender - try both sources
+      const gender = row.rd_gender || row.sr_gender || 'Not specified'
+      if (!genders[gender]) {
+        genders[gender] = { count: 0, satisfactionSum: 0 }
+      }
+      genders[gender].count++
+      genders[gender].satisfactionSum += satisfaction
+
+      // Income
+      const income = row.household_income || 'Not specified'
+      if (!incomes[income]) {
+        incomes[income] = { count: 0, satisfactionSum: 0 }
+      }
+      incomes[income].count++
+      incomes[income].satisfactionSum += satisfaction
+
+      // Education
+      const education = row.educational_attainment || 'Not specified'
+      if (!educations[education]) {
+        educations[education] = { count: 0, satisfactionSum: 0 }
+      }
+      educations[education].count++
+      educations[education].satisfactionSum += satisfaction
+
+      // Purok - try both sources
+      const purok = row.rd_purok || row.respondent_purok || 'Not specified'
+      if (!puroks[purok]) {
+        puroks[purok] = { count: 0, satisfactionSum: 0 }
+      }
+      puroks[purok].count++
+      puroks[purok].satisfactionSum += satisfaction
+    })
+
+    // Format response
+    const response = {
+      totalRespondents: result.rows.length,
+      ageDistribution: Object.entries(ageGroups).map(([ageGroup, data]) => ({
+        ageGroup,
+        count: data.count,
+        satisfaction: data.count > 0 ? data.satisfactionSum / data.count : 0
+      })).sort((a, b) => {
+        const order = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'Unknown']
+        return order.indexOf(a.ageGroup) - order.indexOf(b.ageGroup)
+      }),
+      genderDistribution: Object.entries(genders).map(([gender, data]) => ({
+        gender,
+        count: data.count,
+        satisfaction: data.count > 0 ? data.satisfactionSum / data.count : 0
+      })),
+      incomeDistribution: Object.entries(incomes).map(([incomeRange, data]) => ({
+        incomeRange,
+        count: data.count,
+        satisfaction: data.count > 0 ? data.satisfactionSum / data.count : 0
+      })).sort((a, b) => {
+        // Sort income from lowest to highest
+        const order = ['Below 10,000', '10,001-20,000', '20,001-50,000', 'Above 50,000', 'Not specified']
+        return order.indexOf(a.incomeRange) - order.indexOf(b.incomeRange)
+      }),
+      educationDistribution: Object.entries(educations).map(([education, data]) => ({
+        education,
+        count: data.count,
+        satisfaction: data.count > 0 ? data.satisfactionSum / data.count : 0
+      })).sort((a, b) => {
+        // Sort education from elementary to post graduate
+        const order = ['Elementary', 'High School', 'College', 'Post Graduate', 'Not specified']
+        return order.indexOf(a.education) - order.indexOf(b.education)
+      }),
+      purokDistribution: Object.entries(puroks).map(([purok, data]) => ({
+        purok,
+        count: data.count,
+        satisfaction: data.count > 0 ? data.satisfactionSum / data.count : 0
+      })).sort((a, b) => {
+        // Sort puroks naturally (Purok 1, Purok 2, etc.)
+        const extractNumber = (str: string) => {
+          const match = str.match(/\d+/)
+          return match ? parseInt(match[0]) : 999
+        }
+        return extractNumber(a.purok) - extractNumber(b.purok)
+      })
+    }
+
+    console.log('[Demographics] Processed data:', {
+      ageGroups: response.ageDistribution.length,
+      genders: response.genderDistribution.length,
+      incomes: response.incomeDistribution.length,
+      educations: response.educationDistribution.length,
+      puroks: response.purokDistribution.length
+    })
+
+    return NextResponse.json(response)
 
   } catch (error) {
-    console.error("Error fetching demographics:", error);
+    console.error('[Demographics] Error:', error)
     return NextResponse.json(
-      { error: "Failed to fetch demographics data" },
+      { error: 'Failed to fetch demographics data' },
       { status: 500 }
-    );
+    )
   } finally {
-    if (client) client.release();
+    if (client) client.release()
   }
 }

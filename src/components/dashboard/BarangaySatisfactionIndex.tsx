@@ -461,38 +461,23 @@ export default function BarangaySatisfactionIndex({
                     <p>Shows the barangay's overall performance score. Green (58% or higher) indicates good performance, while red (below 58%) suggests areas needing improvement.</p>
                   </div>
 
-                  {/* Action Grid */}
+                  {/* Survey Progress */}
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Action Grid</h4>
-                    <p>Categorizes services based on satisfaction levels and action priority:</p>
-                    <ul className="mt-1 ml-2 space-y-1">
-                      <li><span className="text-green-700 font-medium">• EXCEEDED EXPECTATIONS:</span> Keep up good work</li>
-                      <li><span className="text-blue-700 font-medium">• CONTINUED EMPHASIS:</span> Build on strengths</li>
-                      <li><span className="text-yellow-700 font-medium">• SECONDARY PRIORITY:</span> Watch for changes</li>
-                      <li><span className="text-red-700 font-medium">• OPPORTUNITIES FOR IMPROVEMENT:</span> Immediate attention needed</li>
-                    </ul>
+                    <h4 className="font-semibold text-gray-800 mb-1">Survey Progress</h4>
+                    <p>Displays the percentage of completed surveys for this barangay.</p>
+                  </div>
+
+                  {/* Score Card */}
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Score Card</h4>
+                    <p>Click "View Score Card" to see detailed service area breakdowns, satisfaction scores, and actionable recommendations for improvement.</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Right Column - 3/5 width */}
-            <div className="col-span-3 space-y-4">
-              {/* Overall Satisfaction */}
-              <div className="border border-gray-200 rounded-full px-6 py-3 text-center bg-white shadow-sm">
-                <div className="flex items-center justify-center gap-3">
-                  <span className="text-gray-700 font-medium text-base">Overall Satisfaction:</span>
-                  {barangay.id === 0 ? (
-                    <span className="text-xl font-bold text-gray-500">No data</span>
-                  ) : (
-                    <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatPercentage(satisfactionData.overall)}%
-                    </span>
-                  )}
-                  {loading && <span className="text-sm text-gray-500">(Loading...)</span>}
-                </div>
-              </div>
-
+            <div className="col-span-3 flex flex-col space-y-4 h-full">
               {/* Survey Progress Bar */}
               <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
                 <div className="flex justify-between items-center mb-2">
@@ -522,192 +507,130 @@ export default function BarangaySatisfactionIndex({
                 </div>
               </div>
 
-              {/* Action Grid */}
-              <div className="border border-gray-200 rounded-xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm mb-4">
-                <div className="flex flex-col">
-                  <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-800 mb-1">Action Grid</h2>
-                  </div>
-
-                  {/* Show "No data" message for barangays with no data */}
+              {/* Two Card Layout - Satisfaction and Need for Action */}
+              <div className="grid grid-cols-2 gap-4 flex-1">
+                {/* Overall Satisfaction Card */}
+                <div className="border-2 border-gray-300 rounded-3xl p-6 bg-white shadow-sm flex flex-col items-center justify-center h-full">
                   {barangay.id === 0 ? (
-                    <div className="flex items-center justify-center min-h-80 bg-gray-100 rounded-xl border-2 border-gray-300">
-                      <div className="text-center">
-                        <div className="text-2xl text-gray-400 mb-2">📊</div>
-                        <div className="text-lg font-semibold text-gray-600 mb-1">No Data Available</div>
-                        <div className="text-sm text-gray-500">Survey data not available for this barangay</div>
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">😐</div>
+                      <div className="text-sm font-semibold text-gray-600 mb-2">Overall Satisfaction</div>
+                      <div className="text-2xl font-bold text-gray-500">No data</div>
+                    </div>
+                  ) : barangay.progress < 100 ? (
+                    <div className="text-center">
+                      <div className="text-6xl mb-3">📊</div>
+                      <div className="text-sm font-semibold text-gray-700 mb-2">Overall Satisfaction</div>
+                      <div className="text-lg font-semibold text-blue-600 mb-2">Survey Ongoing</div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {barangay.progress}% completed
                       </div>
                     </div>
                   ) : (
-                    /* 2x2 Grid */
-                    <div className="grid grid-cols-2 gap-4 min-h-80">
-                    {/* Top Left - Exceeded Expectations */}
-                    <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex flex-col min-h-32">
-                      <div className="text-center mb-3">
-                        <h3 className="text-green-800 font-bold text-sm mb-1">EXCEEDED EXPECTATIONS</h3>
-                        <span className="text-green-600 font-medium text-[10px]">High Satisfaction, Low Need for Action</span>
+                    <div className="text-center">
+                      {/* Icon based on satisfaction level */}
+                      <div className="text-6xl mb-3">
+                        {satisfactionData.overall >= 70 ? '😊' : 
+                         satisfactionData.overall >= 58 ? '🙂' : 
+                         satisfactionData.overall >= 40 ? '😐' : '😞'}
                       </div>
-                      <div className="space-y-2 text-xs text-green-800">
-                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
-                          data.category === 'maintain' && (
-                            <Tooltip key={key}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-between cursor-help">
-                                  <div className="flex items-center">
-                                    <span className="mr-2">★</span>
-                                    <span>
-                                      {key === 'financial' ? 'Financial Administration' :
-                                       key === 'disaster' ? 'Disaster Preparedness' :
-                                       key === 'safety' ? 'Safety & Peace Order' :
-                                       key === 'social' ? 'Social Protection' :
-                                       key === 'business' ? 'Business Friendliness' :
-                                       key === 'environmental' ? 'Environmental Management' :
-                                       key.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-center">
-                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
-                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        )}
-                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'maintain') && (
-                          <div className="text-center text-green-600 italic">No services in this category</div>
-                        )}
+                      <div className="text-sm font-semibold text-gray-700 mb-2">Overall Satisfaction</div>
+                      <div className={`text-4xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatPercentage(satisfactionData.overall)}%
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {satisfactionData.overall >= 70 ? 'Excellent' :
+                         satisfactionData.overall >= 58 ? 'Good' :
+                         satisfactionData.overall >= 40 ? 'Fair' : 'Needs Improvement'}
                       </div>
                     </div>
+                  )}
+                </div>
 
-                    {/* Top Right - Continued Emphasis */}
-                    <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 flex flex-col min-h-32">
-                      <div className="text-center mb-3">
-                        <h3 className="text-blue-800 font-bold text-sm mb-1">CONTINUED EMPHASIS</h3>
-                        <span className="text-blue-600 font-medium text-[10px]">High Satisfaction, High Need for Action</span>
-                      </div>
-                      <div className="space-y-2 text-xs text-blue-800">
-                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
-                          data.category === 'opportunities' && (
-                            <Tooltip key={key}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-between cursor-help">
-                                  <div className="flex items-center">
-                                    <span className="mr-2">★</span>
-                                    <span>
-                                      {key === 'financial' ? 'Financial Administration' :
-                                       key === 'disaster' ? 'Disaster Preparedness' :
-                                       key === 'safety' ? 'Safety & Peace Order' :
-                                       key === 'social' ? 'Social Protection' :
-                                       key === 'business' ? 'Business Friendliness' :
-                                       key === 'environmental' ? 'Environmental Management' :
-                                       key.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-center">
-                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
-                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        )}
-                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'opportunities') && (
-                          <div className="text-center text-blue-600 italic">No services in this category</div>
-                        )}
+                {/* Overall Need for Action Card */}
+                <div className="border-2 border-gray-300 rounded-3xl p-6 bg-white shadow-sm flex flex-col items-center justify-center h-full">
+                  {barangay.id === 0 ? (
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">⚠️</div>
+                      <div className="text-sm font-semibold text-gray-600 mb-2">Need for Action</div>
+                      <div className="text-2xl font-bold text-gray-500">No data</div>
+                    </div>
+                  ) : loading ? (
+                    <div className="text-center">
+                      <div className="text-4xl mb-3">⏳</div>
+                      <div className="text-sm font-semibold text-gray-600 mb-2">Need for Action</div>
+                      <div className="text-lg text-gray-500">Loading...</div>
+                    </div>
+                  ) : barangay.progress < 100 ? (
+                    <div className="text-center">
+                      <div className="text-6xl mb-3">📋</div>
+                      <div className="text-sm font-semibold text-gray-700 mb-2">Need for Action</div>
+                      <div className="text-lg font-semibold text-blue-600 mb-2">Survey Ongoing</div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        Analysis available at 100%
                       </div>
                     </div>
-
-                    {/* Bottom Left - Secondary Priority */}
-                    <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 flex flex-col min-h-32">
-                      <div className="text-center mb-3">
-                        <h3 className="text-yellow-800 font-bold text-sm mb-1">SECONDARY PRIORITY</h3>
-                        <span className="text-yellow-600 font-medium text-[10px]">Low Satisfaction, Low Need for Action</span>
+                  ) : (
+                    <div className="text-center">
+                      {/* Icon based on need for action level - inverse of satisfaction */}
+                      <div className="text-6xl mb-3">
+                        {(() => {
+                          // Calculate need for action from categories
+                          const categories = Object.values(satisfactionData.categories);
+                          const validCategories = categories.filter((cat: any) => cat.needForAction !== null && cat.needForAction !== undefined);
+                          const avgNeedForAction = validCategories.length > 0
+                            ? validCategories.reduce((sum: number, cat: any) => sum + cat.needForAction, 0) / validCategories.length
+                            : 0;
+                          
+                          if (avgNeedForAction >= 70) return '🚨'; // Urgent
+                          if (avgNeedForAction >= 50) return '⚠️'; // Moderate
+                          if (avgNeedForAction >= 30) return '📋'; // Low
+                          return '✅'; // Very Low
+                        })()}
                       </div>
-                      <div className="space-y-2 text-xs text-yellow-800">
-                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
-                          data.category === 'monitor' && (
-                            <Tooltip key={key}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-between cursor-help">
-                                  <div className="flex items-center">
-                                    <span className="mr-2">★</span>
-                                    <span>
-                                      {key === 'financial' ? 'Financial Administration' :
-                                       key === 'disaster' ? 'Disaster Preparedness' :
-                                       key === 'safety' ? 'Safety & Peace Order' :
-                                       key === 'social' ? 'Social Protection' :
-                                       key === 'business' ? 'Business Friendliness' :
-                                       key === 'environmental' ? 'Environmental Management' :
-                                       key.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-center">
-                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
-                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        )}
-                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'monitor') && (
-                          <div className="text-center text-yellow-600 italic">No services in this category</div>
-                        )}
+                      <div className="text-sm font-semibold text-gray-700 mb-2">Need for Action</div>
+                      <div className={`text-4xl font-bold ${
+                        (() => {
+                          const categories = Object.values(satisfactionData.categories);
+                          const validCategories = categories.filter((cat: any) => cat.needForAction !== null && cat.needForAction !== undefined);
+                          const avgNeedForAction = validCategories.length > 0
+                            ? validCategories.reduce((sum: number, cat: any) => sum + cat.needForAction, 0) / validCategories.length
+                            : 0;
+                          
+                          if (avgNeedForAction >= 70) return 'text-red-600';
+                          if (avgNeedForAction >= 50) return 'text-yellow-600';
+                          if (avgNeedForAction >= 30) return 'text-blue-600';
+                          return 'text-green-600';
+                        })()
+                      }`}>
+                        {(() => {
+                          const categories = Object.values(satisfactionData.categories);
+                          const validCategories = categories.filter((cat: any) => cat.needForAction !== null && cat.needForAction !== undefined);
+                          const avgNeedForAction = validCategories.length > 0
+                            ? validCategories.reduce((sum: number, cat: any) => sum + cat.needForAction, 0) / validCategories.length
+                            : 0;
+                          return formatPercentage(avgNeedForAction);
+                        })()}%
                       </div>
-                    </div>
-
-                    {/* Bottom Right - Opportunities for Improvement */}
-                    <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4 flex flex-col min-h-32">
-                      <div className="text-center mb-3">
-                        <h3 className="text-red-800 font-bold text-xs mb-1">OPPORTUNITIES FOR IMPROVEMENT</h3>
-                        <span className="text-red-600 font-medium text-[10px]">Low Satisfaction, High Need for Action</span>
-                      </div>
-                      <div className="space-y-2 text-xs text-red-800">
-                        {Object.entries(satisfactionData.categories).map(([key, data]: [string, any]) =>
-                          data.category === 'fix_now' && (
-                            <Tooltip key={key}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center justify-between cursor-help">
-                                  <div className="flex items-center">
-                                    <span className="mr-2">★</span>
-                                    <span>
-                                      {key === 'financial' ? 'Financial Administration' :
-                                       key === 'disaster' ? 'Disaster Preparedness' :
-                                       key === 'safety' ? 'Safety & Peace Order' :
-                                       key === 'social' ? 'Social Protection' :
-                                       key === 'business' ? 'Business Friendliness' :
-                                       key === 'environmental' ? 'Environmental Management' :
-                                       key.replace('_', ' ')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-center">
-                                  <div className="font-semibold">Satisfaction: {data.satisfaction}%</div>
-                                  <div className="text-xs">Need for Action: {data.needForAction}%</div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        )}
-                        {Object.values(satisfactionData.categories).every((cat: any) => cat.category !== 'fix_now') && (
-                          <div className="text-center text-red-600 italic">No services in this category</div>
-                        )}
+                      <div className="text-xs text-gray-500 mt-2">
+                        {(() => {
+                          const categories = Object.values(satisfactionData.categories);
+                          const validCategories = categories.filter((cat: any) => cat.needForAction !== null && cat.needForAction !== undefined);
+                          const avgNeedForAction = validCategories.length > 0
+                            ? validCategories.reduce((sum: number, cat: any) => sum + cat.needForAction, 0) / validCategories.length
+                            : 0;
+                          
+                          if (avgNeedForAction >= 70) return 'Urgent';
+                          if (avgNeedForAction >= 50) return 'Moderate';
+                          if (avgNeedForAction >= 30) return 'Low Priority';
+                          return 'Minimal';
+                        })()}
                       </div>
                     </div>
-                  </div>
                   )}
                 </div>
               </div>
+
             </div>
           </div>
           </div>

@@ -150,6 +150,18 @@ export async function PUT(
     );
   }
 
+  // Viewer role cannot update CPAPs (read-only)
+  if (normalizedRole === 'viewer') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Forbidden',
+        message: 'Viewer role has read-only access. Cannot update CPAPs.'
+      },
+      { status: 403 }
+    );
+  }
+
   // Only OFFICER users can update CPAPs
   if (normalizedRole !== 'officer') {
     return NextResponse.json(

@@ -105,6 +105,30 @@ export function requireAdmin(request: NextRequest): AuthResult | null {
 }
 
 /**
+ * Middleware to require write permissions (non-viewer)
+ * @param request - NextRequest object
+ * @returns AuthResult or null if authorized
+ */
+export function requireWritePermission(request: NextRequest): AuthResult | null {
+  const authResult = verifyAuth(request);
+  
+  if (!authResult.success) {
+    return authResult;
+  }
+  
+  // Viewer role cannot perform write operations
+  const userRole = authResult.user?.role;
+  if (userRole === 'viewer') {
+    return {
+      success: false,
+      error: 'Write permission required. Viewer role has read-only access.'
+    };
+  }
+  
+  return null; // No error, user has write permissions
+}
+
+/**
  * Creates audit log entry for cycle management operations
  * @param user - User performing the action
  * @param action - Action being performed

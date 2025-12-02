@@ -277,49 +277,45 @@ async function generateAISummary(data: any) {
   });
 
   const prompt = `### ROLE ###
-You are an expert data analyst and policy advisor for the Department of the Interior and Local Government (DILG) in the Philippines. You specialize in interpreting Citizen Satisfaction Index System (CSIS) data and writing concise, actionable executive summaries for Local Government Unit (LGU) officials.
+You are a data analyst writing a direct, actionable report for barangay officials. Your job is to tell them what's working, what needs fixing, and what to do about it. No fluff, no technical jargon.
 
 ### CONTEXT ###
-The CSIS measures citizen feedback on LGU services. The goal of this summary is to quickly inform the LGU of its key strengths and critical weaknesses so they can create an effective Citizen Priority Action Plan (CPAP).
+This is a citizen satisfaction survey report for barangay officials. They want to know:
+1. What services are residents happy with
+2. What services need immediate attention
+3. What specific actions they should take
 
-### CRITERIA FOR ANALYSIS ###
+### ANALYSIS METHODOLOGY ###
+(Internal - do not mention in the summary)
 
-# 1. Critical Criterion: The Dynamic Cut-Off Rule
-To classify any score as "High" or "Low," you MUST NOT use a fixed percentage. You must use the official CSIS Dynamic Cut-Off Algorithm.
+Use the Dynamic Cut-Off Rule to classify scores:
+- Calculate Cut-off = 0.50 + MoE for each score
+- Score ≥ Cut-off = "High", Score < Cut-off = "Low"
 
-Follow these steps precisely for each score (satisfaction and need_for_action):
-
-1. Identify the Inputs: For each score, you will be given the Percentage Score and its MoE (Margin of Error).
-2. Calculate the Cut-off: Cut-off = 0.50 + MoE
-3. Assign the Rating:
-   - If a Percentage Score is greater than or equal to the calculated Cut-off, the rating is "High".
-   - If a Percentage Score is less than the calculated Cut-off, the rating is "Low".
-
-# 2. Prioritization Logic: The Official Action Grid Quadrants
-After determining the "High" or "Low" ratings for both Satisfaction and Need for Action, you must categorize each service into one of the four official Action Grid quadrants using the exact terminology below.
-
-- "Opportunities for Improvement" (Highest Priority):
-  Condition: Satisfaction is "Low" AND Need for Action is "High".
-
-- "Continued Emphasis" (High Importance):
-  Condition: Satisfaction is "High" AND Need for Action is "High".
-
-- "Exceeded Expectations" (Key Strength):
-  Condition: Satisfaction is "High" AND Need for Action is "Low".
-
-- "Secondary Priority" (Lowest Priority):
-  Condition: Satisfaction is "Low" AND Need for Action is "Low".
+Action Grid Quadrants (use for prioritization, but don't mention the technical names):
+- Low Satisfaction + High Need for Action = URGENT - Fix immediately
+- High Satisfaction + High Need for Action = IMPORTANT - Maintain and improve
+- High Satisfaction + Low Need for Action = STRENGTH - Keep doing what you're doing
+- Low Satisfaction + Low Need for Action = MONITOR - Watch for changes
 
 ### TASK ###
-Using the input data, perform the following for each service indicator:
+Write a direct, no-nonsense executive summary for barangay officials. Structure:
 
-1. Apply the Dynamic Cut-Off Rule to determine the adjectival ratings ("High" or "Low") for both its Satisfaction and Need for Action scores, using the provided MoE for each.
-2. Use these ratings to classify the service into its correct Action Grid Quadrant.
-3. Write a professional and easy-to-understand Executive Summary for an LGU Mayor. The summary must:
-   - Start with a brief overview of the LGU's performance.
-   - Clearly identify and celebrate the Key Strengths (services in the "Exceeded Expectations" quadrant).
-   - Emphasize and detail the Critical Priorities (services in the "Opportunities for Improvement" quadrant), explaining that these are the areas requiring the most urgent attention.
-   - Conclude with a forward-looking statement, recommending that the LGU focus its planning and resources on the identified "Opportunities for Improvement" when creating their CPAP.
+1. **Opening (1-2 sentences)**: State the overall performance based on ${data.responseCount} resident responses.
+
+2. **What's Working Well (if any)**: List services where residents are satisfied and don't see urgent need for improvement. Be specific about what they're doing right.
+
+3. **What Needs Immediate Attention (if any)**: List services where residents are dissatisfied OR see urgent need for improvement. Be blunt about the problems.
+
+4. **What To Do Next**: Give 3-5 specific, actionable recommendations prioritized by urgency.
+
+WRITING STYLE:
+- Direct and conversational, like you're briefing them in person
+- No formal greetings or closings
+- No mentions of "CSIS", "Dynamic Cut-Off", "Action Grid", or technical methodology
+- Use simple language - avoid bureaucratic terms
+- Focus on ACTIONS, not analysis
+- Be honest - if something is bad, say it clearly
 
 ### BARANGAY INFORMATION ###
 - Name: ${data.barangay.barangay_name}
@@ -337,55 +333,58 @@ Note: The MoE is calculated as 0.98 / sqrt(n), where n is the sample size for ea
 Provide your analysis in the following JSON format:
 
 {
-  "executiveSummary": "A 3-4 paragraph executive summary following the structure described in the TASK section above",
-  "serviceAnalysis": [
-    {
-      "service": "Service name",
-      "satisfactionScore": 0.75,
-      "satisfactionMoE": 0.155,
-      "satisfactionCutoff": 0.655,
-      "satisfactionRating": "High",
-      "needForActionScore": 0.375,
-      "needForActionMoE": 0.155,
-      "needForActionCutoff": 0.655,
-      "needForActionRating": "Low",
-      "actionGridQuadrant": "Exceeded Expectations",
-      "priority": "Key Strength"
-    }
+  "executiveSummary": "Direct, 2-3 paragraph summary following the structure above. Start with overall performance, then what's working, then what needs fixing. No greetings, no technical terms, no fluff.",
+  "keyFindings": [
+    "Brief, specific finding about resident satisfaction or concerns",
+    "Another key finding",
+    "Another key finding"
   ],
-  "keyStrengths": [
-    "Service 1 - Exceeded Expectations with high satisfaction and low need for action",
-    "Service 2 - Continued Emphasis with high satisfaction and high need for action"
-  ],
-  "criticalPriorities": [
+  "criticalIssues": [
     {
-      "service": "Service name",
-      "quadrant": "Opportunities for Improvement",
-      "issue": "Detailed description of the issue",
-      "recommendation": "Specific actionable recommendation"
+      "issue": "Specific problem residents identified",
+      "impact": "High/Medium/Low",
+      "affectedArea": "Service name",
+      "recommendation": "Specific action to fix it"
     }
   ],
   "actionPlan": {
     "immediate": [
       {
-        "action": "Specific action to take",
-        "timeline": "1-3 months",
+        "action": "Specific action to take NOW (within 1-3 months)",
         "priority": "High",
-        "targetService": "Service name",
-        "expectedOutcome": "Expected result"
+        "resources": "What you need to do it",
+        "expectedOutcome": "What will improve"
       }
     ],
     "shortTerm": [
       {
-        "action": "Specific action to take",
-        "timeline": "3-6 months",
+        "action": "Action to take in 3-6 months",
         "priority": "Medium",
-        "targetService": "Service name",
+        "resources": "What you need",
+        "expectedOutcome": "Expected result"
+      }
+    ],
+    "longTerm": [
+      {
+        "action": "Action to take in 6-12 months",
+        "priority": "Low",
+        "resources": "What you need",
         "expectedOutcome": "Expected result"
       }
     ]
   },
-  "cpapRecommendation": "A forward-looking statement recommending focus areas for the CPAP based on the Opportunities for Improvement quadrant"
+  "recommendations": {
+    "governance": ["Specific governance recommendation", "Another recommendation"],
+    "serviceDelivery": ["Specific service improvement", "Another improvement"],
+    "communityEngagement": ["Specific engagement action", "Another action"]
+  },
+  "successMetrics": [
+    {
+      "metric": "Measurable indicator of success",
+      "target": "Specific target to achieve",
+      "timeline": "When to achieve it"
+    }
+  ]
 }
 
 Provide ONLY the JSON response, no additional text.

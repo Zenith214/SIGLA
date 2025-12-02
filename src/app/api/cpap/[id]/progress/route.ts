@@ -44,6 +44,18 @@ export async function PUT(
     );
   }
 
+  // Viewer role cannot update progress (read-only)
+  if (normalizedRole === 'viewer') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Forbidden',
+        message: 'Viewer role has read-only access. Cannot update progress.'
+      },
+      { status: 403 }
+    );
+  }
+
   // Only OFFICER users can update progress
   if (normalizedRole !== 'officer') {
     return NextResponse.json(

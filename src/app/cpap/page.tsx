@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ export default function CPAPPage() {
   const { user } = useAuth();
   const { activeCycle } = useActiveCycle();
   const { toast } = useToast();
+  const { canEditCPAP: canEdit, canSubmitCPAP: canSubmit, isViewer: isViewerRole } = usePermissions();
   
   const [cpap, setCpap] = useState<CPAP | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,7 +174,7 @@ export default function CPAPPage() {
     }
   };
 
-  const isEditable = cpap?.status === "Draft" || cpap?.status === "Revision_Requested";
+  const isEditable = (cpap?.status === "Draft" || cpap?.status === "Revision_Requested") && canEdit;
   const isApproved = cpap?.status === "Approved";
 
   const handleAddItem = () => {
@@ -454,10 +456,14 @@ export default function CPAPPage() {
     }
   };
 
-  // Check if user has Officer or Admin role
+  // Check if user has access to CPAP dashboard (Officer, Admin, or Viewer)
   useEffect(() => {
-    if (user && user.role?.toLowerCase() !== "officer" && user.role?.toLowerCase() !== "admin") {
-      router.push("/forbidden?reason=role_restricted&attempted_path=/cpap");
+    if (user) {
+      const userRole = user.role?.toLowerCase();
+      const allowedRoles = ["officer", "admin", "developer", "viewer"];
+      if (!allowedRoles.includes(userRole)) {
+        router.push("/forbidden?reason=role_restricted&attempted_path=/cpap");
+      }
     }
   }, [user, router]);
 
@@ -543,6 +549,18 @@ export default function CPAPPage() {
                     {cpap.cycle?.name || "Survey Cycle"} - {cpap.cycle?.year}
                   </p>
                 </div>
+
+                {/* Viewer Notice */}
+                {isViewerRole && (
+                  <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">
+                      👁️ Viewing Mode
+                    </h3>
+                    <p className="text-sm text-blue-800">
+                      You are viewing this CPAP in read-only mode. You cannot make changes or submit action plans.
+                    </p>
+                  </div>
+                )}
 
                 {/* Admin Comments (if revision requested) */}
                 {cpap.status === "Revision_Requested" && cpap.admin_comments && (
@@ -674,10 +692,11 @@ export default function CPAPPage() {
                       status={cpap.status}
                       onEdit={handleEditItem}
                       onDelete={handleDeleteItem}
+                      canEdit={canEdit}
                     />
 
                         {/* Submit Button */}
-                    {isEditable && cpap.items.length > 0 && !showItemForm && aiGeneratedItems.length === 0 && (
+                    {isEditable && canSubmit && cpap.items.length > 0 && !showItemForm && aiGeneratedItems.length === 0 && (
                       <div className="mt-6 pt-6 border-t">
                         <div className="flex justify-end">
                           <Button

@@ -9,7 +9,9 @@ import {
   type SatisfactionData, 
   fetchSatisfactionData,
   getSatisfactionColorClass,
-  getSatisfactionLabel 
+  getSatisfactionLabel,
+  getNeedForActionColorClass,
+  getNeedForActionLabel
 } from "@/utils/satisfactionDataHelpers";
 
 /**
@@ -325,7 +327,7 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
               )}
 
               {!loading && !error && satisfactionData && satisfactionData.hasData && (
-                <div className="space-y-3 animate-fadeIn">
+                <div className="space-y-4 animate-fadeIn">
                   {/* Overall Satisfaction Score */}
                   <div className="transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">
@@ -359,9 +361,42 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
                     </p>
                   </div>
 
+                  {/* Overall Need for Action Score */}
+                  <div className="transition-all duration-300 border-t pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-700">Need for Action</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-gray-900 transition-all duration-300">
+                          {satisfactionData.overallNeedForAction?.toFixed(1)}%
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium transition-all duration-300 ${getNeedForActionColorClass(satisfactionData.overallNeedForAction || null)}`}>
+                          {getNeedForActionLabel(satisfactionData.overallNeedForAction || null)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-500 ease-out ${
+                          satisfactionData.overallNeedForAction !== null && satisfactionData.overallNeedForAction >= 70
+                            ? 'bg-red-500'
+                            : satisfactionData.overallNeedForAction !== null && satisfactionData.overallNeedForAction >= 50
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                        }`}
+                        style={{ width: `${satisfactionData.overallNeedForAction || 0}%` }}
+                      />
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-1 transition-opacity duration-300">
+                      Higher scores indicate more urgent need for intervention
+                    </p>
+                  </div>
+
                   {/* Service Area Scores Breakdown */}
                   <div className="border-t pt-3 transition-all duration-300">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Service Areas</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Service Area Satisfaction</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <ServiceAreaScore 
                         name="Financial" 

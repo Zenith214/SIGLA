@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 
 // Validate environment variables
 const validateEnvironment = () => {
@@ -30,6 +31,96 @@ try {
   );
 } catch (error) {
   console.error("Supabase initialization failed:", error);
+}
+
+// Privacy: Hash personal identifiers
+function hashPersonalData(data: string): string {
+  if (!data) return "";
+  return createHash("sha256").update(data).digest("hex").substring(0, 16);
+}
+
+// Privacy: Anonymize name (keep first letter + hash)
+function anonymizeName(name: string): string {
+  if (!name) return "";
+  const firstLetter = name.charAt(0).toUpperCase();
+  const hash = hashPersonalData(name).substring(0, 8);
+  return `${firstLetter}***${hash}`;
+}
+
+// Privacy: Anonymize email (keep domain)
+function anonymizeEmail(email: string): string {
+  if (!email) return "";
+  const [, domain] = email.split("@");
+  const hash = hashPersonalData(email).substring(0, 8);
+  return `user_${hash}@${domain || "hidden.com"}`;
+}
+
+// Get user from session
+async function getUserFromSession(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "") || request.cookies.get("auth-token")?.value;
+    
+    if (!token) {
+      return null;
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return null;
+    }
+
+    // Get user details from database
+    const { data: userData } = await supabase
+      .from("user")
+      .select("id, email, role, firstName, lastName")
+      .eq("email", user.email)
+      .single();
+
+    return userData;
+  } catch (error) {
+    console.error("Error getting user from session:", error);
+    return null;
+  }
+}
+
+// Audit logging for data exports
+async function logDataExport(userId: number, exportType: string, anonymized: boolean, recordCount: number) {
+  try {
+    await supabase.from("data_export_log").insert([
+      {
+        user_id: userId,
+        export_type: exportType,
+        anonymized: anonymized,
+        record_count: recordCount,
+        exported_at: new Date().toISOString(),
+        ip_address: "system", // Could be enhanced with actual IP
+      },
+    ]);
+  } catch (error) {
+    console.warn("Failed to log data export:", error);
+  }
+}
+
+// Check if user has permission to export data
+function canExportData(userRole: string, exportType: string, anonymized: boolean): boolean {
+  // Super admin can export everything
+  if (userRole === "super_admin") {
+    return true;
+  }
+
+  // Admin can export anonymized data only
+  if (userRole === "admin") {
+    return anonymized;
+  }
+
+  // Viewer can only export reports (aggregated data)
+  if (userRole === "viewer") {
+    return exportType === "reports";
+  }
+
+  // Other roles cannot export
+  return false;
 }
 
 // Improved filename sanitization
@@ -194,18 +285,47 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const exportType = searchParams.get("export");
+    const anonymized = searchParams.get("anonymized") !== "false"; // Default to true
 
     if (exportType) {
+      // Get user from session for authorization and audit logging
+      const user = await getUserFromSession(request);
+      
+      if (!user) {
+        return NextResponse.json(
+          { error: "Unauthorized. Please log in." },
+          { status: 401 }
+        );
+      }
+
+      // Check permissions
+      if (!canExportData(user.role, exportType, anonymized)) {
+        return NextResponse.json(
+          { 
+            error: "Forbidden. You do not have permission to export this data.",
+            details: anonymized 
+              ? "Your role does not allow this export type."
+              : "Non-anonymized exports require super_admin role."
+          },
+          { status: 403 }
+        );
+      }
+
       // Handle data export requests
+      let result;
       switch (exportType) {
         case "survey-data":
-          return await exportSurveyData();
+          result = await exportSurveyData(anonymized, user.id);
+          break;
         case "user-data":
-          return await exportUserData();
+          result = await exportUserData(anonymized, user.id);
+          break;
         case "barangay-data":
-          return await exportBarangayData();
+          result = await exportBarangayData(user.id);
+          break;
         case "reports":
-          return await exportReports();
+          result = await exportReports(user.id);
+          break;
         default:
           return NextResponse.json(
             {
@@ -215,6 +335,8 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
       }
+
+      return result;
     }
 
     // Return backup history
@@ -232,7 +354,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function exportSurveyData() {
+async function exportSurveyData(anonymized: boolean = true, userId?: number) {
   try {
     const { data: surveyData, error } = await supabase.from("survey_response")
       .select(`
@@ -248,8 +370,22 @@ async function exportSurveyData() {
 
     if (error) {
       console.error("Survey data query error:", error);
-      // If table doesn't exist or has different structure, return empty data
       console.warn("Using empty survey data due to query error");
+    }
+
+    // Use empty array if error occurred
+    let dataToExport = error ? [] : surveyData || [];
+
+    // Apply anonymization if requested
+    if (anonymized && dataToExport.length > 0) {
+      dataToExport = dataToExport.map((row) => ({
+        ...row,
+        respondent_name: anonymizeName(row.respondent_name || ""),
+        // Age ranges instead of exact age for privacy
+        respondent_age: row.respondent_age 
+          ? `${Math.floor(row.respondent_age / 10) * 10}-${Math.floor(row.respondent_age / 10) * 10 + 9}`
+          : "",
+      }));
     }
 
     const headers = [
@@ -263,16 +399,23 @@ async function exportSurveyData() {
       "updated_at",
     ];
 
-    // Use empty array if error occurred
-    const dataToExport = error ? [] : surveyData || [];
     const csv = convertToCSV(dataToExport, headers);
-    const filename = generateFilename("survey_data");
+    const filename = generateFilename(
+      anonymized ? "survey_data_anonymized" : "survey_data_full"
+    );
+
+    // Log the export
+    if (userId) {
+      await logDataExport(userId, "survey-data", anonymized, dataToExport.length);
+    }
 
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": csv.length.toString(),
+        "X-Data-Privacy": anonymized ? "anonymized" : "full",
+        "X-Record-Count": dataToExport.length.toString(),
       },
     });
   } catch (error) {
@@ -287,7 +430,7 @@ async function exportSurveyData() {
   }
 }
 
-async function exportUserData() {
+async function exportUserData(anonymized: boolean = true, userId?: number) {
   try {
     const { data: userData, error } = await supabase.from("user").select(`
         id,
@@ -298,6 +441,18 @@ async function exportUserData() {
         status,
         createdAt
       `);
+
+    let dataToExport = error ? [] : userData || [];
+
+    // Apply anonymization if requested
+    if (anonymized && dataToExport.length > 0) {
+      dataToExport = dataToExport.map((row) => ({
+        ...row,
+        email: anonymizeEmail(row.email || ""),
+        firstName: anonymizeName(row.firstName || ""),
+        lastName: anonymizeName(row.lastName || ""),
+      }));
+    }
 
     const headers = [
       "id",
@@ -315,16 +470,25 @@ async function exportUserData() {
       console.warn("User data query error (using empty data):", error);
       csv = convertToCSV([], headers);
     } else {
-      csv = convertToCSV(userData || [], headers);
+      csv = convertToCSV(dataToExport, headers);
     }
 
-    const filename = generateFilename("user_data");
+    const filename = generateFilename(
+      anonymized ? "user_data_anonymized" : "user_data_full"
+    );
+
+    // Log the export
+    if (userId) {
+      await logDataExport(userId, "user-data", anonymized, dataToExport.length);
+    }
 
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": csv.length.toString(),
+        "X-Data-Privacy": anonymized ? "anonymized" : "full",
+        "X-Record-Count": dataToExport.length.toString(),
       },
     });
   } catch (error) {
@@ -339,7 +503,7 @@ async function exportUserData() {
   }
 }
 
-async function exportBarangayData() {
+async function exportBarangayData(userId?: number) {
   try {
     const { data: barangayData, error } = await supabase.from("barangay")
       .select(`
@@ -372,11 +536,18 @@ async function exportBarangayData() {
     const csv = convertToCSV(dataToExport, headers);
     const filename = generateFilename("barangay_data");
 
+    // Log the export (barangay data is public, so always anonymized=true)
+    if (userId) {
+      await logDataExport(userId, "barangay-data", true, dataToExport.length);
+    }
+
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": csv.length.toString(),
+        "X-Data-Privacy": "public",
+        "X-Record-Count": dataToExport.length.toString(),
       },
     });
   } catch (error) {
@@ -391,7 +562,7 @@ async function exportBarangayData() {
   }
 }
 
-async function exportReports() {
+async function exportReports(userId?: number) {
   try {
     // Fetch basic data with error handling
     const [barangayResult, surveyResult] = await Promise.allSettled([
@@ -655,11 +826,17 @@ File Size: Approximately ${fileSizeKB} KB`
 
     const filename = generateFilename("sigla_report", "txt");
 
+    // Log the export (reports are aggregated, so always anonymized=true)
+    if (userId) {
+      await logDataExport(userId, "reports", true, barangaysWithData.length);
+    }
+
     return new NextResponse(reportContent, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": reportContent.length.toString(),
+        "X-Data-Privacy": "aggregated",
       },
     });
   } catch (error) {

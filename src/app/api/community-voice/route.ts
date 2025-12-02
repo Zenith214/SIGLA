@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-middleware'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getActiveCycleId } from '@/utils/surveyCycleHelpers'
+import { getCachedOrCompute } from '@/lib/ml-cache'
 
 /**
  * GET /api/community-voice
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const barangayId = searchParams.get('barangayId')
+    const forceRefresh = searchParams.get('refresh') === 'true'
     
     // Get active cycle
     const activeCycleId = await getActiveCycleId()
@@ -24,6 +26,48 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No active survey cycle found' }, { status: 400 })
     }
 
+    console.log(`🔊 [COMMUNITY VOICE] Request for Barangay: ${barangayId || 'All'}, Cycle: ${activeCycleId}, Refresh: ${forceRefresh}`);
+
+    // Use caching with 12-hour TTL for community voice analysis
+    const result = await getCachedOrCompute(
+      'community-voice-analysis',
+      { barangayId: barangayId ? parseInt(barangayId) : 0, cycleId: activeCycleId },
+      async () => {
+        return await performCommunityVoiceAnalysis(barangayId, activeCycleId);
+      },
+      {
+        ttl: 43200, // 12 hours
+        staleWhileRevalidate: true,
+        forceRefresh
+      }
+    );
+
+    console.log(`✅ [COMMUNITY VOICE] Returned ${result.cached ? (result.stale ? 'stale cached' : 'fresh cached') : 'newly computed'} data`);
+
+    return NextResponse.json({
+      success: true,
+      data: result.data,
+      _cache: {
+        cached: result.cached,
+        stale: result.stale,
+        computedAt: result.computedAt,
+        expiresAt: result.expiresAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Community voice analysis error:', error)
+    return NextResponse.json(
+      { error: 'Failed to analyze community voice' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * Perform community voice analysis (expensive operation)
+ */
+async function performCommunityVoiceAnalysis(barangayId: string | null, activeCycleId: number) {
     // Build query to get survey responses with section data
     let surveyQuery = supabaseAdmin
       .from('survey_response')
@@ -113,18 +157,17 @@ export async function GET(request: NextRequest) {
     console.log(`Extracted ${allComments.length} comments from ${surveyData?.length || 0} responses`)
 
     if (allComments.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          barangay_id: barangayId,
-          total_comments: 0,
-          processed_comments: 0,
-          message: 'No comments found for analysis',
-          insights: [],
-          themes: { counts: {}, percentages: {}, top_themes: [] },
-          categories: { counts: { positive: 0, negative: 0, neutral: 0 }, percentages: { positive: 0, negative: 0, neutral: 0 } }
-        }
-      })
+      return {
+        barangay_id: barangayId,
+        total_comments: 0,
+        processed_comments: 0,
+        message: 'No comments found for analysis',
+        insights: [],
+        themes: { counts: {}, percentages: {}, top_themes: [] },
+        categories: { counts: { positive: 0, negative: 0, neutral: 0 }, percentages: { positive: 0, negative: 0, neutral: 0 } },
+        cycle_id: activeCycleId,
+        comments_by_barangay: commentsByBarangay
+      }
     }
 
     // Call Python ML script directly (on-demand execution)
@@ -193,15 +236,12 @@ export async function GET(request: NextRequest) {
       
       console.log('ML analysis completed successfully')
       
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...mlResult,
-          cycle_id: activeCycleId,
-          comments_by_barangay: commentsByBarangay,
-          ml_service_available: true
-        }
-      })
+      return {
+        ...mlResult,
+        cycle_id: activeCycleId,
+        comments_by_barangay: commentsByBarangay,
+        ml_service_available: true
+      }
       
     } catch (mlError) {
       console.error('ML script execution error:', mlError)
@@ -230,21 +270,10 @@ export async function GET(request: NextRequest) {
         ml_service_available: false
       }
       
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...basicAnalysis,
-          cycle_id: activeCycleId,
-          comments_by_barangay: commentsByBarangay
-        }
-      })
+      return {
+        ...basicAnalysis,
+        cycle_id: activeCycleId,
+        comments_by_barangay: commentsByBarangay
+      }
     }
-
-  } catch (error) {
-    console.error('Community voice analysis error:', error)
-    return NextResponse.json(
-      { error: 'Failed to analyze community voice' },
-      { status: 500 }
-    )
-  }
 }

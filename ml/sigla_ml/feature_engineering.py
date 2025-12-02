@@ -4,6 +4,7 @@
 import sys
 import pandas as pd
 import numpy as np
+import logging
 from math import sqrt
 from .csis_calculations import (
     calculate_margin_of_error,
@@ -12,6 +13,8 @@ from .csis_calculations import (
     determine_action_grid_quadrant,
     calculate_service_metrics_with_moe
 )
+
+logger = logging.getLogger(__name__)
 
 class FeatureEngineer:
     """Class for engineering features from survey data for machine learning."""
@@ -169,7 +172,7 @@ class FeatureEngineer:
     def _calculate_need_for_action_from_responses(self, responses, service_area):
         """Calculate need for action score from survey responses.
         
-        Looks for questions about improvements needed, problems, or suggestions.
+        Looks for questions with 'nfaBinary' in the ID (Need For Action Binary questions).
         
         Args:
             responses (list): List of response dictionaries
@@ -178,29 +181,40 @@ class FeatureEngineer:
         Returns:
             dict: Dictionary with 'count', 'total', 'percentage'
         """
-        need_action_count = 0
-        total_respondents = set()
+        respondents_with_nfa_yes = set()
+        respondents_with_nfa_questions = set()
         
-        # Keywords that indicate need for action questions
-        need_action_keywords = ['improve', 'problem', 'issue', 'concern', 'suggest', 
-                               'recommend', 'change', 'need', 'priority']
+        # Debug: Sample first few question texts to see what we're working with
+        sample_questions = set()
         
         for response in responses:
             respondent_id = response.get('respondent_id')
-            total_respondents.add(respondent_id)
-            
-            question_text = str(response.get('question_text', '')).lower()
+            question_text = str(response.get('question_text', ''))
             answer = response.get('answer')
             
-            # Check if this is a need for action question
-            if any(keyword in question_text for keyword in need_action_keywords):
-                # Non-empty answer indicates need for action
-                if answer and str(answer).strip() and str(answer).lower() not in ['none', 'n/a', 'wala', 'nan']:
-                    need_action_count += 1
-                    break  # Count each respondent only once
+            # Collect sample questions for debugging
+            if len(sample_questions) < 10:
+                sample_questions.add(question_text)
+            
+            # Check if this is a need for action question (nfaBinary questions)
+            if 'nfaBinary' in question_text or 'nfa_binary' in question_text.lower():
+                respondents_with_nfa_questions.add(respondent_id)
+                
+                # Check if answer indicates need for action (Yes/Oo)
+                answer_str = str(answer).strip() if answer else ''
+                if answer_str in ['Yes', 'Oo', 'yes', 'oo', 'Oo (Yes)', 'Yes / Oo']:
+                    respondents_with_nfa_yes.add(respondent_id)
         
-        total = len(total_respondents)
+        need_action_count = len(respondents_with_nfa_yes)
+        total = len(respondents_with_nfa_questions)
         percentage = (need_action_count / total * 100) if total > 0 else None
+        
+        # Debug output using logger
+        if total == 0:
+            logger.warning(f"No nfaBinary questions found for {service_area}")
+            logger.warning(f"Sample questions: {list(sample_questions)[:5]}")
+        else:
+            logger.info(f"NFA for {service_area}: {need_action_count}/{total} = {percentage}%")
         
         return {
             'count': need_action_count,
@@ -321,6 +335,10 @@ class FeatureEngineer:
         service_scores = {}
         
         for section_key, group in grouped:
+            # Skip the "overall" section as it has different question structure
+            # (overallSatisfaction and overallNeedForAction instead of awareness/availment/satisfaction/needAction)
+            if section_key == 'overall':
+                continue
             # Count responses
             total_responses = len(group)
             

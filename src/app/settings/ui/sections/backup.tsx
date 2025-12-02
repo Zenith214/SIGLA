@@ -6,14 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Download, Database, AlertTriangle, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
+interface BackupHistoryItem {
+  id: number;
+  date: string;
+  time: string;
+  size: string;
+  status: string;
+  type?: string;
+}
+
 export function Backup() {
   const [autoBackup, setAutoBackup] = useState(true)
-  const [backupHistory, setBackupHistory] = useState([])
+  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { addToast } = useToast()
   const { activeCycle, hasActiveCycle } = useActiveCycle()
@@ -52,11 +60,13 @@ export function Backup() {
     }
   }
 
-  const handleExportData = async (dataType: string) => {
+  const handleExportData = async (dataType: string, anonymized: boolean = true) => {
+    const privacyNote = anonymized ? " (Personal data will be anonymized)" : " (Full data including personal information)";
+    
     addToast({
       type: "info",
       title: "Export Started",
-      description: `${dataType} export has been initiated. Download will start shortly.`,
+      description: `${dataType} export has been initiated.${privacyNote}`,
       duration: 4000
     });
 
@@ -79,19 +89,37 @@ export function Backup() {
           throw new Error('Invalid data type');
       }
 
-      // Add cycle information to the export request
-      const params = new URLSearchParams({ export: exportParam });
+      // Add cycle information and privacy settings to the export request
+      const params = new URLSearchParams({ 
+        export: exportParam,
+        anonymized: anonymized.toString()
+      });
       if (hasActiveCycle && activeCycle) {
         params.append('cycle_id', activeCycle.cycle_id.toString());
         params.append('cycle_name', activeCycle.name);
         params.append('cycle_year', activeCycle.year.toString());
       }
       
-      const response = await fetch(`/api/backups?${params}`);
+      const response = await fetch(`/api/backups?${params}`, {
+        credentials: 'include', // Include auth cookies
+      });
+      
+      if (response.status === 401) {
+        throw new Error('Unauthorized. Please log in again.');
+      }
+      
+      if (response.status === 403) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'You do not have permission to export this data.');
+      }
       
       if (!response.ok) {
         throw new Error(`Export failed: ${response.statusText}`);
       }
+
+      // Get privacy info from headers
+      const privacyLevel = response.headers.get('X-Data-Privacy');
+      const recordCount = response.headers.get('X-Record-Count');
 
       // Get the filename from the Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition');
@@ -113,16 +141,16 @@ export function Backup() {
       addToast({
         type: "success",
         title: "Export Complete",
-        description: `${dataType} has been exported and downloaded successfully.`,
-        duration: 4000
+        description: `${dataType} exported successfully. ${recordCount ? `${recordCount} records` : ''} (Privacy: ${privacyLevel || 'protected'})`,
+        duration: 5000
       });
     } catch (error) {
       console.error('Export error:', error);
       addToast({
         type: "error",
         title: "Export Failed",
-        description: `Failed to export ${dataType}. Please try again.`,
-        duration: 4000
+        description: error instanceof Error ? error.message : `Failed to export ${dataType}. Please try again.`,
+        duration: 5000
       });
     }
   }
@@ -170,7 +198,7 @@ export function Backup() {
     }
   }
 
-  const handleDownloadBackup = async (backupId?: number) => {
+  const handleDownloadBackup = async () => {
     addToast({
       type: "info",
       title: "Download Started",
@@ -244,6 +272,12 @@ export function Backup() {
             <Download className="w-6 h-6 text-blue-500" />
             <span>Data Export</span>
           </CardTitle>
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800">
+              🔒 <strong>Privacy Protection:</strong> All exports containing personal data are automatically anonymized. 
+              Names are masked, ages are grouped into ranges, and emails are hashed. Only super admins can export full data.
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -333,16 +367,6 @@ export function Backup() {
               <span className="truncate">Download Latest Backup</span>
             </Button>
           </div>
-
-          {/* Backup Progress (if backup is running) */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-800">Backup in Progress</span>
-              <span className="text-sm text-blue-600">75%</span>
-            </div>
-            <Progress value={75} className="h-2" />
-            <p className="text-xs text-blue-600 mt-2">Estimated time remaining: 2 minutes</p>
-          </div>
         </CardContent>
       </Card>
 
@@ -391,7 +415,7 @@ export function Backup() {
                           size="sm" 
                           variant="ghost" 
                           className="h-8 w-8 p-0 hover:bg-gray-200"
-                          onClick={() => handleDownloadBackup(backup.id)}
+                          onClick={handleDownloadBackup}
                           title="Download backup"
                         >
                           <Download className="w-3 h-3" />

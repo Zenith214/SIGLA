@@ -160,14 +160,33 @@ async function saveToCache<T>(
     updated_at: now.toISOString()
   }
 
-  const { error } = await supabase
+  // Try to update existing entry first
+  const { data: existing } = await supabase
     .from('ml_cache')
-    .upsert(cacheEntry, {
-      onConflict: 'cache_key'
-    })
+    .select('id')
+    .eq('cache_key', cacheKey)
+    .single()
 
-  if (error) {
-    console.error('Cache save error:', error)
+  if (existing) {
+    // Update existing entry
+    const { error } = await supabase
+      .from('ml_cache')
+      .update(cacheEntry)
+      .eq('cache_key', cacheKey)
+
+    if (error) {
+      console.error('Cache update error:', error)
+    }
+  } else {
+    // Insert new entry
+    const { error } = await supabase
+      .from('ml_cache')
+      .insert(cacheEntry)
+
+    if (error && error.code !== '23505') {
+      // Ignore duplicate key errors (23505), log others
+      console.error('Cache insert error:', error)
+    }
   }
 }
 

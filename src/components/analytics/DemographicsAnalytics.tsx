@@ -1,53 +1,63 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Users, TrendingUp, MapPin, GraduationCap, DollarSign, Home } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useActiveCycle } from '@/hooks/useSurveyCycle'
+import { fetchWithCache } from '@/utils/analyticsCache'
+import { dualAxisChartOptions, pieChartOptions, colorPalettes, getChartAriaLabel } from '@/utils/chartConfig'
+import { Bar, Pie } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 interface DemographicData {
-  label: string
-  count: number
-  percentage: string
-}
-
-interface DemographicsResponse {
+  ageDistribution: Array<{ ageGroup: string, count: number, satisfaction: number }>
+  genderDistribution: Array<{ gender: string, count: number, satisfaction: number }>
+  incomeDistribution: Array<{ incomeRange: string, count: number, satisfaction: number }>
+  educationDistribution: Array<{ education: string, count: number, satisfaction: number }>
+  purokDistribution: Array<{ purok: string, count: number, satisfaction: number }>
   totalRespondents: number
-  demographics: {
-    gender: DemographicData[]
-    ageGroups: DemographicData[]
-    education: DemographicData[]
-    income: DemographicData[]
-    purok: DemographicData[]
-  }
 }
 
-interface DemographicsAnalyticsProps {
-  barangayId?: number
-  cycleId?: number
-}
-
-export function DemographicsAnalytics({ barangayId, cycleId }: DemographicsAnalyticsProps) {
-  const [data, setData] = useState<DemographicsResponse | null>(null)
+export default function DemographicsAnalytics() {
+  const { activeCycle, hasActiveCycle } = useActiveCycle()
+  const [data, setData] = useState<DemographicData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchDemographics()
-  }, [barangayId, cycleId])
+    if (hasActiveCycle) {
+      fetchDemographicsData()
+    }
+  }, [hasActiveCycle, activeCycle])
 
-  const fetchDemographics = async () => {
+  const fetchDemographicsData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (barangayId) params.append('barangayId', barangayId.toString())
-      if (cycleId) params.append('cycleId', cycleId.toString())
-
-      const response = await fetch(`/api/analytics/demographics?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch demographics')
-
-      const result = await response.json()
+      const result = await fetchWithCache<DemographicData>(
+        '/api/analytics/demographics',
+        { cycleId: activeCycle?.cycle_id },
+        { ttl: 5 * 60 * 1000 } // 5 minutes
+      )
       setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+    } catch (error) {
+      console.error('Failed to fetch demographics data:', error)
     } finally {
       setLoading(false)
     }
@@ -55,160 +65,321 @@ export function DemographicsAnalytics({ barangayId, cycleId }: DemographicsAnaly
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
-      <div className="text-center py-12 text-red-600">
-        Error loading demographics: {error}
+      <div className="text-center py-12 text-gray-500">
+        No demographic data available
       </div>
     )
   }
-
-  const renderDistributionCard = (
-    title: string,
-    icon: React.ReactNode,
-    data: DemographicData[],
-    colorClass: string
-  ) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center space-x-3 mb-4">
-        {icon}
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      </div>
-
-      <div className="space-y-3">
-        {data.map((item, index) => (
-          <div key={index} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-700 font-medium">{item.label}</span>
-              <span className="text-gray-600">
-                {item.count} ({item.percentage}%)
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`${colorClass} h-2 rounded-full transition-all duration-500`}
-                style={{ width: `${item.percentage}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {data.length === 0 && (
-        <p className="text-gray-500 text-sm text-center py-4">No data available</p>
-      )}
-    </div>
-  )
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Respondent Demographics Profile</h2>
-            <p className="text-blue-100">
-              Comprehensive analysis of survey participant characteristics
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-4xl font-bold">{data.totalRespondents}</div>
-            <div className="text-blue-100 text-sm">Total Respondents</div>
-          </div>
-        </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Respondents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{data.totalRespondents}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Age Groups</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{data.ageDistribution.length}</div>
+            <p className="text-xs text-gray-500">Different age ranges</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Gender Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{data.genderDistribution.length}</div>
+            <p className="text-xs text-gray-500">Gender categories</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Income Levels</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{data.incomeDistribution.length}</div>
+            <p className="text-xs text-gray-500">Income brackets</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Gender Distribution */}
+      {/* Charts Row 1: Age and Gender */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderDistributionCard(
-          "Gender Distribution",
-          <Users className="w-5 h-5 text-purple-600" />,
-          data.demographics.gender,
-          "bg-purple-600"
-        )}
+        {/* Age Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Age Distribution & Satisfaction</CardTitle>
+            <p className="text-sm text-gray-500">Respondent count and average satisfaction by age group</p>
+          </CardHeader>
+          <CardContent>
+            <div 
+              role="img" 
+              aria-label={getChartAriaLabel('Bar', 'age distribution and satisfaction levels across different age groups')}
+            >
+              <Bar
+                data={{
+                  labels: data.ageDistribution.map(d => d.ageGroup),
+                  datasets: [
+                    {
+                      label: 'Respondents',
+                      data: data.ageDistribution.map(d => d.count),
+                      backgroundColor: colorPalettes.primary[0],
+                      yAxisID: 'y'
+                    },
+                    {
+                      label: 'Satisfaction %',
+                      data: data.ageDistribution.map(d => d.satisfaction),
+                      backgroundColor: colorPalettes.primary[3],
+                      yAxisID: 'y1'
+                    }
+                  ]
+                }}
+                options={dualAxisChartOptions as any}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {renderDistributionCard(
-          "Age Groups",
-          <TrendingUp className="w-5 h-5 text-blue-600" />,
-          data.demographics.ageGroups,
-          "bg-blue-600"
-        )}
+        {/* Gender Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Gender Distribution</CardTitle>
+            <p className="text-sm text-gray-500">Respondent breakdown by gender identity</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div 
+                role="img" 
+                aria-label={getChartAriaLabel('Pie', 'gender distribution showing respondent breakdown by gender identity')}
+              >
+                <Pie
+                  data={{
+                    labels: data.genderDistribution.map(d => d.gender),
+                    datasets: [{
+                      data: data.genderDistribution.map(d => d.count),
+                      backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(236, 72, 153, 0.8)',
+                        'rgba(168, 85, 247, 0.8)',
+                        'rgba(34, 197, 94, 0.8)'
+                      ]
+                    }]
+                  }}
+                  options={pieChartOptions as any}
+                />
+              </div>
+              <div className="flex flex-col justify-center space-y-2">
+                {data.genderDistribution.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">{item.gender}</span>
+                    <div className="text-right">
+                      <div className="text-sm font-bold">{item.count}</div>
+                      <div className="text-xs text-gray-500">{item.satisfaction.toFixed(1)}% sat.</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Education and Income */}
+      {/* Charts Row 2: Income and Education */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderDistributionCard(
-          "Educational Attainment",
-          <GraduationCap className="w-5 h-5 text-green-600" />,
-          data.demographics.education,
-          "bg-green-600"
-        )}
+        {/* Income Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Household Income Distribution</CardTitle>
+            <p className="text-sm text-gray-500">Respondents by income bracket with satisfaction levels</p>
+          </CardHeader>
+          <CardContent>
+            <Bar
+              data={{
+                labels: data.incomeDistribution.map(d => d.incomeRange),
+                datasets: [
+                  {
+                    label: 'Respondents',
+                    data: data.incomeDistribution.map(d => d.count),
+                    backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                    yAxisID: 'y'
+                  },
+                  {
+                    label: 'Satisfaction %',
+                    data: data.incomeDistribution.map(d => d.satisfaction),
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    yAxisID: 'y1'
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                  y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Respondents' }
+                  },
+                  y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Satisfaction %' },
+                    max: 100,
+                    grid: { drawOnChartArea: false }
+                  }
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
 
-        {renderDistributionCard(
-          "Monthly Household Income",
-          <DollarSign className="w-5 h-5 text-yellow-600" />,
-          data.demographics.income,
-          "bg-yellow-600"
-        )}
+        {/* Education Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Educational Attainment</CardTitle>
+            <p className="text-sm text-gray-500">Respondents by education level with satisfaction</p>
+          </CardHeader>
+          <CardContent>
+            <Bar
+              data={{
+                labels: data.educationDistribution.map(d => d.education),
+                datasets: [
+                  {
+                    label: 'Respondents',
+                    data: data.educationDistribution.map(d => d.count),
+                    backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                    yAxisID: 'y'
+                  },
+                  {
+                    label: 'Satisfaction %',
+                    data: data.educationDistribution.map(d => d.satisfaction),
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    yAxisID: 'y1'
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                  y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Respondents' }
+                  },
+                  y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Satisfaction %' },
+                    max: 100,
+                    grid: { drawOnChartArea: false }
+                  }
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Purok Distribution */}
-      <div className="grid grid-cols-1 gap-6">
-        {renderDistributionCard(
-          "Purok/Sitio Distribution",
-          <Home className="w-5 h-5 text-indigo-600" />,
-          data.demographics.purok,
-          "bg-indigo-600"
-        )}
-      </div>
+      {/* Charts Row 3: Purok/Sitio Distribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Purok/Sitio Distribution</CardTitle>
+          <p className="text-sm text-gray-500">Respondent distribution across puroks/sitios with satisfaction levels</p>
+        </CardHeader>
+        <CardContent>
+          <Bar
+            data={{
+              labels: data.purokDistribution.map(d => d.purok),
+              datasets: [
+                {
+                  label: 'Respondents',
+                  data: data.purokDistribution.map(d => d.count),
+                  backgroundColor: 'rgba(14, 165, 233, 0.8)',
+                  yAxisID: 'y'
+                },
+                {
+                  label: 'Satisfaction %',
+                  data: data.purokDistribution.map(d => d.satisfaction),
+                  backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                  yAxisID: 'y1'
+                }
+              ]
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: {
+                y: {
+                  type: 'linear',
+                  position: 'left',
+                  title: { display: true, text: 'Respondents' }
+                },
+                y1: {
+                  type: 'linear',
+                  position: 'right',
+                  title: { display: true, text: 'Satisfaction %' },
+                  max: 100,
+                  grid: { drawOnChartArea: false }
+                }
+              }
+            }}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Key Insights */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">Key Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-          {data.demographics.gender.length > 0 && (
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-gray-600 mb-1">Most Represented Gender</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {data.demographics.gender[0].label}
-              </div>
-              <div className="text-sm text-gray-500">
-                {data.demographics.gender[0].percentage}% of respondents
+      {/* Insights Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Key Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="font-semibold text-blue-900 mb-2">Highest Satisfaction</div>
+              <div className="text-sm text-blue-700">
+                {data.ageDistribution.length > 0 && (
+                  <div>Age: {data.ageDistribution.reduce((max, item) => item.satisfaction > max.satisfaction ? item : max).ageGroup} ({data.ageDistribution.reduce((max, item) => item.satisfaction > max.satisfaction ? item : max).satisfaction.toFixed(1)}%)</div>
+                )}
+                {data.genderDistribution.length > 0 && (
+                  <div>Gender: {data.genderDistribution.reduce((max, item) => item.satisfaction > max.satisfaction ? item : max).gender} ({data.genderDistribution.reduce((max, item) => item.satisfaction > max.satisfaction ? item : max).satisfaction.toFixed(1)}%)</div>
+                )}
               </div>
             </div>
-          )}
-
-          {data.demographics.ageGroups.length > 0 && (
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-gray-600 mb-1">Largest Age Group</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {data.demographics.ageGroups[0].label}
-              </div>
-              <div className="text-sm text-gray-500">
-                {data.demographics.ageGroups[0].percentage}% of respondents
-              </div>
-            </div>
-          )}
-
-          {data.demographics.education.length > 0 && (
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-gray-600 mb-1">Most Common Education</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {data.demographics.education[0].label}
-              </div>
-              <div className="text-sm text-gray-500">
-                {data.demographics.education[0].percentage}% of respondents
+            <div className="p-4 bg-red-50 rounded-lg">
+              <div className="font-semibold text-red-900 mb-2">Needs Attention</div>
+              <div className="text-sm text-red-700">
+                {data.ageDistribution.length > 0 && (
+                  <div>Age: {data.ageDistribution.reduce((min, item) => item.satisfaction < min.satisfaction ? item : min).ageGroup} ({data.ageDistribution.reduce((min, item) => item.satisfaction < min.satisfaction ? item : min).satisfaction.toFixed(1)}%)</div>
+                )}
+                {data.genderDistribution.length > 0 && (
+                  <div>Gender: {data.genderDistribution.reduce((min, item) => item.satisfaction < min.satisfaction ? item : min).gender} ({data.genderDistribution.reduce((min, item) => item.satisfaction < min.satisfaction ? item : min).satisfaction.toFixed(1)}%)</div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

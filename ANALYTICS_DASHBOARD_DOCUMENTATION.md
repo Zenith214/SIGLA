@@ -3,12 +3,17 @@
 ## Overview
 The SIGLA (Survey-Informed Good Local Governance) Analytics Dashboard provides comprehensive data visualization and analysis tools for survey responses, barangay performance, and SGLGB (Seal of Good Local Governance for Barangays) award tracking.
 
+**Last Updated:** December 2, 2025
+
 ## Table of Contents
 1. [Main Analytics Dashboard](#main-analytics-dashboard)
-2. [Dashboard Views](#dashboard-views)
-3. [Analytics API Endpoints](#analytics-api-endpoints)
-4. [Dashboard Components](#dashboard-components)
-5. [Data Export](#data-export)
+2. [Dashboard Summary View](#dashboard-summary-view)
+3. [Service Area Deep Dive](#service-area-deep-dive)
+4. [Demographic Analysis](#demographic-analysis)
+5. [Detailed Analytics](#detailed-analytics)
+6. [Analytics API Endpoints](#analytics-api-endpoints)
+7. [Dashboard Components](#dashboard-components)
+8. [Data Export](#data-export)
 
 ---
 
@@ -16,9 +21,220 @@ The SIGLA (Survey-Informed Good Local Governance) Analytics Dashboard provides c
 
 **Location:** `/analytics`
 
-The main analytics page provides four primary views for analyzing survey data:
+The redesigned analytics dashboard features three primary views accessible via tabs:
 
-### 1. Summary View
+1. **Dashboard Summary View** - Primary landing page with KPIs and system-wide metrics
+2. **Service Area Deep Dive** - Detailed analysis by service area with demographic filtering
+3. **Detailed Analytics** - Raw data exploration and export functionality
+
+---
+
+## Dashboard Summary View
+
+**Purpose:** Serves as the primary landing page providing a high-level overview of system performance.
+
+### Key Widgets
+
+#### 1. KPI Cards Row
+Four key performance indicators displayed prominently at the top:
+
+- **Overall Barangay Satisfaction %**
+  - System-wide average satisfaction score
+  - Calculated across all service areas and barangays
+  - Color-coded: Blue for primary metric
+  - Icon: Award
+
+- **Overall Need for Action %**
+  - System-wide average of services requiring attention
+  - Inverse relationship with satisfaction
+  - Color-coded: Orange for attention needed
+  - Icon: Target
+
+- **Total Responses vs. Target**
+  - Current response count / Target response count
+  - Progress bar visualization
+  - Target based on total households across all barangays
+  - Icon: Users
+
+- **Barangays Covered**
+  - Number of barangays with completed surveys / Total barangays
+  - Percentage coverage displayed
+  - Icon: MapPin
+
+#### 2. Barangay Leaderboard Widget
+Displays top 5 and bottom 5 performing barangays based on Overall Satisfaction score.
+
+**Features:**
+- Split view: Top 5 (green theme) and Bottom 5 (red theme)
+- Rank badges (numbered 1-5 for top, last 5 positions for bottom)
+- Barangay name and satisfaction percentage
+- Trend arrows for each barangay:
+  - ↑ Up (green) - Improving performance
+  - ↓ Down (red) - Declining performance
+  - → Stable (gray) - No significant change
+
+**Data Source:** `/api/analytics/dashboard-summary`
+
+#### 3. System-Wide Trend Chart Widget
+Line graph showing average Overall Satisfaction % across all available survey cycles.
+
+**Features:**
+- X-axis: Survey cycles (name and year)
+- Y-axis: Satisfaction percentage (0-100%)
+- Smooth line with area fill
+- Shows historical progression
+- Helps identify long-term trends
+
+**Chart Type:** Line chart with filled area
+**Library:** Chart.js
+
+#### 4. Service Area Performance Overview Widget
+Horizontal bar chart ranking the six service areas by average satisfaction score.
+
+**Service Areas:**
+1. Financial Administration
+2. Disaster Preparedness
+3. Safety & Peace Order
+4. Social Protection
+5. Business Friendliness
+6. Environmental Management
+
+**Features:**
+- Bars sorted by satisfaction score (descending)
+- Color-coded bars (blue theme)
+- Percentage labels on bars
+- Identifies strongest and weakest service areas
+
+**Chart Type:** Horizontal bar chart
+**Library:** Chart.js
+
+---
+
+## Service Area Deep Dive
+
+**Purpose:** Detailed analysis of individual service areas with demographic filtering capabilities.
+
+### Key Features
+
+#### 1. Service Area Selector
+Grid of buttons allowing users to select one of six service areas:
+- Financial Administration
+- Disaster Preparedness
+- Safety & Peace Order
+- Social Protection
+- Business Friendliness
+- Environmental Management
+
+**Interaction:** Click to select, active button highlighted
+
+#### 2. Barangay Rankings Table
+Comprehensive table showing all barangays ranked by satisfaction for the selected service area.
+
+**Columns:**
+- **Rank** - Position (1 to N)
+- **Barangay** - Barangay name
+- **Awareness %** - Percentage who know about the service
+- **Availment %** - Percentage who used the service
+- **Satisfaction %** - Average satisfaction rating
+- **Need for Action %** - Percentage requiring improvements
+- **Responses** - Number of survey responses
+- **Trend** - Performance trend indicator (↑↓→)
+
+**Color Coding:**
+- Green (70%+): Good performance
+- Yellow (50-69%): Moderate performance
+- Red (<50%): Needs improvement
+
+**Note:** Need for Action uses inverse color coding (red for high values)
+
+#### 3. Action Grid Visualization
+2x2 matrix plotting barangays by Satisfaction (x-axis) vs Need for Action (y-axis).
+
+**Quadrants:**
+- **Top-Left (Monitor):** Low satisfaction, low need for action
+- **Top-Right (Maintain):** High satisfaction, low need for action
+- **Bottom-Left (Fix Now):** Low satisfaction, high need for action
+- **Bottom-Right (Opportunities):** High satisfaction, high need for action
+
+**Features:**
+- Each barangay represented as a dot
+- Hover to see barangay name and metrics
+- Visual gradient background (red → yellow → green)
+- Helps prioritize interventions
+
+**Data Source:** `/api/analytics/service-area-deep-dive`
+
+---
+
+## Demographic Analysis
+
+**Purpose:** Filter and disaggregate survey results by demographic variables to identify inequities and specific group needs.
+
+### Demographic Filters
+
+#### Available Filters:
+1. **Age Group**
+   - All Ages (default)
+   - 18-24
+   - 25-34
+   - 35-44
+   - 45-54
+   - 55-64
+   - 65+
+
+2. **Gender**
+   - All Genders (default)
+   - Male
+   - Female
+   - LGBTQI+
+
+3. **Household Income**
+   - All Income Levels (default)
+   - Below ₱10,000
+   - ₱10,000 - ₱20,000
+   - ₱20,001 - ₱30,000
+   - ₱30,001 - ₱50,000
+   - ₱50,001 - ₱75,000
+   - ₱75,001 - ₱100,000
+   - Above ₱100,000
+
+4. **Educational Attainment**
+   - All Education Levels (default)
+   - No formal education
+   - Elementary
+   - High school
+   - Vocational/Technical
+   - College
+   - Post-graduate
+
+### Filter Behavior
+
+**Location:** Service Area Deep Dive view
+
+**Features:**
+- Collapsible filter panel (Show/Hide Filters button)
+- Active filter badge indicator
+- Clear Filters button
+- Filters apply to:
+  - Barangay rankings table
+  - Action Grid visualization
+  - All funnel metrics (Awareness, Availment, Satisfaction, Need for Action)
+
+**Use Cases:**
+- Compare satisfaction between age groups
+- Identify gender-based service gaps
+- Analyze income-related disparities
+- Assess education level impact on service awareness
+
+**Data Source:** Same API with demographic query parameters
+
+---
+
+## Detailed Analytics
+
+**Purpose:** Raw data exploration, aggregated statistics, and data export.
+
+### Summary View (Legacy)
 Displays high-level statistics and overview metrics.
 
 **Metrics Displayed:**

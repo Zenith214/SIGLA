@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   BarChart3, 
   Download, 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useActiveCycle } from '@/hooks/useSurveyCycle'
 import { CycleDisplay } from '@/components/survey-cycle'
+import DetailedResponsesView from './DetailedResponsesView'
 
 interface AnalyticsData {
   summary?: {
@@ -53,6 +55,7 @@ export default function SurveyAnalyticsDashboard() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({})
   const [loading, setLoading] = useState(false)
   const [activeView, setActiveView] = useState<'summary' | 'detailed' | 'aggregated' | 'export'>('summary')
+  const [activeSectionTab, setActiveSectionTab] = useState('all')
   const [filters, setFilters] = useState({
     barangayId: '',
     startDate: '',
@@ -291,36 +294,10 @@ export default function SurveyAnalyticsDashboard() {
 
       {/* Detailed View */}
       {activeView === 'detailed' && analyticsData.detailed && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Detailed Survey Responses ({analyticsData.detailed.count})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analyticsData.detailed.responses?.slice(0, 10).map((response) => (
-                <div key={response.responseId} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-medium">Survey #{response.surveyNumber}</div>
-                      <div className="text-sm text-gray-500">
-                        {response.barangay.name} | {response.interviewer.name}
-                      </div>
-                    </div>
-                    <Badge variant={response.progress === 100 ? 'default' : 'secondary'}>
-                      {response.progress}% Complete
-                    </Badge>
-                  </div>
-                  <div className="text-sm">
-                    <div>Respondent: {response.respondent.name}</div>
-                    <div>Location: {response.location.address}</div>
-                    <div>Completed: {new Date(response.completedAt).toLocaleDateString()}</div>
-                    <div>Sections: {response.sections?.map((s: any) => s.key).join(', ')}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <DetailedResponsesView 
+          responses={analyticsData.detailed.responses || []}
+          totalCount={analyticsData.detailed.count || 0}
+        />
       )}
 
       {/* Aggregated View */}
@@ -354,36 +331,97 @@ export default function SurveyAnalyticsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Question Response Analysis</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Browse questions by service area
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {Object.entries(analyticsData.aggregated.questions || {}).slice(0, 5).map(([key, question]: [string, any]) => (
-                  <div key={key} className="border rounded-lg p-4">
-                    <div className="font-medium mb-2">{key}</div>
-                    <div className="text-sm text-gray-500 mb-2">
-                      {question.responses?.length} responses
-                    </div>
-                    {question.statistics && (
-                      <div className="text-sm">
-                        <div>Mean: {question.statistics.mean?.toFixed(2)}</div>
-                        <div>Range: {question.statistics.min} - {question.statistics.max}</div>
-                      </div>
-                    )}
-                    {question.valueCount && (
-                      <div className="mt-2">
-                        <div className="text-sm font-medium mb-1">Value Distribution:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(question.valueCount).slice(0, 5).map(([value, count]: [string, any]) => (
-                            <Badge key={value} variant="outline" className="text-xs">
-                              {value}: {count}
-                            </Badge>
-                          ))}
+              <Tabs value={activeSectionTab} onValueChange={setActiveSectionTab}>
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 mb-4">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="financial">Financial</TabsTrigger>
+                  <TabsTrigger value="disaster">Disaster</TabsTrigger>
+                  <TabsTrigger value="safety">Safety</TabsTrigger>
+                  <TabsTrigger value="social">Social</TabsTrigger>
+                  <TabsTrigger value="business">Business</TabsTrigger>
+                  <TabsTrigger value="environmental">Environment</TabsTrigger>
+                </TabsList>
+
+                {['all', 'financial', 'disaster', 'safety', 'social', 'business', 'environmental'].map((section) => {
+                  const filteredQuestions = Object.entries(analyticsData.aggregated?.questions || {})
+                    .filter(([key]) => section === 'all' || key.startsWith(section + '_'))
+                  
+                  return (
+                    <TabsContent key={section} value={section} className="space-y-4">
+                      {filteredQuestions.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          No questions found for this section
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      ) : (
+                        <>
+                          {filteredQuestions.map(([key, question]: [string, any]) => (
+                            <div key={key} className="border rounded-lg p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="font-medium text-lg">
+                                    {question.questionLabel || key}
+                                  </div>
+                                  {question.sectionName && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {question.sectionName}
+                                      {question.questionType && (
+                                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                          {question.questionType}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {question.description && (
+                                    <div className="text-sm text-gray-600 mt-1 italic">
+                                      {question.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-sm text-gray-500 mb-2">
+                                {question.responses?.length} responses
+                              </div>
+                              {question.statistics && (
+                                <div className="text-sm bg-gray-50 p-3 rounded">
+                                  <div className="font-medium mb-1">Statistics:</div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>Mean: <span className="font-semibold">{question.statistics.mean?.toFixed(2)}</span></div>
+                                    <div>Median: <span className="font-semibold">{question.statistics.median?.toFixed(2)}</span></div>
+                                    <div>Min: <span className="font-semibold">{question.statistics.min}</span></div>
+                                    <div>Max: <span className="font-semibold">{question.statistics.max}</span></div>
+                                  </div>
+                                </div>
+                              )}
+                              {question.valueCount && (
+                                <div className="mt-2">
+                                  <div className="text-sm font-medium mb-1">Value Distribution:</div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {Object.entries(question.valueCount)
+                                      .sort(([, a]: [string, any], [, b]: [string, any]) => b - a)
+                                      .map(([value, count]: [string, any]) => (
+                                        <Badge key={value} variant="outline" className="text-xs">
+                                          {value}: {count}
+                                        </Badge>
+                                      ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          <div className="text-sm text-gray-500 text-center py-2">
+                            Showing {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                  )
+                })}
+              </Tabs>
             </CardContent>
           </Card>
         </div>

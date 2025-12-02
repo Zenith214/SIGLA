@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 
-const roleOptions = ["admin", "fs", "interviewer", "officer"];
+const roleOptions = ["admin", "fs", "interviewer", "officer", "viewer"];
 const statusOptions = ["active", "inactive"];
 
 export function UsersRoles() {
@@ -229,6 +229,7 @@ export function UsersRoles() {
     { role: "fs", count: users.filter(u => u.role?.toLowerCase() === "fs").length, color: "bg-purple-100 text-purple-800" },
     { role: "interviewer", count: users.filter(u => u.role?.toLowerCase() === "interviewer").length, color: "bg-blue-100 text-blue-800" },
     { role: "officer", count: users.filter(u => u.role?.toLowerCase() === "officer").length, color: "bg-gray-100 text-gray-800" },
+    { role: "viewer", count: users.filter(u => u.role?.toLowerCase() === "viewer").length, color: "bg-green-100 text-green-800" },
   ]
 
   if (loading) {
@@ -281,7 +282,7 @@ export function UsersRoles() {
         {rolePermissionsVisible && (
           <CardContent>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="p-4 border border-red-200 rounded-lg bg-red-50">
                   <h3 className="font-semibold text-red-800">Admin</h3>
                   <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
@@ -322,6 +323,16 @@ export function UsersRoles() {
                     <li>• Track action plan progress</li>
                   </ul>
                 </div>
+                <div className="p-4 border border-green-200 rounded-lg bg-green-50">
+                  <h3 className="font-semibold text-green-800">Viewer</h3>
+                  <p className="text-sm text-green-600 mt-1">Read-only access to dashboards and data</p>
+                  <ul className="text-xs text-green-600 mt-2 space-y-1">
+                    <li>• View dashboards (Map & Analytics)</li>
+                    <li>• View CPAP submissions</li>
+                    <li>• Access backup settings</li>
+                    <li>• No write operations</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -329,7 +340,7 @@ export function UsersRoles() {
       </Card>
 
       {/* Role Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {roleStats.map((stat) => (
           <Card key={stat.role}>
             <CardContent className="p-6">
@@ -417,7 +428,9 @@ export function UsersRoles() {
                               ? "border-purple-200 text-purple-700"
                               : user.role === "interviewer"
                                 ? "border-blue-200 text-blue-700"
-                                : "border-gray-200 text-gray-700"
+                                : user.role === "viewer"
+                                  ? "border-green-200 text-green-700"
+                                  : "border-gray-200 text-gray-700"
                         }`}
                       >
                         {user.role === "fs" ? "Supervisor" : user.role}
@@ -479,7 +492,11 @@ export function UsersRoles() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select name="role" value={editForm?.role || "officer"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
+                  {roleOptions.map(role => (
+                    <option key={role} value={role}>
+                      {role === 'fs' ? 'Supervisor' : role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
               {editForm.role === 'officer' && (
@@ -567,7 +584,11 @@ export function UsersRoles() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select name="role" value={addForm.role} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role === 'fs' ? 'Supervisor' : role}</option>)}
+                  {roleOptions.map(role => (
+                    <option key={role} value={role}>
+                      {role === 'fs' ? 'Supervisor' : role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
               {addForm.role === 'officer' && (

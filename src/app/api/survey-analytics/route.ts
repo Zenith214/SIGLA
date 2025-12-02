@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Pool } from 'pg';
 import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
 import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
+import { getQuestionLabel, getQuestionMetadata } from '@/utils/questionLabels';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -292,7 +293,8 @@ async function getDetailedAnalytics(
         name: row.section_name,
         key: row.section_key,
         status: row.section_status,
-        data: row.section_data ? JSON.parse(row.section_data) : null,
+        // JSONB data is already an object, no need to parse
+        data: row.section_data || null,
         completedAt: row.section_completed_at,
       });
     }
@@ -374,7 +376,10 @@ async function getExportData(client: any, whereClause: string, queryParams: any[
     // Add section data as flattened columns
     if (row.section_data && row.section_key) {
       try {
-        const parsedData = JSON.parse(row.section_data);
+        // PostgreSQL JSONB columns are already parsed as objects, no need to JSON.parse
+        const parsedData = typeof row.section_data === 'string' 
+          ? JSON.parse(row.section_data) 
+          : row.section_data;
         
         // Scenario 8: Validate that parsed data is an object
         if (parsedData && typeof parsedData === 'object') {
@@ -444,7 +449,10 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
 
       if (row.section_data) {
         try {
-          const sectionData = JSON.parse(row.section_data);
+          // PostgreSQL JSONB columns are already parsed as objects, no need to JSON.parse
+          const sectionData = typeof row.section_data === 'string' 
+            ? JSON.parse(row.section_data) 
+            : row.section_data;
           
           // Scenario 8: Validate that parsed data is an object
           if (!sectionData || typeof sectionData !== 'object') {
@@ -457,9 +465,14 @@ async function getAggregatedAnalytics(client: any, whereClause: string, queryPar
             const fullKey = `${row.section_key}_${questionKey}`;
 
             if (!questionAggregations[fullKey]) {
+              const metadata = getQuestionMetadata(fullKey);
               questionAggregations[fullKey] = {
                 section: row.section_key,
                 question: questionKey,
+                questionLabel: getQuestionLabel(fullKey),
+                questionType: metadata?.type || 'other',
+                sectionName: metadata?.section || row.section_name,
+                description: metadata?.description || null,
                 responses: [],
                 valueCount: {},
               };

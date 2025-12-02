@@ -10,6 +10,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { MapPin, Users, Settings, Target, Calendar, Database, HardDrive, Award, Sparkles, UserCheck } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const navigationItems = [
   {
@@ -55,6 +56,13 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
+  const { isViewer } = usePermissions()
+  
+  // Filter navigation items for viewers - only show backup
+  const visibleItems = isViewer 
+    ? navigationItems.filter(item => item.id === "backup")
+    : navigationItems
+
   return (
     <Sidebar className="border-r border-slate-300 bg-white">
       <SidebarHeader className="border-b border-slate-300 p-4 bg-slate-50">
@@ -63,14 +71,18 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
             <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">PULSE Admin</h2>
-            <p className="text-sm text-slate-600">Settings Panel</p>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {isViewer ? "Settings" : "PULSE Admin"}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {isViewer ? "Backup Access" : "Settings Panel"}
+            </p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2 bg-white">
         <SidebarMenu className="space-y-1">
-          {navigationItems.map((item) => (
+          {visibleItems.map((item) => (
             <SidebarMenuItem key={item.id}>
               <SidebarMenuButton
                 onClick={() => onSectionChange(item.id)}

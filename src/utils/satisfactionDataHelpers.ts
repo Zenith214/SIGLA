@@ -14,6 +14,7 @@ export interface SatisfactionData {
   cycleName: string;
   cycleYear: number;
   overallSatisfaction: number | null;
+  overallNeedForAction: number | null;
   surveyStatus: 'completed' | 'in_progress' | 'not_started';
   serviceScores: ServiceScores;
   responseCount: number;
@@ -27,6 +28,18 @@ export interface SatisfactionData {
  * Interface for service area scores
  */
 export interface ServiceScores {
+  financial: number | null;
+  disaster: number | null;
+  safety: number | null;
+  social: number | null;
+  business: number | null;
+  environmental: number | null;
+}
+
+/**
+ * Interface for service area need for action scores
+ */
+export interface NeedForActionScores {
   financial: number | null;
   disaster: number | null;
   safety: number | null;
@@ -67,12 +80,16 @@ export async function fetchSatisfactionData(
 
     // Fetch data from the ML funnel analysis endpoint with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (ML analysis can be slow)
 
     try {
       const response = await fetch(
         `/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${effectiveCycleId}`,
-        { signal: controller.signal }
+        { 
+          signal: controller.signal,
+          // Disable Next.js caching for this request to always get fresh data
+          cache: 'no-store'
+        }
       );
 
       clearTimeout(timeoutId);
@@ -100,6 +117,7 @@ export async function fetchSatisfactionData(
           cycleName: `Cycle ${effectiveCycleId}`,
           cycleYear: new Date().getFullYear(),
           overallSatisfaction: null,
+          overallNeedForAction: null,
           surveyStatus: data.progress > 0 ? 'in_progress' : 'not_started',
           serviceScores: {
             financial: null,
@@ -129,7 +147,7 @@ export async function fetchSatisfactionData(
       
       // Handle abort/timeout error
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('Request timed out. Please check your connection and try again.');
+        throw new Error('Analysis is taking longer than expected. The data is being computed in the background. Please try again in a moment.');
       }
       
       throw fetchError;
@@ -174,7 +192,7 @@ function transformMLFunnelToSatisfactionData(
   // Check if we have data
   const hasData = mlData.total_responses > 0 && mlData.overall_satisfaction !== null;
 
-  // Extract service scores
+  // Extract service scores and need for action scores
   const serviceScores: ServiceScores = {
     financial: extractServiceScore(mlData.service_scores?.financial),
     disaster: extractServiceScore(mlData.service_scores?.disaster),
@@ -183,6 +201,27 @@ function transformMLFunnelToSatisfactionData(
     business: extractServiceScore(mlData.service_scores?.business),
     environmental: extractServiceScore(mlData.service_scores?.environmental),
   };
+
+  // Extract need for action scores
+  const needForActionScores: number[] = [];
+  const extractNeedForAction = (serviceScore: any): number | null => {
+    if (!serviceScore) return null;
+    return serviceScore.need_action || null;
+  };
+
+  const needForActionValues = [
+    extractNeedForAction(mlData.service_scores?.financial),
+    extractNeedForAction(mlData.service_scores?.disaster),
+    extractNeedForAction(mlData.service_scores?.safety),
+    extractNeedForAction(mlData.service_scores?.social),
+    extractNeedForAction(mlData.service_scores?.business),
+    extractNeedForAction(mlData.service_scores?.environmental),
+  ].filter((score): score is number => score !== null);
+
+  // Calculate overall need for action as average of service areas
+  const overallNeedForAction = needForActionValues.length > 0
+    ? Math.round(needForActionValues.reduce((sum, score) => sum + score, 0) / needForActionValues.length)
+    : null;
 
   // Determine survey status based on response count and data availability
   let surveyStatus: 'completed' | 'in_progress' | 'not_started' = 'not_started';
@@ -197,6 +236,7 @@ function transformMLFunnelToSatisfactionData(
     cycleName: mlData.cycle_name || `Cycle ${cycleId}`,
     cycleYear: mlData.cycle_year || new Date().getFullYear(),
     overallSatisfaction: mlData.overall_satisfaction || null,
+    overallNeedForAction,
     surveyStatus,
     serviceScores,
     responseCount: mlData.total_responses || 0,
@@ -297,5 +337,46 @@ export function getSatisfactionLabel(score: number | null): string {
     return 'Needs Improvement';
   } else {
     return 'Critical';
+  }
+}
+
+/**
+ * Get color class for need for action score
+ * Used for UI color coding (higher score = more urgent)
+ * 
+ * @param score - The need for action score (0-100)
+ * @returns string - Tailwind CSS color class
+ */
+export function getNeedForActionColorClass(score: number | null): string {
+  if (score === null) {
+    return 'bg-gray-100 text-gray-600';
+  }
+
+  if (score >= 70) {
+    return 'bg-red-100 text-red-800';
+  } else if (score >= 50) {
+    return 'bg-yellow-100 text-yellow-800';
+  } else {
+    return 'bg-green-100 text-green-800';
+  }
+}
+
+/**
+ * Get need for action level label
+ * 
+ * @param score - The need for action score (0-100)
+ * @returns string - Human-readable label
+ */
+export function getNeedForActionLabel(score: number | null): string {
+  if (score === null) {
+    return 'No Data';
+  }
+
+  if (score >= 70) {
+    return 'Urgent';
+  } else if (score >= 50) {
+    return 'Moderate';
+  } else {
+    return 'Low';
   }
 }

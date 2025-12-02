@@ -172,6 +172,20 @@ function calculateServiceScores(surveyData: any[]): { [key: string]: any } {
 
   // Calculate scores for each section
   Object.entries(sectionsData).forEach(([sectionKey, responses]) => {
+    // Skip demographics section - it doesn't have service scores
+    if (sectionKey === 'respondent_demographics' || sectionKey === 'respondent demographics') {
+      return;
+    }
+    
+    // Handle "overall" section specially as it has different question structure
+    if (sectionKey === 'overall') {
+      const overallScores = calculateOverallSectionScores(responses);
+      if (overallScores) {
+        serviceScores[sectionKey] = overallScores;
+      }
+      return;
+    }
+    
     const scores = calculateSectionScores(responses);
     if (scores) {
       serviceScores[sectionKey] = scores;
@@ -258,7 +272,7 @@ function calculateSectionScores(responses: any[]): any {
       // Count need for action using binary fields only
       // Field naming pattern: need_for_action_binary_{indicator}
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.startsWith('need_for_action_binary_')) {
+        if (key.startsWith('need_for_action_binary_') || key.startsWith('nfaBinary')) {
           totalNeedActionQuestions++;
           // Check for "Yes" (English) or "Oo" (Tagalog)
           const stringValue = String(value).toLowerCase().trim();
@@ -376,6 +390,80 @@ function calculateSectionScores(responses: any[]): any {
     quotes: selectedQuotes,
     concerns: topConcerns,
     recommendations: recommendations
+  };
+}
+
+function calculateOverallSectionScores(responses: any[]): any {
+  if (responses.length === 0) return null;
+
+  let satisfactionSum = 0;
+  let satisfactionCount = 0;
+  let needActionYesCount = 0;
+  let needActionTotalCount = 0;
+
+  // Process each response
+  responses.forEach(response => {
+    try {
+      const data = typeof response.section_data === 'string'
+        ? JSON.parse(response.section_data)
+        : response.section_data;
+
+      if (!data || typeof data !== 'object') return;
+
+      // Process overallSatisfaction (format: "5 - Very Satisfied / Lubos na Nasiyahan")
+      if (data.overallSatisfaction) {
+        const satisfactionValue = String(data.overallSatisfaction);
+        // Extract the numeric value (first character)
+        const numericValue = parseInt(satisfactionValue.charAt(0));
+        if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+          satisfactionSum += numericValue;
+          satisfactionCount++;
+        }
+      }
+
+      // Process overallNeedForAction (format: "Yes / Oo" or "No / Hindi")
+      if (data.overallNeedForAction) {
+        needActionTotalCount++;
+        const needActionValue = String(data.overallNeedForAction).toLowerCase();
+        if (needActionValue.includes('yes') || needActionValue.includes('oo')) {
+          needActionYesCount++;
+        }
+      }
+    } catch (error) {
+      console.error('Error processing overall section response:', error);
+    }
+  });
+
+  const satisfactionScore = satisfactionCount > 0
+    ? Math.round((satisfactionSum / satisfactionCount / 5) * 100)
+    : 0;
+
+  const needActionScore = needActionTotalCount > 0
+    ? Math.round((needActionYesCount / needActionTotalCount) * 100)
+    : 0;
+
+  console.log('🔍 [OVERALL SECTION] Calculation:', {
+    satisfactionSum,
+    satisfactionCount,
+    satisfactionScore,
+    needActionYesCount,
+    needActionTotalCount,
+    needActionScore
+  });
+
+  return {
+    awareness_score: 0, // Not applicable for overall section
+    availment_score: 0, // Not applicable for overall section
+    satisfaction_score: satisfactionScore,
+    need_action_score: needActionScore,
+    total_awareness_questions: 0,
+    total_availment_questions: 0,
+    total_satisfaction_questions: satisfactionCount,
+    total_need_action_questions: needActionTotalCount,
+    bottleneck: 'N/A',
+    quotes: { awareness: [], availment: [], satisfaction: [] },
+    concerns: [],
+    recommendations: []
   };
 }
 

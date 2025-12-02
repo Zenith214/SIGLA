@@ -18,31 +18,31 @@ import { calculateDisplayId } from '@/utils/displayIdCalculator';
 const RESPONSE_PROFILES = {
   'balanced': {
     name: 'Balanced (All Quadrants)',
-    awarenessRange: [0.5, 0.9],
-    availmentRange: [0.4, 0.8],
-    satisfactionRange: [0.5, 0.9],
-    needActionRange: [0.2, 0.6]
+    awarenessRange: [0.60, 0.80],      // 60-80% awareness (good awareness)
+    availmentRange: [0.50, 0.70],      // 50-70% availment (moderate usage)
+    satisfactionRange: [0.55, 0.75],   // 55-75% satisfaction (~3-4 stars)
+    needActionRange: [0.30, 0.50]      // 30-50% need action (moderate improvements needed)
   },
   'high-performer': {
     name: 'High Performer (MAINTAIN)',
-    awarenessRange: [0.85, 0.95],
-    availmentRange: [0.85, 0.95],
-    satisfactionRange: [0.80, 0.90],
-    needActionRange: [0.05, 0.15]
+    awarenessRange: [0.80, 0.95],      // 80-95% awareness (excellent awareness)
+    availmentRange: [0.70, 0.90],      // 70-90% availment (high usage)
+    satisfactionRange: [0.75, 0.90],   // 75-90% satisfaction (~4-5 stars)
+    needActionRange: [0.10, 0.25]      // 10-25% need action (minimal improvements)
   },
   'needs-improvement': {
     name: 'Needs Improvement (FIX NOW)',
-    awarenessRange: [0.40, 0.60],
-    availmentRange: [0.20, 0.40],
-    satisfactionRange: [0.20, 0.40],
-    needActionRange: [0.70, 0.85]
+    awarenessRange: [0.30, 0.50],      // 30-50% awareness (low awareness)
+    availmentRange: [0.15, 0.35],      // 15-35% availment (low usage)
+    satisfactionRange: [0.25, 0.45],   // 25-45% satisfaction (~1-2 stars)
+    needActionRange: [0.65, 0.85]      // 65-85% need action (high urgency)
   },
   'mixed': {
     name: 'Mixed Responses (Realistic)',
-    awarenessRange: [0.3, 0.95],
-    availmentRange: [0.2, 0.9],
-    satisfactionRange: [0.3, 0.95],
-    needActionRange: [0.1, 0.8]
+    awarenessRange: [0.40, 0.85],      // 40-85% awareness (wide variation)
+    availmentRange: [0.30, 0.75],      // 30-75% availment (wide variation)
+    satisfactionRange: [0.35, 0.80],   // 35-80% satisfaction (~2-4 stars)
+    needActionRange: [0.20, 0.70]      // 20-70% need action (varied urgency)
   }
 };
 
@@ -65,16 +65,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (numberOfSpots < 1 || numberOfSpots > 10) {
+    if (numberOfSpots < 1 || numberOfSpots > 50) {
       return NextResponse.json(
-        { error: "numberOfSpots must be between 1 and 10" },
+        { error: "numberOfSpots must be between 1 and 50" },
         { status: 400 }
       );
     }
 
-    if (questionnairesPerSpot < 1 || questionnairesPerSpot > 10) {
+    if (questionnairesPerSpot < 1 || questionnairesPerSpot > 50) {
       return NextResponse.json(
-        { error: "questionnairesPerSpot must be between 1 and 10" },
+        { error: "questionnairesPerSpot must be between 1 and 50" },
+        { status: 400 }
+      );
+    }
+
+    // Validate total questionnaires (spots × questionnaires per spot)
+    const requestedTotal = numberOfSpots * questionnairesPerSpot;
+    if (requestedTotal > 500) {
+      return NextResponse.json(
+        { error: `Total questionnaires (${requestedTotal}) exceeds maximum of 500. Reduce numberOfSpots or questionnairesPerSpot.` },
         { status: 400 }
       );
     }
@@ -126,10 +135,10 @@ export async function POST(request: NextRequest) {
         barangay.barangay_name
       );
 
-      if (spotResult.success) {
+      if (spotResult.success && spotResult.spot) {
         spotsCreated.push(spotResult.spot);
-        totalQuestionnaires += spotResult.questionnairesGenerated;
-        totalResponses += spotResult.responsesGenerated;
+        totalQuestionnaires += spotResult.questionnairesGenerated || 0;
+        totalResponses += spotResult.responsesGenerated || 0;
       }
     }
 
@@ -137,6 +146,38 @@ export async function POST(request: NextRequest) {
     console.log(`   Spots: ${spotsCreated.length}`);
     console.log(`   Questionnaires: ${totalQuestionnaires}`);
     console.log(`   Responses: ${totalResponses}`);
+
+    // Update survey_target table with the new response count
+    console.log(`📊 Updating survey target for barangay ${barangayId}...`);
+    
+    // Get current target
+    const { data: targetData } = await supabaseAdmin
+      .from('survey_target')
+      .select('target, achieved')
+      .eq('barangay_id', barangayId)
+      .eq('survey_cycle_id', cycleId)
+      .single();
+
+    if (targetData) {
+      const newAchieved = (targetData.achieved || 0) + totalResponses;
+      const newPercentage = Math.round((newAchieved / targetData.target) * 100);
+
+      const { error: updateError } = await supabaseAdmin
+        .from('survey_target')
+        .update({
+          achieved: newAchieved,
+          percentage: newPercentage,
+          updated_at: new Date().toISOString()
+        })
+        .eq('barangay_id', barangayId)
+        .eq('survey_cycle_id', cycleId);
+
+      if (updateError) {
+        console.error('❌ Failed to update survey target:', updateError);
+      } else {
+        console.log(`✅ Updated survey target: ${newAchieved}/${targetData.target} (${newPercentage}%)`);
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -195,7 +236,7 @@ async function createSpotWithData(
         barangay_id: barangayId,
         spot_name: spotName,
         starting_point: baseLocation,
-        random_start: Math.floor(Math.random() * 999) + 1,
+        random_start: Math.floor(Math.random() * 5) + 1,  // Random start between 1-5
         assigned_fi_id: assignedFiId,  // Auto-assign to FI
         status: 'Completed'  // Mark as completed since we're generating responses
       })
@@ -233,8 +274,7 @@ async function createSpotWithData(
           cycle_id: cycleId,
           sequence_number: qNum,
           status: 'Completed',
-          visit_count: 1,
-          completed_at: new Date().toISOString()
+          visit_count: 1
         });
 
       if (qError) {
@@ -297,6 +337,12 @@ async function generateSurveyResponse(
       lat: spotLocation.lat + (Math.random() - 0.5) * 0.002,
       lng: spotLocation.lng + (Math.random() - 0.5) * 0.002
     };
+    
+    // Map gender to match database enum
+    let genderValue = demographics.gender;
+    if (genderValue === "LGBTQI+") {
+      genderValue = "LGBTQI";
+    }
 
     // Calculate display_id from full_id for CSIS algorithms
     const displayId = calculateDisplayId(questionnaireId);
@@ -314,22 +360,39 @@ async function generateSurveyResponse(
     // Get randomized section order using CSIS methodology
     const sections = getSectionOrder(questionnaireNumberForCSIS);
 
-    // Generate section data
+    // Generate section data for the 6 service areas
     const sectionData: any = {};
     sections.forEach(section => {
       sectionData[section] = generateSectionData(section, profileConfig);
     });
 
+    // Add overall satisfaction section (after all service areas)
+    sectionData['overall'] = {
+      overallSatisfaction: `${Math.max(1, Math.min(5, Math.round(
+        (profileConfig.satisfactionRange[0] + 
+         Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0])) * 5
+      )))} - ${['Very Dissatisfied / Lubos na Hindi Nasiyahan', 'Dissatisfied / Hindi Nasiyahan', 'Neutral / Neither Satisfied nor Dissatisfied', 'Satisfied / Nasiyahan', 'Very Satisfied / Lubos na Nasiyahan'][Math.max(1, Math.min(5, Math.round(
+        (profileConfig.satisfactionRange[0] + 
+         Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0])) * 5
+      ))) - 1]}`,
+      overallNeedForAction: (profileConfig.needActionRange[0] + 
+        Math.random() * (profileConfig.needActionRange[1] - profileConfig.needActionRange[0])) > 0.5 ? 'Yes / Oo' : 'No / Hindi'
+    };
+
     // Insert survey response
-    const { error: responseError } = await supabaseAdmin
+    const { data: response, error: responseError } = await supabaseAdmin
       .from('survey_response')
       .insert({
         survey_number: questionnaireId,
         barangay_id: barangayId,
+        survey_cycle_id: cycleId,  // Link to cycle for proper deletion
         interviewer_id: 3,  // Default test interviewer
         respondent_name: `Test Respondent ${questionnaireNumber}`,
         respondent_age: demographics.age,
-        respondent_gender: demographics.gender,
+        respondent_gender: genderValue,
+        respondent_educational_attainment: demographics.education,
+        respondent_household_income: demographics.income,
+        respondent_purok: demographics.purok,
         location_lat: gpsLocation.lat,
         location_lng: gpsLocation.lng,
         location_accuracy: 10 + Math.random() * 20,
@@ -339,13 +402,62 @@ async function generateSurveyResponse(
         started_at: new Date(),
         completed_at: new Date(),
         submitted_at: new Date()
-      });
+      })
+      .select()
+      .single();
 
-    if (responseError) {
+    if (responseError || !response) {
       console.error(`❌ Failed to create response for ${questionnaireId}:`, responseError);
       return false;
     }
 
+    // Create respondent_demographics section data
+    const demographicsSection = {
+      age: demographics.age,
+      birthdate: demographics.birthdate,
+      sex: demographics.sex,
+      genderIdentity: demographics.genderIdentity,
+      educationalAttainment: demographics.education,
+      householdIncome: demographics.income,
+      purok: demographics.purok
+    };
+
+    // Insert survey sections with the generated data (respondent_demographics + 6 service areas + overall)
+    const allSections = ['respondent_demographics', ...sections, 'overall'];
+    const sectionInserts = allSections.map((sectionName, index) => {
+      let sectionAnswers;
+      if (sectionName === 'respondent_demographics') {
+        sectionAnswers = demographicsSection;
+      } else {
+        sectionAnswers = sectionData[sectionName];
+      }
+      
+      return {
+        response_id: response.response_id,
+        section_name: sectionName === 'respondent_demographics' ? 'Respondent Demographics' : sectionName,
+        section_key: sectionName.toLowerCase(),
+        status: 'completed',
+        data: sectionAnswers,  // Store all answers in JSONB data column
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString()
+      };
+    });
+
+    const { error: sectionsError } = await supabaseAdmin
+      .from('survey_section')
+      .insert(sectionInserts);
+
+    if (sectionsError) {
+      console.error(`❌ Failed to create sections for ${questionnaireId}:`, sectionsError);
+      // Rollback: delete the response
+      await supabaseAdmin
+        .from('survey_response')
+        .delete()
+        .eq('response_id', response.response_id);
+      return false;
+    }
+
+    console.log(`✅ Created response and ${allSections.length} sections (including demographics) for ${questionnaireId}`);
     return true;
 
   } catch (error) {
@@ -355,40 +467,116 @@ async function generateSurveyResponse(
 }
 
 function generateDemographics(questionnaireNumber: number) {
-  // Odd = Male, Even = Female
-  const gender = questionnaireNumber % 2 === 1 ? 'Male' : 'Female';
-  
+  // Generate varied demographics
+  const sexOptions = ['Male', 'Female'];
+  const genderOptions = ['Male', 'Female', 'LGBTQI+'];
   const educations = ['Elementary', 'High School', 'College', 'Post Graduate'];
   const incomes = ['Below 10,000', '10,001-20,000', '20,001-50,000', 'Above 50,000'];
+  const puroks = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5', 'Purok 6'];
+  
+  // Use questionnaire number for some variation
+  const sex = sexOptions[questionnaireNumber % 2];
+  const genderIdentity = genderOptions[questionnaireNumber % genderOptions.length];
+  const age = 18 + Math.floor(Math.random() * 62); // 18-79 years old
+  
+  // Generate birthdate based on age
+  const currentYear = new Date().getFullYear();
+  const birthYear = currentYear - age;
+  const birthMonth = Math.floor(Math.random() * 12) + 1;
+  const birthDay = Math.floor(Math.random() * 28) + 1; // Use 28 to avoid invalid dates
+  const birthdate = `${birthYear}-${birthMonth.toString().padStart(2, '0')}-${birthDay.toString().padStart(2, '0')}`;
   
   return {
-    age: 18 + Math.floor(Math.random() * 62),
-    gender,
+    age,
+    birthdate,
+    sex,
+    genderIdentity,
+    gender: genderIdentity, // For backward compatibility
     education: educations[Math.floor(Math.random() * educations.length)],
-    income: incomes[Math.floor(Math.random() * incomes.length)]
+    income: incomes[Math.floor(Math.random() * incomes.length)],
+    purok: puroks[Math.floor(Math.random() * puroks.length)]
   };
 }
 
 function generateSectionData(sectionName: string, profileConfig: any) {
-  const awareness = profileConfig.awarenessRange[0] + 
-    Math.random() * (profileConfig.awarenessRange[1] - profileConfig.awarenessRange[0]);
+  // Get the question structure for this section
+  const sectionQuestions = getSectionQuestionStructure(sectionName);
+  const sectionData: any = {};
   
-  const availment = profileConfig.availmentRange[0] + 
-    Math.random() * (profileConfig.availmentRange[1] - profileConfig.availmentRange[0]);
+  // Generate responses for each part in the section
+  sectionQuestions.forEach(part => {
+    // Generate awareness response - use random value against the probability range
+    const awarenessProb = profileConfig.awarenessRange[0] + 
+      Math.random() * (profileConfig.awarenessRange[1] - profileConfig.awarenessRange[0]);
+    const isAware = Math.random() < awarenessProb; // Compare random value to probability
+    sectionData[part.awarenessId] = isAware ? part.yesValue : part.noValue;
+    
+    // If not aware, skip the rest of this part
+    if (!isAware) return;
+    
+    // Generate availment/usage response
+    const availmentProb = profileConfig.availmentRange[0] + 
+      Math.random() * (profileConfig.availmentRange[1] - profileConfig.availmentRange[0]);
+    const hasAvailed = Math.random() < availmentProb; // Compare random value to probability
+    sectionData[part.availmentId] = hasAvailed ? part.yesValue : part.noValue;
+    
+    // If hasn't availed, skip satisfaction and NFA
+    if (!hasAvailed) return;
+    
+    // Generate satisfaction response (1-5 scale)
+    const satisfactionProb = profileConfig.satisfactionRange[0] + 
+      Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0]);
+    sectionData[part.satisfactionId] = Math.max(1, Math.min(5, Math.round(satisfactionProb * 5))).toString();
+    
+    // Generate need for action response
+    const needActionProb = profileConfig.needActionRange[0] + 
+      Math.random() * (profileConfig.needActionRange[1] - profileConfig.needActionRange[0]);
+    const needsAction = Math.random() < needActionProb; // Compare random value to probability
+    sectionData[part.nfaId] = needsAction ? part.yesValue : part.noValue;
+    
+    // Generate suggestion if needs action
+    if (needsAction && part.suggestionId) {
+      sectionData[part.suggestionId] = generateSuggestion(sectionName, needActionProb);
+    }
+  });
   
-  const satisfaction = profileConfig.satisfactionRange[0] + 
-    Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0]);
-  
-  const needAction = profileConfig.needActionRange[0] + 
-    Math.random() * (profileConfig.needActionRange[1] - profileConfig.needActionRange[0]);
+  return sectionData;
+}
 
-  return {
-    awareness: awareness > 0.5 ? 'Yes' : 'No',
-    availment: availment > 0.5 ? 'Yes' : 'No',
-    satisfaction: Math.max(1, Math.min(5, Math.round(satisfaction * 5))),
-    needAction: needAction > 0.5 ? 'Yes' : 'No',
-    suggestions: generateSuggestion(sectionName, needAction)
+function getSectionQuestionStructure(sectionName: string) {
+  // Define the question structure for each section based on the actual survey
+  const structures: Record<string, any[]> = {
+    financial: [
+      { awarenessId: 'awarenessProjects', availmentId: 'benefitedProjects', satisfactionId: 'satisfactionProjects', nfaId: 'nfaBinaryProjects', suggestionId: 'suggestionsProjects', yesValue: 'Oo', noValue: 'Hindi' },
+      { awarenessId: 'awarenessFinancial', availmentId: 'usedFinancialInfo', satisfactionId: 'satisfactionFinancial', nfaId: 'nfaBinaryFinancial', suggestionId: 'suggestionsFinancial', yesValue: 'Oo', noValue: 'Hindi' },
+      { awarenessId: 'awarenessSocialPrograms', availmentId: 'benefitedSocialPrograms', satisfactionId: 'satisfactionSocialPrograms', nfaId: 'nfaBinarySocialPrograms', suggestionId: 'suggestionsSocialPrograms', yesValue: 'Oo', noValue: 'Hindi' },
+      { awarenessId: 'awarenessCorruption', availmentId: 'reportedCorruption', satisfactionId: 'satisfactionCorruption', nfaId: 'nfaBinaryCorruption', suggestionId: 'suggestionsCorruption', yesValue: 'Oo (Yes)', noValue: 'Hindi (No)' }
+    ],
+    disaster: [
+      { awarenessId: 'awarenessDisasterInfo', availmentId: 'receivedDisasterInfo', satisfactionId: 'satisfactionDisasterInfo', nfaId: 'nfaBinaryDisasterInfo', suggestionId: 'suggestionsDisasterInfo', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessEvacuation', availmentId: 'usedEvacuation', satisfactionId: 'satisfactionEvacuation', nfaId: 'nfaBinaryEvacuation', suggestionId: 'suggestionsEvacuation', yesValue: 'Yes', noValue: 'No' }
+    ],
+    safety: [
+      { awarenessId: 'awarenessTanods', availmentId: 'experiencedTanods', satisfactionId: 'satisfactionTanods', nfaId: 'nfaBinaryTanods', suggestionId: 'suggestionsTanods', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessLupon', availmentId: 'usedLupon', satisfactionId: 'satisfactionLupon', nfaId: 'nfaBinaryLupon', suggestionId: 'suggestionsLupon', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessAntiDrug', availmentId: 'participatedAntiDrug', satisfactionId: 'satisfactionAntiDrug', nfaId: 'nfaBinaryAntiDrug', suggestionId: 'suggestionsAntiDrug', yesValue: 'Yes', noValue: 'No' }
+    ],
+    social: [
+      { awarenessId: 'awarenessHealthServices', availmentId: 'usedHealthServices', satisfactionId: 'satisfactionHealthServices', nfaId: 'nfaBinaryHealthServices', suggestionId: 'suggestionsHealthServices', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessWomenChildrenProtection', availmentId: 'accessedWomenChildrenProtection', satisfactionId: 'satisfactionWomenChildrenProtection', nfaId: 'nfaBinaryWomenChildrenProtection', suggestionId: 'suggestionsWomenChildrenProtection', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessCommunityParticipation', availmentId: 'participatedCommunity', satisfactionId: 'satisfactionCommunityParticipation', nfaId: 'nfaBinaryCommunityParticipation', suggestionId: 'suggestionsCommunityParticipation', yesValue: 'Yes', noValue: 'No' }
+    ],
+    business: [
+      { awarenessId: 'awarenessBusinessClearance', availmentId: 'obtainedBusinessClearance', satisfactionId: 'satisfactionBusinessClearance', nfaId: 'nfaBinaryBusinessClearance', suggestionId: 'suggestionsBusinessClearance', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessBusinessSupport', availmentId: 'receivedBusinessSupport', satisfactionId: 'satisfactionBusinessSupport', nfaId: 'nfaBinaryBusinessSupport', suggestionId: 'suggestionsBusinessSupport', yesValue: 'Yes', noValue: 'No' }
+    ],
+    environmental: [
+      { awarenessId: 'awarenessWasteManagement', availmentId: 'usedWasteManagement', satisfactionId: 'satisfactionWasteManagement', nfaId: 'nfaBinaryWasteManagement', suggestionId: 'suggestionsWasteManagement', yesValue: 'Yes', noValue: 'No' },
+      { awarenessId: 'awarenessEnvironmentalPrograms', availmentId: 'participatedEnvironmentalPrograms', satisfactionId: 'satisfactionEnvironmentalPrograms', nfaId: 'nfaBinaryEnvironmentalPrograms', suggestionId: 'suggestionsEnvironmentalPrograms', yesValue: 'Yes', noValue: 'No' }
+    ]
   };
+  
+  return structures[sectionName] || [];
 }
 
 function generateSuggestion(sectionName: string, needActionScore: number): string {

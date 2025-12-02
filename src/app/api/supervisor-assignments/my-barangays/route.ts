@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch barangays assigned to this supervisor for the specified cycle
-    const query = `
+    console.log("[my-barangays] Executing query for supervisor_id:", user.id, "cycle_id:", cycleId)
+    
+    const barangays = await prisma.$queryRaw`
       SELECT 
         sa.id as assignment_id,
         sa.barangay_id,
@@ -75,9 +77,6 @@ export async function GET(request: NextRequest) {
         AND sa.status = 'Active'
       ORDER BY b.barangay_name ASC
     `
-
-    console.log("[my-barangays] Executing query for supervisor_id:", user.id, "cycle_id:", cycleId)
-    const barangays = await prisma.$queryRawUnsafe(query)
     console.log("[my-barangays] Found", Array.isArray(barangays) ? barangays.length : 0, "barangays")
 
     return NextResponse.json({ 

@@ -19,6 +19,7 @@ interface CPAPItemListProps {
   status: CPAPStatus;
   onEdit: (item: CPAPItem) => void;
   onDelete: (itemId: number) => void;
+  canEdit?: boolean;
 }
 
 export function CPAPItemList({
@@ -26,12 +27,13 @@ export function CPAPItemList({
   status,
   onEdit,
   onDelete,
+  canEdit = true,
 }: CPAPItemListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 
-  const isEditable = status === "Draft" || status === "Revision_Requested";
-  const isReadOnly = status === "Submitted";
+  const isEditable = (status === "Draft" || status === "Revision_Requested") && canEdit;
+  const isReadOnly = status === "Submitted" || !canEdit;
 
   const handleDeleteClick = (itemId: number) => {
     setItemToDelete(itemId);

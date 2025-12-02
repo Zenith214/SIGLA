@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       );
       
       console.log('[/api/me] User ID:', id);
-      console.log('[/api/me] Query result:', result.rows[0]);
+      // Query result hidden to reduce log noise (contains large profile picture base64)
       
       const profilePicture = result.rows[0]?.profilePicture || null;
       const barangayDesignation = result.rows[0]?.barangayDesignation || null;

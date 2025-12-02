@@ -875,10 +875,6 @@ function ReportCardContent() {
             </ol>
           ` : ''}
           
-          <div style="background: #dbeafe; padding: 15px; border-radius: 8px; border: 1px solid #93c5fd; margin-top: 20px;">
-            <h3>Action Planning</h3>
-            <p>Action planning for this service area is now managed through the CPAP (Citizen Priority Action Plan) module.</p>
-          </div>
         </div>
       `;
 
@@ -1908,17 +1904,6 @@ function ReportCardContent() {
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Action Planning Note */}
-                <div className="p-6 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-semibold mb-2 text-blue-900">📋 Action Planning</h3>
-                  <p className="text-sm text-blue-800 mb-2">
-                    Action planning for this service area is now managed through the CPAP (Citizen Priority Action Plan) module.
-                  </p>
-                  <p className="text-xs text-blue-700">
-                    LGU officials can create comprehensive action plans with AI-powered suggestions, submit them for DILG review, and track implementation progress.
-                  </p>
                 </div>
 
                 {/* Export Options */}

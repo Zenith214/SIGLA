@@ -117,6 +117,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Viewer role cannot create CPAPs (read-only)
+  if (normalizedRole === 'viewer') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Forbidden',
+        message: 'Viewer role has read-only access. Cannot create CPAPs.'
+      },
+      { status: 403 }
+    );
+  }
+
   // Only OFFICER users can create CPAPs
   if (normalizedRole !== 'officer') {
     return NextResponse.json(

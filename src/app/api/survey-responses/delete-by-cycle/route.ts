@@ -55,9 +55,9 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    console.log(`🗑️ Deleting ALL survey responses in cycle ${targetCycle.name} (ID: ${targetCycle.cycle_id})`);
+    console.log(`🗑️ Deleting ALL survey data in cycle ${targetCycle.cycle_id}`);
 
-    // Get count of responses before deletion
+    // Get counts before deletion
     const countResult = await client.query(
       'SELECT COUNT(*) as count, COUNT(DISTINCT barangay_id) as barangay_count FROM survey_response WHERE survey_cycle_id = $1',
       [targetCycle.cycle_id]
@@ -65,18 +65,32 @@ export async function DELETE(request: NextRequest) {
     const responseCount = parseInt(countResult.rows[0].count);
     const barangayCount = parseInt(countResult.rows[0].barangay_count);
 
-    if (responseCount === 0) {
+    const spotsCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM spots WHERE cycle_id = $1',
+      [targetCycle.cycle_id]
+    );
+    const spotsCount = parseInt(spotsCountResult.rows[0].count);
+
+    const questionnairesCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM questionnaires WHERE cycle_id = $1',
+      [targetCycle.cycle_id]
+    );
+    const questionnairesCount = parseInt(questionnairesCountResult.rows[0].count);
+
+    console.log(`📊 Found in cycle ${targetCycle.cycle_id}:`);
+    console.log(`   - ${responseCount} responses across ${barangayCount} barangays`);
+    console.log(`   - ${spotsCount} spots`);
+    console.log(`   - ${questionnairesCount} questionnaires`);
+
+    if (responseCount === 0 && spotsCount === 0 && questionnairesCount === 0) {
       return NextResponse.json({
         success: true,
-        message: `No survey responses found in ${targetCycle.name}`,
+        message: `No data found in cycle ${targetCycle.cycle_id}`,
         deletedCount: 0,
         barangaysAffected: 0,
-        cycleId: targetCycle.cycle_id,
-        cycleName: targetCycle.name
+        cycleId: targetCycle.cycle_id
       });
     }
-
-    console.log(`📊 Found ${responseCount} responses across ${barangayCount} barangays to delete in ${targetCycle.name}`);
 
     // Delete all related data in correct order (foreign key constraints)
     // Start a transaction for data integrity
@@ -84,40 +98,76 @@ export async function DELETE(request: NextRequest) {
 
     try {
       // Delete survey sections
+      console.log('🔄 Deleting survey sections...');
       const sectionsResult = await client.query(
         'DELETE FROM survey_section WHERE response_id IN (SELECT response_id FROM survey_response WHERE survey_cycle_id = $1)',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${sectionsResult.rowCount || 0} sections`);
 
       // Delete survey metadata
+      console.log('🔄 Deleting survey metadata...');
       const metadataResult = await client.query(
         'DELETE FROM survey_metadata WHERE response_id IN (SELECT response_id FROM survey_response WHERE survey_cycle_id = $1)',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${metadataResult.rowCount || 0} metadata records`);
 
       // Delete survey answers
+      console.log('🔄 Deleting survey answers...');
       const answersResult = await client.query(
         'DELETE FROM survey_answer WHERE response_id IN (SELECT response_id FROM survey_response WHERE survey_cycle_id = $1)',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${answersResult.rowCount || 0} answers`);
 
       // Delete survey attachments
+      console.log('🔄 Deleting survey attachments...');
       const attachmentsResult = await client.query(
         'DELETE FROM survey_attachment WHERE response_id IN (SELECT response_id FROM survey_response WHERE survey_cycle_id = $1)',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${attachmentsResult.rowCount || 0} attachments`);
 
       // Delete survey validations
+      console.log('🔄 Deleting survey validations...');
       const validationsResult = await client.query(
         'DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE survey_cycle_id = $1)',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${validationsResult.rowCount || 0} validations`);
 
       // Finally delete survey responses
+      console.log('🔄 Deleting survey responses...');
       const responsesResult = await client.query(
         'DELETE FROM survey_response WHERE survey_cycle_id = $1',
         [targetCycle.cycle_id]
       );
+      console.log(`   ✅ Deleted ${responsesResult.rowCount || 0} responses`);
+
+      // Delete visits for questionnaires in this cycle
+      console.log('🔄 Deleting visits...');
+      const visitsResult = await client.query(
+        'DELETE FROM visits WHERE questionnaire_id IN (SELECT questionnaire_id FROM questionnaires WHERE cycle_id = $1)',
+        [targetCycle.cycle_id]
+      );
+      console.log(`   ✅ Deleted ${visitsResult.rowCount || 0} visits`);
+
+      // Delete questionnaires for this cycle
+      console.log('🔄 Deleting questionnaires...');
+      const questionnairesResult = await client.query(
+        'DELETE FROM questionnaires WHERE cycle_id = $1',
+        [targetCycle.cycle_id]
+      );
+      console.log(`   ✅ Deleted ${questionnairesResult.rowCount || 0} questionnaires`);
+
+      // Delete spots for this cycle
+      console.log('🔄 Deleting spots...');
+      const spotsResult = await client.query(
+        'DELETE FROM spots WHERE cycle_id = $1',
+        [targetCycle.cycle_id]
+      );
+      console.log(`   ✅ Deleted ${spotsResult.rowCount || 0} spots`);
 
       // Reset ALL survey target progress to 0 for this cycle
       const targetUpdateResult = await client.query(
@@ -128,12 +178,12 @@ export async function DELETE(request: NextRequest) {
       console.log(`📈 Reset survey target progress for ${targetUpdateResult.rowCount} barangays in cycle ${targetCycle.name}`);
 
       // Reset ALL assignments for this cycle
+      console.log('🔄 Resetting assignments...');
       const assignmentUpdateResult = await client.query(
         'UPDATE assignment SET progress = 0, status = $1, updated_at = NOW() WHERE survey_cycle_id = $2',
-        ['pending', targetCycle.cycle_id]
+        ['Pending', targetCycle.cycle_id]
       );
-
-      console.log(`📋 Reset ${assignmentUpdateResult.rowCount} assignments in cycle ${targetCycle.name}`);
+      console.log(`   ✅ Reset ${assignmentUpdateResult.rowCount} assignments`);
 
       // Commit the transaction
       await client.query('COMMIT');
@@ -142,7 +192,7 @@ export async function DELETE(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Successfully deleted all survey responses in cycle ${targetCycle.name}`,
+        message: `Successfully deleted all survey data in cycle ${targetCycle.name}`,
         deletedCount: responseCount,
         barangaysAffected: barangayCount,
         cycleId: targetCycle.cycle_id,
@@ -154,6 +204,9 @@ export async function DELETE(request: NextRequest) {
           answers: answersResult.rowCount || 0,
           attachments: attachmentsResult.rowCount || 0,
           validations: validationsResult.rowCount || 0,
+          visits: visitsResult.rowCount || 0,
+          questionnaires: questionnairesResult.rowCount || 0,
+          spots: spotsResult.rowCount || 0,
           targetsReset: targetUpdateResult.rowCount || 0,
           assignmentsReset: assignmentUpdateResult.rowCount || 0
         }

@@ -60,13 +60,24 @@ const sectionTitles = {
 }
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { usePermissions } from "@/hooks/usePermissions"
+import { useRouter } from "next/navigation"
 
 export default function AdminSettingsPanel() {
+  const router = useRouter()
+  const { canAccessAdminSettings, isViewer } = usePermissions()
   const [activeSection, setActiveSection] = useState("survey-cycles")
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [dateTime, setDateTime] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
   const { activeCycle, hasActiveCycle } = useActiveCycle()
+
+  // Redirect viewers to backup section only
+  useEffect(() => {
+    if (isViewer && activeSection !== "backup") {
+      setActiveSection("backup")
+    }
+  }, [isViewer, activeSection])
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())

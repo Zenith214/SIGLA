@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest) {
     const responseCount = parseInt(responseCountResult.rows[0].count);
 
     const questionnaireCountResult = await client.query(
-      'SELECT COUNT(*) as count FROM questionnaires WHERE barangay_id = $1',
+      'SELECT COUNT(*) as count FROM questionnaires WHERE spot_id IN (SELECT spot_id FROM spots WHERE barangay_id = $1)',
       [parseInt(barangayId)]
     );
     const questionnaireCount = parseInt(questionnaireCountResult.rows[0].count);
@@ -107,13 +107,19 @@ export async function DELETE(request: NextRequest) {
       [parseInt(barangayId)]
     );
 
-    // 7. Delete questionnaires (depends on spots)
-    const questionnairesResult = await client.query(
-      'DELETE FROM questionnaires WHERE barangay_id = $1',
+    // 7. Delete visits (depends on questionnaires)
+    const visitsResult = await client.query(
+      'DELETE FROM visits WHERE questionnaire_id IN (SELECT questionnaire_id FROM questionnaires WHERE spot_id IN (SELECT spot_id FROM spots WHERE barangay_id = $1))',
       [parseInt(barangayId)]
     );
 
-    // 8. Delete spots
+    // 8. Delete questionnaires (depends on spots)
+    const questionnairesResult = await client.query(
+      'DELETE FROM questionnaires WHERE spot_id IN (SELECT spot_id FROM spots WHERE barangay_id = $1)',
+      [parseInt(barangayId)]
+    );
+
+    // 9. Delete spots
     const spotsResult = await client.query(
       'DELETE FROM spots WHERE barangay_id = $1',
       [parseInt(barangayId)]
@@ -150,7 +156,8 @@ export async function DELETE(request: NextRequest) {
         metadata: metadataResult.rowCount || 0,
         answers: answersResult.rowCount || 0,
         attachments: attachmentsResult.rowCount || 0,
-        validations: validationsResult.rowCount || 0
+        validations: validationsResult.rowCount || 0,
+        visits: visitsResult.rowCount || 0
       }
     });
 

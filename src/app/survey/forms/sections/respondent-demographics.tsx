@@ -190,7 +190,6 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="LGBTQI+">LGBTQI+</option>
-                <option value="Prefer not to say">Prefer not to say</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">Auto-filled from sex (editable)</p>
             </div>

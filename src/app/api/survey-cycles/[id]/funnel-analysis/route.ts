@@ -163,6 +163,11 @@ function calculateServiceScores(surveyData: any[]): { [key: string]: any } {
 
   // Calculate scores for each section
   Object.entries(sectionsData).forEach(([sectionKey, responses]) => {
+    // Skip demographics section - it doesn't have service scores
+    if (sectionKey === 'respondent_demographics' || sectionKey === 'respondent demographics') {
+      return;
+    }
+    
     const scores = calculateSectionScores(responses);
     if (scores) {
       serviceScores[sectionKey] = scores;

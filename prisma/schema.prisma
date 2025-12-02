@@ -111,6 +111,23 @@ model Backup {
   @@map("backup")
 }
 
+model DataExportLog {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  export_type  String   @db.VarChar(50)
+  anonymized   Boolean  @default(true)
+  record_count Int      @default(0)
+  exported_at  DateTime @default(now())
+  ip_address   String?  @db.VarChar(45)
+  user_agent   String?  @db.Text
+
+  @@index([user_id])
+  @@index([exported_at])
+  @@index([export_type])
+  @@index([anonymized])
+  @@map("data_export_log")
+}
+
 // ============================================================================
 // SURVEY MANAGEMENT
 // ============================================================================

@@ -8,6 +8,9 @@ import { calculateServiceFunnelMetrics, ServiceFunnelMetrics } from '@/lib/funne
 
 const execAsync = promisify(exec);
 
+// Increase timeout for ML analysis routes (60 seconds)
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -193,12 +196,53 @@ async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cyc
     });
   }
 
-  // Calculate overall satisfaction from service scores if not provided by ML
-  if (!funnelData.overall_satisfaction && satisfactionScores.length > 0) {
-    funnelData.overall_satisfaction = Math.round(
-      satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length
-    );
-    console.log(`📊 [ML FUNNEL] Calculated overall satisfaction from ${satisfactionScores.length} services: ${funnelData.overall_satisfaction}%`);
+  // Calculate overall satisfaction - prefer the "overall" section score if available
+  // Otherwise fall back to averaging the 6 service areas
+  if (!funnelData.overall_satisfaction) {
+    // Try to get the overall section satisfaction score from the database
+    // IMPORTANT: Filter by barangay_id and cycle_id to get only this barangay's data
+    try {
+      const { data: overallSectionData } = await supabaseAdmin
+        .from('survey_section')
+        .select('data, response:survey_response!inner(barangay_id, survey_cycle_id)')
+        .eq('section_key', 'overall')
+        .eq('survey_response.barangay_id', barangayId)
+        .eq('survey_response.survey_cycle_id', cycleId)
+        .not('data', 'is', null);
+      
+      if (overallSectionData && overallSectionData.length > 0) {
+        // Calculate satisfaction from overallSatisfaction field
+        let satisfactionSum = 0;
+        let satisfactionCount = 0;
+        
+        overallSectionData.forEach((row: any) => {
+          const data = row.data;
+          if (data && data.overallSatisfaction) {
+            // Extract numeric value from format like "5 - Very Satisfied / Lubos na Nasiyahan"
+            const numericValue = parseInt(String(data.overallSatisfaction).charAt(0));
+            if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+              satisfactionSum += numericValue;
+              satisfactionCount++;
+            }
+          }
+        });
+        
+        if (satisfactionCount > 0) {
+          funnelData.overall_satisfaction = Math.round((satisfactionSum / satisfactionCount / 5) * 100);
+          console.log(`📊 [ML FUNNEL] Using overall section satisfaction: ${funnelData.overall_satisfaction}% (from ${satisfactionCount} responses for barangay ${barangayId}, cycle ${cycleId})`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching overall section data:', error);
+    }
+    
+    // Fall back to averaging service scores if overall section not available
+    if (!funnelData.overall_satisfaction && satisfactionScores.length > 0) {
+      funnelData.overall_satisfaction = Math.round(
+        satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length
+      );
+      console.log(`📊 [ML FUNNEL] Calculated overall satisfaction from ${satisfactionScores.length} services: ${funnelData.overall_satisfaction}%`);
+    }
   }
 
   // Transform action grid from ML format

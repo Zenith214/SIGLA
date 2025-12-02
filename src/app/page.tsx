@@ -671,11 +671,6 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/analytics" className="hover:text-white transition-colors">
-                    Analytics
-                  </Link>
-                </li>
-                <li>
                   <Link href="/login" className="hover:text-white transition-colors">
                     Login
                   </Link>

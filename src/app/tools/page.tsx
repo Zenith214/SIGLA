@@ -292,12 +292,31 @@ export default function ToolsPage() {
   };
 
   const deleteMockData = async () => {
+    console.log('deleteMockData called', { barangayId, isDeleting, isGenerating, loadingBarangays });
+    
+    if (!barangayId) {
+      alert('Please select a barangay first');
+      return;
+    }
+    
     const selectedBarangay = barangays.find(b => b.id.toString() === barangayId);
     const barangayName = selectedBarangay ? selectedBarangay.name : `ID ${barangayId}`;
     
-    if (!confirm(`Are you sure you want to delete MOCK DATA ONLY for ${barangayName} (Barangay ${barangayId})? This action cannot be undone.`)) {
-      return;
-    }
+    // Use setTimeout to ensure the confirm dialog shows properly
+    setTimeout(() => {
+      const confirmDelete = window.confirm(`Are you sure you want to delete MOCK DATA ONLY for ${barangayName} (Barangay ${barangayId})?\n\nThis action cannot be undone.`);
+      console.log('Confirm result:', confirmDelete);
+      
+      if (!confirmDelete) {
+        console.log('User cancelled deletion');
+        return;
+      }
+      
+      performMockDataDeletion(barangayName);
+    }, 100);
+  };
+  
+  const performMockDataDeletion = async (barangayName: string) => {
 
     setIsDeleting(true);
     setProgress(0);
@@ -320,11 +339,6 @@ export default function ToolsPage() {
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
-        
-        // Reload page after a short delay to ensure all caches are cleared
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
       } else {
         addResult({
           success: false,
@@ -343,22 +357,40 @@ export default function ToolsPage() {
   };
 
   const deleteAllResponses = async () => {
+    console.log('deleteAllResponses called', { hasActiveCycle, activeCycle, isDeleting, isGenerating });
+    
     if (!activeCycle) {
-      addResult({
-        success: false,
-        message: 'No active cycle found. Cannot delete responses.'
-      });
+      alert('No active cycle found. Please set an active cycle in Settings → Survey Cycles.');
       return;
     }
     
-    if (!confirm(`⚠️ DANGER: Delete ALL responses across ALL barangays in ${activeCycle.name}?\n\nThis will permanently delete ALL survey data (mock and real) for EVERY barangay in the active cycle.\n\nThis action cannot be undone!`)) {
-      return;
-    }
+    // Use setTimeout to ensure the confirm dialog shows properly
+    setTimeout(() => {
+      const confirmDelete = window.confirm(`⚠️ DANGER: Delete ALL data (spots, questionnaires, responses) across ALL barangays in ${activeCycle.name}?\n\nThis will permanently delete ALL survey data (mock and real) for EVERY barangay in the active cycle.\n\nThis action cannot be undone!`);
+      console.log('First confirm result:', confirmDelete);
+      
+      if (!confirmDelete) {
+        console.log('User cancelled deletion (first confirm)');
+        return;
+      }
 
-    // Double confirmation for safety
-    if (!confirm(`Final confirmation: Type "DELETE ALL" to confirm you want to delete ALL responses in ${activeCycle.name}`)) {
-      return;
-    }
+      // Double confirmation for safety
+      setTimeout(() => {
+        const finalConfirm = window.confirm(`Final confirmation: Are you absolutely sure you want to delete ALL data in ${activeCycle.name}?\n\nClick OK to proceed with deletion.`);
+        console.log('Final confirm result:', finalConfirm);
+        
+        if (!finalConfirm) {
+          console.log('User cancelled deletion (final confirm)');
+          return;
+        }
+        
+        performCycleDataDeletion();
+      }, 100);
+    }, 100);
+  };
+  
+  const performCycleDataDeletion = async () => {
+    if (!activeCycle) return;
 
     setIsDeleting(true);
     setProgress(0);
@@ -384,11 +416,6 @@ export default function ToolsPage() {
         // Fetch updated funnel analysis and barangay info
         await fetchFunnelAnalysis();
         await fetchBarangayInfo();
-        
-        // Reload page after a short delay to ensure all caches are cleared
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
       } else {
         addResult({
           success: false,
@@ -1021,18 +1048,6 @@ export default function ToolsPage() {
                 <div className="text-left">
                   <div className="font-semibold text-sm">Survey Forms</div>
                   <div className="text-xs text-gray-500">Data Collection</div>
-                </div>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="h-auto flex-col items-start p-4 hover:bg-indigo-50 hover:border-indigo-300"
-                onClick={() => window.location.href = '/analytics'}
-              >
-                <BarChart3 className="w-5 h-5 mb-2 text-indigo-600" />
-                <div className="text-left">
-                  <div className="font-semibold text-sm">Analytics</div>
-                  <div className="text-xs text-gray-500">Advanced Reports</div>
                 </div>
               </Button>
 
