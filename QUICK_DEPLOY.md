@@ -2,7 +2,10 @@
 
 ## What Was Fixed
 
-The code now automatically adds `https://` to the ML_API_URL if it's missing. This fixes the "Failed to parse URL" error.
+1. The code now automatically adds `https://` to the ML_API_URL if it's missing
+2. The code now removes trailing slashes to prevent double-slash URLs (`//api/analyze`)
+
+This fixes both "Failed to parse URL" and "404 Not Found" errors.
 
 ## Deploy Now
 
@@ -51,17 +54,19 @@ railway logs
 
 **Before:**
 ```typescript
-const mlApiUrl = process.env.ML_API_URL; // "mlgrc-pulse-ml.up.railway.app"
-fetch(`${mlApiUrl}/api/analyze`); // ❌ Invalid URL
+const mlApiUrl = process.env.ML_API_URL; // "mlgrc-pulse-ml.up.railway.app/"
+fetch(`${mlApiUrl}/api/analyze`); // ❌ Invalid URL or //api/analyze (404)
 ```
 
 **After:**
 ```typescript
-let mlApiUrl = process.env.ML_API_URL; // "mlgrc-pulse-ml.up.railway.app"
+let mlApiUrl = process.env.ML_API_URL; // "mlgrc-pulse-ml.up.railway.app/"
 if (!mlApiUrl.startsWith('http')) {
-  mlApiUrl = `https://${mlApiUrl}`; // "https://mlgrc-pulse-ml.up.railway.app"
+  mlApiUrl = `https://${mlApiUrl}`; // Add protocol
 }
-fetch(`${mlApiUrl}/api/analyze`); // ✅ Valid URL
+mlApiUrl = mlApiUrl.replace(/\/$/, ''); // Remove trailing slash
+// Result: "https://mlgrc-pulse-ml.up.railway.app"
+fetch(`${mlApiUrl}/api/analyze`); // ✅ Valid URL: /api/analyze (not //api/analyze)
 ```
 
 ## Expected Result

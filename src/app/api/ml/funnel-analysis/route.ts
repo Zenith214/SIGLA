@@ -82,6 +82,9 @@ export async function GET(request: NextRequest) {
             mlApiUrl = `https://${mlApiUrl}`;
           }
           
+          // Remove trailing slash to avoid double slashes
+          mlApiUrl = mlApiUrl.replace(/\/$/, '');
+          
           // Use HTTP API call to separate ML service
           console.log(`🌐 [ML FUNNEL] Calling ML API at ${mlApiUrl}`);
           
