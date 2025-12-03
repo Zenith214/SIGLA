@@ -332,10 +332,14 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-semibold min-w-[20px]">3.</span>
-                  <p>Verify that you have a stable internet connection</p>
+                  <p>If using a mobile device, turn on location services</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-semibold min-w-[20px]">4.</span>
+                  <p>Verify that you have a stable internet connection</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">5.</span>
                   <p>Have your device fully charged or connected to power</p>
                 </div>
               </div>

@@ -98,6 +98,9 @@ export default function LandingPage() {
               <button onClick={() => scrollToSection('about')} className="text-white hover:text-blue-300 transition-colors">
                 About
               </button>
+              <button onClick={() => scrollToSection('download')} className="text-white hover:text-blue-300 transition-colors">
+                Download
+              </button>
               <Link href="/login">
                 <Button className="bg-blue-600 text-white hover:bg-blue-700">
                   Login
@@ -129,6 +132,9 @@ export default function LandingPage() {
               </button>
               <button onClick={() => scrollToSection('about')} className="text-left text-white hover:text-blue-300 transition-colors">
                 About
+              </button>
+              <button onClick={() => scrollToSection('download')} className="text-left text-white hover:text-blue-300 transition-colors">
+                Download
               </button>
               <Link href="/login">
                 <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">
@@ -270,20 +276,20 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Content - 3D Rotating Logo */}
+            {/* Right Content - App Screenshot */}
             <div className="relative flex items-center justify-center">
               <div className="relative w-full max-w-md mx-auto">
-                {/* Glow effect behind logo */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+                {/* Glow effect behind image */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-3xl blur-3xl opacity-20 animate-pulse"></div>
                 
-                {/* 3D Horizontal Rotating Logo (like spinning a basketball) */}
-                <div className="relative animate-rotate-3d">
+                {/* App Screenshot */}
+                <div className="relative">
                   <Image 
-                    src="/logo4k.png" 
-                    alt="PULSE Logo" 
+                    src="/appsheesh.png" 
+                    alt="PULSE App Interface" 
                     width={400}
-                    height={400}
-                    className="w-full h-auto drop-shadow-2xl"
+                    height={800}
+                    className="w-full h-auto drop-shadow-2xl rounded-2xl"
                     priority
                   />
                 </div>
@@ -609,6 +615,104 @@ export default function LandingPage() {
                   className="object-contain"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Download App Section */}
+      <section id="download" className="py-20 md:py-32 bg-gradient-to-br from-blue-50 to-indigo-50 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Download PULSE App
+            </h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              Get the mobile app for offline survey capabilities and better field experience.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Android Download */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
+                  <svg className="w-12 h-12 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.523 15.341c-.538 0-.969.432-.969.969s.431.969.969.969.969-.432.969-.969-.431-.969-.969-.969zm-11.046 0c-.538 0-.969.432-.969.969s.431.969.969.969.969-.432.969-.969-.431-.969-.969-.969zm11.405-6.746l1.896-3.286c.104-.18.042-.41-.139-.514-.18-.104-.41-.042-.514.139l-1.918 3.324c-1.447-.722-3.07-1.125-4.707-1.125-1.638 0-3.26.403-4.707 1.125L6.875 5.934c-.104-.18-.334-.243-.514-.139-.18.104-.243.334-.139.514l1.896 3.286C5.605 11.255 4 13.97 4 17h16c0-3.03-1.605-5.745-4.118-7.405zM12 20c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"/>
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">Android</h3>
+              <p className="text-gray-600 mb-6 text-center">
+                Download the APK file and install on your Android device
+              </p>
+              <div className="space-y-4">
+                <a 
+                  href="/android-builds/Pulse-FI.apk" 
+                  download
+                  className="block w-full"
+                >
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download APK
+                  </Button>
+                </a>
+                <div className="bg-blue-50 p-4 rounded-lg text-sm text-gray-700">
+                  <p className="font-semibold mb-2">Installation Steps:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Download the APK file</li>
+                    <li>Open the downloaded file</li>
+                    <li>Allow installation from unknown sources if prompted</li>
+                    <li>Follow the installation wizard</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            {/* iOS Installation */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center">
+                  <svg className="w-12 h-12 text-gray-700" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">iOS (Safari)</h3>
+              <p className="text-gray-600 mb-6 text-center">
+                Add PULSE to your home screen as a web app
+              </p>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg text-sm text-gray-700">
+                  <p className="font-semibold mb-2">Installation Steps:</p>
+                  <ol className="list-decimal list-inside space-y-2">
+                    <li>Open <strong>https://mlgrc-pulse-ml.up.railway.app/</strong> in Safari</li>
+                    <li>Tap the <strong>Share</strong> button 
+                      <svg className="inline w-4 h-4 mx-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                      </svg>
+                      (bottom center)
+                    </li>
+                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                    <li>Tap <strong>"Add"</strong> in the top right</li>
+                    <li>The PULSE icon will appear on your home screen</li>
+                  </ol>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800">
+                  <strong>Note:</strong> This must be done in Safari browser. Chrome and other browsers don't support this feature on iOS.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-12 text-center">
+            <div className="inline-block bg-white px-6 py-4 rounded-xl shadow-sm">
+              <p className="text-gray-600">
+                <strong>Need help?</strong> Contact your supervisor or IT support for assistance with installation.
+              </p>
             </div>
           </div>
         </div>
