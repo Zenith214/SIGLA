@@ -44,9 +44,14 @@ export async function GET(request: NextRequest) {
         console.log(`🔄 [ML INSIGHTS] Computing insights for barangay ${barangayId}...`);
         
         let mlResults;
-        const mlApiUrl = process.env.ML_API_URL;
+        let mlApiUrl = process.env.ML_API_URL;
         
         if (mlApiUrl) {
+          // Ensure URL has protocol
+          if (!mlApiUrl.startsWith('http://') && !mlApiUrl.startsWith('https://')) {
+            mlApiUrl = `https://${mlApiUrl}`;
+          }
+          
           // Use HTTP API call to separate ML service
           console.log(`🌐 [ML INSIGHTS] Calling ML API at ${mlApiUrl}`);
           

@@ -22,6 +22,7 @@ Add the `ML_API_URL` environment variable to your **SIGLA service** (Next.js app
    Variable: ML_API_URL
    Value: https://mlgrc-pulse-ml.up.railway.app
    ```
+   (Note: You can also use `mlgrc-pulse-ml.up.railway.app` without `https://` - the code will add it automatically)
 7. Click **"Add"**
 
 ### 2. Redeploy the SIGLA Service

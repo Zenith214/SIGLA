@@ -44,8 +44,11 @@ git push origin main
 # Make sure you're in the project root
 railway link  # Select SIGLA service
 
-# Add the variable
+# Add the variable (with or without https://)
 railway variables set ML_API_URL=https://mlgrc-pulse-ml.up.railway.app
+
+# Or without protocol (code will add it automatically):
+railway variables set ML_API_URL=mlgrc-pulse-ml.up.railway.app
 ```
 
 ### Step 3: Wait for Deployments

@@ -74,9 +74,14 @@ export async function GET(request: NextRequest) {
         let mlResults;
 
         // Check if ML_API_URL is configured (for Railway/production)
-        const mlApiUrl = process.env.ML_API_URL;
+        let mlApiUrl = process.env.ML_API_URL;
         
         if (mlApiUrl) {
+          // Ensure URL has protocol
+          if (!mlApiUrl.startsWith('http://') && !mlApiUrl.startsWith('https://')) {
+            mlApiUrl = `https://${mlApiUrl}`;
+          }
+          
           // Use HTTP API call to separate ML service
           console.log(`🌐 [ML FUNNEL] Calling ML API at ${mlApiUrl}`);
           
