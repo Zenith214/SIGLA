@@ -56,12 +56,17 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
-  const { isViewer } = usePermissions()
+  const { canAccessAdminSettings, canAccessBackupSettings } = usePermissions()
   
-  // Filter navigation items for viewers - only show backup
-  const visibleItems = isViewer 
-    ? navigationItems.filter(item => item.id === "backup")
-    : navigationItems
+  // Filter navigation items based on permissions
+  const visibleItems = navigationItems.filter(item => {
+    // Backup is accessible to all authenticated users
+    if (item.id === "backup") {
+      return canAccessBackupSettings
+    }
+    // All other sections require admin/developer access
+    return canAccessAdminSettings
+  })
 
   return (
     <Sidebar className="border-r border-slate-300 bg-white">
@@ -72,10 +77,10 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
-              {isViewer ? "Settings" : "PULSE Admin"}
+              {canAccessAdminSettings ? "PULSE Admin" : "Settings"}
             </h2>
             <p className="text-sm text-slate-600">
-              {isViewer ? "Backup Access" : "Settings Panel"}
+              {canAccessAdminSettings ? "Settings Panel" : "Backup Access"}
             </p>
           </div>
         </div>

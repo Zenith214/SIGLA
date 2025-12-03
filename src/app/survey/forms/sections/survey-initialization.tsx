@@ -316,6 +316,50 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           </div>
         )}
 
+        {/* Instructions for New Interviews */}
+        {!isCallback && (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-3">Before You Begin</h3>
+              <div className="space-y-3 text-sm text-blue-800">
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">1.</span>
+                  <p>Introduce yourself and explain the purpose of the survey</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">2.</span>
+                  <p>Ensure you are at the correct household location</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">3.</span>
+                  <p>Verify that you have a stable internet connection</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">4.</span>
+                  <p>Have your device fully charged or connected to power</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 border border-gray-300 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-3">Survey Flow</h3>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p><strong>Step 1:</strong> Select respondent using Kish Grid</p>
+                <p><strong>Step 2:</strong> Collect respondent demographics</p>
+                <p><strong>Step 3:</strong> Complete 6 randomized service sections</p>
+                <p><strong>Step 4:</strong> Overall evaluation questions</p>
+                <p><strong>Step 5:</strong> Review and submit</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Once you click "Continue to Survey", a unique questionnaire number will be generated. Make sure you're ready to begin the interview.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Visit Status Fields - shown inline for callbacks */}
         {isCallback && (
           <div className="space-y-4">

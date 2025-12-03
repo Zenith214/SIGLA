@@ -108,6 +108,51 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PUT: Update supervisor assignment
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, cycle_id, status } = body
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Assignment id is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!cycle_id && !status) {
+      return NextResponse.json(
+        { success: false, error: "At least one field (cycle_id or status) must be provided" },
+        { status: 400 }
+      )
+    }
+
+    // Build update query dynamically
+    const updates = []
+    if (cycle_id) updates.push(`cycle_id = ${parseInt(cycle_id)}`)
+    if (status) updates.push(`status = '${status}'`)
+    updates.push(`updated_at = CURRENT_TIMESTAMP`)
+
+    await prisma.$executeRawUnsafe(`
+      UPDATE supervisor_assignments 
+      SET ${updates.join(', ')}
+      WHERE id = ${id}
+    `)
+
+    return NextResponse.json({
+      success: true,
+      message: "Supervisor assignment updated successfully"
+    })
+  } catch (error: any) {
+    console.error("Error updating supervisor assignment:", error)
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to update supervisor assignment" },
+      { status: 500 }
+    )
+  }
+}
+
 // DELETE: Remove supervisor assignment
 export async function DELETE(request: NextRequest) {
   try {

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { UserCheck, Plus, Trash2, Search, AlertTriangle, Users } from "lucide-react"
+import { UserCheck, Plus, Trash2, Search, AlertTriangle, Users, Edit } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -18,12 +18,21 @@ export function SupervisorAssignments() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [addingAssignment, setAddingAssignment] = useState(false)
+  const [editingSupervisor, setEditingSupervisor] = useState<any | null>(null)
   const [deletingAssignment, setDeletingAssignment] = useState<any | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [cycles, setCycles] = useState<any[]>([])
   const [addForm, setAddForm] = useState<any>({
     supervisor_id: "",
     barangay_ids: [],
     cycle_id: "",
+  })
+  const [editForm, setEditForm] = useState<any>({
+    supervisor_id: "",
+    supervisor_name: "",
+    cycle_id: "",
+    barangay_ids: [],
+    existing_assignment_ids: [],
   })
   const { toast } = useToast()
   const { activeCycle, hasActiveCycle } = useActiveCycle()
@@ -67,13 +76,31 @@ export function SupervisorAssignments() {
 
   useEffect(() => {
     fetchData()
+    fetchCycles()
   }, [activeCycle])
+
+  const fetchCycles = async () => {
+    try {
+      const res = await fetch("/api/survey-cycles")
+      if (res.ok) {
+        const response = await res.json()
+        setCycles(response.data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching cycles:", error)
+    }
+  }
 
   const fetchData = async () => {
     setLoading(true)
     try {
+      // Build API URL with cycle filter if active cycle exists
+      const assignmentsUrl = activeCycle?.cycle_id 
+        ? `/api/supervisor-assignments?cycle_id=${activeCycle.cycle_id}`
+        : "/api/supervisor-assignments"
+      
       const [assignmentsRes, usersRes, targetsRes] = await Promise.all([
-        fetch("/api/supervisor-assignments"),
+        fetch(assignmentsUrl),
         fetch("/api/users"),
         fetch("/api/survey-targets")
       ])
@@ -187,6 +214,96 @@ export function SupervisorAssignments() {
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to create assignment"
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditClick = (supervisorGroup: any) => {
+    setEditingSupervisor(supervisorGroup)
+    setEditForm({
+      supervisor_id: supervisorGroup.supervisor_id,
+      supervisor_name: supervisorGroup.supervisor_name,
+      cycle_id: supervisorGroup.cycle_id,
+      barangay_ids: supervisorGroup.barangays.map((b: any) => b.barangay_id),
+      existing_assignment_ids: supervisorGroup.barangays.map((b: any) => b.id),
+    })
+  }
+
+  const handleEditBarangayToggle = (barangayId: number) => {
+    setEditForm((prev: any) => {
+      const barangay_ids = prev.barangay_ids.includes(barangayId)
+        ? prev.barangay_ids.filter((id: number) => id !== barangayId)
+        : [...prev.barangay_ids, barangayId]
+      return { ...prev, barangay_ids }
+    })
+  }
+
+  const handleEditSave = async () => {
+    if (!editForm.supervisor_id || editForm.barangay_ids.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please select at least one barangay."
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      // Get the barangays that were removed
+      const originalBarangayIds = editingSupervisor.barangays.map((b: any) => b.barangay_id)
+      const removedBarangayIds = originalBarangayIds.filter((id: number) => !editForm.barangay_ids.includes(id))
+      const addedBarangayIds = editForm.barangay_ids.filter((id: number) => !originalBarangayIds.includes(id))
+
+      // Delete removed assignments
+      if (removedBarangayIds.length > 0) {
+        const assignmentsToDelete = editingSupervisor.barangays
+          .filter((b: any) => removedBarangayIds.includes(b.barangay_id))
+          .map((b: any) => b.id)
+
+        await Promise.all(
+          assignmentsToDelete.map((id: number) =>
+            fetch("/api/supervisor-assignments", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id }),
+            })
+          )
+        )
+      }
+
+      // Add new assignments
+      if (addedBarangayIds.length > 0) {
+        const res = await fetch("/api/supervisor-assignments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            supervisor_id: editForm.supervisor_id,
+            barangay_ids: addedBarangayIds,
+            cycle_id: editForm.cycle_id,
+          }),
+        })
+
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || "Failed to add new assignments")
+        }
+      }
+
+      toast({
+        title: "Success!",
+        description: `Updated assignments for ${editForm.supervisor_name}`
+      })
+      
+      setEditingSupervisor(null)
+      fetchData()
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update assignments"
       })
     } finally {
       setSaving(false)
@@ -361,9 +478,21 @@ export function SupervisorAssignments() {
                         {group.cycle_name} ({group.cycle_year})
                       </Badge>
                     </div>
-                    <Badge className="bg-purple-100 text-purple-800">
-                      {group.barangays.length} Barangay{group.barangays.length !== 1 ? 's' : ''}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-purple-100 text-purple-800">
+                        {group.barangays.length} Barangay{group.barangays.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                        onClick={() => handleEditClick(group)}
+                        title="Edit barangay assignments"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {group.barangays.map((barangay: any) => (
@@ -374,6 +503,7 @@ export function SupervisorAssignments() {
                           variant="ghost"
                           className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => handleDeleteClick(barangay)}
+                          title="Delete assignment"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -463,6 +593,85 @@ export function SupervisorAssignments() {
               </Button>
               <Button onClick={handleAddSave} disabled={saving}>
                 {saving ? 'Assigning...' : 'Assign Supervisor'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Supervisor Assignments Modal */}
+      {editingSupervisor && (
+        <Dialog open={!!editingSupervisor} onOpenChange={open => { if (!open) setEditingSupervisor(null) }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Barangay Assignments</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div>
+                <label className="block text-sm font-medium mb-2">Supervisor</label>
+                <Input
+                  value={editForm.supervisor_name}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Survey Cycle</label>
+                <Input
+                  value={editingSupervisor ? `${editingSupervisor.cycle_name} (${editingSupervisor.cycle_year})` : ""}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  To change the cycle, delete these assignments and create new ones for the desired cycle.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Select Barangays ({editForm.barangay_ids.length} selected)
+                </label>
+                {barangays.length === 0 ? (
+                  <div className="border rounded p-4 text-center bg-amber-50">
+                    <p className="text-sm text-amber-800 font-medium">No barangays with survey targets</p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Please create survey targets for the active cycle first in Settings → Survey Targets
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border rounded p-3 max-h-64 overflow-y-auto space-y-2">
+                    {barangays.map((barangay, index) => {
+                      const barangayId = barangay.barangay_id || barangay.id;
+                      const barangayName = barangay.barangay_name || barangay.name;
+                      return (
+                        <label key={`edit-barangay-${barangayId}-${index}`} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editForm.barangay_ids.includes(barangayId)}
+                            onChange={() => handleEditBarangayToggle(barangayId)}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{barangayName}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> You can add or remove barangays. Unchecked barangays will be removed from this supervisor's assignments.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setEditingSupervisor(null)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditSave} disabled={saving} className="bg-blue-600 text-white hover:bg-blue-700">
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </DialogContent>

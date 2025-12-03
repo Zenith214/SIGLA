@@ -11,6 +11,9 @@ import { QuestionRenderer } from "./QuestionRenderer"
 import { QuestionFlowNavigation } from "./QuestionFlowNavigation"
 import { QuestionProgressBar } from "./QuestionProgressBar"
 import { validateAnswer } from "../utils/validation"
+import { LanguageSelector } from "../components/LanguageSelector"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { getTranslatedQuestion, getTranslatedOptions } from "../utils/translations"
 
 interface QuestionFlowProps {
   sectionId: string;
@@ -27,6 +30,7 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [showValidation, setShowValidation] = useState<boolean>(false);
+  const { language } = useLanguage();
 
   const prevSectionIdRef = useRef<string | undefined>(undefined);
 
@@ -36,6 +40,18 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   // Calculate progress based on all 6 assigned sections
   const totalSections = assignedSections?.length || 6;
   const currentSectionIndex = assignedSections?.indexOf(sectionId) ?? -1;
+
+  // Get translated question text
+  const getQuestionText = (question: Question): string => {
+    const translated = getTranslatedQuestion(sectionId, question.id, language);
+    return translated || question.question;
+  };
+
+  // Get translated options
+  const getQuestionOptions = (question: Question): string[] => {
+    if (!question.options) return [];
+    return getTranslatedOptions(question.options, language);
+  };
 
   useEffect(() => {
     const isNewSection = prevSectionIdRef.current !== sectionId;
@@ -388,6 +404,9 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
       />
 
       <div className="max-w-2xl mx-auto">
+        {/* Language Selector */}
+        <LanguageSelector />
+
         {getPersistentPartHeader() && (
           <Card className="shadow-sm mb-6">
             <CardContent className="p-6">
@@ -398,10 +417,14 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
 
         {isQuestionEnabled(currentQuestion) ? (
           <Card className="bg-gray-50 rounded-lg p-8 mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-6 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: currentQuestion?.question || '' }}>
+            <h3 className="text-lg font-medium text-gray-900 mb-6 whitespace-pre-line" dangerouslySetInnerHTML={{ __html: getQuestionText(currentQuestion) }}>
             </h3>
             <QuestionRenderer
-              question={currentQuestion}
+              question={{
+                ...currentQuestion,
+                question: getQuestionText(currentQuestion),
+                options: getQuestionOptions(currentQuestion)
+              }}
               currentAnswer={answers[currentQuestion.id]}
               onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               isEnabled={true}
@@ -413,13 +436,17 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
           <Card className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-8 mb-8">
             <div className="text-center">
               <p className="text-lg font-medium text-yellow-800 mb-2">
-                Question Skipped
+                {language === 'bisaya' ? 'Gilaktawan ang Pangutana' : language === 'filipino' ? 'Nilaktawan ang Tanong' : 'Question Skipped'}
               </p>
               <p className="text-sm text-yellow-700">
-                This question was automatically skipped based on your previous answer.
+                {language === 'bisaya' 
+                  ? 'Kini nga pangutana awtomatiko nga gilaktawan base sa imong miaging tubag.'
+                  : language === 'filipino'
+                  ? 'Ang tanong na ito ay awtomatikong nilaktawan batay sa iyong nakaraang sagot.'
+                  : 'This question was automatically skipped based on your previous answer.'}
               </p>
               <p className="text-xs text-yellow-600 mt-2">
-                Skip reason: {answers[`${currentQuestion.id}_skipReason`] || 'conditional_skip'}
+                {language === 'bisaya' ? 'Hinungdan sa paglaktaw' : language === 'filipino' ? 'Dahilan ng paglaktaw' : 'Skip reason'}: {answers[`${currentQuestion.id}_skipReason`] || 'conditional_skip'}
               </p>
             </div>
           </Card>

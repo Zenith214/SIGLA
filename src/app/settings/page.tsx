@@ -66,19 +66,25 @@ import { useRouter } from "next/navigation"
 
 export default function AdminSettingsPanel() {
   const router = useRouter()
-  const { canAccessAdminSettings, isViewer } = usePermissions()
+  const { canAccessAdminSettings, isViewer, canAccessBackupSettings, user } = usePermissions()
   const [activeSection, setActiveSection] = useState("survey-cycles")
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [dateTime, setDateTime] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
   const { activeCycle, hasActiveCycle } = useActiveCycle()
 
-  // Redirect viewers to backup section only
+  // Redirect non-admin users
   useEffect(() => {
-    if (isViewer && activeSection !== "backup") {
-      setActiveSection("backup")
+    if (user && !canAccessAdminSettings && !canAccessBackupSettings) {
+      // User has no access to settings at all - redirect to dashboard
+      router.push('/dashboard')
+    } else if (user && !canAccessAdminSettings && canAccessBackupSettings) {
+      // User can only access backup - redirect to backup section
+      if (activeSection !== "backup") {
+        setActiveSection("backup")
+      }
     }
-  }, [isViewer, activeSection])
+  }, [user, canAccessAdminSettings, canAccessBackupSettings, activeSection, router])
 
   useEffect(() => {
     const update = () => setDateTime(new Date().toLocaleString())
@@ -106,6 +112,20 @@ export default function AdminSettingsPanel() {
   }, []);
 
   const renderSection = () => {
+    // Check if user has access to the requested section
+    if (activeSection !== "backup" && !canAccessAdminSettings) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">You don't have permission to access this section.</p>
+            <p className="text-sm text-gray-500">Only administrators and developers can access admin settings.</p>
+          </div>
+        </div>
+      )
+    }
+
     switch (activeSection) {
       case "survey-cycles":
         return <SurveyCycles />
@@ -122,7 +142,7 @@ export default function AdminSettingsPanel() {
       case "backup":
         return <Backup />
       default:
-        return <SurveyCycles />
+        return canAccessAdminSettings ? <SurveyCycles /> : <Backup />
     }
   }
 

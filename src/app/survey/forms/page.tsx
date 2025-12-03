@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { LanguageProvider } from "@/contexts/LanguageContext"
 import { Header } from "./sections/header"
 import { SectionCard } from "./sections/section-card"
 import { FloatingProgressButton } from "./sections/floating-progress-button"
@@ -1011,7 +1012,9 @@ function SurveyAppContent() {
 export default function SurveyApp() {
   return (
     <ProtectedRoute>
-      <SurveyAppContent />
+      <LanguageProvider>
+        <SurveyAppContent />
+      </LanguageProvider>
     </ProtectedRoute>
   )
 }
