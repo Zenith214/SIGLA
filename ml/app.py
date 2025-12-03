@@ -83,20 +83,23 @@ async def predict(request: PredictionRequest):
 async def analyze(request: AnalysisRequest):
     """Analyze barangay data"""
     try:
+        logger.info(f"Analyzing barangay {request.barangay_id}, cycle {request.cycle_id}")
+        
         from sigla_ml.api import SiglaMLAPI
         
         ml_api = SiglaMLAPI()
         
-        # Add your analysis logic here
-        result = {
-            "status": "success",
-            "barangay_id": request.barangay_id,
-            "analysis": "placeholder"
-        }
+        # Call the actual analysis method
+        result = ml_api.analyze_barangay(
+            barangay_id=request.barangay_id,
+            cycle_id=request.cycle_id,
+            save_to_db=True
+        )
         
+        logger.info(f"Analysis complete for barangay {request.barangay_id}")
         return result
     except Exception as e:
-        logger.error(f"Analysis error: {e}")
+        logger.error(f"Analysis error for barangay {request.barangay_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/funnel-analysis")

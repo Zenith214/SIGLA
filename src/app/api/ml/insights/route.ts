@@ -41,29 +41,57 @@ export async function GET(request: NextRequest) {
       'ml-insights',
       { barangayId: parseInt(barangayId), cycleId: activeCycleId },
       async () => {
-        // This is the expensive computation that will be cached
-        const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-        
-        // Use the virtual environment's Python interpreter
-        const venvPython = process.platform === 'win32' 
-          ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
-          : path.join(process.cwd(), '.venv', 'bin', 'python');
-        const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId}`;
-
         console.log(`🔄 [ML INSIGHTS] Computing insights for barangay ${barangayId}...`);
         
-        const { stdout, stderr } = await execAsync(pythonCommand);
-
-        if (stderr) {
-          console.error('ML Insights Error:', stderr);
-        }
-
         let mlResults;
-        try {
-          mlResults = JSON.parse(stdout);
-        } catch (parseError) {
-          console.error('Failed to parse ML insights:', parseError);
-          throw new Error("Failed to parse ML insights");
+        const mlApiUrl = process.env.ML_API_URL;
+        
+        if (mlApiUrl) {
+          // Use HTTP API call to separate ML service
+          console.log(`🌐 [ML INSIGHTS] Calling ML API at ${mlApiUrl}`);
+          
+          try {
+            const response = await fetch(`${mlApiUrl}/api/analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                barangay_id: parseInt(barangayId),
+                cycle_id: activeCycleId
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`ML API returned ${response.status}`);
+            }
+
+            mlResults = await response.json();
+            console.log(`✅ [ML INSIGHTS] Received ML results from API`);
+          } catch (fetchError: any) {
+            console.error('❌ [ML INSIGHTS] Failed to call ML API:', fetchError.message);
+            throw new Error(`Failed to connect to ML service: ${fetchError.message}`);
+          }
+        } else {
+          // Fall back to local Python execution
+          console.log(`🐍 [ML INSIGHTS] Using local Python execution`);
+          
+          const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+          const venvPython = process.platform === 'win32' 
+            ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+            : path.join(process.cwd(), '.venv', 'bin', 'python');
+          const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId}`;
+
+          const { stdout, stderr } = await execAsync(pythonCommand);
+
+          if (stderr) {
+            console.error('ML Insights Error:', stderr);
+          }
+
+          try {
+            mlResults = JSON.parse(stdout);
+          } catch (parseError) {
+            console.error('Failed to parse ML insights:', parseError);
+            throw new Error("Failed to parse ML insights");
+          }
         }
 
         // Get actual unique respondent count from database

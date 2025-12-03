@@ -69,28 +69,63 @@ export async function GET(request: NextRequest) {
       'ml-funnel-analysis',
       { barangayId: parseInt(barangayId), cycleId: parseInt(cycleId) },
       async () => {
-        // This is the expensive computation that will be cached
-        const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
-        // Use the virtual environment's Python interpreter
-        const venvPython = process.platform === 'win32' 
-          ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
-          : path.join(process.cwd(), '.venv', 'bin', 'python');
-        const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId} --cycle_id ${cycleId}`;
-
         console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}, cycle ${cycleId}...`);
 
-        const { stdout, stderr } = await execAsync(pythonCommand);
-
-        if (stderr) {
-          console.error('ML Analysis Error:', stderr);
-        }
-
         let mlResults;
-        try {
-          mlResults = JSON.parse(stdout);
-        } catch (parseError) {
-          console.error('Failed to parse ML results:', parseError);
-          throw new Error("Failed to parse ML analysis results");
+
+        // Check if ML_API_URL is configured (for Railway/production)
+        const mlApiUrl = process.env.ML_API_URL;
+        
+        if (mlApiUrl) {
+          // Use HTTP API call to separate ML service
+          console.log(`🌐 [ML FUNNEL] Calling ML API at ${mlApiUrl}`);
+          
+          try {
+            const response = await fetch(`${mlApiUrl}/api/analyze`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                barangay_id: parseInt(barangayId),
+                cycle_id: parseInt(cycleId)
+              })
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`❌ [ML FUNNEL] ML API error (${response.status}):`, errorText);
+              throw new Error(`ML API returned ${response.status}: ${errorText}`);
+            }
+
+            mlResults = await response.json();
+            console.log(`✅ [ML FUNNEL] Received ML results from API`);
+          } catch (fetchError: any) {
+            console.error('❌ [ML FUNNEL] Failed to call ML API:', fetchError.message);
+            throw new Error(`Failed to connect to ML service: ${fetchError.message}`);
+          }
+        } else {
+          // Fall back to local Python execution (for local development)
+          console.log(`🐍 [ML FUNNEL] Using local Python execution`);
+          
+          const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
+          const venvPython = process.platform === 'win32' 
+            ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
+            : path.join(process.cwd(), '.venv', 'bin', 'python');
+          const pythonCommand = `"${venvPython}" "${mlScriptPath}" --barangay_id ${barangayId} --cycle_id ${cycleId}`;
+
+          const { stdout, stderr } = await execAsync(pythonCommand);
+
+          if (stderr) {
+            console.error('ML Analysis Error:', stderr);
+          }
+
+          try {
+            mlResults = JSON.parse(stdout);
+          } catch (parseError) {
+            console.error('Failed to parse ML results:', parseError);
+            throw new Error("Failed to parse ML analysis results");
+          }
         }
 
         // Transform ML results into funnel analysis format
