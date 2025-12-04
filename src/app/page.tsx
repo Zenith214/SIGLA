@@ -79,7 +79,7 @@ export default function LandingPage() {
                 alt="PULSE" 
                 width={120}
                 height={43}
-                className="h-8 sm:h-10 w-auto"
+                className="h-8 sm:h-10 w-auto drop-shadow-lg brightness-110"
                 priority
               />
             </div>
@@ -148,12 +148,17 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="pt-24 pb-16 md:pt-32 md:pb-24 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%)' }}>
-        {/* Decorative Blobs - MLGRC Colors */}
-        <div className="absolute top-10 left-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-100 animate-blob"></div>
-        <div className="absolute top-20 right-20 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-100 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-40 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-100 animate-blob animation-delay-4000"></div>
-        <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-100 animate-blob animation-delay-6000"></div>
+      <section id="home" className="pt-24 pb-16 md:pt-32 md:pb-24 relative overflow-hidden min-h-screen">
+        {/* Background with animated blobs */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-blue-100 to-green-100">
+            {/* Animated Blobs */}
+            <div className="absolute top-10 left-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute top-20 right-20 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div className="absolute bottom-20 left-40 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+            <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
+          </div>
+        </div>
         
         <style jsx global>{`
           @keyframes blob {
@@ -239,60 +244,59 @@ export default function LandingPage() {
             animation-delay: 0.4s;
           }
         `}</style>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full flex items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center w-full">
             {/* Left Content */}
-            <div className="space-y-12 animate-fade-in">
-              <div className="space-y-6 bg-white/70 backdrop-blur-lg p-10 rounded-3xl shadow-2xl border border-white/20">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                  Understand <span className="relative inline-block">
-                    <span className="absolute inset-0 bg-blue-200/50 blur-lg"></span>
-                    <span className="relative">Citizen Perception</span>
-                  </span> with{" "}
-                  <span className="relative inline-block">
-                    <span className="absolute inset-0 bg-blue-400/40 blur-md"></span>
-                    <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800">PULSE</span>
-                  </span>
-                </h1>
-                <p className="text-lg md:text-xl text-gray-800 font-medium leading-relaxed">
-                  Efficient survey management for local governance. Measure public satisfaction and service evaluation with real-time analytics.
-                </p>
+            <div className="space-y-6 animate-fade-in">
+              {/* Radial glow behind card */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-radial from-blue-200/40 via-transparent to-transparent blur-3xl -z-10"></div>
+                <div className="space-y-5 bg-white/95 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-2xl">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
+                    Understand<br/>
+                    Citizen<br/>
+                    Perception<br/>
+                    <span className="text-blue-600">with PULSE</span>
+                  </h1>
+                  <p className="text-base md:text-lg text-gray-700 leading-loose">
+                    Efficient survey management for local governance. Measure public satisfaction and service evaluation with real-time analytics.
+                  </p>
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/login">
-                  <Button size="lg" className="bg-blue-600 text-white hover:bg-blue-700 w-full sm:w-auto">
+                  <Button 
+                    size="lg" 
+                    className="bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 w-full sm:w-auto shadow-xl transition-all duration-300 text-lg py-6 px-8 group"
+                  >
                     Access System
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={() => scrollToSection('features')}
-                  className="w-full sm:w-auto border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="w-full sm:w-auto border-2 border-gray-700 text-gray-700 hover:bg-gray-100 text-lg py-6 px-8"
                 >
                   Learn More
                 </Button>
               </div>
             </div>
 
-            {/* Right Content - App Screenshot */}
-            <div className="relative flex items-center justify-center">
-              <div className="relative w-full max-w-md mx-auto">
-                {/* Glow effect behind image */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-3xl blur-3xl opacity-20 animate-pulse"></div>
-                
-                {/* App Screenshot */}
-                <div className="relative">
-                  <Image 
-                    src="/appsheesh.png" 
-                    alt="PULSE App Interface" 
-                    width={400}
-                    height={800}
-                    className="w-full h-auto drop-shadow-2xl rounded-2xl"
-                    priority
-                  />
-                </div>
+            {/* Right Content - Image with more space */}
+            <div className="relative flex items-center justify-center lg:justify-end lg:pr-8">
+              <div className="relative w-full max-w-4xl mx-auto">
+                {/* Soft gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-l from-transparent via-pink-100/20 to-blue-100/20 rounded-2xl -z-10"></div>
+                <Image 
+                  src="/test2.png" 
+                  alt="PULSE Interface" 
+                  width={900}
+                  height={900}
+                  className="w-full h-auto drop-shadow-2xl animate-fade-in opacity-90"
+                  priority
+                />
               </div>
             </div>
           </div>
@@ -638,7 +642,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center mb-6">
                 <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
                   <svg className="w-12 h-12 text-green-600" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.523 15.341c-.538 0-.969.432-.969.969s.431.969.969.969.969-.432.969-.969-.431-.969-.969-.969zm-11.046 0c-.538 0-.969.432-.969.969s.431.969.969.969.969-.432.969-.969-.431-.969-.969-.969zm11.405-6.746l1.896-3.286c.104-.18.042-.41-.139-.514-.18-.104-.41-.042-.514.139l-1.918 3.324c-1.447-.722-3.07-1.125-4.707-1.125-1.638 0-3.26.403-4.707 1.125L6.875 5.934c-.104-.18-.334-.243-.514-.139-.18.104-.243.334-.139.514l1.896 3.286C5.605 11.255 4 13.97 4 17h16c0-3.03-1.605-5.745-4.118-7.405zM12 20c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"/>
+                    <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.75-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/>
                   </svg>
                 </div>
               </div>
@@ -652,7 +656,7 @@ export default function LandingPage() {
                   download
                   className="block w-full"
                 >
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>

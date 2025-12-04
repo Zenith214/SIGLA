@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import Image from "next/image"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -187,11 +188,68 @@ function PulseLoginContent() {
 
   if (pageLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+      <div className="min-h-screen flex relative overflow-hidden">
+        {/* Split Background - Desktop only */}
+        <div className="absolute inset-0">
+          {/* Mobile: Simple blue background */}
+          <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
+          
+          {/* Desktop: Left side - blue card with elevation */}
+          <div className="hidden md:block absolute inset-0 right-[62%] bg-blue-50" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+          
+          {/* Divider line */}
+          <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-blue-50" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+          
+          {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
+          <div className="hidden md:block absolute inset-0 left-[38%]">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-blue-100 to-green-100">
+              {/* Animated Blobs */}
+              <div className="absolute top-10 right-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+              <div className="absolute top-20 right-1/4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+              <div className="absolute bottom-20 right-1/3 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+              <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
+              
+              {/* Logo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image 
+                  src="/logo4k.png" 
+                  alt="PULSE Logo" 
+                  width={800}
+                  height={800}
+                  className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                  priority
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Blob Animation Styles */}
+        <style jsx global>{`
+          @keyframes blob {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -50px) scale(1.1); }
+            50% { transform: translate(-20px, 20px) scale(0.9); }
+            75% { transform: translate(50px, 50px) scale(1.05); }
+          }
+          .animate-blob {
+            animation: blob 20s infinite;
+          }
+          .animation-delay-2000 {
+            animation-delay: 2s;
+          }
+          .animation-delay-4000 {
+            animation-delay: 4s;
+          }
+          .animation-delay-6000 {
+            animation-delay: 6s;
+          }
+        `}</style>
+
         {/* Main Content */}
-        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+        <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
           <div className="w-full max-w-md">
-            <Card className="shadow-lg border-0">
+            <Card className="shadow-lg border-0 bg-white">
               <CardHeader className="text-center pb-6">
                 <Skeleton className="h-8 w-48 mx-auto mb-2" />
                 <Skeleton className="h-4 w-64 mx-auto" />
@@ -200,55 +258,112 @@ function PulseLoginContent() {
                 <SkeletonForm />
               </CardContent>
             </Card>
+            
+            {/* Logos Section Below Login Form */}
+            <div className="flex flex-col items-center mt-8">
+              {/* Logos Row */}
+              <div className="flex items-center justify-center gap-8 mb-4">
+                {/* DILG Logo - Circular */}
+                <div className="flex flex-col items-center">
+                  <img
+                    src="/dilg.png"
+                    alt="DILG Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+
+                {/* MLGRC Logo - Rectangular */}
+                <div className="flex flex-col items-center">
+                  <img
+                    src="/mlgrc.png"
+                    alt="MLGRC Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Text Below Logos */}
+              <div className="text-center">
+                <p className="text-sm text-gray-600 font-medium">
+                  Department of the Interior and Local Government
+                </p>
+                <p className="text-sm text-gray-600">
+                  (Partnership)
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  © 2024 PULSE System. All rights reserved.
+                </p>
+              </div>
+            </div>
           </div>
         </main>
-
-        {/* Logos Section Below Login Form */}
-        <div className="flex flex-col items-center mt-8 mb-8">
-          {/* Logos Row */}
-          <div className="flex items-center justify-center gap-8 mb-4">
-            {/* DILG Logo - Circular */}
-            <div className="flex flex-col items-center">
-              <img
-                src="/dilg.png"
-                alt="DILG Logo"
-                className="w-16 h-16 object-contain"
-              />
-            </div>
-
-            {/* MLGRC Logo - Rectangular */}
-            <div className="flex flex-col items-center">
-              <img
-                src="/mlgrc.png"
-                alt="MLGRC Logo"
-                className="w-16 h-16 object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Text Below Logos */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600 font-medium">
-              Department of the Interior and Local Government
-            </p>
-            <p className="text-sm text-gray-600">
-              (Partnership)
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              © 2024 PULSE System. All rights reserved.
-            </p>
-          </div>
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* Split Background - Desktop only */}
+      <div className="absolute inset-0">
+        {/* Mobile: Simple blue background */}
+        <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
+        
+        {/* Desktop: Left side - blue card with elevation */}
+        <div className="hidden md:block absolute inset-0 right-[62%] bg-blue-50" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+        
+        {/* Divider line */}
+        <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-blue-50" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+        
+        {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
+        <div className="hidden md:block absolute inset-0 left-[38%]">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-blue-100 to-green-100">
+            {/* Animated Blobs */}
+            <div className="absolute top-10 right-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute top-20 right-1/4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div className="absolute bottom-20 right-1/3 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+            <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
+            
+            {/* Logo */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Image 
+                src="/logo4k.png" 
+                alt="PULSE Logo" 
+                width={800}
+                height={800}
+                className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                priority
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blob Animation Styles */}
+      <style jsx global>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        .animate-blob {
+          animation: blob 20s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .animation-delay-6000 {
+          animation-delay: 6s;
+        }
+      `}</style>
+
       {/* Main Content */}
-      <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+      <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
         <div className="w-full max-w-md">
-          <Card className="shadow-lg border-0">
+          <Card className="shadow-lg border-0 bg-white">
             <CardHeader className="text-center pb-6">
               <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
                 System Login
@@ -381,11 +496,9 @@ function PulseLoginContent() {
 
             </CardContent>
           </Card>
-        </div>
-      </main>
-
-      {/* Logos Section Below Login Form */}
-      <div className="flex flex-col items-center mt-8 mb-8">
+          
+          {/* Logos Section Below Login Form */}
+          <div className="flex flex-col items-center mt-8">
         {/* Logos Row */}
         <div className="flex items-center justify-center gap-8 mb-4">
           {/* DILG Logo - Circular */}
@@ -419,7 +532,9 @@ function PulseLoginContent() {
             © 2024 PULSE System. All rights reserved.
           </p>
         </div>
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }
