@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Allow public API routes
-  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout')) {
+  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies')) {
     return NextResponse.next();
   }
 

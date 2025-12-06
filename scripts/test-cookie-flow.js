@@ -136,7 +136,55 @@ function testMe(token) {
   });
 }
 
-// Step 3: Test protected route (dashboard)
+// Step 3: Test protected API route (goes through middleware)
+function testProtectedApi(token) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: '/api/test-auth',
+      method: 'GET',
+      headers: {
+        'Cookie': `pulse_token=${token}`
+      }
+    };
+
+    console.log('');
+    console.log('3️⃣ Testing /api/test-auth (protected API)...');
+    const req = httpModule.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        console.log('   Status:', res.statusCode);
+        console.log('   Response:', data);
+        
+        if (res.statusCode === 200) {
+          console.log('   ✅ Protected API accessible!');
+          resolve(data);
+        } else if (res.statusCode === 401) {
+          console.log('   ❌ Middleware rejected the request');
+          reject(new Error('Middleware authentication failed'));
+        } else {
+          console.log('   ⚠️ Unexpected status code');
+          reject(new Error('Unexpected status'));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      console.error('   ❌ /api/test-auth request failed:', error.message);
+      reject(error);
+    });
+
+    req.end();
+  });
+}
+
+// Step 4: Test protected route (dashboard)
 function testDashboard(token) {
   return new Promise((resolve, reject) => {
     const options = {
@@ -188,6 +236,7 @@ async function runTests() {
   try {
     const { token } = await testLogin();
     await testMe(token);
+    await testProtectedApi(token);
     await testDashboard(token);
     
     console.log('');
