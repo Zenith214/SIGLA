@@ -60,6 +60,9 @@ function PulseLoginContent() {
         case 'invalid_token':
           message = "Your session has expired. Please log in again.";
           break;
+        case 'timeout':
+          message = "You were logged out due to inactivity. Please log in again.";
+          break;
         case 'insufficient_permissions':
           if (attemptedPath) {
             message = `You don't have permission to access ${attemptedPath}. Please log in with appropriate credentials.`;
@@ -194,11 +197,14 @@ function PulseLoginContent() {
           {/* Mobile: Simple blue background */}
           <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
           
-          {/* Desktop: Left side - blue card with elevation */}
-          <div className="hidden md:block absolute inset-0 right-[62%] bg-blue-50" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+          {/* Desktop: Background color behind the elevated card */}
+          <div className="hidden md:block absolute inset-0 bg-blue-50"></div>
+          
+          {/* Desktop: Left side - white elevated card with sharp edges */}
+          <div className="hidden md:block absolute inset-0 right-[62%] bg-white" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
           
           {/* Divider line */}
-          <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-blue-50" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+          <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-white" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
           
           {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
           <div className="hidden md:block absolute inset-0 left-[38%]">
@@ -249,7 +255,7 @@ function PulseLoginContent() {
         {/* Main Content */}
         <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
           <div className="w-full max-w-md">
-            <Card className="shadow-lg border-0 bg-white">
+            <Card className="shadow-lg border-0 bg-white rounded-none">
               <CardHeader className="text-center pb-6">
                 <Skeleton className="h-8 w-48 mx-auto mb-2" />
                 <Skeleton className="h-4 w-64 mx-auto" />
@@ -308,11 +314,14 @@ function PulseLoginContent() {
         {/* Mobile: Simple blue background */}
         <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
         
-        {/* Desktop: Left side - blue card with elevation */}
-        <div className="hidden md:block absolute inset-0 right-[62%] bg-blue-50" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+        {/* Desktop: Background color behind the elevated card */}
+        <div className="hidden md:block absolute inset-0 bg-blue-50"></div>
+        
+        {/* Desktop: Left side - white elevated card with sharp edges */}
+        <div className="hidden md:block absolute inset-0 right-[62%] bg-white" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
         
         {/* Divider line */}
-        <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-blue-50" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+        <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-white" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
         
         {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
         <div className="hidden md:block absolute inset-0 left-[38%]">
@@ -363,7 +372,7 @@ function PulseLoginContent() {
       {/* Main Content */}
       <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
         <div className="w-full max-w-md">
-          <Card className="shadow-lg border-0 bg-white">
+          <Card className="shadow-lg border-0 bg-white rounded-none">
             <CardHeader className="text-center pb-6">
               <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
                 System Login
