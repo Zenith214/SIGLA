@@ -12,7 +12,20 @@ const pool = new Pool({
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('pulse_token')?.value;
+  
+  console.log('👤 [/api/me] Request received', {
+    hasToken: !!token,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+    allCookies: req.cookies.getAll().map(c => c.name),
+    headers: {
+      host: req.headers.get('host'),
+      protocol: req.headers.get('x-forwarded-proto'),
+      cookie: req.headers.get('cookie') ? 'present' : 'missing'
+    }
+  });
+  
   if (!token) {
+    console.log('❌ [/api/me] No token found');
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
   

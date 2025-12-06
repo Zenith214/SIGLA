@@ -33,7 +33,20 @@ export function middleware(request: NextRequest) {
   // Check for authentication token
   const token = request.cookies.get('pulse_token');
   
+  console.log('🔒 [MIDDLEWARE]', {
+    pathname,
+    hasToken: !!token,
+    tokenValue: token?.value ? `${token.value.substring(0, 20)}...` : 'none',
+    allCookies: request.cookies.getAll().map(c => c.name),
+    headers: {
+      host: request.headers.get('host'),
+      protocol: request.headers.get('x-forwarded-proto'),
+      userAgent: request.headers.get('user-agent')?.substring(0, 50)
+    }
+  });
+  
   if (!token || !token.value) {
+    console.log('❌ [MIDDLEWARE] No token found, redirecting to login');
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -49,12 +62,15 @@ export function middleware(request: NextRequest) {
       throw new Error('Invalid token');
     }
     
+    console.log('✅ [MIDDLEWARE] Token valid for user:', decoded.email);
+    
     const response = NextResponse.next();
     response.headers.set('x-user-id', decoded.id.toString());
     response.headers.set('x-user-role', (decoded.role || 'officer').toLowerCase());
     response.headers.set('x-user-email', decoded.email);
     return response;
   } catch (error) {
+    console.log('❌ [MIDDLEWARE] Token validation failed:', error instanceof Error ? error.message : 'Unknown error');
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

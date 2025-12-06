@@ -150,6 +150,11 @@ function PulseLoginContent() {
 
         // Force refresh the auth state immediately
         await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for cookie to be set
+        
+        // Debug: Check if cookie was set
+        console.log('🍪 Checking cookies:', document.cookie);
+        const hasPulseToken = document.cookie.includes('pulse_token');
+        console.log('🍪 Has pulse_token cookie:', hasPulseToken);
 
         // Get redirect URL from search params
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
