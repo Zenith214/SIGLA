@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server';
 
-// Global variable to store last middleware execution (not ideal but works for debugging)
-// @ts-ignore
-global.lastMiddlewareLog = global.lastMiddlewareLog || null;
-
+// This endpoint retrieves the last middleware execution log
+// Import is not possible due to module boundaries, so we'll use a workaround
 export async function GET() {
-  // @ts-ignore
-  const log = global.lastMiddlewareLog;
-  
+  // We can't directly import from middleware, so this will just return a message
+  // The actual logging will be in Railway logs
   return NextResponse.json({
-    hasLog: !!log,
-    log: log || 'No middleware execution logged yet',
-    note: 'This endpoint shows the last middleware execution details'
+    message: 'Check Railway logs for middleware execution details',
+    instructions: [
+      '1. Go to railway.app',
+      '2. Select your project',
+      '3. Click on SIGLA service',
+      '4. Click on Deployments',
+      '5. Click on latest deployment',
+      '6. View logs',
+      '7. Look for logs with 🚦 🔒 emojis'
+    ],
+    timestamp: new Date().toISOString()
   });
 }

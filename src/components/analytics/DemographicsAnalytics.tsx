@@ -1,31 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useActiveCycle } from '@/hooks/useSurveyCycle'
 import { fetchWithCache } from '@/utils/analyticsCache'
 import { dualAxisChartOptions, pieChartOptions, colorPalettes, getChartAriaLabel } from '@/utils/chartConfig'
-import { Bar, Pie } from 'react-chartjs-2'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js'
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-)
+// Dynamically import chart components to avoid SSR issues in Next.js 16
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { ssr: false })
+const Pie = dynamic(() => import('react-chartjs-2').then(mod => mod.Pie), { ssr: false })
+
+// Register chart.js components on client side only
+if (typeof window !== 'undefined') {
+  import('chart.js').then(({ Chart, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend }) => {
+    Chart.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
+  })
+}
 
 interface DemographicData {
   ageDistribution: Array<{ ageGroup: string, count: number, satisfaction: number }>
