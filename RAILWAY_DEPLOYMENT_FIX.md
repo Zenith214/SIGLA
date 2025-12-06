@@ -53,10 +53,20 @@ This configures Railway deployment settings:
 
 ## Deployment Steps
 
-### 1. Commit and Push Changes
+### 1. Update Lockfile (IMPORTANT!)
+Your `pnpm-lock.yaml` is out of sync with `package.json`. Fix this first:
+
 ```bash
-git add nixpacks.toml railway.json
-git commit -m "fix: Add Railway deployment configuration with libatomic1"
+# Update the lockfile to match package.json
+pnpm install
+
+# This will update pnpm-lock.yaml with the correct versions
+```
+
+### 2. Commit and Push Changes
+```bash
+git add nixpacks.toml railway.json pnpm-lock.yaml
+git commit -m "fix: Add Railway deployment configuration and update lockfile"
 git push
 ```
 
@@ -87,6 +97,13 @@ After pushing, check the Railway dashboard for:
 
 ### Issue: "Prisma Client not generated"
 **Solution:** The build phase now explicitly runs `pnpm prisma generate`
+
+### Issue: "Cannot install with frozen-lockfile" / Lockfile out of sync
+**Solution:** 
+1. Run `pnpm install` locally to update `pnpm-lock.yaml`
+2. Commit the updated lockfile
+3. Push to Railway
+4. Alternatively, the nixpacks.toml now uses `--no-frozen-lockfile` to handle this automatically
 
 ### Issue: "Module not found" errors
 **Solution:** Check that all dependencies are in `package.json` dependencies (not devDependencies)

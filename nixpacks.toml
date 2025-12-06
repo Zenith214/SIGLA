@@ -6,7 +6,7 @@ aptPkgs = ["libatomic1"]
 [phases.install]
 cmds = [
   "pnpm config set auto-install-peers true",
-  "pnpm install --frozen-lockfile --prod=false"
+  "pnpm install --no-frozen-lockfile"
 ]
 
 [phases.build]
