@@ -4,9 +4,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Output configuration for Railway (standalone mode for smaller deployments)
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -32,14 +29,8 @@ const nextConfig: NextConfig = {
   },
   productionBrowserSourceMaps: false,
   compress: true,
-  webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /\.(test|spec)\.(ts|tsx|js|jsx)$/,
-      loader: 'ignore-loader',
-    });
-    
-    return config;
-  },
+  // Empty turbopack config to silence the warning
+  turbopack: {},
 };
 
 export default nextConfig;
