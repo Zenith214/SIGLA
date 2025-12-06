@@ -2,105 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
-import { 
-  type SatisfactionData, 
-  fetchSatisfactionData,
-  getSatisfactionColorClass,
-  getSatisfactionLabel,
-  getNeedForActionColorClass,
-  getNeedForActionLabel
-} from "@/utils/satisfactionDataHelpers";
-
-/**
- * SkeletonLoader Component
- * Displays a skeleton loading state for satisfaction data section
- */
-function SkeletonLoader() {
-  return (
-    <div className="space-y-3 animate-pulse">
-      {/* Overall Satisfaction Skeleton */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="h-4 bg-gray-200 rounded w-32"></div>
-          <div className="flex items-center gap-2">
-            <div className="h-8 bg-gray-200 rounded w-16"></div>
-            <div className="h-6 bg-gray-200 rounded w-16"></div>
-          </div>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-3"></div>
-        <div className="h-3 bg-gray-200 rounded w-32 mt-1"></div>
-      </div>
-
-      {/* Service Area Scores Skeleton */}
-      <div className="border-t pt-3">
-        <div className="h-4 bg-gray-200 rounded w-24 mb-3"></div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-              <div className="h-3 bg-gray-200 rounded w-20"></div>
-              <div className="flex items-center gap-2">
-                <div className="h-4 bg-gray-200 rounded w-12"></div>
-                <div className="w-16 bg-gray-200 rounded-full h-2"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * ServiceAreaScore Component
- * Displays a single service area score with visual indicator and color coding
- */
-interface ServiceAreaScoreProps {
-  name: string;
-  score: number | null;
-}
-
-function ServiceAreaScore({ name, score }: ServiceAreaScoreProps) {
-  // Determine color based on score
-  const getScoreColor = (score: number | null): string => {
-    if (score === null) return 'bg-gray-400';
-    if (score >= 70) return 'bg-green-500';
-    if (score >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getTextColor = (score: number | null): string => {
-    if (score === null) return 'text-gray-600';
-    if (score >= 70) return 'text-green-700';
-    if (score >= 50) return 'text-yellow-700';
-    return 'text-red-700';
-  };
-
-  return (
-    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-      <span className="text-xs font-medium text-gray-700">{name}</span>
-      <div className="flex items-center gap-2">
-        {score !== null ? (
-          <>
-            <span className={`text-sm font-bold ${getTextColor(score)}`}>
-              {score.toFixed(1)}%
-            </span>
-            <div className="w-16 bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div 
-                className={`h-2 rounded-full transition-all duration-300 ${getScoreColor(score)}`}
-                style={{ width: `${score}%` }}
-              />
-            </div>
-          </>
-        ) : (
-          <span className="text-xs text-gray-500 font-medium">N/A</span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 interface BarangayDetailsCardProps {
   selectedBarangay?: ApiBarangayData | null;
@@ -109,72 +12,52 @@ interface BarangayDetailsCardProps {
 
 export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId }: BarangayDetailsCardProps) {
   const { activeCycle } = useActiveCycle();
-  
-  // State for satisfaction data
-  const [satisfactionData, setSatisfactionData] = useState<SatisfactionData | null>(null);
+  const [surveyProgress, setSurveyProgress] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Fetch satisfaction data function (can be called for retry)
-  const fetchData = async () => {
-    if (!selectedBarangay) return;
-
-    // Determine which cycle to use: selected cycle or active cycle
-    const effectiveCycleId = selectedCycleId || activeCycle?.cycle_id;
-    
-    if (!effectiveCycleId) {
-      setError('No active cycle available. Please ensure a survey cycle is active.');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await fetchSatisfactionData(selectedBarangay.id, effectiveCycleId);
-      setSatisfactionData(data);
-      // Clear any previous errors on successful fetch
-      setError(null);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load satisfaction data';
-      setError(errorMessage);
-      
-      // Log detailed error information for debugging
-      console.error('Error fetching satisfaction data:', {
-        error: err,
-        barangayId: selectedBarangay.id,
-        barangayName: selectedBarangay.name,
-        cycleId: selectedCycleId,
-        timestamp: new Date().toISOString(),
-        errorMessage,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Retry function for error handling
-  const handleRetry = () => {
-    fetchData();
-  };
-
-  // Fetch satisfaction data when barangay or cycle changes
+  // Fetch fresh progress data when barangay changes
   useEffect(() => {
-    // Reset state when no barangay is selected
     if (!selectedBarangay) {
-      setSatisfactionData(null);
-      setError(null);
-      setLoading(false);
+      setSurveyProgress(0);
       return;
     }
 
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBarangay, selectedCycleId]);
+    const fetchProgress = async () => {
+      setLoading(true);
+      try {
+        const cycleId = selectedCycleId || activeCycle?.cycle_id;
+        if (!cycleId) {
+          setSurveyProgress(selectedBarangay.progress || 0);
+          return;
+        }
 
-  // Determine if viewing historical data
-  const isHistorical = satisfactionData && activeCycle && satisfactionData.cycleId !== activeCycle.cycle_id;
+        // Fetch fresh barangay data with current progress
+        const response = await fetch(`/api/barangays/all?cycle_id=${cycleId}&include_awards=true`);
+        if (response.ok) {
+          const data = await response.json();
+          const barangayData = data.data || data;
+          const currentBarangay = barangayData.find((b: any) => 
+            (b.barangay_id || b.id) === selectedBarangay.id
+          );
+          
+          if (currentBarangay) {
+            setSurveyProgress(currentBarangay.progress || currentBarangay.completion_rate || 0);
+          } else {
+            setSurveyProgress(selectedBarangay.progress || 0);
+          }
+        } else {
+          setSurveyProgress(selectedBarangay.progress || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+        setSurveyProgress(selectedBarangay.progress || 0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgress();
+  }, [selectedBarangay?.id, selectedCycleId, activeCycle?.cycle_id]);
 
   return (
     <Card className="w-full h-full flex flex-col mb-4">
@@ -182,23 +65,6 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
         <CardTitle className="text-lg font-semibold">
           {selectedBarangay ? `${selectedBarangay.name} Details` : "Barangay Details"}
         </CardTitle>
-        {satisfactionData && (
-          <div className="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-xs font-medium text-blue-900">
-                Currently viewing: <span className="font-semibold">{satisfactionData.cycleName} ({satisfactionData.cycleYear})</span>
-              </span>
-              {isHistorical && (
-                <Badge variant="outline" className="text-xs bg-white">
-                  Historical Data
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-start pt-3">
         {selectedBarangay ? (
@@ -219,213 +85,56 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
                 <p className="font-medium text-gray-700 mb-1">Area:</p>
                 <p className="text-gray-900 font-semibold">{selectedBarangay.area || 'N/A'} km²</p>
               </div>
-              <div>
-                <p className="font-medium text-gray-700 mb-1">Survey Status:</p>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    selectedBarangay.status === 'Completed' ? 'bg-green-500' :
-                    selectedBarangay.status === 'In Progress' ? 'bg-yellow-500' : 'bg-gray-400'
-                  }`}></div>
-                  <span className="text-gray-900 font-semibold text-xs">{selectedBarangay.status}</span>
-                </div>
-              </div>
             </div>
 
-            {/* Satisfaction data section */}
-            <div className="border-t pt-3 mt-3 min-h-[400px]">
-              {loading && (
-                <SkeletonLoader />
-              )}
-
-              {error && !loading && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-red-900 font-medium mb-1">Unable to Load Data</p>
-                      <p className="text-red-700 text-xs mb-3">{error}</p>
-                      <button 
-                        onClick={handleRetry}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Try Again
-                      </button>
-                      {satisfactionData && satisfactionData.hasData && (
-                        <div className="mt-3 pt-3 border-t border-red-200">
-                          <p className="text-xs text-red-600 flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Showing previously loaded data below
-                          </p>
-                        </div>
-                      )}
-                    </div>
+            {/* Survey Progress Section */}
+            <div className="border-t pt-3 mt-3">
+              {loading ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  <div className="w-full bg-gray-200 rounded-full h-3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700">Survey Progress</span>
+                    <span className="font-bold text-gray-900">{surveyProgress.toFixed(0)}%</span>
                   </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-500 ${
+                        surveyProgress === 100 ? 'bg-green-500' :
+                        surveyProgress >= 50 ? 'bg-blue-500' : 'bg-gray-400'
+                      }`}
+                      style={{ width: `${surveyProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {surveyProgress === 100 
+                      ? 'Survey completed' 
+                      : surveyProgress === 0
+                      ? 'Survey has not started yet'
+                      : `${(100 - surveyProgress).toFixed(0)}% remaining`}
+                  </p>
                 </div>
               )}
+            </div>
 
-              {!loading && !error && satisfactionData && satisfactionData.surveyIncomplete && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-amber-900 font-medium mb-1">Survey In Progress</p>
-                      <p className="text-amber-700 text-xs mb-3">
-                        {satisfactionData.message || 'The survey for this barangay is still ongoing. ML analysis will be available once the survey reaches 100% completion.'}
-                      </p>
-                      {satisfactionData.progress !== undefined && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-amber-700 font-medium">Survey Progress</span>
-                            <span className="text-amber-900 font-bold">{satisfactionData.progress}%</span>
-                          </div>
-                          <div className="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
-                            <div 
-                              className="h-2 rounded-full bg-amber-500 transition-all duration-500"
-                              style={{ width: `${satisfactionData.progress}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-amber-600 mt-2">
-                            {satisfactionData.progress === 0 
-                              ? 'Survey has not started yet.' 
-                              : `${100 - satisfactionData.progress}% remaining to complete.`}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!loading && !error && satisfactionData && !satisfactionData.surveyIncomplete && !satisfactionData.hasData && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-blue-900 font-medium mb-1">No Data Available</p>
-                      <p className="text-blue-700 text-xs">
-                        No satisfaction data has been collected for <span className="font-semibold">{selectedBarangay.name}</span> in <span className="font-semibold">{satisfactionData.cycleName}</span>.
-                      </p>
-                      {satisfactionData.cycleId !== activeCycle?.cycle_id && (
-                        <p className="text-blue-600 text-xs mt-2">
-                          Try selecting a different cycle or check back later.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!loading && !error && satisfactionData && satisfactionData.hasData && (
-                <div className="space-y-4 animate-fadeIn">
-                  {/* Overall Satisfaction Score */}
-                  <div className="transition-all duration-300">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-700">Overall Satisfaction</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-gray-900 transition-all duration-300">
-                          {satisfactionData.overallSatisfaction?.toFixed(1)}%
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium transition-all duration-300 ${getSatisfactionColorClass(satisfactionData.overallSatisfaction || null)}`}>
-                          {getSatisfactionLabel(satisfactionData.overallSatisfaction || null)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className={`h-3 rounded-full transition-all duration-500 ease-out ${
-                          satisfactionData.overallSatisfaction !== null && satisfactionData.overallSatisfaction >= 70
-                            ? 'bg-green-500'
-                            : satisfactionData.overallSatisfaction !== null && satisfactionData.overallSatisfaction >= 50
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
-                        }`}
-                        style={{ width: `${satisfactionData.overallSatisfaction || 0}%` }}
-                      />
-                    </div>
-                    
-                    <p className="text-xs text-gray-500 mt-1 transition-opacity duration-300">
-                      Based on {satisfactionData.responseCount} {satisfactionData.responseCount === 1 ? 'response' : 'responses'}
-                    </p>
-                  </div>
-
-                  {/* Overall Need for Action Score */}
-                  <div className="transition-all duration-300 border-t pt-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-700">Need for Action</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-gray-900 transition-all duration-300">
-                          {satisfactionData.overallNeedForAction?.toFixed(1)}%
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium transition-all duration-300 ${getNeedForActionColorClass(satisfactionData.overallNeedForAction || null)}`}>
-                          {getNeedForActionLabel(satisfactionData.overallNeedForAction || null)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className={`h-3 rounded-full transition-all duration-500 ease-out ${
-                          satisfactionData.overallNeedForAction !== null && satisfactionData.overallNeedForAction >= 70
-                            ? 'bg-red-500'
-                            : satisfactionData.overallNeedForAction !== null && satisfactionData.overallNeedForAction >= 50
-                            ? 'bg-yellow-500'
-                            : 'bg-green-500'
-                        }`}
-                        style={{ width: `${satisfactionData.overallNeedForAction || 0}%` }}
-                      />
-                    </div>
-                    
-                    <p className="text-xs text-gray-500 mt-1 transition-opacity duration-300">
-                      Higher scores indicate more urgent need for intervention
-                    </p>
-                  </div>
-
-                  {/* Service Area Scores Breakdown */}
-                  <div className="border-t pt-3 transition-all duration-300">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Service Area Satisfaction</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <ServiceAreaScore 
-                        name="Financial" 
-                        score={satisfactionData.serviceScores.financial} 
-                      />
-                      <ServiceAreaScore 
-                        name="Disaster" 
-                        score={satisfactionData.serviceScores.disaster} 
-                      />
-                      <ServiceAreaScore 
-                        name="Safety" 
-                        score={satisfactionData.serviceScores.safety} 
-                      />
-                      <ServiceAreaScore 
-                        name="Social" 
-                        score={satisfactionData.serviceScores.social} 
-                      />
-                      <ServiceAreaScore 
-                        name="Business" 
-                        score={satisfactionData.serviceScores.business} 
-                      />
-                      <ServiceAreaScore 
-                        name="Environmental" 
-                        score={satisfactionData.serviceScores.environmental} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* View Details Button */}
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  // Dispatch custom event to open the modal in InteractiveSVGMap
+                  window.dispatchEvent(new CustomEvent('openBarangayDetailsModal'));
+                }}
+                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Details
+              </button>
             </div>
           </div>
         ) : (

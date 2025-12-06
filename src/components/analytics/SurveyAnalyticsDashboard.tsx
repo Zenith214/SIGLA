@@ -54,7 +54,7 @@ interface AnalyticsData {
 export default function SurveyAnalyticsDashboard() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({})
   const [loading, setLoading] = useState(false)
-  const [activeView, setActiveView] = useState<'summary' | 'detailed' | 'aggregated' | 'export'>('summary')
+  const [activeView, setActiveView] = useState<'summary' | 'detailed' | 'aggregated'>('summary')
   const [activeSectionTab, setActiveSectionTab] = useState('all')
   const [filters, setFilters] = useState({
     barangayId: '',
@@ -197,8 +197,7 @@ export default function SurveyAnalyticsDashboard() {
         {[
           { key: 'summary', label: 'Summary', icon: BarChart3 },
           { key: 'detailed', label: 'Detailed', icon: FileText },
-          { key: 'aggregated', label: 'Aggregated', icon: TrendingUp },
-          { key: 'export', label: 'Export', icon: Download }
+          { key: 'aggregated', label: 'Aggregated', icon: TrendingUp }
         ].map(({ key, label, icon: Icon }) => (
           <Button
             key={key}
@@ -427,65 +426,7 @@ export default function SurveyAnalyticsDashboard() {
         </div>
       )}
 
-      {/* Export View */}
-      {activeView === 'export' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Export Survey Data</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                Export survey data in CSV format for external analysis tools.
-                {hasActiveCycle && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-md">
-                    <div className="font-medium text-blue-900">Export will include data from:</div>
-                    <div className="text-blue-700 mt-1">
-                      <CycleDisplay />
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {!hasActiveCycle && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                  <div className="text-sm text-amber-800">
-                    <div className="font-medium">⚠️ No Active Survey Cycle</div>
-                    <div className="mt-1">
-                      Cannot export data without an active survey cycle. Contact your administrator to set up a cycle.
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {analyticsData.export && hasActiveCycle && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm">
-                    <div>Records available: {analyticsData.export.count}</div>
-                    <div>Columns: {analyticsData.export.columns?.length}</div>
-                    <div className="mt-2">
-                      Sample columns: {analyticsData.export.columns?.slice(0, 5).join(', ')}
-                      {analyticsData.export.columns?.length > 5 && '...'}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <Button 
-                onClick={exportToCSV} 
-                className="w-full"
-                disabled={!hasActiveCycle}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {hasActiveCycle 
-                  ? `Download CSV Export (${activeCycle?.name})` 
-                  : 'Download CSV Export (No Active Cycle)'
-                }
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   )
 }
