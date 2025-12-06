@@ -34,12 +34,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for authentication token
-  const token = request.cookies.get('pulse_token');
+  // Check for authentication token - try multiple methods
+  let token = request.cookies.get('pulse_token');
+  let tokenSource = 'cookies';
+  
+  // If not found via cookies API, try reading from Cookie header directly
+  if (!token || !token.value) {
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) {
+      const match = cookieHeader.match(/pulse_token=([^;]+)/);
+      if (match) {
+        token = { name: 'pulse_token', value: match[1] };
+        tokenSource = 'header';
+      }
+    }
+  }
   
   const middlewareLog = {
     pathname,
     hasToken: !!token,
+    tokenSource,
     tokenValue: token?.value ? `${token.value.substring(0, 20)}...` : 'none',
     allCookies: request.cookies.getAll().map(c => c.name),
     cookieHeader: request.headers.get('cookie') ? 'present' : 'missing',
@@ -52,10 +66,6 @@ export function middleware(request: NextRequest) {
   };
   
   console.log('🔒 [MIDDLEWARE]', middlewareLog);
-  
-  // Store for debugging (can be retrieved via /api/last-middleware-log)
-  // @ts-ignore
-  global.lastMiddlewareLog = middlewareLog;
   
   if (!token || !token.value) {
     console.log('❌ [MIDDLEWARE] No token found, redirecting to login');
