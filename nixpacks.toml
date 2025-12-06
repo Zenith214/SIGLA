@@ -12,7 +12,7 @@ cmds = [
 [phases.build]
 cmds = [
   "pnpm prisma generate",
-  "cp docs/next.config.railway.ts next.config.ts",
+  "cp next.config.railway.ts next.config.ts",
   "pnpm build"
 ]
 
