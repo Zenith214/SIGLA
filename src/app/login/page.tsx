@@ -260,7 +260,7 @@ function PulseLoginContent() {
         {/* Main Content */}
         <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
           <div className="w-full max-w-md">
-            <Card className="shadow-lg border-0 bg-white rounded-none">
+            <Card className="shadow-lg border-0 bg-blue-50 rounded-none">
               <CardHeader className="text-center pb-6">
                 <Skeleton className="h-8 w-48 mx-auto mb-2" />
                 <Skeleton className="h-4 w-64 mx-auto" />
@@ -377,7 +377,7 @@ function PulseLoginContent() {
       {/* Main Content */}
       <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
         <div className="w-full max-w-md">
-          <Card className="shadow-lg border-0 bg-white rounded-none">
+          <Card className="shadow-lg border-0 bg-blue-50 rounded-none">
             <CardHeader className="text-center pb-6">
               <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
                 System Login
