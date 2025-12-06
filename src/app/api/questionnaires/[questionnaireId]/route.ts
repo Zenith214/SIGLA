@@ -13,10 +13,10 @@ import {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { questionnaireId: string } }
+  { params }: { params: Promise<{ questionnaireId: string }> }
 ) {
   try {
-    const { questionnaireId } = params;
+    const { questionnaireId } = await params;
 
     // Validate questionnaireId parameter
     if (!questionnaireId || typeof questionnaireId !== 'string' || questionnaireId.trim().length === 0) {
@@ -131,8 +131,9 @@ export async function GET(
     return NextResponse.json(response);
 
   } catch (error: any) {
+    const { questionnaireId } = await params;
     return createErrorResponse(error, 'GET /api/questionnaires/:questionnaireId', {
-      questionnaireId: params.questionnaireId
+      questionnaireId
     });
   }
 }

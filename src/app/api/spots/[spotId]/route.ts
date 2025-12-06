@@ -15,11 +15,12 @@ import {
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { spotId: string } }
+  { params }: { params: Promise<{ spotId: string }> }
 ) {
   try {
+    const { spotId: spotIdParam } = await params;
     // Validate spotId parameter
-    const spotId = parseInt(params.spotId);
+    const spotId = parseInt(spotIdParam);
     if (isNaN(spotId) || spotId <= 0) {
       throw createValidationError('spotId must be a positive integer', 'spotId', params.spotId);
     }
@@ -88,8 +89,9 @@ export async function DELETE(
     });
 
   } catch (error: any) {
+    const { spotId: spotIdParam } = await params;
     return createErrorResponse(error, 'DELETE /api/spots/:spotId', {
-      spotId: params.spotId
+      spotId: spotIdParam
     });
   }
 }

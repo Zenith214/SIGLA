@@ -14,7 +14,7 @@ import { ProgressUpdate } from '@/types/cpap';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify authentication
   const authResult = verifyAuth(request);
@@ -69,7 +69,8 @@ export async function PUT(
   }
 
   try {
-    const cpapId = parseInt(params.id);
+    const { id } = await params;
+    const cpapId = parseInt(id);
 
     // Validate ID is a valid number
     if (isNaN(cpapId)) {

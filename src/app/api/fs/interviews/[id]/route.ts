@@ -10,12 +10,13 @@ const pool = new Pool({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   let client;
   try {
+    const { id } = await params;
     client = await pool.connect();
-    const interviewId = parseInt(params.id);
+    const interviewId = parseInt(id);
 
     if (isNaN(interviewId)) {
       return NextResponse.json(

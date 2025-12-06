@@ -13,13 +13,14 @@ import {
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const assignmentId = parseInt(params.id);
+    const { id } = await params;
+    const assignmentId = parseInt(id);
 
     if (isNaN(assignmentId) || assignmentId <= 0) {
-      throw createValidationError('Assignment ID must be a positive integer', 'id', params.id);
+      throw createValidationError('Assignment ID must be a positive integer', 'id', id);
     }
 
     // Verify assignment exists
@@ -76,7 +77,8 @@ export async function DELETE(
     });
 
   } catch (error: any) {
-    return createErrorResponse(error, `DELETE /api/assignments/${params.id}`);
+    const { id } = await params;
+    return createErrorResponse(error, `DELETE /api/assignments/${id}`);
   }
 }
 
@@ -87,13 +89,14 @@ export async function DELETE(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const assignmentId = parseInt(params.id);
+    const { id } = await params;
+    const assignmentId = parseInt(id);
 
     if (isNaN(assignmentId) || assignmentId <= 0) {
-      throw createValidationError('Assignment ID must be a positive integer', 'id', params.id);
+      throw createValidationError('Assignment ID must be a positive integer', 'id', id);
     }
 
     let body;
@@ -291,6 +294,7 @@ export async function PATCH(
     });
 
   } catch (error: any) {
-    return createErrorResponse(error, `PATCH /api/assignments/${params.id}`);
+    const { id } = await params;
+    return createErrorResponse(error, `PATCH /api/assignments/${id}`);
   }
 }

@@ -249,7 +249,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify admin authentication
   const authError = requireAdmin(request);
@@ -261,7 +261,8 @@ export async function DELETE(
   }
 
   try {
-    const awardId = parseInt(params.id, 10);
+    const { id } = await params;
+    const awardId = parseInt(id, 10);
 
     // Validate award ID
     if (isNaN(awardId) || awardId <= 0) {
