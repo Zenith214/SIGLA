@@ -34,19 +34,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for authentication token - try multiple methods
-  let token = request.cookies.get('pulse_token');
-  let tokenSource = 'cookies';
+  // Check for authentication token
+  // In Next.js 16, we need to read from the Cookie header for page routes
+  const cookieHeader = request.headers.get('cookie');
+  let token: { name: string; value: string } | null = null;
+  let tokenSource = 'none';
   
-  // If not found via cookies API, try reading from Cookie header directly
-  if (!token || !token.value) {
-    const cookieHeader = request.headers.get('cookie');
-    if (cookieHeader) {
-      const match = cookieHeader.match(/pulse_token=([^;]+)/);
-      if (match) {
-        token = { name: 'pulse_token', value: match[1] };
-        tokenSource = 'header';
-      }
+  // Try to get token from Cookie header first (more reliable in Next.js 16)
+  if (cookieHeader) {
+    const match = cookieHeader.match(/pulse_token=([^;]+)/);
+    if (match) {
+      token = { name: 'pulse_token', value: match[1] };
+      tokenSource = 'header';
+    }
+  }
+  
+  // Fallback to cookies API if header method didn't work
+  if (!token) {
+    const cookieToken = request.cookies.get('pulse_token');
+    if (cookieToken && cookieToken.value) {
+      token = cookieToken;
+      tokenSource = 'cookies-api';
     }
   }
   
