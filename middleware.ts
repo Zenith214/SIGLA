@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Allow public API routes
-  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies')) {
+  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies') || pathname.startsWith('/api/last-middleware-log')) {
     return NextResponse.next();
   }
 
@@ -37,17 +37,25 @@ export function middleware(request: NextRequest) {
   // Check for authentication token
   const token = request.cookies.get('pulse_token');
   
-  console.log('🔒 [MIDDLEWARE]', {
+  const middlewareLog = {
     pathname,
     hasToken: !!token,
     tokenValue: token?.value ? `${token.value.substring(0, 20)}...` : 'none',
     allCookies: request.cookies.getAll().map(c => c.name),
+    cookieHeader: request.headers.get('cookie') ? 'present' : 'missing',
     headers: {
       host: request.headers.get('host'),
       protocol: request.headers.get('x-forwarded-proto'),
       userAgent: request.headers.get('user-agent')?.substring(0, 50)
-    }
-  });
+    },
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log('🔒 [MIDDLEWARE]', middlewareLog);
+  
+  // Store for debugging (can be retrieved via /api/last-middleware-log)
+  // @ts-ignore
+  global.lastMiddlewareLog = middlewareLog;
   
   if (!token || !token.value) {
     console.log('❌ [MIDDLEWARE] No token found, redirecting to login');
