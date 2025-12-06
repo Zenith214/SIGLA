@@ -101,6 +101,14 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
     
+    console.log('🍪 [LOGIN API] Cookie settings:', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      nodeEnv: process.env.NODE_ENV
+    });
+    
     console.log('✅ [LOGIN API] Login successful, returning response')
     return response;
   } catch (error) {
