@@ -12,9 +12,13 @@ const PROTECTED_PATHS = ['/dashboard', '/survey', '/fs-dashboard', '/cpap', '/ad
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Log EVERY request that hits middleware
+  console.log('🚦 [MIDDLEWARE START]', pathname);
 
   // Allow public paths
   if (PUBLIC_PATHS.includes(pathname)) {
+    console.log('✅ [MIDDLEWARE] Public path, allowing:', pathname);
     return NextResponse.next();
   }
 
