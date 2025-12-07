@@ -175,6 +175,20 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
     fetchBarangayData();
   }, [selectedCycleId, activeCycle, hasActiveCycle]);
 
+  // Listen for custom event to open modal from BarangayDetailsCard
+  useEffect(() => {
+    const handleOpenModal = () => {
+      if (selectedBarangay) {
+        setShowLargeModal(true);
+      }
+    };
+
+    window.addEventListener('openBarangayDetailsModal', handleOpenModal);
+    return () => {
+      window.removeEventListener('openBarangayDetailsModal', handleOpenModal);
+    };
+  }, [selectedBarangay]);
+
   const handlePathHover = (pathId: string) => {
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
     if (barangayName) {

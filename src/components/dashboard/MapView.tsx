@@ -22,10 +22,10 @@ export default function MapView() {
 
   return (
     <div className="h-full relative">
-      {/* Desktop view - Map with cards */}
-      <div className="hidden md:flex h-full flex-col gap-4">
-        {/* Main map card - takes up most of the space */}
-        <div className="flex-1 min-h-0">
+      {/* Desktop view - Map with cards side by side */}
+      <div className="hidden md:flex h-full gap-4">
+        {/* Left side - Main map card */}
+        <div className="flex-1 min-w-0">
           <MapCard 
             onBarangaySelect={handleBarangaySelect}
             selectedCycleId={selectedCycleId}
@@ -33,8 +33,8 @@ export default function MapView() {
           />
         </div>
         
-        {/* Bottom cards grid - fixed height */}
-        <div className="h-48 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Right side - Stacked cards */}
+        <div className="w-96 flex flex-col gap-4 overflow-y-auto">
           <BarangayDetailsCard 
             selectedBarangay={selectedBarangay}
             selectedCycleId={selectedCycleId}

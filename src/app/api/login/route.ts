@@ -93,12 +93,31 @@ export async function POST(req: NextRequest) {
       }
     }, { status: 200 });
     
-    response.cookies.set('pulse_token', token, {
+    // Cookie settings - Railway uses HTTPS
+    const isProduction = process.env.NODE_ENV === 'production';
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    const isHttps = protocol === 'https';
+    const host = req.headers.get('host') || '';
+    
+    // Use secure cookies only when actually on HTTPS
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction && isHttps,
+      sameSite: 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      // Don't set domain - let browser handle it automatically
+    };
+    
+    response.cookies.set('pulse_token', token, cookieOptions);
+    
+    console.log('🍪 [LOGIN API] Cookie settings:', {
+      ...cookieOptions,
+      nodeEnv: process.env.NODE_ENV,
+      host,
+      protocol,
+      isHttps,
+      cookieHeader: response.headers.get('set-cookie')
     });
     
     console.log('✅ [LOGIN API] Login successful, returning response')

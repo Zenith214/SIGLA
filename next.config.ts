@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // Warning: This allows production builds to successfully complete even if
     // your project has TypeScript errors.
@@ -27,10 +22,9 @@ const nextConfig: NextConfig = {
   },
   // Performance optimizations
   compiler: {
-    // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
+    // Keep console logs for debugging authentication issues
+    // TODO: Re-enable console removal after fixing login issues
+    removeConsole: false,
   },
   // Optimize bundle
   experimental: {
@@ -41,16 +35,8 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   // Compress responses
   compress: true,
-  // Exclude files from build
-  webpack: (config, { isServer }) => {
-    // Exclude test files and documentation from bundle
-    config.module.rules.push({
-      test: /\.(test|spec)\.(ts|tsx|js|jsx)$/,
-      loader: 'ignore-loader',
-    });
-    
-    return config;
-  },
+  // Empty turbopack config to silence warnings in Next.js 16
+  turbopack: {},
 };
 
 export default nextConfig;

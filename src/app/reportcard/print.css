@@ -1,7 +1,7 @@
 /* Professional Print Layout for Report Card */
 @media print {
   /* Hide elements that shouldn't appear in print */
-  .print\\:hidden {
+  .print-hidden {
     display: none !important;
   }
 
@@ -46,19 +46,19 @@
   }
 
   /* Print-specific header */
-  .print\\:show {
+  .print-show {
     display: block !important;
   }
 
   /* Document Header Layout */
-  .print\\:document-header {
+  .print-document-header {
     margin-bottom: 32pt;
     padding-bottom: 16pt;
     border-bottom: 3pt solid #000;
   }
 
   /* Top Header Row - Logo and Satisfaction */
-  .print\\:header-row {
+  .print-header-row {
     display: flex !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
@@ -68,16 +68,16 @@
   }
 
   /* BLGU Logo Section - Upper Left */
-  .print\\:logo-section {
+  .print-logo-section {
     flex: 1 !important;
     max-width: 40% !important;
   }
 
-  .print\\:logo-container {
+  .print-logo-container {
     text-align: left !important;
   }
 
-  .print\\:logo-placeholder {
+  .print-logo-placeholder {
     width: 120pt !important;
     height: 80pt !important;
     border: 2pt solid #000 !important;
@@ -90,27 +90,27 @@
     background-color: #f8f9fa !important;
   }
 
-  .print\\:logo-text {
+  .print-logo-text {
     font-size: 10pt !important;
     color: #666 !important;
     font-style: italic !important;
   }
 
   /* Satisfaction Score Section - Upper Right */
-  .print\\:satisfaction-section {
+  .print-satisfaction-section {
     flex: 1 !important;
     max-width: 40% !important;
     text-align: right !important;
   }
 
-  .print\\:satisfaction-label {
+  .print-satisfaction-label {
     font-size: 12pt !important;
     font-weight: bold !important;
     color: #000 !important;
     margin-bottom: 8pt !important;
   }
 
-  .print\\:satisfaction-score {
+  .print-satisfaction-score {
     font-size: 36pt !important;
     font-weight: bold !important;
     color: #000 !important;
@@ -118,7 +118,7 @@
     margin-bottom: 6pt !important;
   }
 
-  .print\\:satisfaction-status {
+  .print-satisfaction-status {
     font-size: 11pt !important;
     font-weight: bold !important;
     color: #666 !important;
@@ -127,12 +127,12 @@
   }
 
   /* Document Title Section */
-  .print\\:document-title {
+  .print-document-title {
     text-align: center !important;
     margin-bottom: 20pt !important;
   }
 
-  .print\\:main-title {
+  .print-main-title {
     font-size: 20pt !important;
     font-weight: bold !important;
     color: #000 !important;
@@ -141,28 +141,28 @@
     letter-spacing: 2pt !important;
   }
 
-  .print\\:barangay-title {
+  .print-barangay-title {
     font-size: 16pt !important;
     font-weight: bold !important;
     color: #333 !important;
     margin-bottom: 6pt !important;
   }
 
-  .print\\:generation-date {
+  .print-generation-date {
     font-size: 10pt !important;
     color: #666 !important;
     font-style: italic !important;
   }
 
   /* AI Insights Section */
-  .print\\:ai-insights {
+  .print-ai-insights {
     margin-top: 20pt !important;
     padding: 16pt !important;
     border: 2pt solid #000 !important;
     background-color: #f8f9fa !important;
   }
 
-  .print\\:insights-header {
+  .print-insights-header {
     display: flex !important;
     align-items: center !important;
     margin-bottom: 12pt !important;
@@ -170,22 +170,22 @@
     border-bottom: 1pt solid #ccc !important;
   }
 
-  .print\\:insights-icon {
+  .print-insights-icon {
     font-size: 16pt !important;
     margin-right: 8pt !important;
   }
 
-  .print\\:insights-title {
+  .print-insights-title {
     font-size: 14pt !important;
     font-weight: bold !important;
     color: #000 !important;
   }
 
-  .print\\:insights-content {
+  .print-insights-content {
     text-align: left !important;
   }
 
-  .print\\:insights-text {
+  .print-insights-text {
     font-size: 12pt !important;
     line-height: 1.4 !important;
     color: #000 !important;
@@ -193,11 +193,11 @@
     text-align: justify !important;
   }
 
-  .print\\:insights-bullets {
+  .print-insights-bullets {
     margin-left: 0 !important;
   }
 
-  .print\\:insight-item {
+  .print-insight-item {
     font-size: 11pt !important;
     line-height: 1.3 !important;
     color: #000 !important;
@@ -212,31 +212,31 @@
   }
 
   /* Page break controls for professional document flow */
-  .print\\:page-break-before {
+  .print-page-break-before {
     page-break-before: always !important;
   }
 
-  .print\\:page-break-after {
+  .print-page-break-after {
     page-break-after: always !important;
   }
 
-  .print\\:break-inside-avoid {
+  .print-break-inside-avoid {
     page-break-inside: avoid !important;
   }
 
   /* Professional single-column layout for print */
-  .print\\:single-column {
+  .print-single-column {
     display: block !important;
     width: 100% !important;
   }
 
-  .print\\:full-width {
+  .print-full-width {
     width: 100% !important;
     max-width: none !important;
   }
 
   /* Barangay Information Section (for reference data) */
-  .print\\:barangay-reference {
+  .print-barangay-reference {
     margin-top: 16pt !important;
     padding: 12pt !important;
     border: 1pt solid #ccc !important;
@@ -244,23 +244,23 @@
     font-size: 10pt !important;
   }
 
-  .print\\:reference-grid {
+  .print-reference-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr 1fr !important;
     gap: 8pt !important;
   }
 
-  .print\\:reference-item {
+  .print-reference-item {
     text-align: center !important;
   }
 
-  .print\\:reference-label {
+  .print-reference-label {
     font-weight: bold !important;
     color: #666 !important;
     font-size: 9pt !important;
   }
 
-  .print\\:reference-value {
+  .print-reference-value {
     font-size: 11pt !important;
     color: #000 !important;
     font-weight: bold !important;
@@ -342,25 +342,25 @@
   }
 
   /* Professional text sizing */
-  .print\\:text-lg {
+  .print-text-lg {
     font-size: 12pt !important;
   }
 
-  .print\\:text-sm {
+  .print-text-sm {
     font-size: 10pt !important;
   }
 
-  .print\\:text-xs {
+  .print-text-xs {
     font-size: 9pt !important;
   }
 
   /* Section spacing */
-  .print\\:section {
+  .print-section {
     margin-bottom: 20pt !important;
     page-break-inside: avoid !important;
   }
 
-  .print\\:subsection {
+  .print-subsection {
     margin-bottom: 12pt !important;
   }
 
@@ -380,83 +380,83 @@
   }
 
   /* Performance metrics styling */
-  .print\\:metric-grid {
+  .print-metric-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 16pt !important;
     margin-bottom: 20pt !important;
   }
 
-  .print\\:metric-item {
+  .print-metric-item {
     border: 1pt solid #000 !important;
     padding: 12pt !important;
     text-align: left !important;
     page-break-inside: avoid !important;
   }
 
-  .print\\:metric-label {
+  .print-metric-label {
     font-size: 12pt !important;
     font-weight: bold !important;
     margin-bottom: 8pt !important;
     text-align: center !important;
   }
 
-  .print\\:metric-value {
+  .print-metric-value {
     font-size: 18pt !important;
     font-weight: bold !important;
     color: #000 !important;
   }
 
   /* Ensure metric scores are visible in print */
-  .print\\:block .print\\:metric-value {
+  .print-block .print-metric-value {
     display: inline-block !important;
     color: #000 !important;
   }
 
   /* Print metric layout improvements */
-  .print\\:block .flex.justify-center {
+  .print-block .flex.justify-center {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     margin-bottom: 12pt !important;
   }
 
-  .print\\:block .space-x-8 > * + * {
+  .print-block .space-x-8 > * + * {
     margin-left: 24pt !important;
   }
 
   /* Common needs styling for print */
-  .print\\:block .border-t {
+  .print-block .border-t {
     border-top: 1pt solid #ccc !important;
     padding-top: 8pt !important;
     margin-top: 8pt !important;
   }
 
-  .print\\:block ul {
+  .print-block ul {
     margin: 0 !important;
     padding-left: 12pt !important;
   }
 
-  .print\\:block li {
+  .print-block li {
     margin-bottom: 4pt !important;
     line-height: 1.3 !important;
   }
 
   /* Action matrix for print */
-  .print\\:action-matrix {
+  .print-action-matrix {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 12pt !important;
     margin-top: 16pt !important;
   }
 
-  .print\\:action-quadrant {
+  .print-action-quadrant {
     border: 2pt solid #000 !important;
     padding: 12pt !important;
     min-height: 120pt !important;
   }
 
-  .print\\:quadrant-header {
+  .print-quadrant-header {
     text-align: center !important;
     font-weight: bold !important;
     font-size: 12pt !important;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
@@ -10,16 +10,19 @@ const PUBLIC_PATHS = ['/', '/login', '/register', '/success'];
 // Paths that require authentication
 const PROTECTED_PATHS = ['/dashboard', '/survey', '/fs-dashboard', '/cpap', '/admin', '/settings', '/tools', '/reportcard'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  console.log('🚦 [MIDDLEWARE START]', pathname);
 
   // Allow public paths
   if (PUBLIC_PATHS.includes(pathname)) {
+    console.log('✅ [MIDDLEWARE] Public path, allowing:', pathname);
     return NextResponse.next();
   }
 
   // Allow public API routes
-  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout')) {
+  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies')) {
     return NextResponse.next();
   }
 
@@ -31,9 +34,38 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for authentication token
-  const token = request.cookies.get('pulse_token');
+  const cookieHeader = request.headers.get('cookie');
+  let token: string | null = null;
+  let tokenSource = 'none';
   
-  if (!token || !token.value) {
+  // Try to get token from Cookie header first (more reliable in Next.js 16)
+  if (cookieHeader) {
+    const match = cookieHeader.match(/pulse_token=([^;]+)/);
+    if (match) {
+      token = match[1];
+      tokenSource = 'header';
+    }
+  }
+  
+  // Fallback to cookies API
+  if (!token) {
+    const cookieToken = request.cookies.get('pulse_token');
+    if (cookieToken?.value) {
+      token = cookieToken.value;
+      tokenSource = 'cookies-api';
+    }
+  }
+  
+  console.log('🔒 [MIDDLEWARE]', {
+    pathname,
+    hasToken: !!token,
+    tokenSource,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+    timestamp: new Date().toISOString()
+  });
+  
+  if (!token) {
+    console.log('❌ [MIDDLEWARE] No token found, redirecting to login');
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -42,19 +74,24 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Validate token
+  // Validate token using jose (Edge-compatible)
   try {
-    const decoded = jwt.verify(token.value, JWT_SECRET) as any;
-    if (!decoded || !decoded.id || !decoded.email) {
-      throw new Error('Invalid token');
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    
+    if (!payload || !payload.id || !payload.email) {
+      throw new Error('Invalid token payload');
     }
     
+    console.log('✅ [MIDDLEWARE] Token valid for user:', payload.email);
+    
     const response = NextResponse.next();
-    response.headers.set('x-user-id', decoded.id.toString());
-    response.headers.set('x-user-role', (decoded.role || 'officer').toLowerCase());
-    response.headers.set('x-user-email', decoded.email);
+    response.headers.set('x-user-id', String(payload.id));
+    response.headers.set('x-user-role', String(payload.role || 'officer').toLowerCase());
+    response.headers.set('x-user-email', String(payload.email));
     return response;
   } catch (error) {
+    console.log('❌ [MIDDLEWARE] Token validation failed:', error instanceof Error ? error.message : 'Unknown error');
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -64,7 +101,6 @@ export function middleware(request: NextRequest) {
   }
 }
 
-// Simple matcher - no complex regex
 export const config = {
   matcher: [
     '/',
