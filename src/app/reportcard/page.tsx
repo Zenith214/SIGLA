@@ -669,6 +669,259 @@ function ReportCardContent() {
     }
   };
 
+  const handleExportInfographic = () => {
+    if (!barangayData) return;
+
+    // Create a shareable infographic view
+    const infographicWindow = window.open('', '_blank', 'width=800,height=1200');
+    if (!infographicWindow) {
+      alert('Please allow popups to view the infographic');
+      return;
+    }
+
+    const serviceAreas = [
+      { key: 'financial', label: 'Financial Administration', score: barangayData.financial },
+      { key: 'disaster', label: 'Disaster Preparedness', score: barangayData.disaster },
+      { key: 'safety', label: 'Safety & Peace Order', score: barangayData.safety },
+      { key: 'social', label: 'Social Protection', score: barangayData.social },
+      { key: 'business', label: 'Business Friendliness', score: barangayData.business },
+      { key: 'environmental', label: 'Environmental Management', score: barangayData.environmental }
+    ];
+
+    const infographicHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${barangayData.barangay} - Public Infographic</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              padding: 40px 20px;
+              min-height: 100vh;
+            }
+            .infographic {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 20px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            .header {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 40px;
+              text-align: center;
+            }
+            .header h1 {
+              font-size: 32px;
+              margin-bottom: 10px;
+              font-weight: 700;
+            }
+            .header p {
+              font-size: 18px;
+              opacity: 0.9;
+            }
+            .satisfaction-score {
+              background: white;
+              margin: -30px 40px 0;
+              padding: 30px;
+              border-radius: 15px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+              text-align: center;
+            }
+            .satisfaction-score h2 {
+              color: #667eea;
+              font-size: 20px;
+              margin-bottom: 15px;
+            }
+            .score-circle {
+              width: 150px;
+              height: 150px;
+              margin: 0 auto 20px;
+              border-radius: 50%;
+              background: conic-gradient(#667eea ${barangayData.satisfaction * 3.6}deg, #e5e7eb ${barangayData.satisfaction * 3.6}deg);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              position: relative;
+            }
+            .score-circle::before {
+              content: '';
+              width: 120px;
+              height: 120px;
+              background: white;
+              border-radius: 50%;
+              position: absolute;
+            }
+            .score-value {
+              font-size: 48px;
+              font-weight: 700;
+              color: #667eea;
+              position: relative;
+              z-index: 1;
+            }
+            .score-label {
+              font-size: 16px;
+              color: #6b7280;
+              font-weight: 500;
+            }
+            .content {
+              padding: 40px;
+            }
+            .stats-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              margin-bottom: 40px;
+            }
+            .stat-card {
+              text-align: center;
+              padding: 20px;
+              background: #f9fafb;
+              border-radius: 10px;
+            }
+            .stat-value {
+              font-size: 28px;
+              font-weight: 700;
+              color: #667eea;
+              margin-bottom: 5px;
+            }
+            .stat-label {
+              font-size: 14px;
+              color: #6b7280;
+            }
+            .services-title {
+              font-size: 24px;
+              font-weight: 700;
+              color: #1f2937;
+              margin-bottom: 25px;
+              text-align: center;
+            }
+            .service-bars {
+              display: flex;
+              flex-direction: column;
+              gap: 20px;
+            }
+            .service-bar {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .service-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .service-name {
+              font-size: 14px;
+              font-weight: 600;
+              color: #374151;
+            }
+            .service-score {
+              font-size: 16px;
+              font-weight: 700;
+              color: #667eea;
+            }
+            .bar-container {
+              height: 12px;
+              background: #e5e7eb;
+              border-radius: 6px;
+              overflow: hidden;
+            }
+            .bar-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+              border-radius: 6px;
+              transition: width 1s ease;
+            }
+            .footer {
+              text-align: center;
+              padding: 30px 40px;
+              background: #f9fafb;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .footer strong {
+              color: #374151;
+            }
+            @media print {
+              body { padding: 0; background: white; }
+              .infographic { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="infographic">
+            <div class="header">
+              <h1>${barangayData.barangay}</h1>
+              <p>Satisfaction Index Score Card</p>
+            </div>
+            
+            <div class="satisfaction-score">
+              <h2>Overall Satisfaction Score</h2>
+              <div class="score-circle">
+                <div class="score-value">${barangayData.satisfaction}</div>
+              </div>
+              <div class="score-label">${barangayData.satisfaction >= 58 ? 'Good Performance' : 'Needs Improvement'}</div>
+            </div>
+            
+            <div class="content">
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-value">${barangayData.population.toLocaleString()}</div>
+                  <div class="stat-label">Population</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${barangayData.households.toLocaleString()}</div>
+                  <div class="stat-label">Households</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${barangayData.responses || 'N/A'}</div>
+                  <div class="stat-label">Survey Responses</div>
+                </div>
+              </div>
+              
+              <h3 class="services-title">Service Area Performance</h3>
+              <div class="service-bars">
+                ${serviceAreas.map(service => `
+                  <div class="service-bar">
+                    <div class="service-header">
+                      <span class="service-name">${service.label}</span>
+                      <span class="service-score">${service.score}%</span>
+                    </div>
+                    <div class="bar-container">
+                      <div class="bar-fill" style="width: ${service.score}%"></div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p><strong>Generated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p style="margin-top: 10px;">PULSE - Public Understanding & Local Service Evaluation</p>
+            </div>
+          </div>
+          
+          <script>
+            // Print dialog for easy saving
+            setTimeout(() => {
+              if (confirm('Would you like to save this infographic as PDF?')) {
+                window.print();
+              }
+            }, 500);
+          </script>
+        </body>
+      </html>
+    `;
+
+    infographicWindow.document.write(infographicHTML);
+    infographicWindow.document.close();
+  };
+
   const handleExportCSV = () => {
     if (!barangayData) return;
 
@@ -680,7 +933,7 @@ function ReportCardContent() {
       ['Population', barangayData.population],
       ['Households', barangayData.households],
       ['Survey Responses', barangayData.responses || 'N/A'],
-      ['Overall Satisfaction', `${barangayData.overall_satisfaction?.toFixed(2)}%`],
+      ['Overall Satisfaction', `${barangayData.satisfaction?.toFixed(2)}%`],
       [''],
       ['Service Area Scores'],
       ['Service Area', 'Satisfaction Score', 'Need for Action', 'Action Grid Quadrant'],
@@ -1097,15 +1350,24 @@ function ReportCardContent() {
                 </Button>
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                   <div className="p-2">
-                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2">
+                    <button 
+                      onClick={handleDownloadReport}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2"
+                    >
                       <Download className="w-4 h-4" />
                       Detailed PDF Score Card
                     </button>
-                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2">
+                    <button 
+                      onClick={handleExportCSV}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2"
+                    >
                       <BarChart3 className="w-4 h-4" />
                       Raw Data (CSV)
                     </button>
-                    <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2">
+                    <button 
+                      onClick={handleExportInfographic}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded flex items-center gap-2"
+                    >
                       <Share2 className="w-4 h-4" />
                       Public Infographic
                     </button>
