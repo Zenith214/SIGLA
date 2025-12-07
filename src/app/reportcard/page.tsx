@@ -847,13 +847,117 @@ function ReportCardContent() {
             .footer strong {
               color: #374151;
             }
+            .modal-overlay {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.5);
+              backdrop-filter: blur(4px);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 1000;
+              animation: fadeIn 0.2s ease;
+            }
+            .modal-content {
+              background: white;
+              border-radius: 16px;
+              padding: 32px;
+              max-width: 400px;
+              width: 90%;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              animation: slideUp 0.3s ease;
+            }
+            .modal-icon {
+              width: 56px;
+              height: 56px;
+              margin: 0 auto 20px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 28px;
+            }
+            .modal-title {
+              font-size: 22px;
+              font-weight: 700;
+              color: #1f2937;
+              text-align: center;
+              margin-bottom: 12px;
+            }
+            .modal-message {
+              font-size: 15px;
+              color: #6b7280;
+              text-align: center;
+              margin-bottom: 28px;
+              line-height: 1.5;
+            }
+            .modal-buttons {
+              display: flex;
+              gap: 12px;
+            }
+            .modal-button {
+              flex: 1;
+              padding: 12px 24px;
+              border: none;
+              border-radius: 8px;
+              font-size: 15px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+            }
+            .modal-button-primary {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .modal-button-primary:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            }
+            .modal-button-secondary {
+              background: #f3f4f6;
+              color: #374151;
+            }
+            .modal-button-secondary:hover {
+              background: #e5e7eb;
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { 
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to { 
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
             @media print {
               body { padding: 0; background: white; }
               .infographic { box-shadow: none; }
+              .modal-overlay { display: none; }
             }
           </style>
         </head>
         <body>
+          <div id="modal" class="modal-overlay">
+            <div class="modal-content">
+              <div class="modal-icon">📄</div>
+              <h2 class="modal-title">Save as PDF?</h2>
+              <p class="modal-message">Would you like to save this infographic as a PDF file? You can print or save it for sharing.</p>
+              <div class="modal-buttons">
+                <button class="modal-button modal-button-secondary" onclick="closeModal()">Not Now</button>
+                <button class="modal-button modal-button-primary" onclick="printInfographic()">Save PDF</button>
+              </div>
+            </div>
+          </div>
+          
           <div class="infographic">
             <div class="header">
               <h1>${barangayData.barangay}</h1>
@@ -907,12 +1011,21 @@ function ReportCardContent() {
           </div>
           
           <script>
-            // Print dialog for easy saving
-            setTimeout(() => {
-              if (confirm('Would you like to save this infographic as PDF?')) {
+            function closeModal() {
+              document.getElementById('modal').style.display = 'none';
+            }
+            
+            function printInfographic() {
+              closeModal();
+              setTimeout(() => {
                 window.print();
-              }
-            }, 500);
+              }, 100);
+            }
+            
+            // Show modal after page loads
+            setTimeout(() => {
+              document.getElementById('modal').style.display = 'flex';
+            }, 300);
           </script>
         </body>
       </html>

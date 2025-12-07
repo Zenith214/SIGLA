@@ -177,6 +177,7 @@ export default function SurveyAnalyticsDashboard() {
             variant="outline"
             disabled={!hasActiveCycle}
             title={!hasActiveCycle ? "No active cycle to export data from" : "Export data from active cycle"}
+            className="border shadow-sm"
           >
             <Download className="w-4 h-4 mr-2" />
             Export CSV {hasActiveCycle && `(${activeCycle?.name})`}
@@ -185,6 +186,7 @@ export default function SurveyAnalyticsDashboard() {
             onClick={() => fetchAnalytics(activeView)} 
             disabled={loading || !hasActiveCycle}
             title={!hasActiveCycle ? "No active cycle to refresh data from" : "Refresh data from active cycle"}
+            className="border shadow-sm"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
             Refresh
@@ -193,7 +195,7 @@ export default function SurveyAnalyticsDashboard() {
       </div>
 
       {/* View Tabs */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b pb-2">
         {[
           { key: 'summary', label: 'Summary', icon: BarChart3 },
           { key: 'detailed', label: 'Detailed', icon: FileText },
@@ -201,9 +203,9 @@ export default function SurveyAnalyticsDashboard() {
         ].map(({ key, label, icon: Icon }) => (
           <Button
             key={key}
-            variant={activeView === key ? 'default' : 'ghost'}
+            variant={activeView === key ? 'default' : 'outline'}
             onClick={() => handleViewChange(key as typeof activeView)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border shadow-sm"
           >
             <Icon className="w-4 h-4" />
             {label}

@@ -91,7 +91,11 @@ export default function AnalyticsView() {
         {activeView === 'summary' && <DashboardSummaryView />}
         {activeView === 'service-area' && <ServiceAreaDeepDive />}
         {activeView === 'demographics' && <DemographicsAnalytics />}
-        {activeView === 'detailed' && <SurveyAnalyticsDashboard />}
+        {activeView === 'detailed' && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <SurveyAnalyticsDashboard />
+          </div>
+        )}
       </div>
     </div>
   );
