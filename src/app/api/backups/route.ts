@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
+import { verifyAuth } from "@/lib/auth-middleware";
 
 // Validate environment variables
 const validateEnvironment = () => {
@@ -289,14 +290,15 @@ export async function GET(request: NextRequest) {
 
     if (exportType) {
       // Get user from session for authorization and audit logging
-      const user = await getUserFromSession(request);
-      
-      if (!user) {
+      const authResult = verifyAuth(request);
+      if (!authResult.success || !authResult.user) {
         return NextResponse.json(
-          { error: "Unauthorized. Please log in." },
+          { error: "Unauthorized. Please log in again." },
           { status: 401 }
         );
       }
+      
+      const user = authResult.user;
 
       // Check permissions
       if (!canExportData(user.role, exportType, anonymized)) {

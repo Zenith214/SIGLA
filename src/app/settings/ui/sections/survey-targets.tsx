@@ -17,7 +17,7 @@ export function SurveyTargets() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [addModal, setAddModal] = useState(false)
-  const [addForm, setAddForm] = useState<any>({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
+  const [addForm, setAddForm] = useState<any>({ barangay_id: "", target: 150 })
   const [saving, setSaving] = useState(false)
   const [editingTarget, setEditingTarget] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
@@ -103,7 +103,7 @@ export function SurveyTargets() {
     
     setSaving(true)
     try {
-      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: targetValue, achieved: Number(addForm.achieved), percentage: Number(addForm.percentage) }
+      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: targetValue }
       const res = await fetch("/api/survey-targets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +116,7 @@ export function SurveyTargets() {
       const created = await res.json()
       setTargets([...targets, created])
       setAddModal(false)
-      setAddForm({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
+      setAddForm({ barangay_id: "", target: 150 })
       toast({
         title: "Survey Target Added!",
         description: "New survey target has been created successfully.",
@@ -158,9 +158,7 @@ export function SurveyTargets() {
       const payload = { 
         target_id: Number(editForm.target_id), 
         barangay_id: Number(editForm.barangay_id), 
-        target: targetValue, 
-        achieved: Number(editForm.achieved), 
-        percentage: Number(editForm.percentage) 
+        target: targetValue
       }
       const res = await fetch("/api/survey-targets", {
         method: "PUT",
@@ -326,14 +324,6 @@ export function SurveyTargets() {
                 <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={1} />
                 <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Achieved</label>
-                <Input name="achieved" type="number" value={addForm.achieved} onChange={handleAddChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Percentage</label>
-                <Input name="percentage" type="number" value={addForm.percentage} onChange={handleAddChange} min={0} max={100} />
-              </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => setAddModal(false)} disabled={saving}>Cancel</Button>
@@ -363,14 +353,6 @@ export function SurveyTargets() {
                 <label className="block text-sm font-medium mb-1">Target Responses</label>
                 <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={1} />
                 <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Achieved</label>
-                <Input name="achieved" type="number" value={editForm.achieved} onChange={handleEditChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Percentage</label>
-                <Input name="percentage" type="number" value={editForm.percentage} onChange={handleEditChange} min={0} max={100} />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

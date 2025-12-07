@@ -105,16 +105,35 @@ export function Backup() {
       });
       
       if (response.status === 401) {
-        throw new Error('Unauthorized. Please log in again.');
+        addToast({
+          type: "error",
+          title: "Authentication Required",
+          description: "Your session has expired. Please refresh the page and log in again.",
+          duration: 6000
+        });
+        return;
       }
       
       if (response.status === 403) {
         const errorData = await response.json();
-        throw new Error(errorData.details || 'You do not have permission to export this data.');
+        addToast({
+          type: "error",
+          title: "Permission Denied",
+          description: errorData.details || 'You do not have permission to export this data.',
+          duration: 6000
+        });
+        return;
       }
       
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.statusText}`);
+        const errorText = await response.text();
+        addToast({
+          type: "error",
+          title: "Export Failed",
+          description: errorText || `Export failed: ${response.statusText}`,
+          duration: 6000
+        });
+        return;
       }
 
       // Get privacy info from headers
@@ -146,12 +165,15 @@ export function Backup() {
       });
     } catch (error) {
       console.error('Export error:', error);
-      addToast({
-        type: "error",
-        title: "Export Failed",
-        description: error instanceof Error ? error.message : `Failed to export ${dataType}. Please try again.`,
-        duration: 5000
-      });
+      // Only show error toast if we haven't already shown one above
+      if (error instanceof Error && !error.message.includes('Unauthorized') && !error.message.includes('Permission')) {
+        addToast({
+          type: "error",
+          title: "Export Failed",
+          description: error.message || `Failed to export ${dataType}. Please try again.`,
+          duration: 5000
+        });
+      }
     }
   }
 
@@ -209,9 +231,23 @@ export function Backup() {
     try {
       // For now, we'll create a comprehensive backup by exporting all data
       const exportTypes = ['survey-data', 'user-data', 'barangay-data', 'reports'];
+      let successCount = 0;
+      let failedTypes: string[] = [];
       
       for (const exportType of exportTypes) {
-        const response = await fetch(`/api/backups?export=${exportType}`);
+        const response = await fetch(`/api/backups?export=${exportType}`, {
+          credentials: 'include',
+        });
+        
+        if (response.status === 401) {
+          addToast({
+            type: "error",
+            title: "Authentication Required",
+            description: "Your session has expired. Please refresh the page and log in again.",
+            duration: 6000
+          });
+          return;
+        }
         
         if (response.ok) {
           const contentDisposition = response.headers.get('Content-Disposition');
@@ -228,15 +264,27 @@ export function Backup() {
           a.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
+          successCount++;
+        } else {
+          failedTypes.push(exportType);
         }
       }
 
-      addToast({
-        type: "success",
-        title: "Download Complete",
-        description: "All backup files have been downloaded successfully.",
-        duration: 4000
-      });
+      if (successCount > 0) {
+        addToast({
+          type: "success",
+          title: "Download Complete",
+          description: `Successfully downloaded ${successCount} backup file(s).${failedTypes.length > 0 ? ` Failed: ${failedTypes.join(', ')}` : ''}`,
+          duration: 4000
+        });
+      } else {
+        addToast({
+          type: "error",
+          title: "Download Failed",
+          description: "No backup files could be downloaded. Please try again.",
+          duration: 4000
+        });
+      }
     } catch (error) {
       console.error('Download error:', error);
       addToast({
