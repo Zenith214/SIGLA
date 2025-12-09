@@ -537,7 +537,7 @@ export async function PATCH(request: NextRequest) {
           throw createValidationError('User must have interviewer role', 'assignedFiId', assignedFiId);
         }
 
-        if (interviewer.status !== 'active') {
+        if (interviewer.status?.toLowerCase() !== 'active') {
           throw createValidationError('Interviewer must be active', 'assignedFiId', assignedFiId);
         }
 

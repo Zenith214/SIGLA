@@ -96,14 +96,14 @@ export default function SpotAllocationMap({
 
   useEffect(() => {
     setIsClient(true);
-    // Import Leaflet library
-    import("leaflet").then((leaflet) => {
-      setL(leaflet);
-      // Import CSS dynamically
-      if (typeof window !== "undefined") {
-        require("leaflet/dist/leaflet.css");
-      }
-    });
+    // Import Leaflet library and CSS
+    if (typeof window !== "undefined") {
+      import("leaflet").then((leaflet) => {
+        setL(leaflet);
+      });
+      // Import CSS using dynamic import
+      import("leaflet/dist/leaflet.css");
+    }
   }, []);
 
   const handleMapClick = useCallback(

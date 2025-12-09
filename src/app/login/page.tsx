@@ -24,6 +24,7 @@ function PulseLoginContent() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
+  const [loginErrorMessage, setLoginErrorMessage] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
   const [redirectMessage, setRedirectMessage] = useState("")
 
@@ -131,6 +132,7 @@ function PulseLoginContent() {
     console.log('✅ Validation passed, attempting login...')
     setIsSubmitting(true)
     setLoginStatus("idle")
+    setLoginErrorMessage("") // Clear any previous error messages
     setRedirectMessage("") // Clear any redirect messages
 
     try {
@@ -183,12 +185,16 @@ function PulseLoginContent() {
       } else {
         console.error('❌ Login failed:', result.error)
         setLoginStatus("error");
-        setErrors(prev => ({ ...prev, password: result.error || 'Login failed' }));
+        setLoginErrorMessage(result.error || 'Invalid email or password. Please try again.');
+        // Don't set password error, let the Alert handle the message
+        setErrors(prev => ({ ...prev, password: "" }));
       }
     } catch (error) {
       console.error('❌ Login error:', error)
       setLoginStatus("error");
-      setErrors(prev => ({ ...prev, password: 'Network error occurred' }));
+      setLoginErrorMessage('Unable to connect to the server. Please check your internet connection and try again.');
+      // Don't set password error, let the Alert handle the message
+      setErrors(prev => ({ ...prev, password: "" }));
     } finally {
       setIsSubmitting(false);
     }
@@ -414,7 +420,9 @@ function PulseLoginContent() {
               {loginStatus === "error" && (
                 <Alert className="mb-4 border-0" style={{ backgroundColor: "#C8102E", color: "white" }}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>Invalid credentials. Please check your email and password.</AlertDescription>
+                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                    {loginErrorMessage || 'Invalid credentials. Please check your email and password.'}
+                  </AlertDescription>
                 </Alert>
               )}
 

@@ -51,8 +51,15 @@ export async function POST(req: NextRequest) {
     const user = userResult.rows[0];
     console.log('✅ [LOGIN API] User found - ID:', user.id, 'Role:', user.role)
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('🔐 [LOGIN API] Password validation result:', isPasswordValid)
+    // Validate password with error handling
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log('🔐 [LOGIN API] Password validation result:', isPasswordValid)
+    } catch (bcryptError) {
+      console.error('❌ [LOGIN API] Bcrypt comparison error:', bcryptError);
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+    }
     
     if (!isPasswordValid) {
       console.log('❌ [LOGIN API] Invalid password')
@@ -124,7 +131,11 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error) {
     console.error('❌ [LOGIN API] Error:', error);
-    return NextResponse.json({ message: 'Login failed', error: error instanceof Error ? error.message : error }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return NextResponse.json({ 
+      message: 'Login failed', 
+      error: errorMessage 
+    }, { status: 500 });
   } finally {
     // Release the client back to the pool
     if (client) {

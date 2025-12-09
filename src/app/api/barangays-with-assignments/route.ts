@@ -64,6 +64,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch barangays', details: barangaysError.message }, { status: 500 });
     }
 
+    // Get barangay-level assignments for this interviewer (from assignment table)
+    const { data: barangayAssignments, error: assignmentsError } = await supabaseAdmin
+      .from('assignment')
+      .select('barangay_id, assignment_id, status, progress')
+      .eq('user_id', userId);
+
+    if (assignmentsError) {
+      console.error('Error fetching barangay assignments:', assignmentsError);
+    }
+
     // Get spots assigned to this interviewer in the active cycle
     const { data: spots, error: spotsError } = await supabaseAdmin
       .from('spots')
@@ -89,22 +99,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch assignments' }, { status: 500 });
     }
 
-    // Initialize barangay map with all survey targets
+    // Initialize barangay map - include barangays from both spot assignments and barangay assignments
     const barangayMap = new Map();
+    
+    // Identify which barangays this interviewer has spots in
+    const spotBarangayIds = new Set(spots?.map(s => s.barangay_id) || []);
+    
+    // Identify which barangays this interviewer is assigned to (barangay-level)
+    const assignedBarangayIds = new Set(barangayAssignments?.map(a => a.barangay_id) || []);
+    
+    // Combine both sets
+    const allAssignedBarangayIds = new Set([...spotBarangayIds, ...assignedBarangayIds]);
     
     if (barangays) {
       barangays.forEach(barangay => {
-        const targetInfo = targetMap.get(barangay.barangay_id) || { target: 0, achieved: 0 };
-        barangayMap.set(barangay.barangay_id, {
-          id: barangay.barangay_id,
-          name: barangay.barangay_name,
-          spots: [],
-          totalQuestionnaires: 0,
-          completedQuestionnaires: 0,
-          hasAssignments: false,
-          surveyTarget: targetInfo.target,
-          surveyAchieved: targetInfo.achieved
-        });
+        // Only include barangays where the interviewer has assignments (either spot or barangay-level)
+        if (allAssignedBarangayIds.has(barangay.barangay_id)) {
+          const targetInfo = targetMap.get(barangay.barangay_id) || { target: 0, achieved: 0 };
+          const barangayAssignment = barangayAssignments?.find(a => a.barangay_id === barangay.barangay_id);
+          
+          barangayMap.set(barangay.barangay_id, {
+            id: barangay.barangay_id,
+            name: barangay.barangay_name,
+            spots: [],
+            totalQuestionnaires: 0,
+            completedQuestionnaires: 0,
+            hasAssignments: !!barangayAssignment, // Has barangay-level assignment
+            hasSpots: false, // Will be set to true if spots are found
+            surveyTarget: targetInfo.target,
+            surveyAchieved: targetInfo.achieved,
+            barangayAssignment: barangayAssignment || null
+          });
+        }
       });
     }
     
@@ -119,7 +145,7 @@ export async function GET(request: NextRequest) {
         const completedCount = questionnaires.filter(q => q.status === 'Completed').length;
 
         const barangayData = barangayMap.get(barangayId);
-        barangayData.hasAssignments = true;
+        barangayData.hasSpots = true;
         barangayData.spots.push({
           spotId: spot.spot_id,
           spotName: spot.spot_name,
@@ -140,25 +166,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert map to array and format for frontend
-    const result = Array.from(barangayMap.values()).map(b => ({
-      id: b.id,
-      name: b.name,
-      // Calculate progress based on barangay's survey target, not interviewer's assignments
-      progress: b.surveyTarget > 0 
+    const result = Array.from(barangayMap.values()).map(b => {
+      // Calculate progress based on barangay's survey target
+      const progress = b.surveyTarget > 0 
         ? Math.round((b.surveyAchieved / b.surveyTarget) * 100)
-        : 0,
-      status: b.hasAssignments ? 'assigned' : 'not_assigned',
-      spots: b.spots,
-      totalQuestionnaires: b.totalQuestionnaires,
-      completedQuestionnaires: b.completedQuestionnaires,
-      surveyTarget: b.surveyTarget,
-      surveyAchieved: b.surveyAchieved,
-      // Add assignment info if there are spots
-      ...(b.hasAssignments && b.spots.length > 0 && {
-        assignment: {
-          assignment_id: b.spots[0].spotId,
-          status: b.spots[0].status,
-          progress: b.progress,
+        : 0;
+
+      return {
+        id: b.id,
+        name: b.name,
+        progress: progress,
+        status: b.hasAssignments || b.hasSpots ? 'assigned' : 'not_assigned',
+        spots: b.spots,
+        totalQuestionnaires: b.totalQuestionnaires,
+        completedQuestionnaires: b.completedQuestionnaires,
+        surveyTarget: b.surveyTarget,
+        surveyAchieved: b.surveyAchieved,
+        // Add assignment info from barangay assignment or first spot
+        assignment: b.barangayAssignment ? {
+          assignment_id: b.barangayAssignment.assignment_id,
+          status: b.barangayAssignment.status || 'Assigned',
+          progress: b.barangayAssignment.progress || progress,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           interviewer: {
@@ -166,9 +194,20 @@ export async function GET(request: NextRequest) {
             lastName: 'User',
             email: userRole
           }
-        }
-      })
-    }));
+        } : (b.spots.length > 0 ? {
+          assignment_id: b.spots[0].spotId,
+          status: b.spots[0].status,
+          progress: progress,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          interviewer: {
+            firstName: 'Current',
+            lastName: 'User',
+            email: userRole
+          }
+        } : undefined)
+      };
+    });
 
     return NextResponse.json(result);
 

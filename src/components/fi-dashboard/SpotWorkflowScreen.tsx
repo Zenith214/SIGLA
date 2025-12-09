@@ -79,7 +79,8 @@ export function SpotWorkflowScreen({ spotId }: SpotWorkflowScreenProps) {
     
     // Import Leaflet CSS and configure icons dynamically
     if (typeof window !== "undefined") {
-      require("leaflet/dist/leaflet.css");
+      // Import CSS using dynamic import
+      import("leaflet/dist/leaflet.css");
       
       // Fix marker icons
       import('leaflet').then((L) => {
