@@ -390,13 +390,19 @@ function SurveyDashboardContent() {
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
-                          {loading ? "..." : barangays.filter(b => b.status === 'Completed').length}
+                          {loading ? "..." : barangays.filter(b => {
+                            const progress = typeof b.progress === 'string' ? parseInt(b.progress) || 0 : (b.progress || 0);
+                            return progress === 100;
+                          }).length}
                         </div>
                         <div className="text-sm text-gray-600">Completed</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
-                          {loading ? "..." : barangays.filter(b => b.status === 'In Progress').length}
+                          {loading ? "..." : barangays.filter(b => {
+                            const progress = typeof b.progress === 'string' ? parseInt(b.progress) || 0 : (b.progress || 0);
+                            return progress > 0 && progress < 100;
+                          }).length}
                         </div>
                         <div className="text-sm text-gray-600">In Progress</div>
                       </div>
@@ -467,16 +473,28 @@ function SurveyDashboardContent() {
                           <h4 className="font-semibold text-[#111827] text-sm">{barangay.name}</h4>
                           <span
                             className={`px-2 py-1 text-xs rounded-full font-medium ${
-                              barangay.status === "Completed"
-                                ? "bg-green-100 text-green-800"
-                                : barangay.status === "In Progress"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : barangay.status === "Assigned"
-                                    ? "bg-orange-100 text-orange-800"
-                                    : "bg-gray-100 text-gray-800"
+                              (() => {
+                                const progress = typeof barangay.progress === 'string' ? parseInt(barangay.progress) || 0 : (barangay.progress || 0);
+                                return progress === 100
+                                  ? "bg-green-100 text-green-800"
+                                  : progress > 0
+                                    ? "bg-blue-100 text-blue-800"
+                                    : barangay.assignment
+                                      ? "bg-orange-100 text-orange-800"
+                                      : "bg-gray-100 text-gray-800";
+                              })()
                               }`}
                           >
-                            {barangay.status}
+                            {(() => {
+                              const progress = typeof barangay.progress === 'string' ? parseInt(barangay.progress) || 0 : (barangay.progress || 0);
+                              return progress === 100 
+                                ? "Completed" 
+                                : progress > 0 
+                                  ? "In Progress" 
+                                  : barangay.assignment 
+                                    ? "Assigned" 
+                                    : "Not Assigned";
+                            })()}
                           </span>
                         </div>
 
@@ -573,16 +591,28 @@ function SurveyDashboardContent() {
                               <h4 className="font-semibold text-[#111827] text-sm sm:text-base">{barangay.name}</h4>
                               <span
                                 className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                  barangay.status === "Completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : barangay.status === "In Progress"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : barangay.status === "Assigned"
-                                        ? "bg-orange-100 text-orange-800"
-                                        : "bg-gray-100 text-gray-800"
+                                  (() => {
+                                    const progress = typeof barangay.progress === 'string' ? parseInt(barangay.progress) || 0 : (barangay.progress || 0);
+                                    return progress === 100
+                                      ? "bg-green-100 text-green-800"
+                                      : progress > 0
+                                        ? "bg-blue-100 text-blue-800"
+                                        : barangay.assignment
+                                          ? "bg-orange-100 text-orange-800"
+                                          : "bg-gray-100 text-gray-800";
+                                  })()
                                   }`}
                               >
-                                {barangay.status}
+                                {(() => {
+                                  const progress = typeof barangay.progress === 'string' ? parseInt(barangay.progress) || 0 : (barangay.progress || 0);
+                                  return progress === 100 
+                                    ? "Completed" 
+                                    : progress > 0 
+                                      ? "In Progress" 
+                                      : barangay.assignment 
+                                        ? "Assigned" 
+                                        : "Not Assigned";
+                                })()}
                               </span>
                             </div>
 
@@ -613,7 +643,10 @@ function SurveyDashboardContent() {
 
                             {/* Action Button */}
                             <div className="pt-2">
-                              {barangay.status === "Completed" ? (
+                              {(() => {
+                                const progress = typeof barangay.progress === 'string' ? parseInt(barangay.progress) || 0 : (barangay.progress || 0);
+                                return progress === 100;
+                              })() ? (
                                 <button
                                   disabled
                                   className="w-full px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium text-sm flex items-center justify-center gap-2 cursor-not-allowed"
