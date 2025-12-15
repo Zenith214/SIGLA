@@ -380,7 +380,7 @@ function SurveyDashboardContent() {
                         <div className="text-2xl font-bold text-blue-600">
                           {loading ? "..." : barangays.length}
                         </div>
-                        <div className="text-sm text-gray-600">Survey Targets</div>
+                        <div className="text-sm text-gray-600">Barangay Survey Targets</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-purple-600">
@@ -422,7 +422,7 @@ function SurveyDashboardContent() {
                   {/* All Barangays Progress Cards Grid */}
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-4">
-                      All Survey Targets
+                      All Barangay Survey Targets
                     </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {loading ? (
@@ -447,14 +447,14 @@ function SurveyDashboardContent() {
               ) : barangays.length === 0 ? (
                 <div className="col-span-full text-center py-8">
                   <div className="text-gray-500">
-                    <p className="mb-2">No survey targets found.</p>
+                    <p className="mb-2">No barangay survey targets found.</p>
                     {!hasActiveCycle && !cycleLoading && (
                       <p className="text-amber-600 font-medium">
                         ⚠️ No active survey cycle is set. Contact your administrator to set up a survey cycle.
                       </p>
                     )}
                     {hasActiveCycle && (
-                      <p>Please check with your administrator to create survey targets for the current cycle.</p>
+                      <p>Please check with your administrator to create barangay survey targets for the current cycle.</p>
                     )}
                   </div>
                 </div>
@@ -562,7 +562,7 @@ function SurveyDashboardContent() {
                       <div className="col-span-full text-center py-8">
                         <div className="text-gray-500">
                           <p className="mb-2">You have no assignments yet.</p>
-                          <p className="text-sm">Contact your administrator to get assigned to survey targets.</p>
+                          <p className="text-sm">Contact your administrator to get assigned to barangay survey targets.</p>
                         </div>
                       </div>
                     ) : (

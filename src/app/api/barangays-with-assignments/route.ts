@@ -20,10 +20,16 @@ export async function GET(request: NextRequest) {
 
     let userId: number;
     let userRole: string;
+    let userFirstName: string;
+    let userLastName: string;
+    let userEmail: string;
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
       userId = decoded.id;
       userRole = (decoded.role || '').toLowerCase();
+      userFirstName = decoded.firstName || 'Unknown';
+      userLastName = decoded.lastName || 'User';
+      userEmail = decoded.email || '';
     } catch {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
@@ -190,9 +196,9 @@ export async function GET(request: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           interviewer: {
-            firstName: 'Current',
-            lastName: 'User',
-            email: userRole
+            firstName: userFirstName,
+            lastName: userLastName,
+            email: userEmail
           }
         } : (b.spots.length > 0 ? {
           assignment_id: b.spots[0].spotId,
@@ -201,9 +207,9 @@ export async function GET(request: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           interviewer: {
-            firstName: 'Current',
-            lastName: 'User',
-            email: userRole
+            firstName: userFirstName,
+            lastName: userLastName,
+            email: userEmail
           }
         } : undefined)
       };
