@@ -13,6 +13,7 @@ export interface BaseQuestion {
   type: 'radio' | 'checkbox' | 'text' | 'textarea' | 'grouped';
   question: string;
   options?: string[];
+  translatedOptions?: string[]; // Translated labels for display (while options remain as values)
   required?: boolean | ((formData: any) => boolean); // Support conditional requirement
   dependsOn?: string; // Field ID this question depends on
   dependsOnValue?: string;

@@ -64,7 +64,23 @@ export function AISuggestionsModal({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("AI Suggestions API Error:", response.status, errorData);
-        throw new Error(errorData.message || `Failed to fetch AI suggestions (${response.status})`);
+        
+        // Handle specific error cases with user-friendly messages
+        if (response.status === 404) {
+          throw new Error(
+            "No survey data available yet. Please ensure that survey responses have been collected and analyzed for this barangay and cycle before generating AI suggestions."
+          );
+        } else if (response.status === 403) {
+          throw new Error(
+            errorData.message || "You don't have permission to generate suggestions for this barangay."
+          );
+        } else if (response.status === 400) {
+          throw new Error(
+            errorData.message || "Invalid request. Please check the barangay and cycle information."
+          );
+        }
+        
+        throw new Error(errorData.message || `Failed to generate AI suggestions. Please try again later.`);
       }
 
       const data = await response.json();
@@ -148,6 +164,13 @@ export function AISuggestionsModal({
             your barangay. You can use these as a starting point and customize them
             as needed.
           </DialogDescription>
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>⚠️ Important:</strong> These AI-generated suggestions may not be fully accurate. 
+              Please review and verify each recommendation before including it in your CPAP. 
+              Adjust the details to match your barangay's specific needs and context.
+            </p>
+          </div>
         </DialogHeader>
 
         <div className="py-4">
@@ -156,15 +179,49 @@ export function AISuggestionsModal({
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
           ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">{error}</p>
-              <Button
-                onClick={fetchSuggestions}
-                variant="outline"
-                className="mt-4"
-              >
-                Try Again
-              </Button>
+            <div className="space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-red-800 mb-2">
+                      Unable to Generate AI Suggestions
+                    </h3>
+                    <p className="text-sm text-red-700 mb-4">{error}</p>
+                    
+                    {error.includes("No survey data") && (
+                      <div className="mt-3 p-3 bg-white border border-red-100 rounded text-sm text-gray-700">
+                        <p className="font-medium mb-2">What you can do:</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                          <li>Ensure survey interviews have been completed for this barangay</li>
+                          <li>Wait for the funnel analysis to be processed (this happens automatically)</li>
+                          <li>Contact your administrator if surveys have been completed but data is still unavailable</li>
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <Button
+                      onClick={fetchSuggestions}
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Tip:</strong> You can still create your CPAP manually by clicking "Add Action Item" 
+                  and entering your own priority areas and target outputs based on your barangay's needs.
+                </p>
+              </div>
             </div>
           ) : suggestions ? (
             <>
@@ -176,14 +233,24 @@ export function AISuggestionsModal({
                       <Sparkles className="h-8 w-8 text-gray-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No AI Suggestions Available
+                      No AI Suggestions Generated
                     </h3>
-                    <p className="text-sm text-gray-600 max-w-md mx-auto">
-                      There is insufficient survey data for this barangay and cycle to generate AI recommendations.
+                    <p className="text-sm text-gray-600 max-w-md mx-auto mb-4">
+                      The AI was unable to generate recommendations based on the available survey data for this barangay and cycle.
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Please ensure survey responses have been collected and funnel analysis has been completed.
-                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto text-left">
+                      <p className="text-sm text-blue-800 mb-2">
+                        <strong>Possible reasons:</strong>
+                      </p>
+                      <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                        <li>Insufficient survey responses collected</li>
+                        <li>Funnel analysis data not yet available</li>
+                        <li>No clear priority areas identified from the data</li>
+                      </ul>
+                      <p className="text-sm text-blue-800 mt-3">
+                        You can still create your CPAP manually using the "Add Action Item" button.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "short" | "medium" | "long")}>

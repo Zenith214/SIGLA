@@ -1,56 +1,63 @@
-import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import { Pool } from "pg";
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth-middleware';
+import { CPAPPermissionService } from '@/lib/services/cpap-permission.service';
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_key";
-const databaseUrl = process.env.DATABASE_URL;
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get("pulse_token")?.value;
-
-  if (!token) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  let client;
+/**
+ * GET /api/users/me/barangay
+ * Returns the currently authenticated user's assigned barangay
+ * Used by CPAP and other barangay-specific features
+ */
+export async function GET(request: NextRequest) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.id;
-
-    client = await pool.connect();
-
-    // Get user's barangay assignment
-    const assignmentResult = await client.query(
-      `SELECT barangay_id FROM assignment WHERE user_id = $1 LIMIT 1`,
-      [userId]
-    );
-
-    if (assignmentResult.rows.length === 0) {
+    // Verify authentication
+    const authResult = verifyAuth(request);
+    if (!authResult.success || !authResult.user) {
+      console.error('[/api/users/me/barangay] Auth failed:', authResult.error);
       return NextResponse.json(
-        { error: "No barangay assignment found" },
+        { 
+          error: 'Unauthorized', 
+          message: authResult.error || 'You must be logged in' 
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = authResult.user.id;
+    const userRole = authResult.user.role;
+    
+    console.log('[/api/users/me/barangay] User authenticated:', { userId, userRole, email: authResult.user.email });
+
+    // Get user's assigned barangay using the CPAP permission service
+    const barangayId = await CPAPPermissionService.getUserBarangay(userId);
+    
+    console.log('[/api/users/me/barangay] Barangay lookup result:', { userId, barangayId });
+
+    if (!barangayId) {
+      console.warn('[/api/users/me/barangay] No barangay assignment found for user:', userId);
+      return NextResponse.json(
+        { 
+          error: 'No Assignment', 
+          message: 'You are not assigned to any barangay. Please contact your administrator.' 
+        },
         { status: 404 }
       );
     }
 
+    console.log('[/api/users/me/barangay] Success:', { userId, barangayId });
     return NextResponse.json({
-      barangay_id: assignmentResult.rows[0].barangay_id,
+      success: true,
+      barangay_id: barangayId,
+      user_id: userId
     });
+
   } catch (error) {
-    console.error("Error fetching user barangay:", error);
+    console.error('Error in GET /api/users/me/barangay:', error);
     return NextResponse.json(
-      { error: "Failed to fetch barangay assignment" },
+      {
+        error: 'Internal Server Error',
+        message: error instanceof Error ? error.message : 'Failed to fetch user barangay'
+      },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      client.release();
-    }
   }
 }

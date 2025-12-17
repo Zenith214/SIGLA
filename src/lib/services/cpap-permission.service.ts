@@ -14,28 +14,65 @@ export class CPAPPermissionService {
    */
   static async getUserBarangay(userId: number): Promise<number | null> {
     try {
-      // Query the Assignment table to find the user's assigned barangay
-      // We get the most recent active assignment
-      const { data: assignment, error } = await supabaseAdmin
-        .from('assignment')
-        .select('barangay_id')
-        .eq('user_id', userId)
-        .eq('status', 'Active')
-        .order('created_at', { ascending: false })
-        .limit(1)
+      console.log('[CPAPPermissionService.getUserBarangay] Querying for user:', userId);
+      
+      // First, get the user's role to determine where to look for barangay assignment
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('user')
+        .select('role, barangayDesignation')
+        .eq('id', userId)
         .single();
 
-      if (error) {
-        // If no assignment found, return null (not an error condition)
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        throw error;
+      if (userError) {
+        console.error('[CPAPPermissionService.getUserBarangay] Error fetching user:', userError);
+        return null;
       }
 
-      return assignment?.barangay_id || null;
+      if (!user) {
+        console.log('[CPAPPermissionService.getUserBarangay] User not found:', userId);
+        return null;
+      }
+
+      const userRole = user.role?.toLowerCase();
+      console.log('[CPAPPermissionService.getUserBarangay] User role:', userRole);
+
+      // For OFFICER users, check barangayDesignation field
+      if (userRole === 'officer') {
+        const barangayId = user.barangayDesignation;
+        console.log('[CPAPPermissionService.getUserBarangay] Officer barangayDesignation:', barangayId);
+        return barangayId || null;
+      }
+
+      // For INTERVIEWER users, check Assignment table
+      if (userRole === 'interviewer' || userRole === 'fs') {
+        const { data: assignment, error: assignmentError } = await supabaseAdmin
+          .from('assignment')
+          .select('barangay_id')
+          .eq('user_id', userId)
+          .eq('status', 'Active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (assignmentError) {
+          console.log('[CPAPPermissionService.getUserBarangay] Assignment query error:', assignmentError.code, assignmentError.message);
+          // If no assignment found, return null (not an error condition)
+          if (assignmentError.code === 'PGRST116') {
+            console.log('[CPAPPermissionService.getUserBarangay] No active assignment found for interviewer:', userId);
+            return null;
+          }
+          throw assignmentError;
+        }
+
+        console.log('[CPAPPermissionService.getUserBarangay] Assignment found:', assignment);
+        return assignment?.barangay_id || null;
+      }
+
+      // For other roles (admin, developer, etc.), return null
+      console.log('[CPAPPermissionService.getUserBarangay] Role does not have barangay assignment:', userRole);
+      return null;
     } catch (error) {
-      console.error('Error in getUserBarangay:', error);
+      console.error('[CPAPPermissionService.getUserBarangay] Error:', error);
       return null;
     }
   }

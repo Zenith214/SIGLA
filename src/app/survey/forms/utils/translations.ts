@@ -468,6 +468,36 @@ export function getTranslatedOptions(
       filipino: 'Hindi',
       english: 'No'
     },
+    'Oo': {
+      bisaya: 'Oo',
+      filipino: 'Oo',
+      english: 'Yes'
+    },
+    'Hindi': {
+      bisaya: 'Dili',
+      filipino: 'Hindi',
+      english: 'No'
+    },
+    'Oo (Yes)': {
+      bisaya: 'Oo',
+      filipino: 'Oo',
+      english: 'Yes'
+    },
+    'Hindi (No)': {
+      bisaya: 'Dili',
+      filipino: 'Hindi',
+      english: 'No'
+    },
+    'Yes / Oo': {
+      bisaya: 'Oo',
+      filipino: 'Oo',
+      english: 'Yes'
+    },
+    'No / Hindi': {
+      bisaya: 'Dili',
+      filipino: 'Hindi',
+      english: 'No'
+    },
     '5': {
       bisaya: '5 - Hilabihan ka Tagbaw',
       filipino: '5 - Lubos na Nasiyahan',

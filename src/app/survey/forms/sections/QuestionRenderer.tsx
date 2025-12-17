@@ -105,25 +105,29 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
       return (
         <div>
           <div className={`space-y-3 ${isSatisfactionQuestion ? "flex flex-wrap gap-x-4 justify-center" : ""} ${disabledClass}`}>
-            {question.options?.map((option: string) => (
-              <label
-                key={option}
-                className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg ${
-                  isEnabled ? "hover:bg-gray-50" : "cursor-not-allowed"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={question.id}
-                  value={option}
-                  checked={currentAnswer === option}
-                  onChange={(e) => handleChange(e.target.value)}
-                  disabled={!isEnabled}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                />
-                <span className={`text-gray-700 ${!isEnabled ? "text-gray-400" : ""}`}>{option}</span>
-              </label>
-            ))}
+            {question.options?.map((option: string, index: number) => {
+              // Use original option for value, translated option for display
+              const displayLabel = (question as any).translatedOptions?.[index] || option;
+              return (
+                <label
+                  key={option}
+                  className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg ${
+                    isEnabled ? "hover:bg-gray-50" : "cursor-not-allowed"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={question.id}
+                    value={option}
+                    checked={currentAnswer === option}
+                    onChange={(e) => handleChange(e.target.value)}
+                    disabled={!isEnabled}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className={`text-gray-700 ${!isEnabled ? "text-gray-400" : ""}`}>{displayLabel}</span>
+                </label>
+              );
+            })}
           </div>
           {renderValidationError()}
         </div>

@@ -248,15 +248,37 @@ function SurveyAppContent() {
             setCycleIdFromUrl(existingRecord.cycleId);
             setSpotIdFromUrl(existingRecord.spotId);
             
+            // Restore section statuses if available
+            if (existingRecord.surveyData.sectionStatuses) {
+              setSections(existingRecord.surveyData.sectionStatuses);
+              console.log(`✅ Restored section statuses from IndexedDB`);
+            }
+            
             // Determine current section based on record status
             if (existingRecord.status === 'In Progress') {
-              // Resume from where they left off
-              // You could store the last section in surveyData
-              setCurrentSection(existingRecord.surveyData.currentSection || 'respondent-selection');
+              // Find the first section that is "in-progress" or the first "pending" section after completed ones
+              const sectionStatuses = existingRecord.surveyData.sectionStatuses || [];
+              let resumeSection = existingRecord.surveyData.currentSection || 'respondent-selection';
+              
+              // Find the first in-progress section
+              const inProgressSection = sectionStatuses.find(s => s.status === 'in-progress');
+              if (inProgressSection) {
+                resumeSection = inProgressSection.id;
+              } else {
+                // Find the first pending section after initialization
+                const firstPendingSection = sectionStatuses.find(s => 
+                  s.status === 'pending' && s.id !== 'initialization'
+                );
+                if (firstPendingSection) {
+                  resumeSection = firstPendingSection.id;
+                }
+              }
+              
+              setCurrentSection(resumeSection);
+              console.log(`📝 Resuming interview at section: ${resumeSection}`);
               
               // Note: Visit logging is now handled by the Survey Initialization section
               // No need to increment visit count here to avoid duplicates
-              console.log(`📝 Resuming interview - visit will be logged in initialization section`);
             }
             
             console.log(`✅ Loaded survey data from IndexedDB for callback scenario`);
@@ -417,6 +439,10 @@ function SurveyAppContent() {
 
   useEffect(() => {
     localStorage.setItem("barangay-survey-sections", JSON.stringify(sections))
+    // Also save to IndexedDB if we have a questionnaire context
+    if (questionnaireIdFromUrl && cycleIdFromUrl && sections.length > 0) {
+      saveToIndexedDB().catch(err => console.error('Error saving sections to IndexedDB:', err));
+    }
   }, [sections])
 
   const updateSectionStatus = (sectionId: string, status: SectionStatus["status"]) => {
@@ -504,6 +530,7 @@ function SurveyAppContent() {
         interviewerId: user?.id,
         assignedSections: surveyData.assignedSections,
         currentSection: completedSection || currentSection,
+        sectionStatuses: sections, // Save section statuses for resume functionality
         sections: {
           financial: { data: surveyData.financialAdmin },
           disaster: { data: surveyData.disasterPrep },

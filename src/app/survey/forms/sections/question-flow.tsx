@@ -131,15 +131,24 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     const answeredOrSkipped = questions.filter(q => {
       const answer = currentAnswers[q.id];
       const skipReason = currentAnswers[`${q.id}_skipReason`];
-      const isEnabled = isQuestionEnabled(q);
+      const isEnabled = isQuestionEnabled(q, currentAnswers);
       
       // Count as complete if:
       // 1. Question is enabled and has an answer
       // 2. Question was skipped (has null + skip reason)
       // 3. Question is disabled due to dependencies
-      return (isEnabled && answer !== undefined && answer !== null && answer !== '') ||
-             (answer === null && skipReason) ||
-             (!isEnabled);
+      const isAnswered = isEnabled && answer !== undefined && answer !== null && answer !== '';
+      const isSkipped = answer === null && skipReason;
+      const isDisabled = !isEnabled;
+      
+      const isHandled = isAnswered || isSkipped || isDisabled;
+      
+      // Debug logging for unanswered questions
+      if (!isHandled) {
+        console.log(`❌ Question ${q.id} not handled: enabled=${isEnabled}, answer=${answer}, skipReason=${skipReason}`);
+      }
+      
+      return isHandled;
     }).length;
     
     console.log(`Section ${sectionId}: ${answeredOrSkipped}/${totalQuestions} questions handled`);
@@ -151,11 +160,12 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     }
   }
 
-  const isQuestionEnabled = (question: Question | undefined) => {
+  const isQuestionEnabled = (question: Question | undefined, answersToCheck?: Record<string, any>) => {
     if (!question) return false;
     if (!question.dependsOn) return true;
 
-    const dependencyAnswer = answers[question.dependsOn];
+    const answersSource = answersToCheck || answers;
+    const dependencyAnswer = answersSource[question.dependsOn];
     const isEnabled = dependencyAnswer === question.dependsOnValue;
     
     return isEnabled;
@@ -163,21 +173,28 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
 
   // Mark disabled questions as skipped in useEffect to avoid setState during render
   useEffect(() => {
+    let hasChanges = false;
+    const newAnswers = { ...answers };
+    
     questions.forEach(question => {
       if (question.dependsOn) {
-        const isEnabled = isQuestionEnabled(question);
-        if (!isEnabled && !(question.id in answers)) {
-          const skipReason = getDetailedSkipReason(question);
-          const newAnswers = {
-            ...answers,
-            [question.id]: null,
-            [`${question.id}_skipReason`]: skipReason
-          };
-          setAnswers(newAnswers);
-          onUpdate(sectionDataKey, newAnswers);
+        const isEnabled = isQuestionEnabled(question, newAnswers);
+        if (!isEnabled) {
+          // Mark as skipped if not already marked
+          if (!(question.id in answers) || answers[question.id] !== null || !answers[`${question.id}_skipReason`]) {
+            const skipReason = getDetailedSkipReason(question);
+            newAnswers[question.id] = null;
+            newAnswers[`${question.id}_skipReason`] = skipReason;
+            hasChanges = true;
+          }
         }
       }
     });
+    
+    if (hasChanges) {
+      setAnswers(newAnswers);
+      onUpdate(sectionDataKey, newAnswers);
+    }
   }, [answers, questions]);
 
   // Helper function to get detailed skip reason
@@ -211,6 +228,7 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
 
   const isCurrentQuestionAnswered = () => {
     if (!isQuestionEnabled(currentQuestion)) {
+      console.log(`✅ Current question ${currentQuestion.id} is disabled, treating as answered`);
       return true;
     }
 
@@ -220,8 +238,11 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     // Pass all answers for conditional validation (e.g., NFA suggestion fields)
     const validationError = validateAnswer(currentQuestion, answer, answers);
     
+    const isAnswered = validationError === null;
+    console.log(`🔍 Current question ${currentQuestion.id}: answer=${answer}, isAnswered=${isAnswered}, validationError=${validationError?.message}`);
+    
     // Question is answered if there's no validation error
-    return validationError === null;
+    return isAnswered;
   };
 
   const getNextButtonText = () => {
@@ -423,8 +444,9 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
               question={{
                 ...currentQuestion,
                 question: getQuestionText(currentQuestion),
-                options: getQuestionOptions(currentQuestion)
-              }}
+                options: currentQuestion.options, // Keep original options for values
+                translatedOptions: getQuestionOptions(currentQuestion) // Add translated options for display
+              } as Question}
               currentAnswer={answers[currentQuestion.id]}
               onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               isEnabled={true}

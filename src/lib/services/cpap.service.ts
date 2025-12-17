@@ -655,8 +655,20 @@ export class CPAPService {
       // This would typically be an internal API call, but we'll simulate it here
       const funnelData = await this.fetchFunnelAnalysis(barangayId, cycleId);
 
-      if (!funnelData || !funnelData.service_scores) {
-        throw new Error('No funnel analysis data available for this barangay and cycle');
+      // Check if we have any data at all
+      if (!funnelData) {
+        throw new Error('No funnel analysis data available for this barangay and cycle. Please ensure survey responses have been collected and analyzed.');
+      }
+
+      // Check if we have service scores
+      if (!funnelData.service_scores || Object.keys(funnelData.service_scores).length === 0) {
+        throw new Error('No survey data available for this barangay and cycle. Survey responses must be collected before AI suggestions can be generated.');
+      }
+
+      // Check if we have enough responses
+      const totalResponses = funnelData.total_responses || 0;
+      if (totalResponses === 0) {
+        throw new Error('No survey responses found for this barangay and cycle. Please complete survey interviews before generating AI suggestions.');
       }
 
       const suggestions: AISuggestionsResponse = {
@@ -723,8 +735,12 @@ export class CPAPService {
         }
       }
 
-      // Count total responses analyzed
-      const totalResponses = funnelData.total_responses || 0;
+      // Check if we generated any suggestions
+      const totalSuggestions = suggestions.shortTerm.length + suggestions.mediumTerm.length + suggestions.longTerm.length;
+      if (totalSuggestions === 0) {
+        throw new Error('Unable to generate AI suggestions from the available survey data. The data may be insufficient or incomplete.');
+      }
+
       const serviceAreasAnalyzed = Object.keys(funnelData.service_scores || {});
 
       const metadata: AISuggestionsMetadata = {
@@ -736,7 +752,24 @@ export class CPAPService {
       return { suggestions, metadata };
     } catch (error) {
       console.error('Error in generateAISuggestions:', error);
-      throw new Error('Failed to generate AI suggestions');
+      
+      // Re-throw with more specific error messages
+      if (error instanceof Error) {
+        // If it's already a descriptive error, re-throw it
+        if (error.message.includes('No survey') || 
+            error.message.includes('No funnel') || 
+            error.message.includes('Unable to generate')) {
+          throw error;
+        }
+        
+        // If it's a fetch error, provide better context
+        if (error.message.includes('Failed to fetch')) {
+          throw new Error('Unable to retrieve survey analysis data. The barangay may not have any completed surveys yet.');
+        }
+      }
+      
+      // Generic fallback
+      throw new Error('Failed to generate AI suggestions. Please ensure survey data is available for this barangay and cycle.');
     }
   }
 
@@ -762,13 +795,31 @@ export class CPAPService {
       );
 
       if (!response.ok) {
+        // Handle specific HTTP status codes
+        if (response.status === 404) {
+          throw new Error('No survey data found for this barangay and cycle. Please complete survey interviews first.');
+        } else if (response.status === 400) {
+          throw new Error('Invalid barangay or cycle information provided.');
+        }
         throw new Error(`Failed to fetch funnel analysis: ${response.statusText}`);
       }
 
       const data = await response.json();
+      
+      // Additional validation of the response data
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid funnel analysis data received.');
+      }
+      
       return data;
     } catch (error) {
       console.error('Error fetching funnel analysis:', error);
+      
+      // If it's a network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to the analysis service. Please try again later.');
+      }
+      
       throw error;
     }
   }

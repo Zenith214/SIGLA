@@ -58,11 +58,15 @@ export default function CPAPPage() {
 
   const fetchUserBarangay = async () => {
     try {
+      console.log("🔍 Fetching user barangay assignment...");
       // Fetch user's barangay assignment
       const response = await fetch("/api/users/me/barangay");
       
+      console.log("📡 API Response status:", response.status);
+      
       if (response.status === 404) {
         // User has no barangay assignment
+        console.error("❌ No barangay assignment found (404)");
         setError("You are not assigned to any barangay. Please contact your administrator to assign you to a barangay.");
         setIsLoading(false);
         return;
@@ -70,13 +74,15 @@ export default function CPAPPage() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("❌ API Error:", errorData);
         throw new Error(errorData.error || "Failed to fetch user barangay");
       }
       
       const data = await response.json();
+      console.log("✅ User barangay data:", data);
       setUserBarangayId(data.barangay_id);
     } catch (err) {
-      console.error("Error fetching user barangay:", err);
+      console.error("❌ Error fetching user barangay:", err);
       setError(err instanceof Error ? err.message : "Unable to determine your assigned barangay");
       setIsLoading(false);
     }
