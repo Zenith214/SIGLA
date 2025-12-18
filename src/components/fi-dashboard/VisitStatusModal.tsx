@@ -120,10 +120,12 @@ export function VisitStatusModal({
       try {
         const record = await getSurveyRecordByQuestionnaire(questionnaireId);
         if (record) {
+          // Convert outcome from underscore format to space format for IndexedDB
+          const outcomeForIndexedDB = outcome.replace(/_/g, ' ') as any
           await addVisit(
             questionnaireId,
             record.cycleId,
-            outcome as any,
+            outcomeForIndexedDB,
             finalNotes || "",
             location || undefined
           );

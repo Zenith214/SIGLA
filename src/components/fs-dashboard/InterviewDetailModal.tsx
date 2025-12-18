@@ -40,6 +40,7 @@ interface InterviewDetails {
   created_at: string;
   updated_at: string;
   spot_name?: string;
+  spot_location?: GPSCoordinates;
 }
 
 export default function InterviewDetailModal({
@@ -105,7 +106,7 @@ export default function InterviewDetailModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -292,15 +293,23 @@ export default function InterviewDetailModal({
 
               {/* GPS Verification Tab */}
               <TabsContent value="gps-verification" className="mt-4">
-                <InterviewMapView
-                  surveyResponse={{
-                    id: interview.response_id,
-                    questionnaireId: interview.questionnaire_id,
-                    assignedSpot: interview.location,
-                    verificationLocation: interview.verification_location,
-                  }}
-                  verificationThreshold={200}
-                />
+                {interview.spot_location && interview.verification_location ? (
+                  <InterviewMapView
+                    surveyResponse={{
+                      id: interview.response_id,
+                      questionnaireId: interview.questionnaire_id,
+                      assignedSpot: interview.spot_location,
+                      verificationLocation: interview.verification_location,
+                    }}
+                    verificationThreshold={200}
+                  />
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>GPS verification data not available</p>
+                    {!interview.spot_location && <p className="text-sm mt-2">No assigned spot location</p>}
+                    {!interview.verification_location && <p className="text-sm mt-2">No verification location captured</p>}
+                  </div>
+                )}
               </TabsContent>
 
               {/* Respondent Info Tab */}

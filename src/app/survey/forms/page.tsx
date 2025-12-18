@@ -256,26 +256,33 @@ function SurveyAppContent() {
             
             // Determine current section based on record status
             if (existingRecord.status === 'In Progress') {
-              // Find the first section that is "in-progress" or the first "pending" section after completed ones
-              const sectionStatuses = existingRecord.surveyData.sectionStatuses || [];
-              let resumeSection = existingRecord.surveyData.currentSection || 'respondent-selection';
-              
-              // Find the first in-progress section
-              const inProgressSection = sectionStatuses.find(s => s.status === 'in-progress');
-              if (inProgressSection) {
-                resumeSection = inProgressSection.id;
+              // For callbacks (existing visits), always start at initialization (visitation log tab)
+              // This allows the interviewer to log the current visit before continuing
+              if (existingRecord.visits && existingRecord.visits.length > 0) {
+                setCurrentSection('initialization');
+                console.log(`📝 Resuming callback interview at initialization (visitation log) - ${existingRecord.visits.length} previous visit(s)`);
               } else {
-                // Find the first pending section after initialization
-                const firstPendingSection = sectionStatuses.find(s => 
-                  s.status === 'pending' && s.id !== 'initialization'
-                );
-                if (firstPendingSection) {
-                  resumeSection = firstPendingSection.id;
+                // For first visit in progress, find where they left off
+                const sectionStatuses = existingRecord.surveyData.sectionStatuses || [];
+                let resumeSection = existingRecord.surveyData.currentSection || 'respondent-selection';
+                
+                // Find the first in-progress section
+                const inProgressSection = sectionStatuses.find((s: SectionStatus) => s.status === 'in-progress');
+                if (inProgressSection) {
+                  resumeSection = inProgressSection.id;
+                } else {
+                  // Find the first pending section after initialization
+                  const firstPendingSection = sectionStatuses.find((s: SectionStatus) => 
+                    s.status === 'pending' && s.id !== 'initialization'
+                  );
+                  if (firstPendingSection) {
+                    resumeSection = firstPendingSection.id;
+                  }
                 }
+                
+                setCurrentSection(resumeSection);
+                console.log(`📝 Resuming first visit interview at section: ${resumeSection}`);
               }
-              
-              setCurrentSection(resumeSection);
-              console.log(`📝 Resuming interview at section: ${resumeSection}`);
               
               // Note: Visit logging is now handled by the Survey Initialization section
               // No need to increment visit count here to avoid duplicates

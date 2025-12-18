@@ -13,6 +13,9 @@ interface KishGridDisplayProps {
   members: HouseholdMember[];
   selectedIndex: number;
   questionnaireNumber: string;
+  lookupRow?: number;
+  lookupColumn?: number;
+  gridValue?: number;
 }
 
 // Official CSIS Kish Grid (12 rows × 10 columns)
@@ -48,20 +51,37 @@ export function KishGridDisplay({
   members,
   selectedIndex,
   questionnaireNumber,
+  lookupRow: providedLookupRow,
+  lookupColumn: providedLookupColumn,
+  gridValue: providedGridValue,
 }: KishGridDisplayProps) {
-  // Extract numeric questionnaire number
-  const numericQuestionnaire = extractQuestionnaireNumber(questionnaireNumber);
+  // Use provided values if available, otherwise calculate
+  let numericQuestionnaire: number;
+  let lookupColumn: number;
+  let lookupRow: number;
+  let gridValue: number;
   
-  // Calculate lookup column (1-10)
-  let lookupColumn = numericQuestionnaire % 10;
-  if (lookupColumn === 0) lookupColumn = 10;
-  
-  // Calculate lookup row (1-12, capped)
-  let lookupRow = members.length;
-  if (lookupRow > 12) lookupRow = 12;
-  
-  // Get grid value
-  const gridValue = KISH_GRID_TABLE[lookupRow - 1][lookupColumn - 1];
+  if (providedLookupRow && providedLookupColumn && providedGridValue) {
+    // Use the actual values from the selection result
+    lookupRow = providedLookupRow;
+    lookupColumn = providedLookupColumn;
+    gridValue = providedGridValue;
+    numericQuestionnaire = lookupColumn; // For display purposes
+  } else {
+    // Fallback: calculate from questionnaire number
+    numericQuestionnaire = extractQuestionnaireNumber(questionnaireNumber);
+    
+    // Calculate lookup column (1-10)
+    lookupColumn = numericQuestionnaire % 10;
+    if (lookupColumn === 0) lookupColumn = 10;
+    
+    // Calculate lookup row (1-12, capped)
+    lookupRow = members.length;
+    if (lookupRow > 12) lookupRow = 12;
+    
+    // Get grid value
+    gridValue = KISH_GRID_TABLE[lookupRow - 1][lookupColumn - 1];
+  }
 
   return (
     <div className="space-y-4">

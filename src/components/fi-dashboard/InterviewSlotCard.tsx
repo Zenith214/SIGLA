@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle, Clock, AlertTriangle, MapPin, PlayCircle, History } from "lucide-react";
 import { VisitStatusModal } from "./VisitStatusModal";
 import { VisitHistoryDisplay } from "./VisitHistoryDisplay";
 import { calculateDisplayId } from "@/utils/displayIdCalculator";
+import InterviewDetailModal from "@/components/fs-dashboard/InterviewDetailModal";
 
 interface Visit {
   visitId: number;
@@ -35,6 +36,7 @@ interface InterviewSlotCardProps {
 export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUpdate }: InterviewSlotCardProps) {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showInterviewDetails, setShowInterviewDetails] = useState(false);
 
   // Get display ID with fallback logic
   const getDisplayId = (): number | null => {
@@ -64,8 +66,8 @@ export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUp
           icon: <CheckCircle className="w-4 h-4" />,
           label: 'Completed',
           buttonLabel: 'View Details',
-          buttonClass: 'bg-green-100 text-green-800 cursor-not-allowed',
-          buttonDisabled: true
+          buttonClass: 'bg-green-600 text-white hover:bg-green-700',
+          buttonDisabled: false
         };
       case 'In_Progress':
         return {
@@ -101,6 +103,12 @@ export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUp
 
   const handleAction = async () => {
     if (statusDisplay.buttonDisabled) {
+      return;
+    }
+
+    // For Completed status, show interview details modal
+    if (interview.status === 'Completed') {
+      setShowInterviewDetails(true);
       return;
     }
 
@@ -187,7 +195,7 @@ export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUp
                   <div className="mt-2 space-y-1">
                     <p className="text-orange-700 font-medium">Last visit:</p>
                     <p className="text-orange-600">
-                      {new Date(lastVisit.timestamp).toLocaleDateString()} - {lastVisit.outcome}
+                      {new Date(lastVisit.timestamp).toLocaleDateString()} - {lastVisit.outcome.replace(/_/g, ' ')}
                     </p>
                     {lastVisit.notes && (
                       <p className="text-orange-600 italic">
@@ -279,6 +287,93 @@ export function InterviewSlotCard({ interview, spotId, cycleId, barangayId, onUp
           visits={interview.visits}
         />
       )}
+
+      {/* Interview Details Modal - Only for completed interviews */}
+      {interview.status === 'Completed' && showInterviewDetails && (
+        <InterviewDetailsWrapper
+          questionnaireId={interview.questionnaireId}
+          cycleId={cycleId}
+          onClose={() => setShowInterviewDetails(false)}
+        />
+      )}
     </>
+  );
+}
+
+// Wrapper component to fetch response_id before showing modal
+function InterviewDetailsWrapper({ 
+  questionnaireId, 
+  cycleId, 
+  onClose 
+}: { 
+  questionnaireId: string; 
+  cycleId: number; 
+  onClose: () => void;
+}) {
+  const [responseId, setResponseId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch response_id on mount
+  useEffect(() => {
+    const fetchResponseId = async () => {
+      try {
+        // Fetch the survey response to get response_id
+        const response = await fetch(`/api/survey-responses?cycleId=${cycleId}`);
+        if (!response.ok) throw new Error('Failed to fetch responses');
+        
+        const data = await response.json();
+        const matchingResponse = data.find((r: any) => r.questionnaire_id === questionnaireId);
+        
+        if (matchingResponse) {
+          setResponseId(matchingResponse.response_id);
+        } else {
+          setError('Interview details not found');
+        }
+      } catch (err) {
+        console.error('Error fetching response ID:', err);
+        setError('Failed to load interview details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResponseId();
+  }, [questionnaireId, cycleId]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-white rounded-lg p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading interview details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !responseId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-white rounded-lg p-6 max-w-md">
+          <p className="text-red-600 mb-4">{error || 'Interview not found'}</p>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <InterviewDetailModal
+      isOpen={true}
+      onClose={onClose}
+      interviewId={responseId}
+      questionnaireId={questionnaireId}
+    />
   );
 }

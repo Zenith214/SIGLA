@@ -79,6 +79,7 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
   const [selectedRespondent, setSelectedRespondent] = useState<{ number: number; name: string; birthdate: string; age: number; gender: string } | null>(null)
   const [eligibleMembers, setEligibleMembers] = useState<Array<{ name: string; birthdate: string; gender: string; age: number }>>([])
   const [selectedIndex, setSelectedIndex] = useState<number>(0)
+  const [kishGridResult, setKishGridResult] = useState<{ lookupRow: number; lookupColumn: number; gridValue: number } | null>(null)
   const [inputError, setInputError] = useState<string>("")
   const [isClient, setIsClient] = useState(false)
   
@@ -278,6 +279,11 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
 
       setEligibleMembers(eligibleWithAges)
       setSelectedIndex(result.selectedIndex)
+      setKishGridResult({
+        lookupRow: result.lookupRow,
+        lookupColumn: result.lookupColumn,
+        gridValue: result.gridValue
+      })
       setSelectedRespondent({
         number: result.selectedIndex + 1,
         name: result.selectedMember.name,
@@ -641,6 +647,9 @@ export function RespondentSelection({ surveyNumber, onUpdate, onNext, onBack }: 
                 members={eligibleMembers}
                 selectedIndex={selectedIndex}
                 questionnaireNumber={surveyNumber}
+                lookupRow={kishGridResult?.lookupRow}
+                lookupColumn={kishGridResult?.lookupColumn}
+                gridValue={kishGridResult?.gridValue}
               />
 
               {/* Selected Respondent Summary */}

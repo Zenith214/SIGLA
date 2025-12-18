@@ -188,14 +188,14 @@ export async function createSurveyRecord(
     cycleId,
     spotId,
     status: 'In Progress',
-    visits: [], // Start with no visits - will be logged when respondent demographics is completed
+    visits: [], // Start with no visits - will be logged when survey responses are submitted (first visit) or in visitation log (callbacks)
     surveyData,
     createdAt: now,
     updatedAt: now,
   };
   
   await db.add(STORE_NAME, record);
-  console.log(`✅ Created survey record for ${questionnaireId}${verificationLocation ? ' (with GPS verification)' : ''} - visit will be logged when respondent demographics is completed`);
+  console.log(`✅ Created survey record for ${questionnaireId}${verificationLocation ? ' (with GPS verification)' : ''} - visit will be logged on survey submission`);
   return record;
 }
 

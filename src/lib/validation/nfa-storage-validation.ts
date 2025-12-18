@@ -30,12 +30,13 @@ export type ValidBinaryValue = typeof VALID_BINARY_VALUES[number];
 /**
  * Service indicator IDs that should have NFA fields
  * Note: These use snake_case to match the database field naming convention
+ * Note: 'corruption' is excluded as it uses custom skip logic instead of standard NFA pattern
  */
 export const SERVICE_INDICATORS = [
   'projects',
   'financial',
   'social_programs',
-  'corruption',
+  // 'corruption', // Excluded - uses custom skip logic, not standard NFA
   'disaster_info',
   'evacuation',
   'tanods',
@@ -76,6 +77,9 @@ export function validateNFAFieldPair(
   indicatorId: string,
   data: Record<string, any>
 ): StorageValidationResult {
+  // Helper to check if value is null or undefined
+  const isNullish = (val: any) => val === null || val === undefined;
+  
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -89,20 +93,20 @@ export function validateNFAFieldPair(
   const binaryValue = data[binaryFieldName];
   const suggestionValue = data[suggestionFieldName];
 
-  // If both fields are missing OR both are null, this section was likely skipped
+  // If both fields are missing OR both are null/undefined, this section was likely skipped
   if ((!hasBinaryField && !hasSuggestionField) || 
-      (binaryValue === null && suggestionValue === null)) {
-    // Both fields missing/null - this might be intentional if the section wasn't completed
+      (isNullish(binaryValue) && isNullish(suggestionValue))) {
+    // Both fields missing/null/undefined - this might be intentional if the section wasn't completed
     warnings.push(`NFA fields for '${indicatorId}' are missing (may be incomplete section)`);
     return { valid: true, errors: [], warnings };
   }
   
-  // If binary field is null but suggestion exists, or vice versa, it's an error
-  if (binaryValue === null && hasSuggestionField && suggestionValue !== null) {
+  // If binary field is null/undefined but suggestion exists, or vice versa, it's an error
+  if (isNullish(binaryValue) && hasSuggestionField && !isNullish(suggestionValue)) {
     errors.push(`Missing binary field '${binaryFieldName}' for indicator '${indicatorId}'`);
   }
   
-  if (suggestionValue === null && hasBinaryField && binaryValue !== null) {
+  if (isNullish(suggestionValue) && hasBinaryField && !isNullish(binaryValue)) {
     errors.push(`Missing suggestion field '${suggestionFieldName}' for indicator '${indicatorId}'`);
   }
 
@@ -111,24 +115,24 @@ export function validateNFAFieldPair(
     return { valid: false, errors, warnings };
   }
 
-  // Requirement 3.1: Validate binary value (only if not null)
-  if (binaryValue !== null && !isValidBinaryValue(binaryValue)) {
+  // Requirement 3.1: Validate binary value (only if not null/undefined)
+  if (!isNullish(binaryValue) && !isValidBinaryValue(binaryValue)) {
     errors.push(
       `Invalid binary value '${binaryValue}' for '${binaryFieldName}'. ` +
       `Must be one of: ${VALID_BINARY_VALUES.join(', ')}`
     );
   }
 
-  // Requirement 3.2: Validate suggestion field type (only if not null)
-  if (suggestionValue !== null && typeof suggestionValue !== 'string') {
+  // Requirement 3.2: Validate suggestion field type (only if not null/undefined)
+  if (!isNullish(suggestionValue) && typeof suggestionValue !== 'string') {
     errors.push(
       `Invalid suggestion value type for '${suggestionFieldName}'. ` +
       `Must be string or null, got ${typeof suggestionValue}`
     );
   }
 
-  // Additional validation: Check logical consistency (only if binary value is valid and not null)
-  if (binaryValue !== null && isValidBinaryValue(binaryValue) && isBinaryYes(binaryValue)) {
+  // Additional validation: Check logical consistency (only if binary value is valid and not null/undefined)
+  if (!isNullish(binaryValue) && isValidBinaryValue(binaryValue) && isBinaryYes(binaryValue)) {
     // Only check for empty suggestion if it's a valid string type
     if (typeof suggestionValue === 'string' && suggestionValue.trim() === '') {
       warnings.push(
@@ -250,7 +254,7 @@ export function validateSurveyNFAData(
  */
 function getSectionIndicators(sectionKey: string): string[] {
   const sectionMap: Record<string, string[]> = {
-    financial: ['projects', 'financial', 'socialPrograms', 'corruption'],
+    financial: ['projects', 'financial', 'socialPrograms'], // 'corruption' excluded - uses custom skip logic
     disaster: ['disasterInfo', 'evacuation'],
     safety: ['tanods', 'lupon', 'antiDrug'],
     social: ['healthServices', 'womenChildrenProtection', 'communityParticipation'],
