@@ -85,7 +85,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
           await addVisit(
             questionnaireIdParam,
             parseInt(cycleIdParam),
-            'Interview Started',
+            'Interview_Started',
             'Visit 1 - Respondent demographics completed',
             location || undefined
           )
@@ -97,7 +97,7 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 questionnaireId: questionnaireIdParam,
-                outcome: 'Interview Started',
+                outcome: 'Interview_Started',
                 notes: 'Visit 1 - Respondent demographics completed',
                 location,
               }),
