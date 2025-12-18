@@ -19,7 +19,6 @@ export function SurveyCycles() {
   const [surveyCycles, setSurveyCycles] = useState<any[]>([])
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [archivePrevious, setArchivePrevious] = useState(false)
-  const [dateTime, setDateTime] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -35,13 +34,6 @@ export function SurveyCycles() {
   const { toast } = useToast()
   const { activeCycle } = useActiveCycle()
   const { refreshActiveCycle } = useSurveyCycle()
-
-  useEffect(() => {
-    const update = () => setDateTime(new Date().toLocaleString())
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [])
 
   // Fetch survey cycles from API
   useEffect(() => {
@@ -387,7 +379,6 @@ export function SurveyCycles() {
             </div>
           )}
         </div>
-        <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
       </div>
 
       {/* Active Survey Cycle */}

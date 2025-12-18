@@ -267,7 +267,7 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
                 <option value="">Select Barangay</option>
                 {barangays.map((barangay) => (
                   <option key={barangay.id} value={barangay.id}>
-                    {barangay.name} (Pop: {barangay.population?.toLocaleString() || 0}, HH: {barangay.households?.toLocaleString() || 0})
+                    {barangay.name}
                   </option>
                 ))}
               </select>

@@ -27,7 +27,6 @@ import {
 export function Barangays() {
   const [barangays, setBarangays] = useState<any[]>([])
   const [selectedBarangay, setSelectedBarangay] = useState<any | null>(null)
-  const [dateTime, setDateTime] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingBarangay, setEditingBarangay] = useState<any | null>(null)
@@ -69,13 +68,6 @@ export function Barangays() {
   }) : [];
 
 
-
-  useEffect(() => {
-    const update = () => setDateTime(new Date().toLocaleString())
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     if (cycleLoading) return; // Wait for cycle to load
@@ -308,7 +300,6 @@ export function Barangays() {
               </p>
             )}
           </div>
-          <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
         </div>
         
         {/* Action Buttons */}

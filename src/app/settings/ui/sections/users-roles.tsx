@@ -165,7 +165,6 @@ export function UsersRoles() {
       password: "",
       role: "officer",
       status: "Active",
-      lastLogin: new Date().toISOString().slice(0, 10),
       barangayDesignation: null,
     })
   }
@@ -175,10 +174,9 @@ export function UsersRoles() {
   const handleAddSave = async () => {
     setSaving(true)
     try {
-      // Ensure lastLogin is a full ISO string
+      // Don't include lastLogin when creating a new user - it will be set on first login
       const payload = { 
         ...addForm, 
-        lastLogin: addForm.lastLogin ? new Date(addForm.lastLogin).toISOString() : undefined,
         barangayDesignation: addForm.barangayDesignation || null
       };
       const res = await fetch("/api/users", {
@@ -198,7 +196,6 @@ export function UsersRoles() {
         password: "",
         role: "officer",
         status: "active",
-        lastLogin: new Date().toISOString().slice(0, 10),
         barangayDesignation: null,
       })
       toast({
@@ -612,10 +609,6 @@ export function UsersRoles() {
                 <select name="status" value={addForm.status} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
                   {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Last Login</label>
-                <Input name="lastLogin" type="date" value={addForm.lastLogin} onChange={handleAddChange} />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

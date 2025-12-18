@@ -108,7 +108,6 @@ export function AwardManagement() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dateTime, setDateTime] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
 
   // Cycle transition management states
@@ -145,13 +144,6 @@ export function AwardManagement() {
   })
   const { toast } = useToast()
   const { activeCycle, hasActiveCycle } = useActiveCycle()
-
-  useEffect(() => {
-    const update = () => setDateTime(new Date().toLocaleString())
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [])
 
   // Load barangays and awards data
   useEffect(() => {
@@ -251,6 +243,10 @@ export function AwardManagement() {
   const executeAwardStatusChange = async (barangayId: number, isAwardee: boolean) => {
     try {
       setUpdating(true)
+      
+      // Get current status before updating
+      const currentBarangay = barangays.find(b => b.barangay_id === barangayId)
+      const wasAwardee = currentBarangay?.award_status?.is_awardee || false
 
       const response = await fetch('/api/cycle-awards', {
         method: 'POST',
@@ -285,12 +281,12 @@ export function AwardManagement() {
         )
       )
 
-      // Update summary statistics
-      if (summary) {
+      // Update summary statistics only if status actually changed
+      if (summary && wasAwardee !== isAwardee) {
         setSummary(prevSummary => {
           if (!prevSummary) return prevSummary;
           const change = isAwardee ? 1 : -1;
-          const newAwardeeCount = Math.max(0, prevSummary.awardeeCount + change);
+          const newAwardeeCount = Math.max(0, Math.min(prevSummary.totalBarangays, prevSummary.awardeeCount + change));
           const newNonAwardeeCount = prevSummary.totalBarangays - newAwardeeCount;
           const newPercentage = prevSummary.totalBarangays > 0
             ? Math.round((newAwardeeCount / prevSummary.totalBarangays) * 100)
@@ -306,7 +302,6 @@ export function AwardManagement() {
       }
 
       toast({
-        variant: "success",
         title: "Award Status Updated",
         description: `Barangay award status has been ${isAwardee ? 'granted' : 'removed'} successfully.`,
         duration: 4000
@@ -340,10 +335,19 @@ export function AwardManagement() {
   })
 
   const handleSelectAll = () => {
-    if (selectedBarangays.size === filteredBarangays.length) {
-      setSelectedBarangays(new Set())
+    const filteredIds = filteredBarangays.map(b => b.barangay_id)
+    const allFilteredSelected = filteredIds.every(id => selectedBarangays.has(id))
+    
+    if (allFilteredSelected && filteredIds.length > 0) {
+      // Unselect all filtered barangays
+      const newSelected = new Set(selectedBarangays)
+      filteredIds.forEach(id => newSelected.delete(id))
+      setSelectedBarangays(newSelected)
     } else {
-      setSelectedBarangays(new Set(filteredBarangays.map(b => b.barangay_id)))
+      // Select all filtered barangays
+      const newSelected = new Set(selectedBarangays)
+      filteredIds.forEach(id => newSelected.add(id))
+      setSelectedBarangays(newSelected)
     }
   }
 
@@ -427,7 +431,22 @@ export function AwardManagement() {
       if (summary) {
         setSummary(prevSummary => {
           if (!prevSummary) return prevSummary;
-          const change = isAwardee ? count : -count;
+          
+          // Calculate actual change by checking current status of selected barangays
+          const selectedBarangaysList = barangays.filter(b => selectedIds.includes(b.barangay_id))
+          const currentAwardees = selectedBarangaysList.filter(b => b.award_status?.is_awardee).length
+          const currentNonAwardees = selectedBarangaysList.length - currentAwardees
+          
+          // Calculate new counts based on the operation
+          let change = 0
+          if (isAwardee) {
+            // Granting awards: only non-awardees will change
+            change = currentNonAwardees
+          } else {
+            // Removing awards: only awardees will change
+            change = -currentAwardees
+          }
+          
           const newAwardeeCount = Math.max(0, Math.min(prevSummary.totalBarangays, prevSummary.awardeeCount + change));
           const newNonAwardeeCount = prevSummary.totalBarangays - newAwardeeCount;
           const newPercentage = prevSummary.totalBarangays > 0
@@ -446,7 +465,6 @@ export function AwardManagement() {
       setSelectedBarangays(new Set())
 
       toast({
-        variant: "success",
         title: "Bulk Update Completed",
         description: `${count} barangays have been ${isAwardee ? 'granted' : 'removed from'} award status.`,
         duration: 4000
@@ -594,7 +612,6 @@ export function AwardManagement() {
       }
 
       toast({
-        variant: "success",
         title: "Awards Copied Successfully",
         description: data.message,
         duration: 6000
@@ -642,6 +659,195 @@ export function AwardManagement() {
     }
   }
 
+  // Export awards to CSV
+  const handleExportAwards = () => {
+    try {
+      // Prepare CSV data
+      const headers = ['Barangay ID', 'Barangay Name', 'Households', 'Population', 'Award Status', 'Awarded Date', 'Notes']
+      const rows = barangays.map(barangay => [
+        barangay.barangay_id,
+        barangay.barangay_name,
+        barangay.households ?? '',
+        barangay.population ?? '',
+        barangay.award_status?.is_awardee ? 'Awardee' : 'Non-Awardee',
+        barangay.award_status?.awarded_date ? new Date(barangay.award_status.awarded_date).toLocaleDateString() : '',
+        barangay.award_status?.notes ?? ''
+      ])
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => {
+          // Escape cells containing commas or quotes
+          const cellStr = String(cell)
+          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            return `"${cellStr.replace(/"/g, '""')}"`
+          }
+          return cellStr
+        }).join(','))
+      ].join('\n')
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute('href', url)
+      link.setAttribute('download', `awards_${activeCycle?.name}_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Clean up the URL object to prevent memory leaks
+      URL.revokeObjectURL(url)
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${rows.length} barangay award records to CSV.`,
+        duration: 4000
+      })
+    } catch (err) {
+      console.error('Error exporting awards:', err)
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: err instanceof Error ? err.message : 'Failed to export awards data',
+        duration: 6000
+      })
+    }
+  }
+
+  // Import awards from CSV or JSON
+  const handleImportAwards = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUpdating(true)
+      const fileContent = await file.text()
+      let importData: Array<{ barangayId: number; isAwardee: boolean; notes?: string }> = []
+
+      if (file.name.endsWith('.csv')) {
+        // Parse CSV with proper handling of quoted values
+        const lines = fileContent.split('\n').filter(line => line.trim())
+        
+        // Parse CSV line considering quotes
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = []
+          let current = ''
+          let inQuotes = false
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i]
+            const nextChar = line[i + 1]
+            
+            if (char === '"') {
+              if (inQuotes && nextChar === '"') {
+                current += '"'
+                i++ // Skip next quote
+              } else {
+                inQuotes = !inQuotes
+              }
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim())
+              current = ''
+            } else {
+              current += char
+            }
+          }
+          result.push(current.trim())
+          return result
+        }
+        
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase())
+        
+        // Find column indices
+        const barangayIdIndex = headers.findIndex(h => h.includes('barangay id'))
+        const awardStatusIndex = headers.findIndex(h => h.includes('award status'))
+        const notesIndex = headers.findIndex(h => h.includes('notes'))
+
+        if (barangayIdIndex === -1 || awardStatusIndex === -1) {
+          throw new Error('CSV must contain "Barangay ID" and "Award Status" columns')
+        }
+
+        // Parse data rows
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseCSVLine(lines[i])
+          const barangayId = parseInt(cells[barangayIdIndex])
+          const awardStatus = cells[awardStatusIndex]?.toLowerCase()
+          const notes = notesIndex !== -1 && cells[notesIndex] ? cells[notesIndex] : undefined
+
+          if (!isNaN(barangayId) && awardStatus) {
+            importData.push({
+              barangayId,
+              isAwardee: awardStatus === 'awardee' || awardStatus === 'true' || awardStatus === '1',
+              notes: notes || undefined
+            })
+          }
+        }
+      } else if (file.name.endsWith('.json')) {
+        // Parse JSON
+        const jsonData = JSON.parse(fileContent)
+        if (!Array.isArray(jsonData)) {
+          throw new Error('JSON file must contain an array of award records')
+        }
+
+        importData = jsonData.map((record: any) => ({
+          barangayId: record.barangayId || record.barangay_id,
+          isAwardee: record.isAwardee || record.is_awardee || false,
+          notes: record.notes
+        }))
+      } else {
+        throw new Error('Unsupported file format. Please use CSV or JSON.')
+      }
+
+      if (importData.length === 0) {
+        throw new Error('No valid award data found in the file')
+      }
+
+      // Send bulk update request
+      const response = await fetch('/api/cycle-awards/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'update',
+          cycle_id: activeCycle?.cycle_id,
+          awards: importData
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to import awards')
+      }
+
+      // Reload data
+      await loadAwardsData()
+
+      toast({
+        title: "Import Successful",
+        description: `Successfully imported ${importData.length} award records.`,
+        duration: 4000
+      })
+
+      // Reset file input
+      event.target.value = ''
+    } catch (err) {
+      console.error('Error importing awards:', err)
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: err instanceof Error ? err.message : 'Failed to import awards data',
+        duration: 6000
+      })
+      // Reset file input
+      event.target.value = ''
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   if (!hasActiveCycle) {
     return (
       <div className="space-y-8 max-w-7xl">
@@ -651,7 +857,6 @@ export function AwardManagement() {
               <h1 className="text-3xl font-bold text-gray-900">Award Management</h1>
               <p className="text-gray-600 text-lg">Manage SGLGB awards for barangays by survey cycle</p>
             </div>
-            <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
           </div>
         </div>
 
@@ -682,7 +887,6 @@ export function AwardManagement() {
               <h1 className="text-3xl font-bold text-gray-900">Award Management</h1>
               <p className="text-gray-600 text-lg">Manage SGLGB awards for barangays by survey cycle</p>
             </div>
-            <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
           </div>
         </div>
 
@@ -732,7 +936,6 @@ export function AwardManagement() {
               <CycleDisplay className="font-medium text-blue-600" />
             </div>
           </div>
-          <span className="text-xs md:text-sm font-mono bg-gray-200 rounded px-2 py-1 self-end">{dateTime}</span>
         </div>
 
         {/* Action Buttons */}
@@ -740,17 +943,32 @@ export function AwardManagement() {
           <Button
             variant="outline"
             className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            onClick={handleExportAwards}
+            disabled={loading || !barangays.length}
           >
             <Download className="w-4 h-4 mr-2" />
             Export Awards
           </Button>
-          <Button
-            variant="outline"
-            className="border-purple-600 text-purple-600 hover:bg-purple-50"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Import Awards
-          </Button>
+          <label htmlFor="import-awards-file">
+            <Button
+              variant="outline"
+              className="border-purple-600 text-purple-600 hover:bg-purple-50"
+              disabled={loading || updating}
+              asChild
+            >
+              <span>
+                <Upload className="w-4 h-4 mr-2" />
+                Import Awards
+              </span>
+            </Button>
+          </label>
+          <input
+            id="import-awards-file"
+            type="file"
+            accept=".csv,.json"
+            onChange={handleImportAwards}
+            className="hidden"
+          />
         </div>
 
         {/* Cycle Transition Management */}
@@ -1052,7 +1270,7 @@ export function AwardManagement() {
                 onClick={handleSelectAll}
                 className="text-sm"
               >
-                {selectedBarangays.size === barangays.length ? (
+                {filteredBarangays.length > 0 && filteredBarangays.every(b => selectedBarangays.has(b.barangay_id)) ? (
                   <CheckSquare className="w-4 h-4 mr-1" />
                 ) : (
                   <Square className="w-4 h-4 mr-1" />
@@ -1063,8 +1281,8 @@ export function AwardManagement() {
           </CardTitle>
         </CardHeader>
 
-        {/* Search Bar */}
-        <div className="px-6 pb-4">
+        {/* Search Bar and Bulk Operations */}
+        <div className="px-6 pb-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -1074,6 +1292,38 @@ export function AwardManagement() {
               className="pl-10 pr-4 py-2 w-full"
             />
           </div>
+
+          {/* Bulk Operations */}
+          {selectedBarangays.size > 0 && (
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <CheckSquare className="w-4 h-4" />
+                <span className="font-medium">{selectedBarangays.size} barangay{selectedBarangays.size > 1 ? 's' : ''} selected</span>
+              </div>
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                  onClick={() => handleBulkAwardOperationRequest(true)}
+                  disabled={updating}
+                >
+                  <Award className="w-3 h-3 mr-1" />
+                  Grant Award to Selected
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-600 text-red-600 hover:bg-red-50"
+                  onClick={() => handleBulkAwardOperationRequest(false)}
+                  disabled={updating}
+                >
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  Remove Award from Selected
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <CardContent>
@@ -1093,7 +1343,7 @@ export function AwardManagement() {
                         onClick={handleSelectAll}
                         className="p-0 h-auto"
                       >
-                        {selectedBarangays.size === barangays.length ? (
+                        {filteredBarangays.length > 0 && filteredBarangays.every(b => selectedBarangays.has(b.barangay_id)) ? (
                           <CheckSquare className="w-4 h-4" />
                         ) : (
                           <Square className="w-4 h-4" />
