@@ -1,10 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, MapPin, User, Calendar, FileText, AlertTriangle } from "lucide-react";
+import { X, MapPin, User, Calendar, FileText, AlertTriangle, Clock } from "lucide-react";
 import InterviewMapView from "@/components/supervisor/InterviewMapView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { GPSCoordinates } from "@/app/survey/forms/utils/gpsVerification";
+
+interface Visit {
+  visit_id: number;
+  visit_number: number;
+  visit_timestamp: string;
+  outcome: string;
+  notes: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+}
 
 interface InterviewDetailModalProps {
   isOpen: boolean;
@@ -39,14 +49,17 @@ export default function InterviewDetailModal({
   questionnaireId,
 }: InterviewDetailModalProps) {
   const [interview, setInterview] = useState<InterviewDetails | null>(null);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingVisits, setLoadingVisits] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && interviewId) {
+    if (isOpen && interviewId && questionnaireId) {
       fetchInterviewDetails();
+      fetchVisitHistory();
     }
-  }, [isOpen, interviewId]);
+  }, [isOpen, interviewId, questionnaireId]);
 
   const fetchInterviewDetails = async () => {
     setLoading(true);
@@ -66,6 +79,26 @@ export default function InterviewDetailModal({
       setError(err instanceof Error ? err.message : "Failed to load interview details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVisitHistory = async () => {
+    setLoadingVisits(true);
+
+    try {
+      const response = await fetch(`/api/visits/${questionnaireId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch visit history");
+      }
+
+      const data = await response.json();
+      setVisits(data.visits || []);
+    } catch (err) {
+      console.error("Error fetching visit history:", err);
+      // Don't set error state, just log it - visits are optional
+    } finally {
+      setLoadingVisits(false);
     }
   };
 
@@ -110,8 +143,14 @@ export default function InterviewDetailModal({
 
           {interview && !loading && !error && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="visit-history">
+                  Visit History
+                  {visits.length > 0 && (
+                    <span className="ml-1 text-xs">({visits.length})</span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="gps-verification">
                   GPS Verification
                   {interview.gps_verification_status === "flagged" && (
@@ -180,6 +219,75 @@ export default function InterviewDetailModal({
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Visit History Tab */}
+              <TabsContent value="visit-history" className="mt-4">
+                {loadingVisits ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : visits.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No visits logged</p>
+                    <p className="text-gray-400 text-xs mt-1">Visit history will appear here once visits are recorded</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {visits.map((visit) => (
+                      <div key={visit.visit_id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-blue-600">{visit.visit_number}</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">Visit #{visit.visit_number}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(visit.visit_timestamp).toLocaleString('en-PH', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            visit.outcome === 'Interview_Completed' ? 'bg-green-100 text-green-800' :
+                            visit.outcome === 'Interview_Started' ? 'bg-blue-100 text-blue-800' :
+                            visit.outcome === 'Callback_Needed' ? 'bg-yellow-100 text-yellow-800' :
+                            visit.outcome === 'Refused' ? 'bg-red-100 text-red-800' :
+                            visit.outcome === 'No_Qualified_Respondent' ? 'bg-orange-100 text-orange-800' :
+                            visit.outcome === 'Outright_Refusal' ? 'bg-red-100 text-red-800' :
+                            visit.outcome === 'Household_Moved' ? 'bg-gray-100 text-gray-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {visit.outcome.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        
+                        {visit.notes && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs font-medium text-gray-700 mb-1">Notes:</p>
+                            <p className="text-xs text-gray-600 whitespace-pre-wrap">{visit.notes}</p>
+                          </div>
+                        )}
+                        
+                        {visit.location_lat && visit.location_lng && (
+                          <div className="mt-2 flex items-center space-x-1 text-xs text-gray-500">
+                            <MapPin className="w-3 h-3" />
+                            <span>
+                              {visit.location_lat.toFixed(6)}, {visit.location_lng.toFixed(6)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               {/* GPS Verification Tab */}

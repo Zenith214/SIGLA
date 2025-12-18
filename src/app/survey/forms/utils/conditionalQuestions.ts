@@ -124,8 +124,8 @@ export function createUnawarenessReasonQuestion(
   const question: Question = {
     id: questionId,
     type: 'radio',
-    question: questionId, // Will be translated via getTranslatedQuestion()
-    options: englishOptions, // Will be translated via getTranslatedOptions()
+    question: getUnawarenessQuestionText(language),
+    options: UNAWARENESS_REASON_OPTIONS[language],
     required: (formData: any) => {
       const answer = formData[awarenessQuestionId];
       return answer === 'No' || answer === 'Hindi' || answer === 'Hindi (No)' || answer === 'Dili';
@@ -136,7 +136,7 @@ export function createUnawarenessReasonQuestion(
       {
         id: `${serviceId}_unawareness_reason_other`,
         type: 'textarea',
-        question: 'Please specify:', // Will be translated
+        question: OTHER_REASON_LABELS[language],
         required: (formData: any) => {
           const mainAnswer = formData[questionId];
           // Check against all language versions of "Other Reason"
@@ -175,8 +175,8 @@ export function createNonAvailmentReasonQuestion(
   return {
     id: questionId,
     type: 'radio',
-    question: questionId, // Will be translated via getTranslatedQuestion()
-    options: englishOptions, // Will be translated via getTranslatedOptions()
+    question: getNonAvailmentQuestionText(language),
+    options: NON_AVAILMENT_REASON_OPTIONS[language],
     required: (formData: any) => {
       const isAware = formData[awarenessQuestionId] === 'Yes' || 
                      formData[awarenessQuestionId] === 'Oo' || 
@@ -193,7 +193,7 @@ export function createNonAvailmentReasonQuestion(
       {
         id: `${serviceId}_non_availment_reason_other`,
         type: 'textarea',
-        question: 'Please specify:', // Will be translated
+        question: OTHER_REASON_LABELS[language],
         required: (formData: any) => {
           const mainAnswer = formData[questionId];
           // Check against all language versions of "Other Reason"

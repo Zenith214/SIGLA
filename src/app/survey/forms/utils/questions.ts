@@ -305,14 +305,6 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           required: false,
           // No dependsOn - always shown to everyone who reaches this point
         },
-        {
-          id: "suggestionsCorruption",
-          type: "textarea",
-          ...formatQuestionText("20. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan? / What are your suggestions to better prevent or address corruption in our barangay or municipality?"),
-          required: false,
-          dependsOn: "nfaBinaryCorruption",
-          dependsOnValue: "Oo (Yes)",
-        },
       ];
 
     case "disaster":
@@ -379,9 +371,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "endOfDisasterSection" } // STOP this section
+            { value: "No", skipToId: "evacuation_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("evacuation", "awarenessEvacuation", "english"),
         {
           id: "locationEvacuation",
           type: "radio",
@@ -391,9 +384,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessEvacuation",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "endOfDisasterSection" } // STOP this section
+            { value: "No", skipToId: "evacuation_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("evacuation", "awarenessEvacuation", "locationEvacuation", "english"),
         {
           id: "satisfactionEvacuation",
           type: "radio",
@@ -432,9 +426,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessLupon" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "tanods_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("tanods", "awarenessTanods", "english"),
         {
           id: "experienceTanods",
           type: "radio",
@@ -444,9 +439,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessTanods",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessLupon" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "tanods_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("tanods", "awarenessTanods", "experienceTanods", "english"),
         {
           id: "satisfactionTanods",
           type: "radio",
@@ -482,9 +478,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessAntiDrug" } // Skip to Q9 (start of Part C)
+            { value: "No", skipToId: "lupon_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("lupon", "awarenessLupon", "english"),
         {
           id: "experienceLupon",
           type: "radio",
@@ -494,9 +491,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessLupon",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessAntiDrug" } // Skip to Q9 (start of Part C)
+            { value: "No", skipToId: "lupon_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("lupon", "awarenessLupon", "experienceLupon", "english"),
         {
           id: "satisfactionLupon",
           type: "radio",
@@ -532,9 +530,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "endOfSafetySection" } // STOP this section
+            { value: "No", skipToId: "antiDrug_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("antiDrug", "awarenessAntiDrug", "english"),
         {
           id: "experienceAntiDrug",
           type: "radio",
@@ -544,9 +543,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessAntiDrug",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "endOfSafetySection" } // STOP this section
+            { value: "No", skipToId: "antiDrug_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("antiDrug", "awarenessAntiDrug", "experienceAntiDrug", "english"),
         {
           id: "satisfactionAntiDrug",
           type: "radio",
@@ -584,9 +584,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessWomenChildrenProtection" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "healthServices_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("healthServices", "awarenessHealthServices", "english"),
         {
           id: "availmentHealthServices",
           type: "radio",
@@ -596,9 +597,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessHealthServices",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessWomenChildrenProtection" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "healthServices_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("healthServices", "awarenessHealthServices", "availmentHealthServices", "english"),
         {
           id: "satisfactionHealthServices",
           type: "radio",
@@ -634,9 +636,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessCommunityParticipation" } // Skip to Q9 (start of Part C)
+            { value: "No", skipToId: "womenChildrenProtection_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("womenChildrenProtection", "awarenessWomenChildrenProtection", "english"),
         {
           id: "availmentWomenChildrenProtection",
           type: "radio",
@@ -646,9 +649,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessWomenChildrenProtection",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessCommunityParticipation" } // Skip to Q9 (start of Part C)
+            { value: "No", skipToId: "womenChildrenProtection_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("womenChildrenProtection", "awarenessWomenChildrenProtection", "availmentWomenChildrenProtection", "english"),
         {
           id: "satisfactionWomenChildrenProtection",
           type: "radio",
@@ -684,9 +688,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "endOfSocialSection" } // STOP this section
+            { value: "No", skipToId: "communityParticipation_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("communityParticipation", "awarenessCommunityParticipation", "english"),
         {
           id: "availmentCommunityParticipation",
           type: "radio",
@@ -696,9 +701,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessCommunityParticipation",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "endOfSocialSection" } // STOP this section
+            { value: "No", skipToId: "communityParticipation_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("communityParticipation", "awarenessCommunityParticipation", "availmentCommunityParticipation", "english"),
         {
           id: "satisfactionCommunityParticipation",
           type: "radio",
@@ -736,9 +742,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "endOfBusinessSection" } // STOP this section
+            { value: "No", skipToId: "businessClearance_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("businessClearance", "awarenessBusinessClearance", "english"),
         {
           id: "availmentBusinessClearance",
           type: "radio",
@@ -748,9 +755,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessBusinessClearance",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "endOfBusinessSection" } // STOP this section
+            { value: "No", skipToId: "businessClearance_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("businessClearance", "awarenessBusinessClearance", "availmentBusinessClearance", "english"),
         {
           id: "satisfactionBusinessClearance",
           type: "radio",
@@ -788,9 +796,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "endOfEnvironmentalSection" } // STOP. End of survey.
+            { value: "No", skipToId: "wasteManagement_unawareness_reason" }
           ]
         },
+        createUnawarenessReasonQuestion("wasteManagement", "awarenessWasteManagement", "english"),
         {
           id: "availmentWasteManagement",
           type: "radio",
@@ -800,9 +809,10 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessWasteManagement",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "endOfEnvironmentalSection" } // STOP. End of survey.
+            { value: "No", skipToId: "wasteManagement_non_availment_reason" }
           ]
         },
+        createNonAvailmentReasonQuestion("wasteManagement", "awarenessWasteManagement", "availmentWasteManagement", "english"),
         {
           id: "satisfactionWasteManagement",
           type: "radio",

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 21, 2025 at 08:17 AM
+-- Generation Time: Sep 01, 2025 at 12:30 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,73 @@ SET time_zone = "+00:00";
 --
 -- Database: `sigla_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `action_grid_classification`
+--
+
+CREATE TABLE `action_grid_classification` (
+  `classification_id` int(11) NOT NULL,
+  `barangay_id` int(11) NOT NULL,
+  `service_area` varchar(50) NOT NULL,
+  `quadrant` enum('MAINTAIN','OPPORTUNITIES','MONITOR','FIX_NOW') NOT NULL,
+  `awareness_score` decimal(5,4) DEFAULT NULL,
+  `availment_score` decimal(5,4) DEFAULT NULL,
+  `satisfaction_score` decimal(5,4) DEFAULT NULL,
+  `need_action_score` decimal(5,4) DEFAULT NULL,
+  `bottleneck_stage` varchar(50) DEFAULT NULL,
+  `recommendations` longtext DEFAULT NULL,
+  `confidence_level` decimal(5,4) DEFAULT NULL,
+  `data_completeness` decimal(5,4) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updated_at` datetime(3) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `adaptive_threshold`
+--
+
+CREATE TABLE `adaptive_threshold` (
+  `id` int(11) NOT NULL,
+  `barangay_id` int(11) DEFAULT NULL,
+  `service_area` varchar(100) NOT NULL,
+  `threshold_type` enum('satisfaction_high','satisfaction_low','awareness_high','awareness_low','availment_high','availment_low','need_action_high','need_action_low','action_grid_quadrant_x','action_grid_quadrant_y') NOT NULL,
+  `threshold_value` decimal(5,2) NOT NULL,
+  `calculation_method` enum('rule_based','percentile','statistical_analysis','ml_derived') NOT NULL,
+  `sample_size` int(11) NOT NULL,
+  `confidence_level` decimal(3,2) NOT NULL,
+  `percentile_rank` int(11) DEFAULT NULL,
+  `statistical_data` longtext DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updated_at` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ai_insight`
+--
+
+CREATE TABLE `ai_insight` (
+  `insight_id` int(11) NOT NULL,
+  `barangay_id` int(11) DEFAULT NULL,
+  `insight_type` enum('comprehensive','comparative','trend_analysis','bottleneck_analysis','recommendation') NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `content` longtext NOT NULL,
+  `key_findings` longtext DEFAULT NULL,
+  `recommendations` longtext DEFAULT NULL,
+  `confidence_score` decimal(5,4) DEFAULT NULL,
+  `data_sources` longtext DEFAULT NULL,
+  `generated_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `expires_at` datetime(3) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -67,58 +134,97 @@ CREATE TABLE `barangay` (
   `updated_at` datetime(3) DEFAULT NULL,
   `households` int(11) DEFAULT 0,
   `population` int(11) DEFAULT 0,
-  `area` decimal(8,2) DEFAULT NULL,
   `captain` varchar(191) DEFAULT NULL,
   `currentStatus` varchar(32) DEFAULT NULL,
-  `history` longtext DEFAULT NULL
+  `history` longtext DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `area_sqkm` decimal(10,4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `barangay`
---
-
-INSERT INTO `barangay` (`barangay_id`, `barangay_name`, `seal`, `description`, `is_active`, `created_at`, `updated_at`, `households`, `population`, `area`, `captain`, `currentStatus`, `history`) VALUES
-(26, 'Katipunan', 'no', 'A progressive barangay known for its community participation and governance excellence.', 1, '2025-08-17 08:52:47.308', NULL, 3120, 12450, 15.20, NULL, 'Completed', NULL),
-(27, 'Tanwalang', 'yes', 'A developing barangay with ongoing improvement initiatives.', 1, '2025-08-17 08:52:47.313', NULL, 2180, 8750, 12.80, NULL, 'In Progress', NULL),
-(28, 'Solong Vale', 'yes', 'One of the largest barangays with excellent governance and community services.', 1, '2025-08-17 08:52:47.318', NULL, 3800, 15200, 18.50, NULL, 'Completed', NULL),
-(29, 'Tala-o', 'no', 'A smaller barangay with potential for growth and development.', 1, '2025-08-17 08:52:47.322', NULL, 1720, 6890, 9.30, NULL, 'Pending', NULL),
-(30, 'Balasinon', 'yes', 'A mid-sized barangay working towards improved governance standards.', 1, '2025-08-17 08:52:47.326', NULL, 2335, 9340, 11.70, NULL, 'In Progress', NULL),
-(31, 'Haradabutai', 'no', 'A well-managed barangay with strong community engagement.', 1, '2025-08-17 08:52:47.330', NULL, 1912, 7650, 10.40, NULL, 'Completed', NULL),
-(32, 'Roxas', 'no', 'Named after a former president, known for its organized governance structure.', 1, '2025-08-17 08:52:47.335', NULL, 2800, 11200, 14.10, NULL, 'Completed', NULL),
-(33, 'New Cebu', 'no', 'A large barangay with diverse communities and ongoing development projects.', 1, '2025-08-17 08:52:47.340', NULL, 3450, 13800, 16.90, NULL, 'In Progress', NULL),
-(34, 'Palili', 'no', 'A small rural barangay with agricultural focus.', 1, '2025-08-17 08:52:47.344', NULL, 1355, 5420, 7.80, NULL, 'Pending', NULL),
-(35, 'Talas', 'yes', 'A barangay with strong local leadership and community programs.', 1, '2025-08-17 08:52:47.347', NULL, 2240, 8960, 12.30, NULL, 'Completed', NULL),
-(36, 'Carre', 'yes', 'A developing barangay with focus on infrastructure improvements.', 1, '2025-08-17 08:52:47.351', NULL, 1695, 6780, 9.10, NULL, 'In Progress', NULL),
-(37, 'Buguis', 'yes', 'A well-established barangay with excellent public services.', 1, '2025-08-17 08:52:47.355', NULL, 2575, 10300, 13.60, NULL, 'Completed', NULL),
-(38, 'McKinley', 'no', 'A barangay named after the American president, focusing on modernization.', 1, '2025-08-17 08:52:47.359', NULL, 1972, 7890, 10.70, NULL, 'Pending', NULL),
-(39, 'Kiblagon', 'no', 'A barangay with rich cultural heritage and ongoing development initiatives.', 1, '2025-08-17 08:52:47.363', NULL, 2467, 9870, 12.90, NULL, 'In Progress', NULL),
-(40, 'Laperas', 'no', 'A compact barangay with efficient governance and community services.', 1, '2025-08-17 08:52:47.367', NULL, 1635, 6540, 8.90, NULL, 'Completed', NULL),
-(41, 'Clib', 'no', 'A barangay working towards improved infrastructure and services.', 1, '2025-08-17 08:52:47.371', NULL, 2030, 8120, 11.20, NULL, 'In Progress', NULL),
-(42, 'Osmena', 'no', 'Named after a former president, known for its progressive governance.', 1, '2025-08-17 08:52:47.375', NULL, 2912, 11650, 14.80, NULL, 'Completed', NULL),
-(43, 'Luparan', 'yes', 'A barangay with potential for agricultural and tourism development.', 1, '2025-08-17 08:52:47.378', NULL, 1830, 7320, 9.80, NULL, 'Pending', NULL),
-(44, 'Poblacion', 'yes', 'The town center and largest barangay, serving as the commercial and administrative hub.', 1, '2025-08-17 08:52:47.382', NULL, 4200, 16800, 20.30, NULL, 'Completed', NULL),
-(45, 'Tagolilong', 'no', 'A small barangay with focus on sustainable development.', 1, '2025-08-17 08:52:47.385', NULL, 1472, 5890, 8.10, NULL, 'In Progress', NULL),
-(46, 'Lapla', 'no', 'A well-managed barangay with strong community participation.', 1, '2025-08-17 08:52:47.389', NULL, 2362, 9450, 12.60, NULL, 'Completed', NULL),
-(47, 'Litos', 'no', 'A barangay with opportunities for growth and development.', 1, '2025-08-17 08:52:47.392', NULL, 1785, 7140, 9.50, NULL, 'Pending', NULL),
-(48, 'Parame', 'no', 'A developing barangay with focus on community empowerment.', 1, '2025-08-17 08:52:47.395', NULL, 2167, 8670, 11.40, NULL, 'In Progress', NULL),
-(49, 'Labon', 'no', 'A small but well-organized barangay with effective local governance.', 1, '2025-08-17 08:52:47.399', NULL, 1557, 6230, 8.60, NULL, 'Completed', NULL),
-(50, 'Waterfall', 'no', 'The smallest barangay, known for its natural beauty and eco-tourism potential.', 1, '2025-08-17 08:52:47.403', NULL, 1222, 4890, 6.90, NULL, 'Pending', NULL);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `barangay_history`
+-- Table structure for table `barangay_intelligence_tier`
 --
 
-CREATE TABLE `barangay_history` (
-  `history_id` int(11) NOT NULL,
+CREATE TABLE `barangay_intelligence_tier` (
   `barangay_id` int(11) NOT NULL,
-  `year` varchar(4) NOT NULL,
-  `status` varchar(32) NOT NULL,
-  `score` varchar(10) DEFAULT NULL,
-  `notes` text DEFAULT NULL,
+  `current_tier` int(11) NOT NULL DEFAULT 0,
+  `response_count` int(11) NOT NULL DEFAULT 0,
+  `data_quality_score` decimal(5,4) DEFAULT NULL,
+  `last_tier_evaluation` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `tier_upgrade_history` longtext DEFAULT NULL,
+  `capabilities` longtext DEFAULT NULL,
+  `next_upgrade_threshold` int(11) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updated_at` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `funnel_score`
+--
+
+CREATE TABLE `funnel_score` (
+  `score_id` int(11) NOT NULL,
+  `barangay_id` int(11) NOT NULL,
+  `service_area` varchar(50) NOT NULL,
+  `awareness_score` decimal(5,4) NOT NULL,
+  `availment_score` decimal(5,4) NOT NULL,
+  `satisfaction_score` decimal(5,4) NOT NULL,
+  `need_action_score` decimal(5,4) NOT NULL,
+  `sample_size` int(11) NOT NULL,
+  `confidence_level` decimal(5,4) NOT NULL,
+  `calculation_date` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ml_model`
+--
+
+CREATE TABLE `ml_model` (
+  `model_id` int(11) NOT NULL,
+  `model_name` varchar(100) NOT NULL,
+  `model_type` enum('random_forest','linear_regression','classification','clustering') NOT NULL,
+  `model_version` varchar(20) NOT NULL,
+  `model_file_path` varchar(500) DEFAULT NULL,
+  `model_parameters` longtext DEFAULT NULL,
+  `training_data` longtext DEFAULT NULL,
+  `performance_metrics` longtext DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
   `updated_at` datetime(3) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `ml_model`
+--
+
+INSERT INTO `ml_model` (`model_id`, `model_name`, `model_type`, `model_version`, `model_file_path`, `model_parameters`, `training_data`, `performance_metrics`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'local_fallback_v1.0', 'random_forest', '1.0', NULL, NULL, NULL, NULL, 1, '2025-08-20 01:23:35.284', NULL),
+(2, 'local_fallback_v1.0', 'random_forest', '1.0', NULL, NULL, NULL, NULL, 1, '2025-08-20 01:23:35.306', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ml_prediction`
+--
+
+CREATE TABLE `ml_prediction` (
+  `prediction_id` int(11) NOT NULL,
+  `model_id` int(11) NOT NULL,
+  `barangay_id` int(11) NOT NULL,
+  `prediction_type` enum('satisfaction_score','action_grid_classification','funnel_performance','trend_prediction') NOT NULL,
+  `predicted_value` decimal(10,4) NOT NULL,
+  `confidence_score` decimal(5,4) DEFAULT NULL,
+  `input_features` longtext DEFAULT NULL,
+  `prediction_date` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -323,6 +429,28 @@ CREATE TABLE `survey_validation` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `threshold_history`
+--
+
+CREATE TABLE `threshold_history` (
+  `history_id` int(11) NOT NULL,
+  `barangay_id` int(11) DEFAULT NULL,
+  `service_area` varchar(100) NOT NULL,
+  `threshold_type` enum('satisfaction_high','satisfaction_low','awareness_high','awareness_low','availment_high','availment_low','need_action_high','need_action_low','action_grid_quadrant_x','action_grid_quadrant_y') NOT NULL,
+  `old_value` decimal(5,2) DEFAULT NULL,
+  `new_value` decimal(5,2) NOT NULL,
+  `change_reason` varchar(200) DEFAULT NULL,
+  `sample_size_before` int(11) DEFAULT NULL,
+  `sample_size_after` int(11) NOT NULL,
+  `confidence_before` decimal(3,2) DEFAULT NULL,
+  `confidence_after` decimal(3,2) NOT NULL,
+  `rollback_available` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `user`
 --
 
@@ -336,49 +464,55 @@ CREATE TABLE `user` (
   `lastName` varchar(191) NOT NULL,
   `organization` varchar(191) DEFAULT NULL,
   `phone` varchar(191) DEFAULT NULL,
-  `lastLogin` datetime DEFAULT NULL,
   `role` varchar(32) DEFAULT 'Viewer',
-  `status` varchar(16) DEFAULT 'Active'
+  `status` varchar(16) DEFAULT 'Active',
+  `lastLogin` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`id`, `email`, `password`, `createdAt`, `firstName`, `jobTitle`, `lastName`, `organization`, `phone`, `lastLogin`, `role`, `status`) VALUES
-(1, 'admin@sigla.com', '$2b$10$krugSCCTkRFiXiZcykIJtOZWlXmhSAEAoLRtetp6itd6z2pmL9raC', '2025-08-17 08:44:03.445', 'Admin', 'System Administrator', 'User', 'SIGLA System', '+639123456789', '2025-08-21 05:45:31', 'admin', 'Active'),
-(2, 'viewer@sigla.com', '$2b$10$tibj85SkmyjATrB/yAnD7.CG61devwPXojnVza/DBYuV6Di7YxNQ2', '2025-08-17 08:44:03.515', 'Test', 'Data Viewer', 'Viewer', 'Test Organization', '+639987654321', NULL, 'viewer', 'Active'),
-(3, 'interviewer@sigla.com', '$2b$10$r/yMJh504/fP84f7wnpL1OregEa.f3amWKypu847UbyCq2R05AqV6', '2025-08-17 08:54:34.843', 'Survey', 'Field Interviewer', 'Interviewer', 'SIGLA Survey Team', '+639111222333', '2025-08-17 08:57:20', 'interviewer', 'Active');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `_prisma_migrations`
---
-
-CREATE TABLE `_prisma_migrations` (
-  `id` varchar(36) NOT NULL,
-  `checksum` varchar(64) NOT NULL,
-  `finished_at` datetime(3) DEFAULT NULL,
-  `migration_name` varchar(255) NOT NULL,
-  `logs` text DEFAULT NULL,
-  `rolled_back_at` datetime(3) DEFAULT NULL,
-  `started_at` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `applied_steps_count` int(10) UNSIGNED NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `_prisma_migrations`
---
-
-INSERT INTO `_prisma_migrations` (`id`, `checksum`, `finished_at`, `migration_name`, `logs`, `rolled_back_at`, `started_at`, `applied_steps_count`) VALUES
-('1cd89375-9abf-4724-b643-393d06434eea', '72db6dc801d3874e71f5cc0cabca203796c51ea2fab4ee3285e57786f17ccd6a', '2025-08-17 08:38:37.344', '20250710134657_init', NULL, NULL, '2025-08-17 08:38:37.305', 1),
-('35fa7552-c54b-48ab-86c8-47adb96d1f7f', '1e280b6578020628e78da0fbb9f2af26267c3a9b19a1eeafbef4524b9123b135', '2025-08-17 08:38:46.315', '20250817083845_add_area_field_and_barangay_history', NULL, NULL, '2025-08-17 08:38:45.390', 1),
-('71d23763-7aa7-472e-94e3-5edf31eb8774', 'a4604cac5b395b4d316336ecc1a9a87587856bf5014e63c6301aa7cb550c229e', '2025-08-17 08:38:37.363', '20250710154327_add_user_fields', NULL, NULL, '2025-08-17 08:38:37.346', 1);
+INSERT INTO `user` (`id`, `email`, `password`, `createdAt`, `firstName`, `jobTitle`, `lastName`, `organization`, `phone`, `role`, `status`, `lastLogin`) VALUES
+(1, 'admin@sigla.com', '$2b$10$fgv5t6FmsTMeUD/r8YDQ5ep6kBzCc/DMFsnvqAxMGiUCDX/4EKg4y', '2025-08-20 01:17:25.321', 'System', 'System Administrator', 'Administrator', 'SIGLA System', '+63-123-456-7890', 'Admin', 'Active', NULL),
+(2, 'interviewer@sigla.com', '$2b$10$LOE1L/owgJ7mSyolmcUjxODhAbQEl/8BFRQu44YrOCtF1uB5m6urO', '2025-08-20 01:17:25.341', 'Survey', 'Field Interviewer', 'Interviewer', 'SIGLA Survey Team', '+63-123-456-7891', 'Interviewer', 'Active', NULL),
+(3, 'viewer@sigla.com', '$2b$10$C9hkxoTwf640ZjP1aJwVXOzdm9PGYFRwv0GK3DmUm1sb8SJYCLRrS', '2025-08-20 01:17:25.346', 'Data', 'Data Analyst', 'Viewer', 'SIGLA Analytics Team', '+63-123-456-7892', 'Viewer', 'Active', NULL),
+(4, 'test.admin@sigla.com', '$2b$10$8/VIsoSAIjWKPdiyz3zkKe4hPqt3tZvFn9nTpOD49rMEO9iw5Fzsm', '2025-08-20 01:17:25.435', 'Test', 'Test Administrator', 'Admin', 'SIGLA Test', '+63-123-456-7893', 'Admin', 'Active', '2025-08-20 01:23:25'),
+(5, 'test.interviewer@sigla.com', '$2b$10$XnVDtraUMR6auvOrzxexOOexI/zA9/hEPqBZAuObZ0ZumZVeGf6I2', '2025-08-20 01:17:25.521', 'Test', 'Test Interviewer', 'Interviewer', 'SIGLA Test', '+63-123-456-7894', 'Interviewer', 'Active', NULL);
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `action_grid_classification`
+--
+ALTER TABLE `action_grid_classification`
+  ADD PRIMARY KEY (`classification_id`),
+  ADD UNIQUE KEY `barangay_service_unique` (`barangay_id`,`service_area`),
+  ADD KEY `idx_action_grid_barangay` (`barangay_id`),
+  ADD KEY `idx_action_grid_quadrant` (`quadrant`),
+  ADD KEY `idx_action_grid_service` (`service_area`);
+
+--
+-- Indexes for table `adaptive_threshold`
+--
+ALTER TABLE `adaptive_threshold`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `barangay_service_threshold_unique` (`barangay_id`,`service_area`,`threshold_type`),
+  ADD KEY `idx_adaptive_threshold_barangay` (`barangay_id`),
+  ADD KEY `idx_adaptive_threshold_service` (`service_area`),
+  ADD KEY `idx_adaptive_threshold_type` (`threshold_type`),
+  ADD KEY `idx_adaptive_threshold_active` (`is_active`);
+
+--
+-- Indexes for table `ai_insight`
+--
+ALTER TABLE `ai_insight`
+  ADD PRIMARY KEY (`insight_id`),
+  ADD KEY `idx_ai_insight_barangay` (`barangay_id`),
+  ADD KEY `idx_ai_insight_type` (`insight_type`),
+  ADD KEY `idx_ai_insight_generated` (`generated_at`);
 
 --
 -- Indexes for table `assignment`
@@ -402,12 +536,37 @@ ALTER TABLE `barangay`
   ADD UNIQUE KEY `barangay_name_unique` (`barangay_name`);
 
 --
--- Indexes for table `barangay_history`
+-- Indexes for table `barangay_intelligence_tier`
 --
-ALTER TABLE `barangay_history`
-  ADD PRIMARY KEY (`history_id`),
-  ADD KEY `fk_history_barangay_id` (`barangay_id`),
-  ADD KEY `idx_barangay_history_year` (`year`);
+ALTER TABLE `barangay_intelligence_tier`
+  ADD PRIMARY KEY (`barangay_id`),
+  ADD KEY `idx_intelligence_tier_current` (`current_tier`),
+  ADD KEY `idx_intelligence_tier_response_count` (`response_count`),
+  ADD KEY `idx_intelligence_tier_evaluation` (`last_tier_evaluation`);
+
+--
+-- Indexes for table `funnel_score`
+--
+ALTER TABLE `funnel_score`
+  ADD PRIMARY KEY (`score_id`),
+  ADD UNIQUE KEY `barangay_service_date_unique` (`barangay_id`,`service_area`,`calculation_date`),
+  ADD KEY `idx_funnel_score_barangay` (`barangay_id`),
+  ADD KEY `idx_funnel_score_service` (`service_area`);
+
+--
+-- Indexes for table `ml_model`
+--
+ALTER TABLE `ml_model`
+  ADD PRIMARY KEY (`model_id`);
+
+--
+-- Indexes for table `ml_prediction`
+--
+ALTER TABLE `ml_prediction`
+  ADD PRIMARY KEY (`prediction_id`),
+  ADD KEY `idx_ml_prediction_barangay` (`barangay_id`),
+  ADD KEY `idx_ml_prediction_model` (`model_id`),
+  ADD KEY `idx_ml_prediction_type` (`prediction_type`);
 
 --
 -- Indexes for table `survey`
@@ -502,6 +661,16 @@ ALTER TABLE `survey_validation`
   ADD KEY `idx_survey_validation_type` (`validation_type`);
 
 --
+-- Indexes for table `threshold_history`
+--
+ALTER TABLE `threshold_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `idx_threshold_history_barangay` (`barangay_id`),
+  ADD KEY `idx_threshold_history_service` (`service_area`),
+  ADD KEY `idx_threshold_history_type` (`threshold_type`),
+  ADD KEY `idx_threshold_history_created` (`created_at`);
+
+--
 -- Indexes for table `user`
 --
 ALTER TABLE `user`
@@ -509,14 +678,26 @@ ALTER TABLE `user`
   ADD UNIQUE KEY `User_email_key` (`email`);
 
 --
--- Indexes for table `_prisma_migrations`
---
-ALTER TABLE `_prisma_migrations`
-  ADD PRIMARY KEY (`id`);
-
---
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `action_grid_classification`
+--
+ALTER TABLE `action_grid_classification`
+  MODIFY `classification_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `adaptive_threshold`
+--
+ALTER TABLE `adaptive_threshold`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `ai_insight`
+--
+ALTER TABLE `ai_insight`
+  MODIFY `insight_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `assignment`
@@ -534,13 +715,25 @@ ALTER TABLE `backup`
 -- AUTO_INCREMENT for table `barangay`
 --
 ALTER TABLE `barangay`
-  MODIFY `barangay_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `barangay_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `barangay_history`
+-- AUTO_INCREMENT for table `funnel_score`
 --
-ALTER TABLE `barangay_history`
-  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `funnel_score`
+  MODIFY `score_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `ml_model`
+--
+ALTER TABLE `ml_model`
+  MODIFY `model_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `ml_prediction`
+--
+ALTER TABLE `ml_prediction`
+  MODIFY `prediction_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `survey`
@@ -609,14 +802,26 @@ ALTER TABLE `survey_validation`
   MODIFY `validation_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `threshold_history`
+--
+ALTER TABLE `threshold_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `adaptive_threshold`
+--
+ALTER TABLE `adaptive_threshold`
+  ADD CONSTRAINT `adaptive_threshold_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay_intelligence_tier` (`barangay_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `assignment`
@@ -626,10 +831,23 @@ ALTER TABLE `assignment`
   ADD CONSTRAINT `Assignment_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `barangay_history`
+-- Constraints for table `barangay_intelligence_tier`
 --
-ALTER TABLE `barangay_history`
-  ADD CONSTRAINT `fk_history_barangay_id` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE;
+ALTER TABLE `barangay_intelligence_tier`
+  ADD CONSTRAINT `barangay_intelligence_tier_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `funnel_score`
+--
+ALTER TABLE `funnel_score`
+  ADD CONSTRAINT `funnel_score_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `ml_prediction`
+--
+ALTER TABLE `ml_prediction`
+  ADD CONSTRAINT `ml_prediction_barangay_id_fkey` FOREIGN KEY (`barangay_id`) REFERENCES `barangay` (`barangay_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `ml_prediction_model_id_fkey` FOREIGN KEY (`model_id`) REFERENCES `ml_model` (`model_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `survey`
