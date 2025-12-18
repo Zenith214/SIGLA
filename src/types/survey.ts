@@ -50,9 +50,33 @@ export interface NeedForActionSuggestionQuestion extends BaseQuestion {
 }
 
 /**
+ * Unawareness reason question type
+ * Conditionally required when awareness = No
+ */
+export interface UnawarenessReasonQuestion extends BaseQuestion {
+  id: `${string}_unawareness_reason`;
+  type: 'radio';
+  options: string[];
+  required: (formData: any) => boolean; // Conditional based on awareness answer
+  dependsOn: string; // The awareness question ID
+}
+
+/**
+ * Non-availment reason question type
+ * Conditionally required when awareness = Yes but availment = No
+ */
+export interface NonAvailmentReasonQuestion extends BaseQuestion {
+  id: `${string}_non_availment_reason`;
+  type: 'radio';
+  options: string[];
+  required: (formData: any) => boolean; // Conditional based on awareness and availment answers
+  dependsOn: string; // The availment question ID
+}
+
+/**
  * Union type for all question types
  */
-export type Question = BaseQuestion | NeedForActionBinaryQuestion | NeedForActionSuggestionQuestion;
+export type Question = BaseQuestion | NeedForActionBinaryQuestion | NeedForActionSuggestionQuestion | UnawarenessReasonQuestion | NonAvailmentReasonQuestion;
 
 /**
  * Service indicator data structure with binary and suggestion fields
@@ -61,6 +85,8 @@ export interface ServiceIndicatorData {
   satisfaction_rating?: number; // 1-5 scale
   need_for_action_binary: 'Yes' | 'No' | 'Oo' | 'Hindi';
   need_for_action_suggestion: string | null;
+  unawareness_reason?: string | null; // Reason for not being aware
+  non_availment_reason?: string | null; // Reason for not using the service
 }
 
 /**

@@ -75,7 +75,15 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     
     if (isNewSection) {
       console.log(`🔄 Switching to new section: ${sectionId}, loading ${Object.keys(cleanedData).length} keys (cleaned from ${Object.keys(sectionSpecificData).length})`);
-      setCurrentQuestionIndex(0);
+      
+      // Find the first enabled question
+      let firstEnabledIndex = 0;
+      while (firstEnabledIndex < questions.length && !isQuestionEnabled(questions[firstEnabledIndex], cleanedData)) {
+        console.log(`⏭️ Skipping disabled question at index ${firstEnabledIndex}: ${questions[firstEnabledIndex].id}`);
+        firstEnabledIndex++;
+      }
+      
+      setCurrentQuestionIndex(firstEnabledIndex);
       setAnswers(cleanedData);
       prevSectionIdRef.current = sectionId;
       
@@ -317,6 +325,11 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
           onResetSectionStatus(sectionId, "completed");
           onComplete();
           return;
+        } else {
+          // Target question not found - log error and continue to next question
+          console.error(`❌ Skip target question not found: ${jumpCondition.skipToId}`);
+          console.log(`Available question IDs:`, questions.map(q => q.id));
+          // Continue to next question as fallback
         }
       }
     }
@@ -445,7 +458,13 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
                 ...currentQuestion,
                 question: getQuestionText(currentQuestion),
                 options: currentQuestion.options, // Keep original options for values
-                translatedOptions: getQuestionOptions(currentQuestion) // Add translated options for display
+                translatedOptions: getQuestionOptions(currentQuestion), // Add translated options for display
+                followUpQuestions: currentQuestion.followUpQuestions?.map(fq => ({
+                  ...fq,
+                  question: getTranslatedOptions([fq.question], language)[0] || fq.question,
+                  options: fq.options,
+                  translatedOptions: fq.options ? getTranslatedOptions(fq.options, language) : undefined
+                }))
               } as Question}
               currentAnswer={answers[currentQuestion.id]}
               onAnswerChange={(value) => handleAnswerChange(currentQuestion.id, value)}

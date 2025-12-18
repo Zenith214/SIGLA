@@ -126,9 +126,9 @@ export function validateAnswer(question: Question, answer: any, allAnswers?: Rec
     case 'textarea':
       return validateTextareaAnswer(question, answer);
     case 'radio':
-      return validateRadioAnswer(question, answer);
+      return validateRadioAnswer(question, answer, allAnswers);
     case 'checkbox':
-      return validateCheckboxAnswer(question, answer);
+      return validateCheckboxAnswer(question, answer, allAnswers);
     case 'grouped':
       return validateGroupedAnswer(question, answer);
     default:
@@ -197,7 +197,71 @@ function validateTextareaAnswer(question: Question, answer: string): ValidationE
 /**
  * Validate radio button selection
  */
-function validateRadioAnswer(question: Question, answer: string): ValidationError | null {
+function validateRadioAnswer(question: Question, answer: string | any, allAnswers?: Record<string, any>): ValidationError | null {
+  // Handle radio questions with followUpQuestions (stored as object)
+  if (question.followUpQuestions && question.followUpQuestions.length > 0) {
+    if (!answer || typeof answer !== 'object') {
+      return null; // Already handled by required check
+    }
+    
+    const mainAnswer = answer.main;
+    const followUpAnswers = answer.followUp || {};
+    
+    // Validate main answer
+    if (question.options && Array.isArray(question.options)) {
+      const options = question.options as string[];
+      if (!options.includes(mainAnswer)) {
+        return {
+          questionId: question.id,
+          message: 'Please select a valid option',
+          type: 'format'
+        };
+      }
+    }
+    
+    // Validate required followUpQuestions
+    for (const followUpQ of question.followUpQuestions) {
+      // Check if this followUp is required
+      const isRequired = typeof followUpQ.required === 'function' 
+        ? followUpQ.required({ ...allAnswers, [question.id]: mainAnswer })
+        : followUpQ.required;
+      
+      if (isRequired) {
+        const followUpAnswer = followUpAnswers[followUpQ.id];
+        
+        // Check if followUp depends on a specific value
+        if (followUpQ.dependsOn && followUpQ.dependsOnValue) {
+          const dependsOnAnswer = followUpQ.dependsOn === question.id 
+            ? mainAnswer 
+            : followUpAnswers[followUpQ.dependsOn];
+          
+          // Only validate if dependency is met
+          if (dependsOnAnswer === followUpQ.dependsOnValue) {
+            if (!followUpAnswer || (typeof followUpAnswer === 'string' && followUpAnswer.trim() === '')) {
+              return {
+                questionId: question.id,
+                message: 'Please complete all required follow-up questions',
+                type: 'required'
+              };
+            }
+            
+            // Validate textarea minimum length
+            if (followUpQ.type === 'textarea' && followUpAnswer.trim().length < 5) {
+              return {
+                questionId: question.id,
+                message: 'Follow-up answer must be at least 5 characters long',
+                type: 'format'
+              };
+            }
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  // Handle simple radio (string answer)
   if (!answer) {
     return null; // Already handled by required check
   }
@@ -220,7 +284,73 @@ function validateRadioAnswer(question: Question, answer: string): ValidationErro
 /**
  * Validate checkbox selections
  */
-function validateCheckboxAnswer(question: Question, answer: string[]): ValidationError | null {
+function validateCheckboxAnswer(question: Question, answer: string[] | any, allAnswers?: Record<string, any>): ValidationError | null {
+  // Handle checkbox questions with followUpQuestions (stored as object)
+  if (question.followUpQuestions && question.followUpQuestions.length > 0) {
+    if (!answer || typeof answer !== 'object') {
+      return null; // Already handled by required check
+    }
+    
+    const mainAnswer = answer.main;
+    const followUpAnswers = answer.followUp || {};
+    
+    // Validate main answer
+    if (!Array.isArray(mainAnswer)) {
+      return null;
+    }
+    
+    if (question.options && Array.isArray(question.options)) {
+      const options = question.options as string[];
+      const invalidOptions = mainAnswer.filter(opt => !options.includes(opt));
+      if (invalidOptions.length > 0) {
+        return {
+          questionId: question.id,
+          message: 'Some selected options are invalid',
+          type: 'format'
+        };
+      }
+    }
+    
+    // Validate required followUpQuestions
+    for (const followUpQ of question.followUpQuestions) {
+      // Check if "Other" is selected in the checkbox array
+      const isOtherSelected = mainAnswer.includes("Iba pa (Other)") ||
+                             mainAnswer.includes("Laing rason (Other)") ||
+                             mainAnswer.includes("Other");
+      
+      if (isOtherSelected) {
+        const followUpAnswer = followUpAnswers[followUpQ.id];
+        
+        // Check if this followUp is required
+        const isRequired = typeof followUpQ.required === 'function' 
+          ? followUpQ.required({ ...allAnswers, [question.id]: mainAnswer })
+          : followUpQ.required;
+        
+        if (isRequired) {
+          if (!followUpAnswer || (typeof followUpAnswer === 'string' && followUpAnswer.trim() === '')) {
+            return {
+              questionId: question.id,
+              message: 'Please specify the other reason',
+              type: 'required'
+            };
+          }
+          
+          // Validate textarea minimum length
+          if (followUpQ.type === 'textarea' && followUpAnswer.trim().length < 5) {
+            return {
+              questionId: question.id,
+              message: 'Other reason must be at least 5 characters long',
+              type: 'format'
+            };
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  // Handle simple checkbox (array answer)
   if (!answer || !Array.isArray(answer)) {
     return null; // Already handled by required check
   }

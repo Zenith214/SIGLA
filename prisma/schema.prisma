@@ -15,26 +15,26 @@ datasource db {
 // ============================================================================
 
 model User {
-  id                   Int       @id @default(autoincrement())
-  email                String    @unique @db.VarChar(191)
-  password             String    @db.VarChar(191)
-  createdAt            DateTime  @default(now()) @map("createdAt")
-  firstName            String    @db.VarChar(191)
-  jobTitle             String?   @db.VarChar(191)
-  lastName             String    @db.VarChar(191)
-  organization         String?   @db.VarChar(191)
-  phone                String?   @db.VarChar(191)
-  role                 String?   @default("officer") @db.VarChar(32)
-  status               String?   @default("Active") @db.VarChar(16)
-  lastLogin            DateTime?
-  barangayDesignation  Int?
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique @db.VarChar(191)
+  password            String    @db.VarChar(191)
+  createdAt           DateTime  @default(now()) @map("createdAt")
+  firstName           String    @db.VarChar(191)
+  jobTitle            String?   @db.VarChar(191)
+  lastName            String    @db.VarChar(191)
+  organization        String?   @db.VarChar(191)
+  phone               String?   @db.VarChar(191)
+  role                String?   @default("officer") @db.VarChar(32)
+  status              String?   @default("Active") @db.VarChar(16)
+  lastLogin           DateTime?
+  barangayDesignation Int?
 
   // Relations
-  assignments      Assignment[]
-  survey_responses SurveyResponse[]
-  created_awards   CycleAward[]
-  assigned_spots   Spot[]
-  designated_barangay Barangay? @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
+  assignments         Assignment[]
+  survey_responses    SurveyResponse[]
+  created_awards      CycleAward[]
+  assigned_spots      Spot[]
+  designated_barangay Barangay?        @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
 
   @@index([barangayDesignation])
   @@map("user")
@@ -45,29 +45,29 @@ model User {
 // ============================================================================
 
 model Barangay {
-  barangay_id   Int       @id @default(autoincrement())
-  barangay_name String    @unique @db.VarChar(191)
+  barangay_id   Int          @id @default(autoincrement())
+  barangay_name String       @unique @db.VarChar(191)
   seal          BarangaySeal @default(no)
-  description   String?   @db.Text
-  is_active     Boolean   @default(true)
-  created_at    DateTime  @default(now())
-  updated_at    DateTime? @updatedAt
-  households    Int?      @default(0)
-  population    Int?      @default(0)
-  captain       String?   @db.VarChar(191)
-  currentStatus String?   @db.VarChar(32)
+  description   String?      @db.Text
+  is_active     Boolean      @default(true)
+  created_at    DateTime     @default(now())
+  updated_at    DateTime?    @updatedAt
+  households    Int?         @default(0)
+  population    Int?         @default(0)
+  captain       String?      @db.VarChar(191)
+  currentStatus String?      @db.VarChar(32)
   history       Json?
 
   // Relations
-  assignments      Assignment[]
-  surveys          Survey[]
-  survey_responses SurveyResponse[]
-  survey_targets   SurveyTarget[]
-  year_data        BarangayYearData[]
-  cycle_awards     CycleAward[]
-  spots            Spot[]
-  cpaps            CPAP[]
-  designated_officers User[] @relation("OfficerDesignation")
+  assignments         Assignment[]
+  surveys             Survey[]
+  survey_responses    SurveyResponse[]
+  survey_targets      SurveyTarget[]
+  year_data           BarangayYearData[]
+  cycle_awards        CycleAward[]
+  spots               Spot[]
+  cpaps               CPAP[]
+  designated_officers User[]             @relation("OfficerDesignation")
 
   @@map("barangay")
 }
@@ -77,19 +77,19 @@ model Barangay {
 // ============================================================================
 
 model Assignment {
-  assignment_id    Int              @id @default(autoincrement())
-  barangay_id      Int
-  user_id          Int
-  survey_cycle_id  Int?
-  status           AssignmentStatus @default(Pending)
-  progress         Int?             @default(0)
-  created_at       DateTime         @default(now())
-  updated_at       DateTime?        @updatedAt
+  assignment_id   Int              @id @default(autoincrement())
+  barangay_id     Int
+  user_id         Int
+  survey_cycle_id Int?
+  status          AssignmentStatus @default(Pending)
+  progress        Int?             @default(0)
+  created_at      DateTime         @default(now())
+  updated_at      DateTime?        @updatedAt
 
   // Relations
-  barangay     Barangay      @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  survey_cycle SurveyCycle?  @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
+  barangay     Barangay     @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  survey_cycle SurveyCycle? @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
 
   @@index([barangay_id])
   @@index([user_id])
@@ -168,39 +168,41 @@ model SurveyLog {
 // ============================================================================
 
 model SurveyResponse {
-  response_id            Int                   @id @default(autoincrement())
-  survey_number          String                @unique @db.VarChar(50)
-  barangay_id            Int
-  interviewer_id         Int
-  survey_cycle_id        Int?
-  questionnaire_id       String?               @unique @db.VarChar(50)
-  spot_id                Int?
-  visit_count            Int?                  @default(1)
-  respondent_name        String?               @db.VarChar(191)
-  respondent_age         Int?
-  respondent_gender      SurveyResponseGender?
-  location_lat           Decimal               @db.Decimal(10, 8)
-  location_lng           Decimal               @db.Decimal(11, 8)
-  location_address       String?               @db.Text
-  location_accuracy      Decimal?              @db.Decimal(8, 2)
-  location_timestamp     DateTime?
-  location_barangay      String?               @db.VarChar(191)
-  location_municipality  String?               @db.VarChar(191)
-  location_province      String?               @db.VarChar(191)
-  status                 SurveyResponseStatus  @default(draft)
-  progress               Int?                  @default(0)
-  started_at             DateTime              @default(now())
-  completed_at           DateTime?
-  submitted_at           DateTime?
-  created_at             DateTime              @default(now())
-  updated_at             DateTime?             @updatedAt
+  response_id           Int                   @id @default(autoincrement())
+  survey_number         String                @unique @db.VarChar(50)
+  barangay_id           Int
+  interviewer_id        Int
+  survey_cycle_id       Int?
+  questionnaire_id      String?               @unique @db.VarChar(50)
+  spot_id               Int?
+  visit_count           Int?                  @default(1)
+  respondent_name       String?               @db.VarChar(191)
+  respondent_age        Int?
+  respondent_gender     SurveyResponseGender?
+  location_lat          Decimal               @db.Decimal(10, 8)
+  location_lng          Decimal               @db.Decimal(11, 8)
+  location_address      String?               @db.Text
+  location_accuracy     Decimal?              @db.Decimal(8, 2)
+  location_timestamp    DateTime?
+  location_barangay     String?               @db.VarChar(191)
+  location_municipality String?               @db.VarChar(191)
+  location_province     String?               @db.VarChar(191)
+  status                SurveyResponseStatus  @default(draft)
+  progress              Int?                  @default(0)
+  started_at            DateTime              @default(now())
+  completed_at          DateTime?
+  submitted_at          DateTime?
+  created_at            DateTime              @default(now())
+  updated_at            DateTime?             @updatedAt
+  unawareness_reasons   Json?                 @default("{}")
+  non_availment_reasons Json?                 @default("{}")
 
   // Relations
-  barangay      Barangay            @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  interviewer   User                @relation(fields: [interviewer_id], references: [id], onDelete: Cascade)
-  survey_cycle  SurveyCycle?        @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
-  questionnaire Questionnaire?      @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: SetNull)
-  spot          Spot?               @relation(fields: [spot_id], references: [spot_id], onDelete: SetNull)
+  barangay      Barangay           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  interviewer   User               @relation(fields: [interviewer_id], references: [id], onDelete: Cascade)
+  survey_cycle  SurveyCycle?       @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
+  questionnaire Questionnaire?     @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: SetNull)
+  spot          Spot?              @relation(fields: [spot_id], references: [spot_id], onDelete: SetNull)
   sections      SurveySection[]
   answers       SurveyAnswer[]
   attachments   SurveyAttachment[]
@@ -231,7 +233,7 @@ model SurveySection {
   updated_at   DateTime?           @updatedAt
 
   // Relations
-  response  SurveyResponse  @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
+  response  SurveyResponse   @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
   questions SurveyQuestion[]
 
   @@unique([response_id, section_key])
@@ -241,20 +243,20 @@ model SurveySection {
 }
 
 model SurveyQuestion {
-  question_id   Int                 @id @default(autoincrement())
+  question_id   Int                @id @default(autoincrement())
   section_id    Int
-  question_key  String              @db.VarChar(100)
-  question_text String              @db.Text
+  question_key  String             @db.VarChar(100)
+  question_text String             @db.Text
   question_type SurveyQuestionType
   options       Json?
-  required      Boolean             @default(false)
-  order_index   Int                 @default(0)
-  depends_on    String?             @db.VarChar(100)
-  depends_value String?             @db.VarChar(191)
-  created_at    DateTime            @default(now())
+  required      Boolean            @default(false)
+  order_index   Int                @default(0)
+  depends_on    String?            @db.VarChar(100)
+  depends_value String?            @db.VarChar(191)
+  created_at    DateTime           @default(now())
 
   // Relations
-  section SurveySection @relation(fields: [section_id], references: [section_id], onDelete: Cascade)
+  section SurveySection  @relation(fields: [section_id], references: [section_id], onDelete: Cascade)
   answers SurveyAnswer[]
 
   @@index([question_key])
@@ -316,13 +318,13 @@ model SurveyMetadata {
 }
 
 model SurveyValidation {
-  validation_id      Int                     @id @default(autoincrement())
+  validation_id      Int                    @id @default(autoincrement())
   response_id        Int
   validation_type    SurveyValidationType
   validation_status  SurveyValidationStatus
-  validation_message String?                 @db.Text
+  validation_message String?                @db.Text
   validation_data    Json?
-  created_at         DateTime                @default(now())
+  created_at         DateTime               @default(now())
 
   // Relations
   response SurveyResponse @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
@@ -338,14 +340,14 @@ model SurveyValidation {
 // ============================================================================
 
 model SurveyCycle {
-  cycle_id   Int               @id @default(autoincrement())
-  name       String            @db.VarChar(191)
+  cycle_id   Int       @id @default(autoincrement())
+  name       String    @db.VarChar(191)
   year       Int
-  is_active  Boolean           @default(false)
-  start_date DateTime?         @db.Date
-  end_date   DateTime?         @db.Date
-  created_at DateTime          @default(now())
-  updated_at DateTime?         @updatedAt
+  is_active  Boolean   @default(false)
+  start_date DateTime? @db.Date
+  end_date   DateTime? @db.Date
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
 
   // Relations
   survey_responses SurveyResponse[]
@@ -395,9 +397,9 @@ model CycleAward {
   created_by   Int?
 
   // Relations
-  barangay     Barangay     @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  survey_cycle SurveyCycle  @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  creator      User?        @relation(fields: [created_by], references: [id], onDelete: SetNull)
+  barangay     Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  survey_cycle SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  creator      User?       @relation(fields: [created_by], references: [id], onDelete: SetNull)
 
   @@unique([barangay_id, cycle_id])
   @@index([cycle_id])
@@ -412,18 +414,18 @@ model CycleAward {
 // ============================================================================
 
 model BarangayYearData {
-  id                Int               @id @default(autoincrement())
+  id                Int          @id @default(autoincrement())
   barangay_id       Int
-  year              String            @db.VarChar(10)
-  seal_status       BarangaySeal      @default(no)
-  survey_status     String?           @db.VarChar(50)
-  survey_count      Int?              @default(0)
-  completion_rate   Decimal?          @db.Decimal(5, 2)
-  target_achieved   Int?              @default(0)
-  target_percentage Int?              @default(0)
-  notes             String?           @db.Text
-  created_at        DateTime          @default(now())
-  updated_at        DateTime?         @updatedAt
+  year              String       @db.VarChar(10)
+  seal_status       BarangaySeal @default(no)
+  survey_status     String?      @db.VarChar(50)
+  survey_count      Int?         @default(0)
+  completion_rate   Decimal?     @db.Decimal(5, 2)
+  target_achieved   Int?         @default(0)
+  target_percentage Int?         @default(0)
+  notes             String?      @db.Text
+  created_at        DateTime     @default(now())
+  updated_at        DateTime?    @updatedAt
 
   // Relations
   barangay Barangay @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
@@ -440,22 +442,22 @@ model BarangayYearData {
 // ============================================================================
 
 model Spot {
-  spot_id         Int        @id @default(autoincrement())
-  cycle_id        Int
-  barangay_id     Int
-  spot_name       String     @db.VarChar(100)
-  starting_point  Json       // { lat: number, lng: number }
-  random_start    Int        // 1-999
-  assigned_fi_id  Int?
-  status          SpotStatus @default(Pending)
-  created_at      DateTime   @default(now())
-  updated_at      DateTime?  @updatedAt
+  spot_id        Int        @id @default(autoincrement())
+  cycle_id       Int
+  barangay_id    Int
+  spot_name      String     @db.VarChar(100)
+  starting_point Json // { lat: number, lng: number }
+  random_start   Int // 1-999
+  assigned_fi_id Int?
+  status         SpotStatus @default(Pending)
+  created_at     DateTime   @default(now())
+  updated_at     DateTime?  @updatedAt
 
   // Relations
-  cycle           SurveyCycle     @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  barangay        Barangay        @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  assigned_fi     User?           @relation(fields: [assigned_fi_id], references: [id], onDelete: SetNull)
-  questionnaires  Questionnaire[]
+  cycle            SurveyCycle      @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  barangay         Barangay         @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  assigned_fi      User?            @relation(fields: [assigned_fi_id], references: [id], onDelete: SetNull)
+  questionnaires   Questionnaire[]
   survey_responses SurveyResponse[]
 
   @@index([cycle_id])
@@ -466,18 +468,18 @@ model Spot {
 }
 
 model Questionnaire {
-  questionnaire_id String               @id @db.VarChar(50) // e.g., "2024-001-001"
+  questionnaire_id String              @id @db.VarChar(50) // e.g., "2024-001-001"
   spot_id          Int
   cycle_id         Int
-  sequence_number  Int                  // 1-5 within spot
-  status           QuestionnaireStatus  @default(Pending)
-  visit_count      Int                  @default(0)
-  created_at       DateTime             @default(now())
-  updated_at       DateTime?            @updatedAt
+  sequence_number  Int // 1-5 within spot
+  status           QuestionnaireStatus @default(Pending)
+  visit_count      Int                 @default(0)
+  created_at       DateTime            @default(now())
+  updated_at       DateTime?           @updatedAt
 
   // Relations
-  spot            Spot             @relation(fields: [spot_id], references: [spot_id], onDelete: Cascade)
-  cycle           SurveyCycle      @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  spot            Spot            @relation(fields: [spot_id], references: [spot_id], onDelete: Cascade)
+  cycle           SurveyCycle     @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
   visits          Visit[]
   survey_response SurveyResponse?
 
@@ -606,15 +608,15 @@ enum VisitOutcome {
 // ============================================================================
 
 model CPAP {
-  id              Int        @id @default(autoincrement())
-  barangay_id     Int
-  cycle_id        Int
-  status          CPAPStatus @default(Draft)
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  submitted_at    DateTime?
-  approved_at     DateTime?
-  admin_comments  String?    @db.Text
+  id             Int        @id @default(autoincrement())
+  barangay_id    Int
+  cycle_id       Int
+  status         CPAPStatus @default(Draft)
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+  submitted_at   DateTime?
+  approved_at    DateTime?
+  admin_comments String?    @db.Text
 
   // Relations
   barangay Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
@@ -629,19 +631,19 @@ model CPAP {
 }
 
 model CPAPItem {
-  id                    Int       @id @default(autoincrement())
+  id                    Int      @id @default(autoincrement())
   cpap_id               Int
-  priority_area         String    @db.VarChar(255)
-  target_output         String    @db.Text
-  success_indicator     String    @db.Text
-  responsible_person    String    @db.VarChar(255)
-  timeline_start        DateTime  @db.Date
-  timeline_end          DateTime  @db.Date
-  actual_output         String?   @db.Text
-  accomplishment_status String?   @db.VarChar(50)
-  remarks               String?   @db.Text
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
+  priority_area         String   @db.VarChar(255)
+  target_output         String   @db.Text
+  success_indicator     String   @db.Text
+  responsible_person    String   @db.VarChar(255)
+  timeline_start        DateTime @db.Date
+  timeline_end          DateTime @db.Date
+  actual_output         String?  @db.Text
+  accomplishment_status String?  @db.VarChar(50)
+  remarks               String?  @db.Text
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
 
   // Relations
   cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)

@@ -1,6 +1,18 @@
 import type { Question } from "@/types/survey"
+import { 
+  createUnawarenessReasonQuestion, 
+  createNonAvailmentReasonQuestion,
+  detectLanguage 
+} from "./conditionalQuestions"
+import { getQuestionsWithConditionals } from "./questionsWithConditionals"
 
 export function getQuestionsForSection(sectionId: string): Question[] {
+  // For now, use the original questions with conditional modules integrated
+  // The getQuestionsWithConditionals is incomplete, so we'll use the working version
+  return getOriginalQuestionsForSection(sectionId);
+}
+
+function getOriginalQuestionsForSection(sectionId: string): Question[] {
   // Define a generic placeholder question
   const placeholderQuestion: Question = {
     id: "placeholderQuestion",
@@ -49,9 +61,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessFinancial" } // Skip to Q5 (start of Part B)
+            { value: "Hindi", skipToId: "projects_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Projects
+        createUnawarenessReasonQuestion("projects", "awarenessProjects", "filipino"),
         {
           id: "benefitedProjects",
           type: "radio",
@@ -61,9 +75,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessProjects",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessFinancial" } // Skip to Q5 (start of Part B)
+            { value: "Hindi", skipToId: "projects_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Projects
+        createNonAvailmentReasonQuestion("projects", "awarenessProjects", "benefitedProjects", "filipino"),
         {
           id: "satisfactionProjects",
           type: "radio",
@@ -99,9 +115,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessSocialPrograms" } // Skip to Q9 (start of Part C)
+            { value: "Hindi", skipToId: "financial_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Financial Transparency
+        createUnawarenessReasonQuestion("financial", "awarenessFinancial", "filipino"),
         {
           id: "usedFinancialInfo",
           type: "radio",
@@ -111,9 +129,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessFinancial",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessSocialPrograms" } // Skip to Q9 (start of Part C)
+            { value: "Hindi", skipToId: "financial_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Financial Transparency
+        createNonAvailmentReasonQuestion("financial", "awarenessFinancial", "usedFinancialInfo", "filipino"),
         {
           id: "satisfactionFinancial",
           type: "radio",
@@ -149,9 +169,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessCorruption" } // Skip to Q13 (start of Part D)
+            { value: "Hindi", skipToId: "socialPrograms_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Social Programs
+        createUnawarenessReasonQuestion("socialPrograms", "awarenessSocialPrograms", "filipino"),
         {
           id: "participatedSocialPrograms",
           type: "radio",
@@ -161,9 +183,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessSocialPrograms",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessCorruption" } // Skip to Q13 (start of Part D)
+            { value: "Hindi", skipToId: "socialPrograms_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Social Programs
+        createNonAvailmentReasonQuestion("socialPrograms", "awarenessSocialPrograms", "participatedSocialPrograms", "filipino"),
         {
           id: "satisfactionSocialPrograms",
           type: "radio",
@@ -192,32 +216,30 @@ export function getQuestionsForSection(sectionId: string): Question[] {
         },
 
         // Part D: Perception of Corruption
+        // SPECIAL CASE: This section uses custom skip logic, NOT the standard conditional modules
         {
           id: "awarenessCorruption",
           type: "radio",
-          ...formatQuestionText("D. Perception of Corruption:\n13. AWARENESS:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat? / Are you aware that our barangay or municipality is expected to follow rules and processes to prevent corruption, and that officials should serve with integrity?"),
+          ...formatQuestionText("D. Perception of Corruption:\n13. KAALAMAN:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat? / Are you aware that our barangay or municipality is expected to follow rules and processes to prevent corruption, and that officials should serve with integrity?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
-          conditionalNext: [
-            { value: "Hindi (No)", skipToId: "endOfFinancialSection" } // Special ID to indicate end of section
-          ]
+          // No skip - always proceed to Q14
         },
         {
           id: "experiencedCorruption",
           type: "radio",
-          ...formatQuestionText("14. EXPERIENCE:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon? / In the past 12 months, did you (or any of your household members) experience or witness any action by a barangay or municipal official/staff that you consider a form of corruption?"),
+          ...formatQuestionText("14. KARANASAN:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon? / In the past 12 months, did you (or any of your household members) experience or witness any action by a barangay or municipal official/staff that you consider a form of corruption?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
-          dependsOn: "awarenessCorruption",
-          dependsOnValue: "Oo (Yes)",
+          // No dependsOn - always shown after Q13
           conditionalNext: [
-            { value: "Hindi (No)", skipToId: "endOfFinancialSection" } // Special ID to indicate end of section
+            { value: "Hindi (No)", skipToId: "suggestionsCorruption" } // Skip Q15-18, go directly to Q19
           ]
         },
         {
           id: "detailsCorruption",
           type: "textarea",
-          ...formatQuestionText("15. DETAILS OF EXPERIENCE:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.) / What specific action or practice did you experience or witness? (Please specify the service or situation. This must be a first-hand experience from you or a household member.)"),
+          ...formatQuestionText("15. MGA DETALYE NG KARANASAN:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.) / What specific action or practice did you experience or witness? (Please specify the service or situation. This must be a first-hand experience from you or a household member.)"),
           required: true,
           dependsOn: "experiencedCorruption",
           dependsOnValue: "Oo (Yes)",
@@ -225,42 +247,63 @@ export function getQuestionsForSection(sectionId: string): Question[] {
         {
           id: "reportedCorruption",
           type: "radio",
-          ...formatQuestionText("16. REPORTING:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan? / Did you report your experience to any government authority?"),
+          ...formatQuestionText("16. PAG-UULAT:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan? / Did you report your experience to any government authority?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
           dependsOn: "experiencedCorruption",
           dependsOnValue: "Oo (Yes)",
-          conditionalNext: [
-            { value: "Hindi (No)", skipToId: "reasonsNotReporting" }, // Jump to Q17
-            { value: "Oo (Yes)", skipToId: "satisfactionReportResponse" } // Jump to Q18
-          ]
+          // No conditionalNext - let the dependsOn logic handle Q17/Q18
         },
         {
           id: "reasonsNotReporting",
           type: "checkbox",
-          ...formatQuestionText("17. REASONS FOR NOT REPORTING:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat? / What was the main reason you did not report the incident?"),
-          options: ["Ginagawa rin ito ng iba o ng karamihan. (Everyone is doing it)", "Normal o SOP na itong gawain. (This has become a normal practice)", "Natakot akong magsumbong. (I feared for my safety)", "Nakapagbilis ito ng transaksyon. (It made the process faster/easier)", "Walang mangyayari kung i-uulat. (Reporting would not solve the problem)", "Wala namang dahilan. (No reason)", "Iba pa: ________________________ (Other)"],
+          ...formatQuestionText("17. MGA DAHILAN NG HINDI PAG-UULAT:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat? / What was the main reason you did not report the incident?"),
+          options: [
+            "Ginagawa rin ito ng iba o ng karamihan. (Everyone is doing it)", 
+            "Normal o SOP na itong gawain. (This has become a normal practice)", 
+            "Natakot akong magsumbong. (I feared for my safety)", 
+            "Nakapagbilis ito ng transaksyon. (It made the process faster/easier)", 
+            "Walang mangyayari kung i-uulat. (Reporting would not solve the problem)", 
+            "Wala namang dahilan. (No reason)", 
+            "Iba pa (Other)"
+          ],
           required: false,
           dependsOn: "reportedCorruption",
           dependsOnValue: "Hindi (No)",
+          followUpQuestions: [
+            {
+              id: "reasonsNotReporting_other",
+              type: "textarea",
+              question: "Please specify:",
+              required: (formData: any) => {
+                const mainAnswer = formData["reasonsNotReporting"];
+                // Check if "Other" is selected in the checkbox array
+                return Array.isArray(mainAnswer) && (
+                  mainAnswer.includes("Iba pa (Other)") ||
+                  mainAnswer.includes("Laing rason (Other)") ||
+                  mainAnswer.includes("Other")
+                );
+              },
+              dependsOn: "reasonsNotReporting",
+              dependsOnValue: "Iba pa (Other)" // This will be checked differently for checkbox
+            }
+          ]
         },
         {
           id: "satisfactionReportResponse",
           type: "radio",
-          ...formatQuestionText("18. SATISFACTION WITH RESPONSE:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon? / If you reported it, did the authorities respond to your complaint, and how satisfied were you with their action?"),
+          ...formatQuestionText("18. KASIYAHAN SA TUGON:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon? / If you reported it, did the authorities respond to your complaint, and how satisfied were you with their action?"),
           options: ["5 - Lubos na Nasiyahan (Very Satisfied)", "4 - Nasiyahan (Satisfied)", "3 - Neutral (Neutral)", "2 - Hindi Nasiyahan (Dissatisfied)", "1 - Lubos na Hindi Nasiyahan (Very Dissatisfied)"],
           required: true,
           dependsOn: "reportedCorruption",
           dependsOnValue: "Oo (Yes)",
         },
         {
-          id: "nfaBinaryCorruption",
-          type: "radio",
-          ...formatQuestionText("19. PANGANGAILANGAN PARA SA AKSYON:\nBatay sa iyong karanasan, sa tingin mo ba kailangan ng pagpapabuti ang serbisyong ito mula sa barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
-          options: ["Oo (Yes)", "Hindi (No)"],
-          required: true,
-          dependsOn: "experiencedCorruption",
-          dependsOnValue: "Oo (Yes)",
+          id: "suggestionsCorruption",
+          type: "textarea",
+          ...formatQuestionText("19. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan? / What are your suggestions to better prevent or address corruption in our barangay or municipality?"),
+          required: false,
+          // No dependsOn - always shown to everyone who reaches this point
         },
         {
           id: "suggestionsCorruption",
@@ -282,9 +325,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessEvacuation" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "disasterInfo_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Disaster Information
+        createUnawarenessReasonQuestion("disasterInfo", "awarenessDisasterInfo", "english"),
         {
           id: "availmentDisasterInfo",
           type: "radio",
@@ -294,9 +339,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessDisasterInfo",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessEvacuation" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "disasterInfo_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Disaster Information
+        createNonAvailmentReasonQuestion("disasterInfo", "awarenessDisasterInfo", "availmentDisasterInfo", "english"),
         {
           id: "satisfactionDisasterInfo",
           type: "radio",

@@ -42,6 +42,20 @@ export const translations: Record<string, SectionTranslations> = {
       english: "5. SUGGESTION:\nWhat are your specific comments or suggestions about the barangay's construction projects? (e.g., location, quality, what should be built next?)"
     },
     
+    // Conditional: Unawareness Reason for Projects
+    projects_unawareness_reason: {
+      bisaya: "<strong>RASON SA KAKULANG SA KAHIBALO:</strong><br/>Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "<strong>DAHILAN NG KAWALAN NG KAALAMAN:</strong><br/>Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "<strong>REASON FOR UNAWARENESS:</strong><br/>There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Projects
+    projects_non_availment_reason: {
+      bisaya: "<strong>RASON SA DILI PAGGAMIT:</strong><br/>Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "<strong>DAHILAN NG HINDI PAGGAMIT:</strong><br/>Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "<strong>REASON FOR NON-AVAILMENT:</strong><br/>You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
     // Part B: Financial Transparency
     awarenessFinancial: {
       bisaya: "B. Pinansyal nga Kahibalo ug Transparency (Mga Paskil ug Asembleya):\n5. KAHIBALO:\nNahibalo ka ba nga ang barangay kinahanglan magpaskil sa iyang badyet ug gasto sa usa ka pampublikong bulletin board (Full Disclosure Board) ug hisgutan kini sa mga Barangay Assembly?",
@@ -67,6 +81,20 @@ export const translations: Record<string, SectionTranslations> = {
       bisaya: "9. SUGYOT:\nUnsa ang mahimo sa barangay aron mas sayon masabtan ug makuha sa mga residente ang badyet ug gasto niini?",
       filipino: "9. MUNGKAHI:\nAno ang maaaring gawin ng barangay upang mas madaling maunawaan at makuha ng mga residente ang badyet at gastusin nito?",
       english: "9. SUGGESTION:\nWhat can the barangay do to make its budget and spending easier for residents to understand and access?"
+    },
+    
+    // Conditional: Unawareness Reason for Financial
+    financial_unawareness_reason: {
+      bisaya: "<strong>RASON SA KAKULANG SA KAHIBALO:</strong><br/>Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "<strong>DAHILAN NG KAWALAN NG KAALAMAN:</strong><br/>Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "<strong>REASON FOR UNAWARENESS:</strong><br/>There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Financial
+    financial_non_availment_reason: {
+      bisaya: "<strong>RASON SA DILI PAGGAMIT:</strong><br/>Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "<strong>DAHILAN NG HINDI PAGGAMIT:</strong><br/>Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "<strong>REASON FOR NON-AVAILMENT:</strong><br/>You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
     },
     
     // Part C: Social Programs
@@ -96,46 +124,55 @@ export const translations: Record<string, SectionTranslations> = {
       english: "13. SUGGESTION:\nWhat are your suggestions for improving the barangay's social programs? Are there other types of assistance that are needed?"
     },
     
-    // Part D: Corruption
+    // Conditional: Unawareness Reason for Social Programs
+    socialPrograms_unawareness_reason: {
+      bisaya: "<strong>RASON SA KAKULANG SA KAHIBALO:</strong><br/>Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "<strong>DAHILAN NG KAWALAN NG KAALAMAN:</strong><br/>Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "<strong>REASON FOR UNAWARENESS:</strong><br/>There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Social Programs
+    socialPrograms_non_availment_reason: {
+      bisaya: "<strong>RASON SA DILI PAGGAMIT:</strong><br/>Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "<strong>DAHILAN NG HINDI PAGGAMIT:</strong><br/>Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "<strong>REASON FOR NON-AVAILMENT:</strong><br/>You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Part D: Corruption (Custom Skip Logic - NOT using standard conditional modules)
     awarenessCorruption: {
       bisaya: "D. Panglantaw sa Korapsyon:\n13. KAHIBALO:\nNahibalo ba kamo kung adunay mga lagda ug proseso batok sa korapsyon sa atong barangay o lungsod, ug nga ang mga opisyal kinahanglan mag-alagad nga matinud-anon?",
-      filipino: "D. Perception of Corruption:\n13. AWARENESS:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat?",
+      filipino: "D. Perception of Corruption:\n13. KAALAMAN:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat?",
       english: "D. Perception of Corruption:\n13. AWARENESS:\nAre you aware that our barangay or municipality is expected to follow rules and processes to prevent corruption, and that officials should serve with integrity?"
     },
     experiencedCorruption: {
       bisaya: "14. KASINATIAN:\nSa miaging 12 ka bulan, kamo ba (o bisan kinsa nga miyembro sa inyong panimalay) nakasinati o nakasaksi sa bisan unsang buhat sa opisyal o kawani sa barangay o lungsod nga inyong giisip nga matang sa korapsyon?",
-      filipino: "14. EXPERIENCE:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon?",
+      filipino: "14. KARANASAN:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon?",
       english: "14. EXPERIENCE:\nIn the past 12 months, did you (or any of your household members) experience or witness any action by a barangay or municipal official/staff that you consider a form of corruption?"
     },
     detailsCorruption: {
       bisaya: "15. MGA DETALYE SA KASINATIAN:\nUnsa ang partikular nga buhat nga inyong nasinati o nasaksihan? (Palihug ibutang ang partikular nga serbisyo o sitwasyon. Siguruha nga kini unang kasinatian gikan kaninyo o miyembro sa inyong panimalay.)",
-      filipino: "15. DETAILS OF EXPERIENCE:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.)",
+      filipino: "15. MGA DETALYE NG KARANASAN:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.)",
       english: "15. DETAILS OF EXPERIENCE:\nWhat specific action or practice did you experience or witness? (Please specify the service or situation. This must be a first-hand experience from you or a household member.)"
     },
     reportedCorruption: {
       bisaya: "16. PAGREPORT:\nGireport ba ninyo ang inyong nasinati o nasaksihan sa bisan unsang awtoridad sa gobyerno?",
-      filipino: "16. REPORTING:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan?",
+      filipino: "16. PAG-UULAT:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan?",
       english: "16. REPORTING:\nDid you report your experience to any government authority?"
     },
     reasonsNotReporting: {
       bisaya: "17. MGA HINUNGDAN SA DILI PAGREPORT:\nUnsa ang nag-unang hinungdan ngano wala ninyo kini gireport?",
-      filipino: "17. REASONS FOR NOT REPORTING:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat?",
+      filipino: "17. MGA DAHILAN NG HINDI PAG-UULAT:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat?",
       english: "17. REASONS FOR NOT REPORTING:\nWhat was the main reason you did not report the incident?"
     },
     satisfactionReportResponse: {
       bisaya: "18. KATAGBAWAN SA TUBAG:\nKung gireport ninyo, mitubag ba ang mga awtoridad sa inyong reklamo ug unsa ka tagbaw kamo sa ilang aksyon?",
-      filipino: "18. SATISFACTION WITH RESPONSE:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon?",
+      filipino: "18. KASIYAHAN SA TUGON:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon?",
       english: "18. SATISFACTION WITH RESPONSE:\nIf you reported it, did the authorities respond to your complaint, and how satisfied were you with their action?"
     },
-    nfaBinaryCorruption: {
-      bisaya: "19. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
-      filipino: "19. PANGANGAILANGAN PARA SA AKSYON:\nBatay sa iyong karanasan, sa tingin mo ba kailangan ng pagpapabuti ang serbisyong ito mula sa barangay?",
-      english: "19. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay?"
-    },
     suggestionsCorruption: {
-      bisaya: "20. SUGYOT:\nUnsa ang inyong sugyot aron mas malikayan o masugpo ang korapsyon sa atong barangay o lungsod?",
-      filipino: "20. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan?",
-      english: "20. SUGGESTION:\nWhat are your suggestions to better prevent or address corruption in our barangay or municipality?"
+      bisaya: "19. SUGYOT:\nUnsa ang inyong sugyot aron mas malikayan o masugpo ang korapsyon sa atong barangay o lungsod?",
+      filipino: "19. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan?",
+      english: "19. SUGGESTION:\nWhat are your suggestions to better prevent or address corruption in our barangay or municipality?"
     },
   },
   
@@ -519,6 +556,130 @@ export function getTranslatedOptions(
       english: '2 - Dissatisfied'
     },
     '1': {
+      bisaya: '1 - Hilabihan ka Dili Tagbaw',
+      filipino: '1 - Lubos na Hindi Nasiyahan',
+      english: '1 - Very Dissatisfied'
+    },
+    // Unawareness reason options
+    'I get my info from other sources (e.g., neighbors, social media), not directly from the barangay.': {
+      bisaya: 'Gakuha ko sa akong impormasyon gikan sa laing mga tinubdan (sama sa mga silingan, social media), dili direkta gikan sa barangay.',
+      filipino: 'Nakukuha ko ang aking impormasyon mula sa ibang paraan (hal., mga kapitbahay, social media), hindi direkta mula sa barangay.',
+      english: 'I get my info from other sources (e.g., neighbors, social media), not directly from the barangay.'
+    },
+    "The barangay doesn't do enough to announce or promote their programs.": {
+      bisaya: "Kulang ang gihimo sa barangay aron ipahibalo o i-promote ang ilang mga programa.",
+      filipino: "Kulang ang ginagawa ng barangay para i-anunsyo o i-promote ang kanilang mga programa.",
+      english: "The barangay doesn't do enough to announce or promote their programs."
+    },
+    "It's not a service I was actively looking for, so I might have missed the information.": {
+      bisaya: "Dili kini serbisyo nga aktibo nakong gipangita, mao nga tingali wala nako makita ang impormasyon.",
+      filipino: "Hindi ito serbisyong aktibo kong hinahanap, kaya maaaring nalampasan ko ang impormasyon.",
+      english: "It's not a service I was actively looking for, so I might have missed the information."
+    },
+    "Even if information is posted, it's hard to find or understand.": {
+      bisaya: "Bisan kung gipaskil ang impormasyon, lisud kini pangitaon o sabton.",
+      filipino: "Kahit na naka-paskil ang impormasyon, mahirap itong hanapin o intindihin.",
+      english: "Even if information is posted, it's hard to find or understand."
+    },
+    'Other Reason': {
+      bisaya: 'Laing rason',
+      filipino: 'Iba pang dahilan',
+      english: 'Other Reason'
+    },
+    'Please specify:': {
+      bisaya: 'Palihug isulti:',
+      filipino: 'Pakisabi:',
+      english: 'Please specify:'
+    },
+    // Non-availment reason options
+    'I/We did not need the service during that time.': {
+      bisaya: 'Wala nako/namo kinahanglana ang serbisyo niadtong panahona.',
+      filipino: 'Hindi ko/namin kailangan ang serbisyo sa mga panahong iyon.',
+      english: 'I/We did not need the service during that time.'
+    },
+    'The process seemed too difficult, complicated, or took too much time.': {
+      bisaya: 'Ang proseso morag lisud kaayo, komplikado, o dugay kaayo.',
+      filipino: 'Ang proseso ay tila napakahirap, kumplikado, o masyadong matagal.',
+      english: 'The process seemed too difficult, complicated, or took too much time.'
+    },
+    'The location was too far, hard to get to, or the service hours were inconvenient.': {
+      bisaya: 'Layo kaayo ang lokasyon, lisud adtoon, o dili kombenyente ang oras sa serbisyo.',
+      filipino: 'Masyadong malayo ang lokasyon, mahirap puntahan, o hindi angkop ang oras ng serbisyo.',
+      english: 'The location was too far, hard to get to, or the service hours were inconvenient.'
+    },
+    'I was concerned about the cost, fees, or other expenses involved.': {
+      bisaya: 'Nabalaka ko sa gasto, bayronon, o uban pang mga galastuhan.',
+      filipino: 'Nag-aalala ako sa gastos, bayarin, o iba pang gastusin na kasama dito.',
+      english: 'I was concerned about the cost, fees, or other expenses involved.'
+    },
+    'I was not confident in the quality of the service or the staff providing it.': {
+      bisaya: 'Wala koy pagsalig sa kalidad sa serbisyo o sa mga kawani nga naghatag niini.',
+      filipino: 'Wala akong tiwala sa kalidad ng serbisyo o sa mga tauhan na nagbibigay nito.',
+      english: 'I was not confident in the quality of the service or the staff providing it.'
+    },
+    'I thought I was not qualified, or I was told I was not eligible.': {
+      bisaya: 'Abi nako dili ko kwalipikado, o giingnan ko nga dili ko pwede.',
+      filipino: 'Inakala kong hindi ako kwalipikado, o sinabihan akong hindi ako pwede.',
+      english: 'I thought I was not qualified, or I was told I was not eligible.'
+    },
+    // Corruption reporting reasons - keys match the Filipino options in questions.ts
+    'Ginagawa rin ito ng iba o ng karamihan. (Everyone is doing it)': {
+      bisaya: 'Gibuhat usab kini sa uban o sa kadaghanan.',
+      filipino: 'Ginagawa rin ito ng iba o ng karamihan.',
+      english: 'Everyone is doing it'
+    },
+    'Normal o SOP na itong gawain. (This has become a normal practice)': {
+      bisaya: 'Normal o SOP na kini nga gawi.',
+      filipino: 'Normal o SOP na itong gawain.',
+      english: 'This has become a normal practice'
+    },
+    'Natakot akong magsumbong. (I feared for my safety)': {
+      bisaya: 'Nahadlok ko nga mosumbong.',
+      filipino: 'Natakot akong magsumbong.',
+      english: 'I feared for my safety'
+    },
+    'Nakapagbilis ito ng transaksyon. (It made the process faster/easier)': {
+      bisaya: 'Nakapapaspas kini sa transaksyon.',
+      filipino: 'Nakapagbilis ito ng transaksyon.',
+      english: 'It made the process faster/easier'
+    },
+    'Walang mangyayari kung i-uulat. (Reporting would not solve the problem)': {
+      bisaya: 'Walay mahitabo kung i-report.',
+      filipino: 'Walang mangyayari kung i-uulat.',
+      english: 'Reporting would not solve the problem'
+    },
+    'Wala namang dahilan. (No reason)': {
+      bisaya: 'Wala namay hinungdan.',
+      filipino: 'Wala namang dahilan.',
+      english: 'No reason'
+    },
+    'Iba pa (Other)': {
+      bisaya: 'Laing rason',
+      filipino: 'Iba pa',
+      english: 'Other'
+    },
+    // Corruption satisfaction scale - keys match the Filipino options in questions.ts
+    '5 - Lubos na Nasiyahan (Very Satisfied)': {
+      bisaya: '5 - Hilabihan ka Tagbaw',
+      filipino: '5 - Lubos na Nasiyahan',
+      english: '5 - Very Satisfied'
+    },
+    '4 - Nasiyahan (Satisfied)': {
+      bisaya: '4 - Tagbaw',
+      filipino: '4 - Nasiyahan',
+      english: '4 - Satisfied'
+    },
+    '3 - Neutral (Neutral)': {
+      bisaya: '3 - Neutral',
+      filipino: '3 - Neutral',
+      english: '3 - Neutral'
+    },
+    '2 - Hindi Nasiyahan (Dissatisfied)': {
+      bisaya: '2 - Dili Tagbaw',
+      filipino: '2 - Hindi Nasiyahan',
+      english: '2 - Dissatisfied'
+    },
+    '1 - Lubos na Hindi Nasiyahan (Very Dissatisfied)': {
       bisaya: '1 - Hilabihan ka Dili Tagbaw',
       filipino: '1 - Lubos na Hindi Nasiyahan',
       english: '1 - Very Dissatisfied'

@@ -101,7 +101,12 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
     : "border-gray-300 focus:ring-blue-500 focus:border-blue-500";
 
   switch (question.type) {
-    case "radio":
+    case "radio": {
+      // Check if this radio question has followUpQuestions
+      const hasFollowUps = question.followUpQuestions && question.followUpQuestions.length > 0;
+      const mainAnswer = hasFollowUps ? currentAnswer?.main : currentAnswer;
+      const followUpAnswers = hasFollowUps ? (currentAnswer?.followUp || {}) : {};
+      
       return (
         <div>
           <div className={`space-y-3 ${isSatisfactionQuestion ? "flex flex-wrap gap-x-4 justify-center" : ""} ${disabledClass}`}>
@@ -119,8 +124,20 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
                     type="radio"
                     name={question.id}
                     value={option}
-                    checked={currentAnswer === option}
-                    onChange={(e) => handleChange(e.target.value)}
+                    checked={mainAnswer === option}
+                    onChange={(e) => {
+                      if (hasFollowUps) {
+                        // Store as object with main and followUp
+                        const newAnswer = {
+                          main: e.target.value,
+                          followUp: followUpAnswers
+                        };
+                        handleChange(newAnswer);
+                      } else {
+                        // Store as simple string
+                        handleChange(e.target.value);
+                      }
+                    }}
                     disabled={!isEnabled}
                     className="w-4 h-4 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                   />
@@ -129,41 +146,166 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
               );
             })}
           </div>
+          
+          {/* Render followUpQuestions if they exist */}
+          {hasFollowUps && (
+            <div className="mt-6 space-y-6">
+              {question.followUpQuestions?.map((followUpQ: any) => {
+                const followUpAnswer = followUpAnswers[followUpQ.id];
+                // Check if this followUp depends on the main question or another followUp
+                const dependsOnValue = followUpQ.dependsOn === question.id 
+                  ? mainAnswer  // Main question answer
+                  : followUpAnswers[followUpQ.dependsOn]; // Another followUp answer
+                const isThisQuestionEnabled =
+                  isEnabled &&
+                  (!followUpQ.dependsOn || dependsOnValue === followUpQ.dependsOnValue);
+
+                return (
+                  <div key={followUpQ.id} className={`ml-6 pl-4 border-l-2 ${isThisQuestionEnabled ? 'border-blue-300' : 'border-gray-200'}`}>
+                    <h6
+                      className={`text-sm font-medium mb-3 ${!isThisQuestionEnabled ? "text-gray-400" : "text-gray-700"}`}
+                      dangerouslySetInnerHTML={{ __html: followUpQ.question }}
+                    ></h6>
+
+                    {followUpQ.type === "textarea" && (
+                      <textarea
+                        value={followUpAnswer || ""}
+                        onChange={(e) => {
+                          if (isThisQuestionEnabled) {
+                            const newFollowUp = { ...followUpAnswers, [followUpQ.id]: e.target.value };
+                            const newAnswer = { main: mainAnswer, followUp: newFollowUp };
+                            handleChange(newAnswer);
+                          }
+                        }}
+                        disabled={!isThisQuestionEnabled}
+                        rows={4}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm ${
+                          !isThisQuestionEnabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                        }`}
+                        placeholder={
+                          isThisQuestionEnabled
+                            ? "Please specify your reason..."
+                            : "This field will be enabled when you select the corresponding option"
+                        }
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           {renderValidationError()}
         </div>
       );
+    }
 
-    case "checkbox":
+    case "checkbox": {
+      // Check if this checkbox question has followUpQuestions
+      const hasFollowUps = question.followUpQuestions && question.followUpQuestions.length > 0;
+      const checkboxAnswer = hasFollowUps && typeof currentAnswer === 'object' && currentAnswer !== null && !Array.isArray(currentAnswer)
+        ? currentAnswer.main
+        : currentAnswer;
+      const followUpAnswers = hasFollowUps && typeof currentAnswer === 'object' && currentAnswer !== null && !Array.isArray(currentAnswer)
+        ? (currentAnswer.followUp || {})
+        : {};
+      
       return (
         <div>
           <div className={`space-y-3 ${disabledClass}`}>
-            {question.options?.map((option: string) => (
-              <label
-                key={option}
-                className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg ${
-                  isEnabled ? "hover:bg-gray-50" : "cursor-not-allowed"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={Array.isArray(currentAnswer) && currentAnswer.includes(option)}
-                  onChange={(e) => {
-                    const currentArray = Array.isArray(currentAnswer) ? currentAnswer : []
-                    const newArray = e.target.checked
-                      ? [...currentArray, option]
-                      : currentArray.filter((item) => item !== option)
-                    handleChange(newArray)
-                  }}
-                  disabled={!isEnabled}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded disabled:opacity-50"
-                />
-                <span className={`text-gray-700 ${!isEnabled ? "text-gray-400" : ""}`}>{option}</span>
-              </label>
-            ))}
+            {question.options?.map((option: string, index: number) => {
+              // Use original option for value, translated option for display
+              const displayLabel = (question as any).translatedOptions?.[index] || option;
+              return (
+                <label
+                  key={option}
+                  className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg ${
+                    isEnabled ? "hover:bg-gray-50" : "cursor-not-allowed"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={Array.isArray(checkboxAnswer) && checkboxAnswer.includes(option)}
+                    onChange={(e) => {
+                      const currentArray = Array.isArray(checkboxAnswer) ? checkboxAnswer : []
+                      const newArray = e.target.checked
+                        ? [...currentArray, option]
+                        : currentArray.filter((item) => item !== option)
+                      
+                      if (hasFollowUps) {
+                        // Store as object with main and followUp
+                        const newAnswer = {
+                          main: newArray,
+                          followUp: followUpAnswers
+                        };
+                        handleChange(newAnswer);
+                      } else {
+                        // Store as simple array
+                        handleChange(newArray);
+                      }
+                    }}
+                    disabled={!isEnabled}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded disabled:opacity-50"
+                  />
+                  <span className={`text-gray-700 ${!isEnabled ? "text-gray-400" : ""}`}>{displayLabel}</span>
+                </label>
+              );
+            })}
           </div>
+          
+          {/* Render followUpQuestions if they exist */}
+          {hasFollowUps && (
+            <div className="mt-6 space-y-6">
+              {question.followUpQuestions?.map((followUpQ: any) => {
+                const followUpAnswer = followUpAnswers[followUpQ.id];
+                // For checkbox, check if the dependsOnValue is in the array
+                const isOtherSelected = Array.isArray(checkboxAnswer) && (
+                  checkboxAnswer.includes("Iba pa (Other)") ||
+                  checkboxAnswer.includes("Laing rason (Other)") ||
+                  checkboxAnswer.includes("Other")
+                );
+                const isThisQuestionEnabled = isEnabled && isOtherSelected;
+
+                return (
+                  <div key={followUpQ.id} className={`ml-6 pl-4 border-l-2 ${isThisQuestionEnabled ? 'border-blue-300' : 'border-gray-200'}`}>
+                    <h6
+                      className={`text-sm font-medium mb-3 ${!isThisQuestionEnabled ? "text-gray-400" : "text-gray-700"}`}
+                    >
+                      {followUpQ.question}
+                    </h6>
+
+                    {followUpQ.type === "textarea" && (
+                      <textarea
+                        value={followUpAnswer || ""}
+                        onChange={(e) => {
+                          if (isThisQuestionEnabled) {
+                            const newFollowUp = { ...followUpAnswers, [followUpQ.id]: e.target.value };
+                            const newAnswer = { main: checkboxAnswer, followUp: newFollowUp };
+                            handleChange(newAnswer);
+                          }
+                        }}
+                        disabled={!isThisQuestionEnabled}
+                        rows={4}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm ${
+                          !isThisQuestionEnabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                        }`}
+                        placeholder={
+                          isThisQuestionEnabled
+                            ? "Please specify your reason..."
+                            : "This field will be enabled when you select 'Other'"
+                        }
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           {renderValidationError()}
         </div>
       );
+    }
 
     case "text":
       return (
@@ -263,9 +405,13 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
 
               {question.followUpQuestions?.map((followUpQ: any) => {
                 const followUpAnswer = followUpAnswers[followUpQ.id];
+                // Check if this followUp depends on the main question or another followUp
+                const dependsOnValue = followUpQ.dependsOn === question.id 
+                  ? mainAnswer  // Main question answer
+                  : followUpAnswers[followUpQ.dependsOn]; // Another followUp answer
                 const isThisQuestionEnabled =
                   isFollowUpEnabled &&
-                  (!followUpQ.dependsOn || followUpAnswers[followUpQ.dependsOn] === followUpQ.dependsOnValue)
+                  (!followUpQ.dependsOn || dependsOnValue === followUpQ.dependsOnValue)
 
                 return (
                   <div key={followUpQ.id} className="mb-6">
@@ -276,33 +422,36 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
 
                     {followUpQ.type === "radio" && (
                       <div className={`space-y-2 ${!isThisQuestionEnabled ? "pointer-events-none" : ""}`}>
-                        {followUpQ.options?.map((option: string) => (
-                          <label
-                            key={option}
-                            className={`flex items-center space-x-3 p-2 rounded-lg ${
-                              isThisQuestionEnabled ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name={`${question.id}_${followUpQ.id}`}
-                              value={option}
-                              checked={followUpAnswer === option}
-                              onChange={(e) => {
-                                if (isThisQuestionEnabled) {
-                                  const newFollowUp = { ...followUpAnswers, [followUpQ.id]: e.target.value }
-                                  const newAnswer = { ...currentAnswer, followUp: newFollowUp }
-                                  handleChange(newAnswer)
-                                }
-                              }}
-                              disabled={!isThisQuestionEnabled}
-                              className="w-4 h-4 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                            />
-                            <span className={`text-sm ${!isThisQuestionEnabled ? "text-gray-400" : "text-gray-700"}`}>
-                              {option}
-                            </span>
-                          </label>
-                        ))}
+                        {(followUpQ.translatedOptions || followUpQ.options)?.map((displayOption: string, index: number) => {
+                          const valueOption = followUpQ.options?.[index] || displayOption;
+                          return (
+                            <label
+                              key={valueOption}
+                              className={`flex items-center space-x-3 p-2 rounded-lg ${
+                                isThisQuestionEnabled ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={`${question.id}_${followUpQ.id}`}
+                                value={valueOption}
+                                checked={followUpAnswer === valueOption}
+                                onChange={(e) => {
+                                  if (isThisQuestionEnabled) {
+                                    const newFollowUp = { ...followUpAnswers, [followUpQ.id]: e.target.value }
+                                    const newAnswer = { ...currentAnswer, followUp: newFollowUp }
+                                    handleChange(newAnswer)
+                                  }
+                                }}
+                                disabled={!isThisQuestionEnabled}
+                                className="w-4 h-4 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                              />
+                              <span className={`text-sm ${!isThisQuestionEnabled ? "text-gray-400" : "text-gray-700"}`}>
+                                {displayOption}
+                              </span>
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -324,6 +473,29 @@ export function QuestionRenderer({ question, currentAnswer, onAnswerChange, isEn
                         placeholder={
                           isThisQuestionEnabled
                             ? "Enter your answer..."
+                            : "This field will be enabled when conditions are met"
+                        }
+                      />
+                    )}
+
+                    {followUpQ.type === "textarea" && (
+                      <textarea
+                        value={followUpAnswer || ""}
+                        onChange={(e) => {
+                          if (isThisQuestionEnabled) {
+                            const newFollowUp = { ...followUpAnswers, [followUpQ.id]: e.target.value }
+                            const newAnswer = { ...currentAnswer, followUp: newFollowUp }
+                            handleChange(newAnswer)
+                          }
+                        }}
+                        disabled={!isThisQuestionEnabled}
+                        rows={4}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm ${
+                          !isThisQuestionEnabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                        }`}
+                        placeholder={
+                          isThisQuestionEnabled
+                            ? "Please specify your reason..."
                             : "This field will be enabled when conditions are met"
                         }
                       />
