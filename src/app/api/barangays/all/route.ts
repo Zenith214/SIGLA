@@ -1,146 +1,413 @@
-import { NextResponse } from "next/server";
-import * as Prisma from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { Pool } from 'pg';
+import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
 
-const prisma = new Prisma.PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
 
-// Static barangay data for seeding - realistic distribution of awardees
-const staticBarangayData = [
-  { name: "Katipunan", population: 12450, households: 3120, surveyStatus: "Completed", seal: "no" },
-  { name: "Tanwalang", population: 8750, households: 2180, surveyStatus: "In Progress", seal: "yes" },
-  { name: "Solong Vale", population: 15200, households: 3800, surveyStatus: "Completed", seal: "yes" },
-  { name: "Tala-o", population: 6890, households: 1720, surveyStatus: "Pending", seal: "no" },
-  { name: "Balasinon", population: 9340, households: 2335, surveyStatus: "In Progress", seal: "yes" },
-  { name: "Haradabutai", population: 7650, households: 1912, surveyStatus: "Completed", seal: "no" },
-  { name: "Roxas", population: 11200, households: 2800, surveyStatus: "Completed", seal: "no" },
-  { name: "New Cebu", population: 13800, households: 3450, surveyStatus: "In Progress", seal: "no" },
-  { name: "Palili", population: 5420, households: 1355, surveyStatus: "Pending", seal: "no" },
-  { name: "Talas", population: 8960, households: 2240, surveyStatus: "Completed", seal: "yes" },
-  { name: "Carre", population: 6780, households: 1695, surveyStatus: "In Progress", seal: "yes" },
-  { name: "Buguis", population: 10300, households: 2575, surveyStatus: "Completed", seal: "yes" },
-  { name: "McKinley", population: 7890, households: 1972, surveyStatus: "Pending", seal: "no" },
-  { name: "Kiblagon", population: 9870, households: 2467, surveyStatus: "In Progress", seal: "no" },
-  { name: "Laperas", population: 6540, households: 1635, surveyStatus: "Completed", seal: "no" },
-  { name: "Clib", population: 8120, households: 2030, surveyStatus: "In Progress", seal: "no" },
-  { name: "Osmena", population: 11650, households: 2912, surveyStatus: "Completed", seal: "no" },
-  { name: "Luparan", population: 7320, households: 1830, surveyStatus: "Pending", seal: "yes" },
-  { name: "Poblacion", population: 16800, households: 4200, surveyStatus: "Completed", seal: "yes" },
-  { name: "Tagolilong", population: 5890, households: 1472, surveyStatus: "In Progress", seal: "no" },
-  { name: "Lapla", population: 9450, households: 2362, surveyStatus: "Completed", seal: "no" },
-  { name: "Litos", population: 7140, households: 1785, surveyStatus: "Pending", seal: "no" },
-  { name: "Parame", population: 8670, households: 2167, surveyStatus: "In Progress", seal: "no" },
-  { name: "Labon", population: 6230, households: 1557, surveyStatus: "Completed", seal: "no" },
-  { name: "Waterfall", population: 4890, households: 1222, surveyStatus: "Pending", seal: "no" }
-];
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
 
-async function seedStaticData() {
-  console.log('🌱 Seeding static barangay data...');
-  
-  for (const barangayData of staticBarangayData) {
-    const barangay = await prisma.barangay.create({
-      data: {
-        barangay_name: barangayData.name,
-        population: barangayData.population,
-        households: barangayData.households,
-        seal: barangayData.seal as "yes" | "no",
-        currentStatus: barangayData.surveyStatus,
-        is_active: true,
-        description: `${barangayData.name} is a barangay with ${barangayData.population.toLocaleString()} residents and ${barangayData.households.toLocaleString()} households.`
-      }
-    });
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
-    // Create survey targets based on status
-    let targetProgress = 150;
-    let achievedProgress = 0;
+export async function GET(request: NextRequest) {
+  let client;
+  try {
+    client = await pool.connect();
     
-    switch (barangayData.surveyStatus) {
-      case 'Completed':
-        achievedProgress = 150;
-        break;
-      case 'In Progress':
-        achievedProgress = Math.floor(Math.random() * 100) + 50;
-        break;
-      case 'Pending':
-        achievedProgress = 0;
-        break;
-    }
+    const { searchParams } = new URL(request.url);
+    const cycleId = searchParams.get('cycle_id');
+    const includeAwards = searchParams.get('include_awards') === 'true';
+    const awardeesOnly = searchParams.get('awardees_only') === 'true';
+    const legacyMode = searchParams.get('legacy_mode') === 'true';
 
-    const percentage = Math.round((achievedProgress / targetProgress) * 100);
+    const parsedCycleId = cycleId ? parseInt(cycleId, 10) : undefined;
 
-    await prisma.surveyTarget.create({
-      data: {
-        barangay_id: barangay.barangay_id,
-        target: targetProgress,
-        achieved: achievedProgress,
-        percentage: percentage
-      }
-    });
-  }
-  
-  console.log('✅ Static data seeded successfully');
-}
-
-export async function GET() {
-  try {
-    // Check if barangays exist, if not, seed them
-    const existingCount = await prisma.barangay.count();
-    if (existingCount === 0) {
-      console.log('No barangays found, seeding static data...');
-      await seedStaticData();
-    }
-
-    // Fetch ALL barangays (including those without seals) for settings management
-    const barangays = await prisma.barangay.findMany({
-      where: {
-        is_active: true
-        // No seal filter - show all barangays
-      },
-      include: {
-        surveyTargets: {
-          select: {
-            target: true,
-            achieved: true,
-            percentage: true,
-            created_at: true
-          }
+    // Validate cycle_id if provided
+    if (cycleId && (isNaN(parsedCycleId!) || parsedCycleId! <= 0)) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input',
+          message: 'cycle_id must be a positive integer'
         },
-        survey_response: {
-          where: {
-            status: 'completed'
-          },
-          select: {
-            completed_at: true,
-            status: true
-          }
-        }
-      },
-      orderBy: {
-        barangay_name: 'asc'
+        { status: 400 }
+      );
+    }
+
+    const targetCycleId = parsedCycleId || await getActiveCycleId();
+    
+    // Fetch ALL barangays with survey targets (cycle-aware)
+    let barangaysQuery;
+    let queryParams: any[] = [];
+    
+    if (targetCycleId) {
+      barangaysQuery = `
+        SELECT 
+          b.barangay_id,
+          b.barangay_name,
+          b.population,
+          b.households,
+          b.captain,
+          b.description,
+          b."currentStatus",
+          b.seal,
+          b.seal_expiration_date,
+          b.logo_url,
+          st.percentage
+        FROM barangay b
+        LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id AND st.survey_cycle_id = $1
+        WHERE b.is_active = true
+        ORDER BY b.barangay_name ASC
+      `;
+      queryParams = [targetCycleId];
+    } else {
+      barangaysQuery = `
+        SELECT 
+          b.barangay_id,
+          b.barangay_name,
+          b.population,
+          b.households,
+          b.captain,
+          b.description,
+          b."currentStatus",
+          b.seal,
+          b.seal_expiration_date,
+          b.logo_url,
+          st.percentage
+        FROM barangay b
+        LEFT JOIN survey_target st ON b.barangay_id = st.barangay_id
+        WHERE b.is_active = true
+        ORDER BY b.barangay_name ASC
+      `;
+    }
+    
+    const result = await client.query(barangaysQuery, queryParams);
+    let barangays = result.rows;
+
+    // Fetch officers designated to each barangay
+    const officersQuery = `
+      SELECT 
+        "barangayDesignation",
+        "firstName",
+        "lastName",
+        email
+      FROM "user"
+      WHERE role = 'officer' 
+        AND "barangayDesignation" IS NOT NULL
+        AND LOWER(status) = 'active'
+      ORDER BY "firstName", "lastName"
+    `;
+    const officersResult = await client.query(officersQuery);
+    
+    // Group officers by barangay
+    const officersByBarangay = new Map<number, any[]>();
+    officersResult.rows.forEach(officer => {
+      const barangayId = officer.barangayDesignation;
+      if (!officersByBarangay.has(barangayId)) {
+        officersByBarangay.set(barangayId, []);
       }
+      officersByBarangay.get(barangayId)!.push({
+        firstName: officer.firstName,
+        lastName: officer.lastName,
+        email: officer.email,
+        fullName: `${officer.firstName} ${officer.lastName}`
+      });
     });
 
-    // Return raw barangay data for settings (no transformation needed)
-    return NextResponse.json(barangays);
+    // Get award information if needed
+    let awardeeIds: number[] = [];
+    let cycleAwards: any[] = [];
 
+    if ((includeAwards || awardeesOnly) && targetCycleId) {
+      if (includeAwards) {
+        // Get detailed award information
+        cycleAwards = await CycleAwardsService.getCycleAwards(targetCycleId);
+        console.log(`📊 Fetched ${cycleAwards.length} cycle awards for cycle ${targetCycleId}`);
+        console.log('🎯 Award data:', cycleAwards.map(a => ({ barangay_id: a.barangay_id, is_awardee: a.is_awardee })));
+      } else {
+        // Just get awardee IDs for filtering
+        awardeeIds = await CycleAwardsService.getAwardeeBarangayIds(targetCycleId);
+      }
+    }
+
+    // Create award lookup map for efficient access
+    const awardMap = new Map();
+    if (includeAwards && cycleAwards.length > 0) {
+      cycleAwards.forEach(award => {
+        awardMap.set(award.barangay_id, {
+          isAwardee: award.is_awardee,
+          awardedDate: award.awarded_date,
+          notes: award.notes,
+          awardId: award.id
+        });
+      });
+    }
+
+    // Transform the data to match frontend expectations
+    let transformedBarangays = barangays.map((barangay: any) => {
+      const progress = barangay.percentage || 0;
+      
+      let status = "Pending";
+      if (progress === 100) {
+        status = "Completed";
+      } else if (progress > 0) {
+        status = "In Progress";
+      }
+
+      const officers = officersByBarangay.get(barangay.barangay_id) || [];
+      
+      const baseBarangay: any = {
+        id: barangay.barangay_id, // Transform barangay_id to id
+        barangay_id: barangay.barangay_id, // Keep original for updates
+        name: barangay.barangay_name, // Transform barangay_name to name
+        progress: progress,
+        status: status,
+        population: barangay.population || 0,
+        households: barangay.households || 0,
+        captain: barangay.captain,
+        officers: officers, // Add officers array
+        description: barangay.description,
+        currentStatus: barangay.currentStatus || status,
+        seal: barangay.seal, // Keep for backward compatibility
+        seal_expiration_date: barangay.seal_expiration_date,
+        logo_url: barangay.logo_url,
+        history: [] // Add empty history for now
+      };
+
+      // Add cycle-aware award information if requested
+      if (includeAwards && targetCycleId) {
+        const awardInfo = awardMap.get(barangay.barangay_id);
+        baseBarangay.awardStatus = awardInfo ? {
+          isAwardee: awardInfo.isAwardee,
+          awardedDate: awardInfo.awardedDate,
+          notes: awardInfo.notes,
+          awardId: awardInfo.awardId,
+          cycleId: targetCycleId
+        } : {
+          isAwardee: false,
+          awardedDate: null,
+          notes: null,
+          awardId: null,
+          cycleId: targetCycleId
+        };
+        // Also set the direct isAwardee flag for convenience
+        baseBarangay.isAwardee = awardInfo?.isAwardee || false;
+      }
+
+      return baseBarangay;
+    });
+
+    // Filter for awardees only if requested
+    if (awardeesOnly && targetCycleId) {
+      if (includeAwards) {
+        // Filter based on award status in the formatted data
+        transformedBarangays = transformedBarangays.filter(barangay => 
+          barangay.awardStatus?.isAwardee === true
+        );
+      } else {
+        // Filter based on awardee IDs
+        transformedBarangays = transformedBarangays.filter(barangay => 
+          awardeeIds.includes(barangay.id)
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: transformedBarangays,
+      meta: {
+        cycle_id: targetCycleId,
+        include_awards: includeAwards,
+        awardees_only: awardeesOnly,
+        legacy_mode: legacyMode,
+        total_count: transformedBarangays.length
+      }
+    });
   } catch (error: any) {
-    console.error("Error fetching all barangays:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error fetching all barangays:', error);
+    return NextResponse.json(
+      { message: 'Failed to fetch barangays', error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
 
-// PUT method for updating barangays
-export async function PUT(request: Request) {
+export async function PUT(req: Request) {
+  let client;
   try {
-    const data = await request.json();
-    const { barangay_id, ...updateData } = data;
+    client = await pool.connect();
+    const body = await req.json();
+    const { barangayId, ...updates } = body;
 
-    const updatedBarangay = await prisma.barangay.update({
-      where: { barangay_id: parseInt(barangay_id) },
-      data: updateData
-    });
+    console.log('Received update request:', { barangayId, updates });
 
-    return NextResponse.json(updatedBarangay);
+    if (!barangayId) {
+      return NextResponse.json(
+        { message: 'Barangay ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Map frontend field names to database field names
+    const updateFields = [];
+    const values = [parseInt(barangayId)];
+    let paramIndex = 2;
+    
+    if (updates.name !== undefined) {
+      updateFields.push(`barangay_name = $${paramIndex}`);
+      values.push(updates.name);
+      paramIndex++;
+    }
+    if (updates.seal !== undefined) {
+      updateFields.push(`seal = $${paramIndex}`);
+      values.push(updates.seal);
+      paramIndex++;
+    }
+    if (updates.seal_expiration_date !== undefined) {
+      updateFields.push(`seal_expiration_date = $${paramIndex}`);
+      // Handle empty string dates by converting to null
+      const dateValue = updates.seal_expiration_date === '' ? null : updates.seal_expiration_date;
+      values.push(dateValue);
+      paramIndex++;
+    }
+    if (updates.description !== undefined) {
+      updateFields.push(`description = $${paramIndex}`);
+      values.push(updates.description);
+      paramIndex++;
+    }
+    if (updates.population !== undefined) {
+      updateFields.push(`population = $${paramIndex}`);
+      values.push(updates.population);
+      paramIndex++;
+    }
+    if (updates.households !== undefined) {
+      updateFields.push(`households = $${paramIndex}`);
+      values.push(updates.households);
+      paramIndex++;
+    }
+    if (updates.captain !== undefined) {
+      updateFields.push(`captain = $${paramIndex}`);
+      values.push(updates.captain);
+      paramIndex++;
+    }
+    if (updates.currentStatus !== undefined) {
+      updateFields.push(`"currentStatus" = $${paramIndex}`);
+      values.push(updates.currentStatus);
+      paramIndex++;
+    }
+    if (updates.is_active !== undefined) {
+      updateFields.push(`is_active = $${paramIndex}`);
+      values.push(updates.is_active);
+      paramIndex++;
+    }
+    if (updates.logo_url !== undefined) {
+      updateFields.push(`logo_url = $${paramIndex}`);
+      values.push(updates.logo_url);
+      paramIndex++;
+    }
+
+    console.log('Mapped update data:', updateFields, values);
+
+    const query = `UPDATE barangay SET ${updateFields.join(', ')} WHERE barangay_id = $1 RETURNING *`;
+    const result = await client.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to update barangay');
+    }
+
+    const updatedBarangay = result.rows[0];
+
+    // Transform response to match frontend expectations
+    const transformedResponse = {
+      id: updatedBarangay.barangay_id,
+      barangay_id: updatedBarangay.barangay_id,
+      name: updatedBarangay.barangay_name,
+      seal: updatedBarangay.seal,
+      seal_expiration_date: updatedBarangay.seal_expiration_date,
+      description: updatedBarangay.description,
+      population: updatedBarangay.population,
+      households: updatedBarangay.households,
+      captain: updatedBarangay.captain,
+      currentStatus: updatedBarangay.currentStatus,
+      is_active: updatedBarangay.is_active,
+      logo_url: updatedBarangay.logo_url
+    };
+
+    console.log('Update successful:', transformedResponse);
+    return NextResponse.json(transformedResponse);
   } catch (error: any) {
-    console.error("Error updating barangay:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error updating barangay:', error);
+    return NextResponse.json(
+      { message: 'Failed to update barangay', error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
+}
+
+export async function DELETE(req: Request) {
+  let client;
+  try {
+    client = await pool.connect();
+    const { searchParams } = new URL(req.url);
+    const barangayId = searchParams.get('id');
+
+    console.log('Received delete request for barangay ID:', barangayId);
+
+    if (!barangayId) {
+      return NextResponse.json(
+        { message: 'Barangay ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // First check if barangay exists
+    const checkQuery = 'SELECT barangay_id, barangay_name FROM barangay WHERE barangay_id = $1';
+    const checkResult = await client.query(checkQuery, [parseInt(barangayId)]);
+    
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json(
+        { message: 'Barangay not found' },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete by setting is_active to false
+    const deleteQuery = 'UPDATE barangay SET is_active = false WHERE barangay_id = $1 RETURNING barangay_id, barangay_name';
+    const result = await client.query(deleteQuery, [parseInt(barangayId)]);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to delete barangay');
+    }
+
+    console.log('Delete successful for barangay:', result.rows[0].barangay_name);
+    return NextResponse.json({ 
+      message: 'Barangay deleted successfully',
+      deletedBarangay: result.rows[0]
+    });
+  } catch (error: any) {
+    console.error('Error deleting barangay:', error);
+    return NextResponse.json(
+      { message: 'Failed to delete barangay', error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }

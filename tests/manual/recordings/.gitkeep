@@ -1,0 +1,30 @@
+# Screen Recordings Directory
+
+Store screen recordings here organized by date:
+
+```
+recordings/
+├── 2024-11-17/
+│   ├── complete-survey-flow-desktop.mp4
+│   ├── offline-sync-demo.mp4
+│   └── ...
+├── 2024-11-18/
+│   └── ...
+```
+
+## When to Record
+
+- Complex user interactions
+- Bugs that are hard to describe with screenshots
+- Performance issues
+- Complete user flow demonstrations
+- Issues that only occur during specific sequences
+
+## Naming Convention
+
+`[description]-[device]-[date].mp4`
+
+Examples:
+- `complete-survey-flow-desktop-2024-11-17.mp4`
+- `gps-capture-issue-mobile-2024-11-17.mp4`
+- `offline-sync-tablet-2024-11-17.mp4`

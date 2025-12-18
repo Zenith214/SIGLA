@@ -1,141 +1,134 @@
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
-
-const realBarangays = [
-  {
-    name: 'Balasinon',
-    population: 3420,
-    households: 855,
-    area: 12.5,
-    captain: 'Maria Santos',
-    description: 'A progressive barangay known for its agricultural activities.',
-  },
-  {
-    name: 'Poblacion',
-    population: 8750,
-    households: 2187,
-    area: 18.2,
-    captain: 'Juan Dela Cruz',
-    description: 'The central barangay and seat of municipal government.',
-  },
-  {
-    name: 'Buguis',
-    population: 2890,
-    households: 722,
-    area: 9.8,
-    captain: 'Ana Rodriguez',
-    description: 'A peaceful barangay with rich cultural heritage.',
-  },
-  {
-    name: 'Tanwalang',
-    population: 4560,
-    households: 1140,
-    area: 14.6,
-    captain: 'Pedro Martinez',
-    description: 'A growing barangay with excellent road connectivity.',
-  },
-  {
-    name: 'Luparan',
-    population: 2150,
-    households: 537,
-    area: 8.3,
-    captain: 'Lisa Garcia',
-    description: 'A small but vibrant barangay nestled in the hills.',
-  },
-  {
-    name: 'Carre',
-    population: 3680,
-    households: 920,
-    area: 11.4,
-    captain: 'Roberto Santos',
-    description: 'Known for its strong community spirit and local festivals.',
-  },
-  {
-    name: 'Talas',
-    population: 5120,
-    households: 1280,
-    area: 15.9,
-    captain: 'Carmen Reyes',
-    description: 'A barangay famous for its natural springs and eco-tourism.',
-  },
-  {
-    name: 'Solongvale',
-    population: 1980,
-    households: 495,
-    area: 7.2,
-    captain: 'Diego Fernandez',
-    description: 'The smallest barangay with stunning valley views.',
-  }
-];
-
-const defaultHistory = JSON.stringify([
-  { year: "2024", status: "In Progress" },
-  { year: "2023", status: "Completed" },
-  { year: "2022", status: "Completed" },
-  { year: "2021", status: "Completed" }
-]);
-
 async function updateRealBarangays() {
+  console.log('🏘️ Updating barangays with real data...');
+  
+  const prisma = new PrismaClient();
+
   try {
-    console.log('🚀 Starting barangay data update...');
+    await prisma.$connect();
+
+    // First, clear existing barangays and related data
+    console.log('🗑️ Clearing existing barangays...');
     
-    // First, delete all existing barangay records (this will cascade delete related data)
-    console.log('🗑️  Clearing existing barangay data...');
-    await prisma.assignment.deleteMany();
-    await prisma.survey.deleteMany();
-    await prisma.surveyTarget.deleteMany();
-    await prisma.barangay.deleteMany();
+    // Delete related records first (due to foreign key constraints)
+    await prisma.surveyTarget.deleteMany({});
+    await prisma.assignment.deleteMany({});
+    await prisma.survey_response.deleteMany({});
+    await prisma.survey.deleteMany({});
+    await prisma.barangay.deleteMany({});
     
-    console.log('✅ Existing data cleared.');
-    
-    // Insert the real barangays
-    console.log('📝 Inserting real barangay data...');
-    
-    for (const barangay of realBarangays) {
-      const result = await prisma.barangay.create({
+    console.log('✅ Cleared existing barangays and related data');
+
+    // Define the real barangays with seal information
+    const barangaysWithSeals = [
+      'Balasinon', 'Poblacion', 'Buguis', 'Tanwalang', 
+      'Luparan', 'Carre', 'Talas', 'Solong vale'
+    ];
+
+    const allBarangays = [
+      'Katipunan',
+      'Tanwalang',
+      'Solongvale',
+      'Tala-O',
+      'Balasinon',
+      'Harada Butai',
+      'Roxas',
+      'New Cebu',
+      'Palili',
+      'Talas',
+      'Carre',
+      'Buguis',
+      'Mckinley',
+      'Kiblagon',
+      'Laperas',
+      'Clib',
+      'Osmeña',
+      'Luparan',
+      'Poblacion',
+      'Tagolilong',
+      'Lapla',
+      'Litos',
+      'Parame',
+      'Labon',
+      'Waterfall'
+    ];
+
+    console.log('🏘️ Adding real barangays...');
+
+    // Add each barangay
+    for (let i = 0; i < allBarangays.length; i++) {
+      const barangayName = allBarangays[i];
+      const hasSeal = barangaysWithSeals.includes(barangayName) || 
+                     barangaysWithSeals.includes(barangayName.replace(' ', '')) ||
+                     (barangayName === 'Solongvale' && barangaysWithSeals.includes('Solong vale'));
+      
+      // Generate realistic household and population data
+      const households = Math.floor(Math.random() * 200) + 50; // 50-250 households
+      const population = households * (Math.floor(Math.random() * 3) + 3); // 3-6 people per household
+      
+      const barangay = await prisma.barangay.create({
         data: {
-          barangay_name: barangay.name,
-          population: barangay.population,
-          households: barangay.households,
-          area: barangay.area,
-          captain: barangay.captain,
-          description: barangay.description,
-          currentStatus: 'Active',
-          history: defaultHistory,
+          barangay_name: barangayName,
+          seal: hasSeal ? 'yes' : 'no',
+          households: households,
+          population: population,
           is_active: true,
-          seal: 'no',
+          captain: `Captain of ${barangayName}`, // Placeholder captain name
+          description: `Barangay ${barangayName} in Sulop Municipality`
         }
       });
-      
-      console.log(`✅ Created: ${barangay.name} (ID: ${result.barangay_id})`);
+
+      console.log(`✅ Added: ${barangayName} (ID: ${barangay.barangay_id}) - Seal: ${hasSeal ? 'YES' : 'NO'}`);
     }
+
+    // Create survey targets for each barangay (10% of households)
+    console.log('🎯 Creating survey targets...');
+    const createdBarangays = await prisma.barangay.findMany();
     
-    console.log('\n🎉 Successfully updated all barangay records!');
-    console.log(`📊 Total barangays: ${realBarangays.length}`);
-    
-    // Verify the data
-    const count = await prisma.barangay.count();
-    console.log(`🔍 Verification: ${count} barangays found in database`);
-    
-    // List all barangays
-    console.log('\n📋 Current barangays in database:');
-    const allBarangays = await prisma.barangay.findMany({
-      select: {
-        barangay_id: true,
-        barangay_name: true,
-        population: true,
-        households: true,
-      },
-      orderBy: {
-        barangay_name: 'asc'
-      }
+    for (const barangay of createdBarangays) {
+      const target = Math.max(Math.floor(barangay.households * 0.1), 5); // At least 5 surveys per barangay
+      await prisma.surveyTarget.create({
+        data: {
+          barangay_id: barangay.barangay_id,
+          target: target,
+          achieved: 0,
+          percentage: 0
+        }
+      });
+      console.log(`🎯 Target for ${barangay.barangay_name}: ${target} surveys`);
+    }
+
+    // Summary
+    const totalBarangays = await prisma.barangay.count();
+    const barangaysWithSealCount = await prisma.barangay.count({
+      where: { seal: 'yes' }
+    });
+    const totalHouseholds = await prisma.barangay.aggregate({
+      _sum: { households: true }
+    });
+    const totalPopulation = await prisma.barangay.aggregate({
+      _sum: { population: true }
+    });
+
+    console.log('\n📊 Summary:');
+    console.log(`✅ Total Barangays: ${totalBarangays}`);
+    console.log(`🏆 Barangays with Seal: ${barangaysWithSealCount}`);
+    console.log(`🏠 Total Households: ${totalHouseholds._sum.households?.toLocaleString()}`);
+    console.log(`👥 Total Population: ${totalPopulation._sum.population?.toLocaleString()}`);
+
+    console.log('\n🏆 Barangays with Seals:');
+    const sealedBarangays = await prisma.barangay.findMany({
+      where: { seal: 'yes' },
+      orderBy: { barangay_name: 'asc' }
     });
     
-    allBarangays.forEach(b => {
-      console.log(`   ${b.barangay_id}: ${b.barangay_name} (Pop: ${b.population}, HH: ${b.households})`);
+    sealedBarangays.forEach((b, index) => {
+      console.log(`   ${index + 1}. ${b.barangay_name}`);
     });
-    
+
+    console.log('\n🎉 Barangay update completed successfully!');
+
   } catch (error) {
     console.error('❌ Error updating barangays:', error);
     throw error;
@@ -144,17 +137,17 @@ async function updateRealBarangays() {
   }
 }
 
-// Run the script
+// Run the update
 if (require.main === module) {
   updateRealBarangays()
     .then(() => {
-      console.log('\n✨ Script completed successfully!');
+      console.log('✅ Barangay update completed!');
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 Script failed:', error);
+      console.error('💥 Update failed:', error);
       process.exit(1);
     });
 }
 
-module.exports = updateRealBarangays;
+module.exports = { updateRealBarangays };

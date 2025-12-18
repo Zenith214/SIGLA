@@ -1,34 +1,37 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient()
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET() {
+  let client;
   try {
+    client = await pool.connect();
+    
     // Get users with interviewer role - this endpoint doesn't require admin auth
     // since it's needed for assignment functionality
-    const interviewers = await prisma.user.findMany({
-      where: {
-        role: 'interviewer',
-        // Only get active users
-        OR: [
-          { status: 'Active' },
-          { status: null } // Handle cases where status might be null
-        ]
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true
-      },
-      orderBy: {
-        firstName: 'asc'
-      }
-    })
+    const query = `
+      SELECT id, "firstName", "lastName", email, role
+      FROM "user"
+      WHERE role = 'interviewer' 
+        AND (status = 'Active' OR status IS NULL)
+      ORDER BY "firstName" ASC
+    `;
     
-    return NextResponse.json(interviewers)
+    const result = await client.query(query);
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error("Error fetching interviewers:", error)
     return NextResponse.json(
@@ -36,6 +39,8 @@ export async function GET() {
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect()
+    if (client) {
+      client.release();
+    }
   }
 }

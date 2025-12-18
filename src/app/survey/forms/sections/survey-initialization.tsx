@@ -1,237 +1,282 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { MapPin, Hash, Navigation, AlertCircle, CheckCircle, Globe } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Hash, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import type { SurveyData } from "../page"
-import { useGeotagging } from "../utils/useGeotagging"
-import { geotaggingService } from "../utils/geotagging"
-import { InteractiveMap } from "./interactive-map"
+import { getSurveyRecordByQuestionnaire, addVisit } from "@/lib/indexedDB"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface SurveyInitializationProps {
-  data: SurveyData
-  onUpdate: (section: keyof SurveyData, data: any) => void
-  onNext: () => void
-}
+   data: SurveyData
+   onUpdate: (section: keyof SurveyData, data: any) => void
+   onNext: () => void
+   preselectedBarangayId?: number
+ }
 
-export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializationProps) {
-  const [surveyNumber, setSurveyNumber] = useState(data.surveyNumber || "")
-  const [surveyNumberError, setSurveyNumberError] = useState('')
-  const [location, setLocation] = useState(data.location || { lat: 0, lng: 0, address: "" })
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle')
-  const [locationError, setLocationError] = useState('')
-  const [showMap, setShowMap] = useState(false)
+export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarangayId }: SurveyInitializationProps) {
+  const searchParams = useSearchParams()
+  const [isGeneratingNumber, setIsGeneratingNumber] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const [mapLoaded, setMapLoaded] = useState(false)
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any>(null)
-  const markerRef = useRef<any>(null)
-
-  // Use geotagging hook
-  const { getLocation, isSupported } = useGeotagging(false)
+  const [preselectedBarangayName, setPreselectedBarangayName] = useState<string>('')
+  const [currentVisitCount, setCurrentVisitCount] = useState(0)
+  const [isLoggingVisit, setIsLoggingVisit] = useState(false)
+  
+  // Visit status form state
+  const [visitType, setVisitType] = useState<string>("")
+  const [outcome, setOutcome] = useState<string>("")
+  const [callbackReason, setCallbackReason] = useState<string>("")
+  const [notes, setNotes] = useState<string>("")
+  const [errors, setErrors] = useState<{ visitType?: string; outcome?: string; callbackReason?: string }>({})
+  
+  // Get questionnaire context from URL
+  const questionnaireIdParam = searchParams.get('questionnaireId')
+  const cycleIdParam = searchParams.get('cycleId')
+  const isCallback = !!questionnaireIdParam && currentVisitCount > 0 // Only show visit form if there are existing visits
 
   // Ensure client-side rendering
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Load Leaflet when location is captured and modal is not open
+  // Load visit count from IndexedDB
   useEffect(() => {
-    if (location.lat !== 0 && location.lng !== 0 && !mapLoaded && !showMap) {
-      loadLeafletMap()
+    const loadVisitCount = async () => {
+      if (questionnaireIdParam) {
+        try {
+          const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
+          if (record) {
+            setCurrentVisitCount(record.visits.length)
+          }
+        } catch (error) {
+          console.error('Error loading visit count:', error)
+        }
+      }
     }
-  }, [location.lat, location.lng, mapLoaded, showMap])
+    loadVisitCount()
+  }, [questionnaireIdParam])
 
-  // Clean up map when modal opens
+  // Fetch barangay name when preselectedBarangayId is provided
   useEffect(() => {
-    if (showMap && mapInstanceRef.current) {
-      mapInstanceRef.current.remove()
-      mapInstanceRef.current = null
-      markerRef.current = null
-      setMapLoaded(false)
+    if (preselectedBarangayId && isClient) {
+      const fetchBarangayName = async () => {
+        try {
+          const response = await fetch(`/api/barangays/${preselectedBarangayId}`)
+          if (response.ok) {
+            const barangayData = await response.json()
+            setPreselectedBarangayName(barangayData.barangay_name)
+          }
+        } catch (error) {
+          console.error('Failed to fetch barangay name:', error)
+        }
+      }
+      fetchBarangayName()
     }
-  }, [showMap])
+  }, [preselectedBarangayId, isClient])
 
-  const loadLeafletMap = () => {
-    // Load Leaflet CSS
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
-    link.crossOrigin = ''
-    document.head.appendChild(link)
-
-    // Load Leaflet JS
-    const script = document.createElement('script')
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-    script.crossOrigin = ''
-    script.onload = initializeMap
-    document.head.appendChild(script)
-
-    setMapLoaded(true)
-  }
-
-  const initializeMap = () => {
-    if (!mapRef.current || !window.L || !location.lat || !location.lng) return
-
-    const L = window.L
-
-    // Check if map already exists and remove it
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove()
-      mapInstanceRef.current = null
-      markerRef.current = null
-    }
-
-    // Initialize map centered on the captured location
-    const map = L.map(mapRef.current).setView([location.lat, location.lng], 15)
-
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map)
-
-    // Add marker for the captured location
-    const marker = L.marker([location.lat, location.lng]).addTo(map)
-    marker.bindPopup(`Captured Location: ${location.address}`).openPopup()
-    markerRef.current = marker
-
-    mapInstanceRef.current = map
-  }
-
-  const handleLocationCapture = async () => {
-    setLocationStatus('capturing')
-    setLocationError('')
-
+  const generateQuestionnaireNumber = async () => {
+    setIsGeneratingNumber(true)
     try {
-      const locationData = await getLocation({
-        enableHighAccuracy: true,
-        timeout: 15000,
-        requireAddress: true
-      })
-
-      const newLocation = {
-        lat: locationData.latitude,
-        lng: locationData.longitude,
-        address: locationData.address || `${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}`,
-        accuracy: locationData.accuracy,
-        timestamp: locationData.timestamp,
-        barangay: locationData.barangay,
-        municipality: locationData.municipality,
-        province: locationData.province
+      // Get barangayId
+      const barangayIdToUse = preselectedBarangayId || data.barangayId
+      
+      if (!barangayIdToUse) {
+        alert('Please select a barangay first.')
+        return null
       }
 
-      setLocation(newLocation)
-      setLocationStatus('success')
+      // Generate the actual questionnaire number NOW
+      const response = await fetch('/api/questionnaire-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barangayId: barangayIdToUse })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate questionnaire number')
+      }
+
+      const responseData = await response.json()
+      const surveyNumber = responseData.surveyNumber // Full format: BB-YYYY-NNNN
+      const questionnaireNumber = responseData.questionnaireNumber // Just the number
       
-      // Auto-save to survey data
-      onUpdate("location", newLocation)
+      console.log(`✅ Generated survey number: ${surveyNumber} (Questionnaire #${questionnaireNumber})`)
+      
+      return { surveyNumber, questionnaireNumber }
+      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get location'
-      setLocationError(errorMessage)
-      setLocationStatus('error')
+      console.error('Error generating questionnaire number:', error)
+      alert('Failed to generate questionnaire number. Please try again.')
+      return null
+    } finally {
+      setIsGeneratingNumber(false)
     }
   }
 
-  const handleManualLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocation((prev) => ({ ...prev, address: e.target.value }))
+  const validateVisitForm = (): boolean => {
+    if (!isCallback) return true // No validation needed for new surveys
+    
+    const newErrors: typeof errors = {}
+
+    if (!visitType) {
+      newErrors.visitType = "Please select which visit this is"
+    }
+
+    if (!outcome) {
+      newErrors.outcome = "Please select a visit outcome"
+    }
+
+    if (outcome === "Callback_Needed" && !callbackReason) {
+      newErrors.callbackReason = "Please select a callback reason"
+    }
+
+    // Validate logical combinations
+    const replacementOutcomes = ["No_Qualified_Respondent", "Outright_Refusal", "Household_Moved"]
+    if (replacementOutcomes.includes(outcome) && visitType !== "First Visit") {
+      newErrors.outcome = "Replacement outcomes (NQR/OR/Moved) can only be used on First Visit"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
-  const handleMapLocationSelect = (selectedLocation: { lat: number; lng: number; address: string }) => {
-    setLocation(selectedLocation)
-    setLocationStatus('success')
-    onUpdate("location", selectedLocation)
-    setShowMap(false) // Close the modal after selection
+  const logVisit = async () => {
+    if (!questionnaireIdParam || !cycleIdParam) return
+
+    try {
+      // Get current location if available
+      let location = null
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              enableHighAccuracy: false,
+            })
+          })
+          location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }
+        } catch (error) {
+          console.log("Could not get location:", error)
+        }
+      }
+
+      // Prepare notes with visit type and callback reason if applicable
+      let finalNotes = `Visit Type: ${visitType}\n`
+      if (outcome === "Callback_Needed" && callbackReason) {
+        finalNotes += `Callback Reason: ${callbackReason}\n`
+      }
+      if (notes.trim()) {
+        finalNotes += `\nNotes: ${notes.trim()}`
+      }
+
+      // Save to IndexedDB
+      const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
+      if (record) {
+        await addVisit(
+          questionnaireIdParam,
+          parseInt(cycleIdParam),
+          outcome as any,
+          finalNotes || "",
+          location || undefined
+        )
+        console.log(`✅ Visit logged to IndexedDB for ${questionnaireIdParam}`)
+      }
+
+      // Save to API
+      const response = await fetch("/api/visits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionnaireId: questionnaireIdParam,
+          outcome,
+          notes: finalNotes || null,
+          location,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to log visit")
+      }
+
+      console.log(`✅ Visit logged to API for ${questionnaireIdParam}`)
+    } catch (error) {
+      console.error("Error logging visit:", error)
+      throw error
+    }
   }
 
-  const validateSurveyNumber = (value: string) => {
-    setSurveyNumberError('')
-    
-    if (!value.trim()) {
-      setSurveyNumberError('Survey number is required')
-      return false
-    }
-    
-    if (!/^\d+$/.test(value)) {
-      setSurveyNumberError('Survey number must contain only numbers')
-      return false
-    }
-    
-    const num = parseInt(value)
-    if (num < 1 || num > 150) {
-      setSurveyNumberError('Survey number must be between 1 and 150')
-      return false
-    }
-    
-    return true
-  }
-
-  const handleSurveyNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    
-    // Clear error when user starts typing
-    if (surveyNumberError) {
-      setSurveyNumberError('')
-    }
-    
-    // Only allow positive integers
-    if (value === '' || (/^\d+$/.test(value) && parseInt(value) > 0)) {
-      setSurveyNumber(value)
-    } else {
-      // Show error for invalid input
-      setSurveyNumberError('Only whole numbers are allowed')
-    }
-  }
-
-  const handleNext = () => {
-    // Validate survey number
-    if (!validateSurveyNumber(surveyNumber)) {
+  const handleNext = async () => {
+    // Validate visit form if this is a callback
+    if (isCallback && !validateVisitForm()) {
       return
     }
 
-    if (!location.address.trim()) {
-      alert("Please capture or enter a location.")
-      return
-    }
+    setIsGeneratingNumber(true)
+    setIsLoggingVisit(isCallback)
 
-    // Validate location coordinates
-    if (location.lat === 0 && location.lng === 0) {
-      alert("Please capture a valid location with coordinates.")
-      return
-    }
+    try {
+      // Log visit if this is a callback AND outcome is NOT "Interview_Started"
+      // For "Interview_Started", the visit will be logged when demographics is completed
+      if (isCallback && outcome && outcome !== "Interview_Started") {
+        await logVisit()
+        
+        console.log(`📍 Visit logged with outcome: ${outcome}. Redirecting to spots dashboard...`)
+        
+        // Different messages based on outcome type
+        let message = "Visit logged successfully. ";
+        
+        if (outcome === "Callback_Needed") {
+          message += "You can return later to complete the interview. Remember: up to 3 total visits allowed for callbacks.";
+        } else if (outcome === "No_Qualified_Respondent") {
+          message += "No Qualified Respondent (NQR). Move to the next household following the interval rule (skip one house).";
+        } else if (outcome === "Outright_Refusal") {
+          message += "Outright Refusal (OR). Move to the next household following the interval rule (skip one house).";
+        } else if (outcome === "Household_Moved") {
+          message += "Household moved. Move to the next household following the interval rule (skip one house).";
+        } else {
+          message += "Returning to spots dashboard.";
+        }
+        
+        alert(message);
+        
+        // Redirect back to survey dashboard
+        window.location.href = `/survey`;
+        return;
+      }
 
-    onUpdate("surveyNumber", surveyNumber)
-    onUpdate("location", location)
-    onNext()
+      // Check if we already have a survey number (from localStorage after refresh)
+      if (data.surveyNumber && data.surveyNumber !== "PENDING") {
+        console.log(`📋 Using existing survey number from localStorage: ${data.surveyNumber}`)
+        onNext()
+        return
+      }
+
+      // Generate questionnaire number NOW (will be saved to localStorage)
+      const result = await generateQuestionnaireNumber()
+      if (!result) {
+        return // Failed to generate
+      }
+
+      // Store the survey number
+      onUpdate("surveyNumber", result.surveyNumber)
+      onNext()
+    } catch (error) {
+      console.error("Error in handleNext:", error)
+      alert("Failed to proceed. Please try again.")
+    } finally {
+      setIsGeneratingNumber(false)
+      setIsLoggingVisit(false)
+    }
   }
 
-  const getLocationStatusDisplay = () => {
-    switch (locationStatus) {
-      case 'capturing':
-        return (
-          <div className="flex items-center space-x-2 text-yellow-600">
-            <Navigation className="w-4 h-4 animate-spin" />
-            <span>Capturing location...</span>
-          </div>
-        )
-      case 'success':
-        return (
-          <div className="flex items-center space-x-2 text-green-600">
-            <CheckCircle className="w-4 h-4" />
-            <span>Location captured successfully</span>
-          </div>
-        )
-      case 'error':
-        return (
-          <div className="flex items-center space-x-2 text-red-600">
-            <AlertCircle className="w-4 h-4" />
-            <span>Location capture failed</span>
-          </div>
-        )
-      default:
-        return null
-    }
-  }
+
 
   // Don't render buttons until client-side
   if (!isClient) {
@@ -242,24 +287,9 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
           <h2 className="text-xl font-semibold text-gray-900">Initialize Survey</h2>
         </div>
         <div className="space-y-6">
-          {/* Survey Number */}
-          <div>
-            <label htmlFor="surveyNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Survey Questionnaire Number *
-            </label>
-            <input
-              type="text"
-              id="surveyNumber"
-              value={surveyNumber}
-              onChange={(e) => setSurveyNumber(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Enter survey number (1-150)"
-              required
-            />
-          </div>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading location services...</p>
+            <p className="text-gray-500 mt-2">Loading...</p>
           </div>
         </div>
       </div>
@@ -274,172 +304,269 @@ export function SurveyInitialization({ data, onUpdate, onNext }: SurveyInitializ
       </div>
 
       <div className="space-y-6">
-        {/* Survey Number */}
-        <div>
-          <label htmlFor="surveyNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            Survey Questionnaire Number *
-          </label>
-          <input
-            type="number"
-            id="surveyNumber"
-            min="1"
-            max="150"
-            step="1"
-            value={surveyNumber}
-            onChange={handleSurveyNumberChange}
-            onBlur={() => validateSurveyNumber(surveyNumber)}
-            onKeyDown={(e) => {
-              // Prevent decimal point, minus sign, and 'e' (scientific notation)
-              if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
-                e.preventDefault();
-              }
-            }}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-colors ${
-              surveyNumberError 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="Enter survey number (1-150)"
-            required
-          />
-          
-          {/* Error Message */}
-          {surveyNumberError && (
-            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center space-x-2 text-sm text-red-600">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{surveyNumberError}</span>
-              </div>
+        {/* Pre-selected Barangay Indicator */}
+        {preselectedBarangayId && preselectedBarangayName && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2 text-sm text-green-800">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                <strong>Barangay:</strong> {preselectedBarangayName}
+              </span>
             </div>
-          )}
-          
-          {/* Help Text */}
-          {!surveyNumberError && (
-            <p className="mt-1 text-xs text-gray-500">
-              Enter a whole number between 1 and 150. No decimals or letters allowed.
-            </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Location Capture */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Respondent Location (Spot Map) *
-          </label>
-          
-          {/* Location Status */}
-          {getLocationStatusDisplay()}
-          
-          {/* Location Error */}
-          {locationStatus === 'error' && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
-              <div className="flex items-center space-x-2 text-sm text-red-600">
-                <AlertCircle className="w-4 h-4" />
-                <span>{locationError}</span>
-              </div>
-            </div>
-          )}
-
+        {/* Instructions for New Interviews */}
+        {!isCallback && (
           <div className="space-y-4">
-            {/* Location Buttons */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleLocationCapture}
-                disabled={locationStatus === 'capturing' || !isSupported}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>
-                  {locationStatus === 'capturing' ? 'Capturing...' : 'Capture Current Location'}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowMap(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                <span>Select on Map</span>
-              </button>
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-3">Before You Begin</h3>
+              <div className="space-y-3 text-sm text-blue-800">
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">1.</span>
+                  <p>Introduce yourself and explain the purpose of the survey</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">2.</span>
+                  <p>Ensure you are at the correct household location</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">3.</span>
+                  <p>If using a mobile device, turn on location services</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">4.</span>
+                  <p>Verify that you have a stable internet connection</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold min-w-[20px]">5.</span>
+                  <p>Have your device fully charged or connected to power</p>
+                </div>
+              </div>
             </div>
 
-            {/* Interactive Map Area */}
-            <div className="w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden">
-              {location.lat !== 0 && location.lng !== 0 && !showMap ? (
-                <div ref={mapRef} className="w-full h-full" />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 font-medium">Interactive Map Integration</p>
-                    <p className="text-sm text-gray-500">
-                      {location.address && location.lat !== 0 && location.lng !== 0
-                        ? `Location captured: ${location.address}`
-                        : 'Click "Capture Current Location" or "Select on Map" to mark position'}
-                    </p>
-                    {location.lat !== 0 && location.lng !== 0 && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        Coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                      </p>
-                    )}
-                  </div>
+            <div className="p-4 bg-gray-50 border border-gray-300 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-3">Survey Flow</h3>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p><strong>Step 1:</strong> Select respondent using Kish Grid</p>
+                <p><strong>Step 2:</strong> Collect respondent demographics</p>
+                <p><strong>Step 3:</strong> Complete 6 randomized service sections</p>
+                <p><strong>Step 4:</strong> Overall evaluation questions</p>
+                <p><strong>Step 5:</strong> Review and submit</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Once you click "Continue to Survey", a unique questionnaire number will be generated. Make sure you're ready to begin the interview.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Visit Status Fields - shown inline for callbacks */}
+        {isCallback && (
+          <div className="space-y-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <strong>Log Visit Status</strong> - Select which visit this is and record the outcome.
+              </p>
+            </div>
+
+            {/* CSIS Protocol Guide */}
+            <div className="p-3 bg-gray-50 border border-gray-300 rounded-lg text-xs">
+              <p className="font-semibold text-gray-900 mb-2">CSIS Protocol:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li><strong>Callback:</strong> Respondent unavailable → Return up to 3 times → Then substitute</li>
+                <li><strong>Replacement:</strong> NQR/OR/Moved → Move to next household immediately (skip one house)</li>
+              </ul>
+            </div>
+
+            {/* Visit Type Selection */}
+            <div className="space-y-3">
+              <Label>
+                Which Visit Is This? <span className="text-red-500">*</span>
+              </Label>
+              <RadioGroup value={visitType} onValueChange={setVisitType}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="First Visit" id="first-visit" />
+                  <Label htmlFor="first-visit" className="font-normal cursor-pointer">
+                    First Visit (Initial attempt)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Second Visit" id="second-visit" />
+                  <Label htmlFor="second-visit" className="font-normal cursor-pointer">
+                    Second Visit (First callback)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Last Visit" id="last-visit" />
+                  <Label htmlFor="last-visit" className="font-normal cursor-pointer">
+                    Last Visit (3rd Attempt - Final callback)
+                  </Label>
+                </div>
+              </RadioGroup>
+              {errors.visitType && (
+                <p className="text-sm text-red-500">{errors.visitType}</p>
+              )}
+              {visitType === "First Visit" && (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>First Visit:</strong> Initial attempt at this household. Use NQR/OR for immediate replacement, or Callback if respondent is unavailable.
+                </div>
+              )}
+              {visitType === "Second Visit" && (
+                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                  <strong>Second Visit:</strong> First callback attempt. You have one more visit (3rd) if still unavailable.
+                </div>
+              )}
+              {visitType === "Last Visit" && (
+                <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                  <strong>Last Visit (3rd Attempt):</strong> Final callback attempt. If still unavailable, this respondent will be marked for substitution (not replacement).
                 </div>
               )}
             </div>
 
-            <input
-              type="text"
-              value={location.address}
-              onChange={handleManualLocationInput}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              placeholder="Or enter address manually"
-            />
+            {/* Visit Outcome Radio Group */}
+            <div className="space-y-3">
+              <Label>
+                Visit Outcome <span className="text-red-500">*</span>
+              </Label>
+              <RadioGroup value={outcome} onValueChange={setOutcome}>
+                {/* Callback Outcomes (3-visit protocol) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-700 mt-2">Callback (Same Household - Up to 3 Visits):</p>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Callback_Needed" id="callback" />
+                    <Label htmlFor="callback" className="font-normal cursor-pointer">
+                      Callback Needed (Respondent unavailable/busy)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Interview_Started" id="started" />
+                    <Label htmlFor="started" className="font-normal cursor-pointer">
+                      Interview Started (Respondent available)
+                    </Label>
+                  </div>
+                </div>
 
-            {/* Location Details */}
-            {location.lat !== 0 && location.lng !== 0 && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Location Details</h4>
-                <div className="space-y-1 text-xs text-blue-800">
-                  <div><strong>Coordinates:</strong> {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</div>
-                  {location.accuracy && (
-                    <div><strong>Accuracy:</strong> ±{Math.round(location.accuracy)} meters</div>
-                  )}
-                  {location.barangay && (
-                    <div><strong>Barangay:</strong> {location.barangay}</div>
-                  )}
-                  {location.municipality && (
-                    <div><strong>Municipality:</strong> {location.municipality}</div>
-                  )}
-                  {location.province && (
-                    <div><strong>Province:</strong> {location.province}</div>
-                  )}
+                {/* Replacement Outcomes (1 visit only - move to next household) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-700 mt-4">Replacement (Move to Next Household Immediately):</p>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="No_Qualified_Respondent" id="nqr" />
+                    <Label htmlFor="nqr" className="font-normal cursor-pointer">
+                      No Qualified Respondent (NQR) - Wrong sex or all under 18
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Outright_Refusal" id="or" />
+                    <Label htmlFor="or" className="font-normal cursor-pointer">
+                      Outright Refusal (OR) - Household refused before Kish Grid
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 ml-4">
+                    <RadioGroupItem value="Household_Moved" id="moved" />
+                    <Label htmlFor="moved" className="font-normal cursor-pointer">
+                      Household Moved - No longer at this location
+                    </Label>
+                  </div>
+                </div>
+              </RadioGroup>
+              {errors.outcome && (
+                <p className="text-sm text-red-500">{errors.outcome}</p>
+              )}
+            </div>
+
+            {/* Callback Reason Dropdown */}
+            {outcome === "Callback_Needed" && (
+              <div className="space-y-2">
+                <Label htmlFor="callbackReason">
+                  Callback Reason <span className="text-red-500">*</span>
+                </Label>
+                <Select value={callbackReason} onValueChange={setCallbackReason}>
+                  <SelectTrigger className={errors.callbackReason ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="No one home">No one home</SelectItem>
+                    <SelectItem value="Respondent busy">Respondent busy</SelectItem>
+                    <SelectItem value="Respondent unavailable">Respondent unavailable</SelectItem>
+                    <SelectItem value="Bad weather">Bad weather</SelectItem>
+                    <SelectItem value="Other">Other (specify in notes)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.callbackReason && (
+                  <p className="text-sm text-red-500">{errors.callbackReason}</p>
+                )}
+              </div>
+            )}
+
+            {/* Digital Fieldwork Diary Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                Digital Fieldwork Diary Notes
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder="Enter any additional notes about this visit..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={isLoggingVisit}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-gray-500">
+                Optional: Add any observations or details about this visit
+              </p>
+            </div>
+
+            {/* Warning for replacement outcomes (NQR, OR, Moved) */}
+            {outcome && (outcome === "No_Qualified_Respondent" || outcome === "Outright_Refusal" || outcome === "Household_Moved") && (
+              <div className="p-3 bg-orange-50 border border-orange-300 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-orange-800">Replacement Required</p>
+                  <p className="text-orange-700 mt-1">
+                    This household is invalid. After logging, move to the next household following the interval rule (skip one house).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Warning for last visit with callback outcome */}
+            {visitType === "Last Visit" && outcome === "Callback_Needed" && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-red-800">Warning: Final Callback Attempt</p>
+                  <p className="text-red-600 mt-1">
+                    This is the 3rd attempt. After logging, this respondent will be marked for <strong>substitution</strong> (not replacement). A person with matching demographics will be found later.
+                  </p>
                 </div>
               </div>
             )}
           </div>
-        </div>
+        )}
+
+        {/* Generating/Logging Indicator */}
+        {(isGeneratingNumber || isLoggingVisit) && (
+          <div className="flex items-center justify-center space-x-2 py-8 text-blue-600">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>{isLoggingVisit ? "Logging visit..." : "Generating questionnaire number..."}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end mt-8">
         <button
           onClick={handleNext}
-          disabled={!surveyNumber.trim() || !!surveyNumberError || !location.address.trim() || (location.lat === 0 && location.lng === 0)}
+          disabled={isGeneratingNumber || isLoggingVisit}
           className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Continue to Survey →
+          {isLoggingVisit ? 'Logging Visit...' : isGeneratingNumber ? 'Generating Number...' : isCallback ? 'Log Visit & Continue →' : 'Continue to Survey →'}
         </button>
       </div>
-
-      {/* Interactive Map Modal */}
-      {showMap && (
-        <InteractiveMap
-          location={location}
-          onLocationSelect={handleMapLocationSelect}
-          onClose={() => setShowMap(false)}
-        />
-      )}
     </div>
   )
 }

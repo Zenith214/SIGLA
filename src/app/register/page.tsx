@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
 
-export default function SiglaRegister() {
+export default function PulseRegister() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -136,7 +136,7 @@ export default function SiglaRegister() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
           <img
             src="/globe.svg"
-            alt="SIGLA Government Emblem"
+            alt="PULSE Government Emblem"
             className="max-w-md max-h-md object-contain"
           />
         </div>
@@ -164,7 +164,7 @@ export default function SiglaRegister() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
         <img
           src="/globe.svg"
-          alt="SIGLA Government Emblem"
+          alt="PULSE Government Emblem"
           className="max-w-md max-h-md object-contain"
         />
       </div>
@@ -177,7 +177,7 @@ export default function SiglaRegister() {
                 Register Account
               </CardTitle>
               <CardDescription style={{ color: "#333333" }}>
-                Create your account to access the SIGLA system
+                Create your account to access the PULSE system
               </CardDescription>
             </CardHeader>
             <CardContent>

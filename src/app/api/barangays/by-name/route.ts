@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient()
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET(request: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
     const { searchParams } = new URL(request.url)
     const name = searchParams.get('name')
-
+    
     if (!name) {
       return NextResponse.json(
         { error: "Barangay name is required" },
@@ -15,35 +29,29 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const barangay = await prisma.barangay.findFirst({
-      where: {
-        barangay_name: {
-          contains: name,
-          mode: 'insensitive'
-        }
-      },
-      select: {
-        barangay_id: true,
-        barangay_name: true
-      }
-    })
+    // Search for barangay by name (exact match, case-insensitive)
+    const result = await client.query(
+      'SELECT * FROM barangay WHERE barangay_name = $1 AND is_active = true LIMIT 1',
+      [name]
+    );
 
-    if (!barangay) {
+    if (result.rows.length === 0) {
       return NextResponse.json(
         { error: "Barangay not found" },
         { status: 404 }
       )
     }
 
-    return NextResponse.json(barangay)
-
+    return NextResponse.json(result.rows[0])
   } catch (error) {
-    console.error("Error finding barangay:", error)
+    console.error("Error fetching barangay by name:", error)
     return NextResponse.json(
-      { error: "Failed to find barangay" },
+      { error: "Failed to fetch barangay" },
       { status: 500 }
     )
   } finally {
-    await prisma.$disconnect()
+    if (client) {
+      client.release();
+    }
   }
 }

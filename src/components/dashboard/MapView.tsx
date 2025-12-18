@@ -10,23 +10,35 @@ import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 export default function MapView() {
   const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
 
   const handleBarangaySelect = (barangay: ApiBarangayData) => {
     setSelectedBarangay(barangay);
   };
 
+  const handleCycleChange = (cycleId: number | null) => {
+    setSelectedCycleId(cycleId);
+  };
+
   return (
     <div className="h-full relative">
-      {/* Desktop view - Map with cards */}
-      <div className="hidden md:flex h-full flex-col gap-4">
-        {/* Main map card - takes up most of the space */}
-        <div className="flex-1 min-h-0">
-          <MapCard onBarangaySelect={handleBarangaySelect} />
+      {/* Desktop view - Map with cards side by side */}
+      <div className="hidden md:flex h-full gap-4">
+        {/* Left side - Main map card */}
+        <div className="flex-1 min-w-0">
+          <MapCard 
+            onBarangaySelect={handleBarangaySelect}
+            selectedCycleId={selectedCycleId}
+            onCycleChange={handleCycleChange}
+          />
         </div>
         
-        {/* Bottom cards grid - fixed height */}
-        <div className="h-48 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <BarangayDetailsCard selectedBarangay={selectedBarangay} />
+        {/* Right side - Stacked cards */}
+        <div className="w-96 flex flex-col gap-4 overflow-y-auto">
+          <BarangayDetailsCard 
+            selectedBarangay={selectedBarangay}
+            selectedCycleId={selectedCycleId}
+          />
           <SGLGBHistoryCard selectedBarangay={selectedBarangay} />
         </div>
       </div>
@@ -36,10 +48,8 @@ export default function MapView() {
         <BarangayListView />
       </div>
       
-      {/* Floating Help Button - Desktop only */}
-      <div className="hidden md:block">
-        <FloatingHelpButton />
-      </div>
+      {/* Floating Help Button - All devices */}
+      <FloatingHelpButton />
     </div>
   );
 }

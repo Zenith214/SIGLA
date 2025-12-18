@@ -1,0 +1,321 @@
+/**
+ * Responsive design utilities for CSIS workflow
+ * Mobile-first approach with breakpoints
+ */
+
+/* Breakpoints:
+ * sm: 640px
+ * md: 768px
+ * lg: 1024px
+ * xl: 1280px
+ * 2xl: 1536px
+ */
+
+/* Mobile-optimized containers */
+.container-mobile {
+  @apply px-4 mx-auto;
+}
+
+@media (min-width: 640px) {
+  .container-mobile {
+    @apply px-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-mobile {
+    @apply px-8;
+  }
+}
+
+/* Responsive grid layouts */
+.grid-responsive {
+  @apply grid grid-cols-1 gap-4;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    @apply grid-cols-2 gap-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    @apply grid-cols-3 gap-8;
+  }
+}
+
+/* Responsive card layout */
+.card-responsive {
+  @apply p-4 rounded-lg shadow-sm;
+}
+
+@media (min-width: 768px) {
+  .card-responsive {
+    @apply p-6;
+  }
+}
+
+/* Mobile-friendly buttons */
+.btn-mobile {
+  @apply px-4 py-2 text-sm font-medium rounded-lg;
+  min-height: 44px; /* iOS touch target size */
+  min-width: 44px;
+}
+
+@media (min-width: 768px) {
+  .btn-mobile {
+    @apply px-6 py-2.5 text-base;
+    min-height: auto;
+    min-width: auto;
+  }
+}
+
+/* Touch-friendly spacing */
+.touch-spacing {
+  @apply space-y-4;
+}
+
+@media (min-width: 768px) {
+  .touch-spacing {
+    @apply space-y-3;
+  }
+}
+
+/* Responsive text sizes */
+.text-responsive-sm {
+  @apply text-xs;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-sm {
+    @apply text-sm;
+  }
+}
+
+.text-responsive-base {
+  @apply text-sm;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-base {
+    @apply text-base;
+  }
+}
+
+.text-responsive-lg {
+  @apply text-base;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-lg {
+    @apply text-lg;
+  }
+}
+
+.text-responsive-xl {
+  @apply text-lg;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-xl {
+    @apply text-xl;
+  }
+}
+
+.text-responsive-2xl {
+  @apply text-xl;
+}
+
+@media (min-width: 768px) {
+  .text-responsive-2xl {
+    @apply text-2xl;
+  }
+}
+
+/* Mobile navigation */
+.nav-mobile {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50;
+  @apply flex items-center justify-around p-2;
+}
+
+@media (min-width: 768px) {
+  .nav-mobile {
+    @apply static border-t-0 p-0 justify-start space-x-4;
+  }
+}
+
+/* Mobile modal */
+.modal-mobile {
+  @apply fixed inset-0 z-50;
+}
+
+.modal-content-mobile {
+  @apply absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl;
+  @apply max-h-[90vh] overflow-y-auto;
+}
+
+@media (min-width: 768px) {
+  .modal-content-mobile {
+    @apply relative inset-auto rounded-lg max-h-[80vh];
+    @apply max-w-2xl mx-auto mt-20;
+  }
+}
+
+/* Responsive table */
+.table-responsive {
+  @apply block overflow-x-auto;
+}
+
+@media (min-width: 768px) {
+  .table-responsive {
+    @apply table overflow-x-visible;
+  }
+}
+
+/* Hide on mobile */
+.hide-mobile {
+  @apply hidden;
+}
+
+@media (min-width: 768px) {
+  .hide-mobile {
+    @apply block;
+  }
+}
+
+/* Show only on mobile */
+.show-mobile {
+  @apply block;
+}
+
+@media (min-width: 768px) {
+  .show-mobile {
+    @apply hidden;
+  }
+}
+
+/* Mobile-friendly form inputs */
+.input-mobile {
+  @apply w-full px-4 py-3 text-base border border-gray-300 rounded-lg;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  min-height: 44px;
+}
+
+@media (min-width: 768px) {
+  .input-mobile {
+    @apply px-3 py-2 text-sm;
+    min-height: auto;
+  }
+}
+
+/* Mobile-optimized map */
+.map-mobile {
+  @apply h-64 w-full rounded-lg;
+}
+
+@media (min-width: 768px) {
+  .map-mobile {
+    @apply h-96;
+  }
+}
+
+@media (min-width: 1024px) {
+  .map-mobile {
+    @apply h-[500px];
+  }
+}
+
+/* Responsive dashboard layout */
+.dashboard-layout {
+  @apply flex flex-col min-h-screen;
+}
+
+.dashboard-header {
+  @apply sticky top-0 z-40 bg-white border-b border-gray-200;
+}
+
+.dashboard-content {
+  @apply flex-1 overflow-y-auto;
+}
+
+.dashboard-sidebar {
+  @apply fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200;
+  @apply transform -translate-x-full transition-transform duration-300;
+}
+
+.dashboard-sidebar.open {
+  @apply translate-x-0;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-sidebar {
+    @apply relative translate-x-0;
+  }
+}
+
+/* Mobile-friendly tabs */
+.tabs-mobile {
+  @apply flex overflow-x-auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs-mobile::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-mobile {
+  @apply flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap;
+  @apply border-b-2 border-transparent;
+  min-width: 100px;
+}
+
+.tab-mobile.active {
+  @apply border-blue-500 text-blue-600;
+}
+
+@media (min-width: 768px) {
+  .tabs-mobile {
+    @apply overflow-x-visible;
+  }
+  
+  .tab-mobile {
+    @apply px-6 py-4 text-base;
+    min-width: auto;
+  }
+}
+
+/* Safe area insets for iOS */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-inset-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-content-mobile {
+    @apply max-h-[95vh];
+  }
+  
+  .map-mobile {
+    @apply h-48;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}

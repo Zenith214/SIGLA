@@ -1,0 +1,302 @@
+# Developer Role - Visual Guide
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PULSE System                              │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │           Developer Dashboard (/dev-dashboard)      │    │
+│  │                                                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐         │    │
+│  │  │   Main   │  │    FS    │  │   CPAP   │         │    │
+│  │  │Dashboard │  │Dashboard │  │  Module  │         │    │
+│  │  └──────────┘  └──────────┘  └──────────┘         │    │
+│  │                                                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐         │    │
+│  │  │  Admin   │  │  Survey  │  │Analytics │         │    │
+│  │  │   CPAP   │  │  Forms   │  │          │         │    │
+│  │  └──────────┘  └──────────┘  └──────────┘         │    │
+│  │                                                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐         │    │
+│  │  │ Settings │  │   Dev    │  │   API    │         │    │
+│  │  │          │  │  Tools   │  │Reference │         │    │
+│  │  └──────────┘  └──────────┘  └──────────┘         │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Access Flow
+
+```
+┌──────────────┐
+│   Browser    │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│    Login     │ ← dev@pulse.local / developer123
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│         Middleware Check              │
+│                                       │
+│  Is role === 'developer'?             │
+│         │                             │
+│         ├─ YES → Grant Full Access    │
+│         │                             │
+│         └─ NO  → Check Specific Roles │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│      Developer Dashboard              │
+│                                       │
+│  ✅ All Dashboards Accessible         │
+│  ✅ All APIs Accessible               │
+│  ✅ All Tools Accessible              │
+└───────────────────────────────────────┘
+```
+
+## Role Comparison Chart
+
+```
+┌─────────────────┬────────┬─────────┬─────┬────────────┬───────────┐
+│   Dashboard     │ Admin  │ Officer │ FS  │Interviewer │ Developer │
+├─────────────────┼────────┼─────────┼─────┼────────────┼───────────┤
+│ Main Dashboard  │   ✅   │   ✅    │ ✅  │     ❌     │    ✅     │
+│ FS Dashboard    │   ✅   │   ❌    │ ✅  │     ❌     │    ✅     │
+│ CPAP Module     │   ✅   │   ✅    │ ❌  │     ❌     │    ✅     │
+│ Admin CPAP      │   ✅   │   ❌    │ ❌  │     ❌     │    ✅     │
+│ Survey Forms    │   ✅   │   ❌    │ ✅  │     ✅     │    ✅     │
+│ Analytics       │   ✅   │   ✅    │ ✅  │     ❌     │    ✅     │
+│ Settings        │   ✅   │   ❌    │ ❌  │     ❌     │    ✅     │
+│ Dev Dashboard   │   ❌   │   ❌    │ ❌  │     ❌     │    ✅     │
+│ Dev Tools       │   ❌   │   ❌    │ ❌  │     ❌     │    ✅     │
+└─────────────────┴────────┴─────────┴─────┴────────────┴───────────┘
+```
+
+## Developer Dashboard UI
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  🔧 Developer Dashboard                                        ║
+║  Full system access • All dashboards and tools                ║
+║                                                                ║
+║  👤 DEVELOPER • dev@pulse.local                                ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                                ║
+║  📊 All Dashboards                                             ║
+║  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  ║
+║  │ 📊 Main         │  │ 👥 FS           │  │ 📄 CPAP      │  ║
+║  │ Dashboard       │  │ Dashboard       │  │ Module       │  ║
+║  │                 │  │                 │  │              │  ║
+║  │ [All Roles]     │  │ [FS + Admin]    │  │ [Officer]    │  ║
+║  │ Open →          │  │ Open →          │  │ Open →       │  ║
+║  └─────────────────┘  └─────────────────┘  └──────────────┘  ║
+║                                                                ║
+║  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  ║
+║  │ 🛡️ Admin CPAP   │  │ 📝 Survey       │  │ 📈 Analytics │  ║
+║  │                 │  │ Forms           │  │              │  ║
+║  │                 │  │                 │  │              │  ║
+║  │ [Admin Only]    │  │ [Interviewer]   │  │ [All Roles]  │  ║
+║  │ Open →          │  │ Open →          │  │ Open →       │  ║
+║  └─────────────────┘  └─────────────────┘  └──────────────┘  ║
+║                                                                ║
+║  ┌─────────────────┐  ┌─────────────────┐                    ║
+║  │ ⚙️ Settings     │  │ 🔧 Dev Tools    │                    ║
+║  │                 │  │                 │                    ║
+║  │                 │  │                 │                    ║
+║  │ [Admin Only]    │  │ [Developer]     │                    ║
+║  │ Open →          │  │ Open →          │                    ║
+║  └─────────────────┘  └─────────────────┘                    ║
+║                                                                ║
+║  💾 API Endpoints                                              ║
+║  ┌──────────────────────────────────────────────────────────┐ ║
+║  │ /api/users              GET/POST/PATCH/DELETE            │ ║
+║  │ /api/barangays          GET/POST                         │ ║
+║  │ /api/survey-cycles      GET/POST/PATCH                   │ ║
+║  │ /api/assignments        GET/POST/PATCH/DELETE            │ ║
+║  │ /api/spots              GET/POST/PATCH/DELETE            │ ║
+║  │ /api/cpap               GET/POST/PATCH                   │ ║
+║  └──────────────────────────────────────────────────────────┘ ║
+║                                                                ║
+║  📊 System Information                                         ║
+║  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        ║
+║  │ 🛡️ Access    │  │ 📊 Dashboards│  │ 💾 API Routes│        ║
+║  │ Full Access  │  │      8       │  │     8+       │        ║
+║  └──────────────┘  └──────────────┘  └──────────────┘        ║
+║                                                                ║
+║  ⚠️ Developer Notes                                            ║
+║  • Developer role bypasses all middleware checks              ║
+║  • Access to all dashboards regardless of intended role       ║
+║  • All API endpoints accessible without restrictions          ║
+║  • Use Tools dashboard for seeding and testing                ║
+║  • ⚠️ This role should ONLY be used in development            ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+## Setup Process
+
+```
+Step 1: Create Developer User
+┌─────────────────────────────────┐
+│ $ npm run create-dev-user       │
+│                                 │
+│ First Name: System              │
+│ Last Name: Developer            │
+│ Email: dev@pulse.local          │
+│ Password: developer123          │
+│                                 │
+│ ✅ Developer user created!      │
+└─────────────────────────────────┘
+           │
+           ▼
+Step 2: Start Development Server
+┌─────────────────────────────────┐
+│ $ npm run dev                   │
+│                                 │
+│ ✓ Ready on http://localhost:3000│
+└─────────────────────────────────┘
+           │
+           ▼
+Step 3: Log In
+┌─────────────────────────────────┐
+│ http://localhost:3000/login     │
+│                                 │
+│ Email: dev@pulse.local          │
+│ Password: developer123          │
+│                                 │
+│ [Login] ──────────────────────► │
+└─────────────────────────────────┘
+           │
+           ▼
+Step 4: Access Developer Dashboard
+┌─────────────────────────────────┐
+│ http://localhost:3000/          │
+│         dev-dashboard           │
+│                                 │
+│ 🎉 Full System Access!          │
+└─────────────────────────────────┘
+```
+
+## File Structure
+
+```
+pulse/
+├── src/
+│   ├── app/
+│   │   ├── dev-dashboard/
+│   │   │   └── page.tsx ..................... Developer Dashboard UI
+│   │   ├── dashboard/
+│   │   ├── fs-dashboard/
+│   │   ├── cpap/
+│   │   ├── admin/
+│   │   ├── survey/
+│   │   ├── analytics/
+│   │   ├── settings/
+│   │   └── tools/
+│   └── components/
+│       └── auth/
+│           └── ProtectedRoute.tsx ........... Role-based access control
+├── middleware.ts ............................ Developer role bypass
+├── scripts/
+│   └── create-developer-user.ts ............. User creation tool
+├── database/
+│   └── add-developer-role.sql ............... Database migration
+├── docs/
+│   ├── DEVELOPER_ROLE.md .................... Full documentation
+│   ├── DEVELOPER_ROLE_SUMMARY.md ............ Implementation summary
+│   ├── DEVELOPER_ROLE_COMPLETE.md ........... Status and checklist
+│   └── DEVELOPER_ROLE_VISUAL_GUIDE.md ....... This file
+└── README-DEVELOPER-ROLE.md ................. Quick start guide
+```
+
+## Security Layers
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Production                            │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ ❌ NO DEVELOPER ACCOUNTS                          │  │
+│  │ ❌ Developer role disabled                        │  │
+│  │ ✅ Only production roles (Admin, Officer, etc.)   │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                   Development                            │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ ✅ Developer accounts allowed                     │  │
+│  │ ✅ Full system access                             │  │
+│  │ ✅ All dashboards and APIs                        │  │
+│  │ ⚠️ Clear warnings in UI                           │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Quick Commands
+
+```bash
+# Create developer user
+npm run create-dev-user
+
+# Start development
+npm run dev
+
+# Database operations
+npm run db:migrate
+npm run db:seed
+npm run db:fresh
+
+# Testing
+npm run test
+npm run test:e2e
+```
+
+## Access URLs
+
+```
+Main Application:     http://localhost:3000
+Login Page:           http://localhost:3000/login
+Developer Dashboard:  http://localhost:3000/dev-dashboard
+Main Dashboard:       http://localhost:3000/dashboard
+FS Dashboard:         http://localhost:3000/fs-dashboard
+CPAP Module:          http://localhost:3000/cpap
+Admin CPAP:           http://localhost:3000/admin/cpap
+Survey Forms:         http://localhost:3000/survey/forms
+Analytics:            http://localhost:3000/analytics
+Settings:             http://localhost:3000/settings
+Dev Tools:            http://localhost:3000/tools
+```
+
+## Color Coding
+
+```
+🔵 Blue    - Main/General dashboards
+🟢 Green   - Field operations
+🟣 Purple  - CPAP related
+🔴 Red     - Admin/Security
+🟠 Orange  - Survey/Forms
+🟡 Yellow  - Developer tools
+⚫ Gray    - Settings/Config
+```
+
+## Status Indicators
+
+```
+✅ - Available/Accessible
+❌ - Not Available/Restricted
+⚠️ - Warning/Caution Required
+🔒 - Secure/Protected
+🔓 - Unrestricted Access
+```
+
+---
+
+**Visual Guide Version**: 1.0.0
+**Last Updated**: 2025-11-27
+**Status**: Complete

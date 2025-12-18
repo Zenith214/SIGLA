@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+tests/
+
+# Next.js
+.next/
+out/
+
+# Documentation
+docs/
+ml-algorithm-selection/
+README-*.md
+database/*.md
+
+# Development
+.git/
+.gitignore
+.env.local
+.env*.local
+
+# Scripts
+scripts/examples/
+scripts/test-*.ts
+scripts/db-fresh.ts
+scripts/db-truncate.ts
+scripts/db-unseed.ts
+*.ps1
+
+# Database
+*.sql
+sigla_db.sql
+missing_survey_features.sql
+database/
+
+# Python (if deploying separately)
+ml/
+.venv/
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.kiro/
+.idea/
+
+# Misc
+*.log
+.DS_Store
+tsconfig.tsbuildinfo

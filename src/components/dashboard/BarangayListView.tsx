@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { Search, ChevronRight, Award, MapPin } from "lucide-react";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { HistoricalCycleSelector } from "@/components/survey-cycle";
 
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 
@@ -39,25 +41,57 @@ export default function BarangayListView() {
   const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
   const [barangays, setBarangays] = useState<ApiBarangayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+  const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   // Fetch barangays from API
   useEffect(() => {
     const fetchBarangays = async () => {
       try {
-        const response = await fetch('/api/barangays');
+        setLoading(true);
+        // Use selected cycle if available, otherwise use active cycle
+        const cycleId = selectedCycleId || (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
+        
+        // Use the same API as the map view to get award data
+        const apiUrl = cycleId 
+          ? `/api/barangays/all?cycle_id=${cycleId}&include_awards=true`
+          : `/api/barangays-by-year?year=${new Date().getFullYear()}`;
+        
+        const response = await fetch(apiUrl);
         if (response.ok) {
-          const data = await response.json();
-          // Add mock history data for each barangay
+          const responseData = await response.json();
+          // Handle both new API format (with success/data structure) and legacy format
+          const data = responseData.data || responseData;
+          
+          // Map the data to include award status
           const barangaysWithHistory = data.map((barangay: any) => ({
-            ...barangay,
+            id: barangay.barangay_id || barangay.id,
+            name: barangay.barangay_name || barangay.name,
+            population: barangay.population || 0,
+            households: barangay.households || 0,
+            area: barangay.area || 0,
+            progress: barangay.progress || 0,
+            status: barangay.status || 'No data',
+            currentStatus: barangay.currentStatus || barangay.status,
+            description: barangay.description,
+            seal: barangay.seal,
+            logo_url: barangay.logo_url,
+            // Include cycle-aware award information
+            isAwardee: barangay.isAwardee || barangay.awardStatus?.isAwardee || false,
+            awardStatus: barangay.awardStatus,
+            cycleId: cycleId || undefined,
             history: [
-              { year: "2024", status: barangay.status, score: `${barangay.progress}%` },
-              { year: "2023", status: "Completed", score: "75%" },
-              { year: "2022", status: "Completed", score: "70%" },
-              { year: "2021", status: "Completed", score: "65%" },
+              { 
+                year: cycleId ? 'cycle' : new Date().getFullYear().toString(), 
+                status: barangay.status || 'No data', 
+                score: barangay.survey_count > 0 ? `${Math.round(barangay.completion_rate || 0)}%` : "N/A"
+              }
             ]
           }));
+          
           setBarangays(barangaysWithHistory);
+          console.log(`✅ Mobile view: Loaded ${barangaysWithHistory.length} barangays for cycle ${cycleId || 'current'}`);
+          console.log(`🎯 Awardees found: ${barangaysWithHistory.filter((b: any) => b.isAwardee).length}`);
         }
       } catch (error) {
         console.error('Error fetching barangays:', error);
@@ -67,29 +101,18 @@ export default function BarangayListView() {
     };
 
     fetchBarangays();
-  }, []);
+  }, [activeCycle, hasActiveCycle, selectedCycleId]);
   
-  const filteredBarangays = barangays.filter((barangay) =>
-    barangay.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Helper function to determine award status
+  // Helper function to determine award status from actual data
   const getAwardStatus = (barangay: ApiBarangayData) => {
-    if (!barangay.history) return false;
-    
-    const currentYear = new Date().getFullYear();
-    const recentHistory = barangay.history.filter(entry => {
-      const entryYear = parseInt(entry.year);
-      return entryYear < currentYear && entry.status === "Completed";
-    });
-    
-    if (recentHistory.length > 0) {
-      const mostRecent = recentHistory.sort((a, b) => parseInt(b.year) - parseInt(a.year))[0];
-      const score = parseInt(mostRecent.score.replace('%', ''));
-      return score >= 75;
-    }
-    return false;
+    // Use the isAwardee flag from the API response
+    return barangay.isAwardee || false;
   };
+
+  const filteredBarangays = barangays.filter((barangay) =>
+    barangay.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    getAwardStatus(barangay) // Only show awardees
+  );
 
   if (selectedBarangay) {
     // Mock satisfaction percentage - you can replace this with actual data
@@ -97,14 +120,15 @@ export default function BarangayListView() {
     const isHighSatisfaction = satisfactionPercentage >= 58;
 
     const handleViewReportCard = () => {
-      // Navigate to report card page with barangay data
+      // Navigate to score card page with barangay data
       const params = new URLSearchParams({
         barangay: selectedBarangay.name,
         population: selectedBarangay.population.toString(),
         households: selectedBarangay.households.toString(),
         area: (selectedBarangay.area || 0).toString(),
         surveyStatus: selectedBarangay.status,
-        satisfaction: satisfactionPercentage.toString()
+        satisfaction: satisfactionPercentage.toString(),
+        logo_url: selectedBarangay.logo_url || ''
       });
       
       window.location.href = `/reportcard?${params.toString()}`;
@@ -151,17 +175,30 @@ export default function BarangayListView() {
               </div>
             </div>
 
-            {/* BLGU Logo */}
+            {/* Barangay Logo */}
             <div className="border-2 border-gray-200 rounded-xl p-6 h-32 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
-              <span className="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+              {selectedBarangay.logo_url ? (
+                <img 
+                  src={selectedBarangay.logo_url} 
+                  alt={`${selectedBarangay.name} logo`}
+                  className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.parentElement!.innerHTML = '<span class="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                  }}
+                />
+              ) : (
+                <span className="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+              )}
             </div>
 
-            {/* View Report Card Button */}
+            {/* View Score Card Button */}
             <button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
               onClick={handleViewReportCard}
             >
-              View Report Card
+              View Score Card
             </button>
 
             {/* Action Grid */}
@@ -272,10 +309,29 @@ export default function BarangayListView() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4">
-        <CardTitle className="text-xl font-semibold mb-3">Satisfaction Index Overview</CardTitle>
+        <CardTitle className="text-xl font-semibold mb-3">
+          Satisfaction Index Overview
+          {hasActiveCycle && (
+            <span className="text-sm font-normal text-blue-600 block mt-1">
+              {activeCycle?.name} ({activeCycle?.year})
+            </span>
+          )}
+        </CardTitle>
         <p className="text-sm text-gray-600 mb-4">
           Browse and search through all barangays to view their satisfaction index status and details.
+          {hasActiveCycle && (
+            <span className="text-blue-600"> Data filtered for active survey cycle.</span>
+          )}
         </p>
+        
+        {/* Historical Cycle Selector */}
+        <div className="mb-4">
+          <HistoricalCycleSelector
+            onCycleChange={setSelectedCycleId}
+            placeholder="Current cycle data"
+          />
+        </div>
+        
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -292,11 +348,11 @@ export default function BarangayListView() {
       {/* Barangay list */}
       <div className="flex-1 overflow-auto p-4">
         <div className="space-y-3">
-          {filteredBarangays.map((barangay) => {
+          {filteredBarangays.map((barangay, index) => {
             const isAwardee = getAwardStatus(barangay);
             return (
               <button
-                key={barangay.id}
+                key={`${barangay.id}-${barangay.name}-${index}`}
                 onClick={() => setSelectedBarangay(barangay)}
                 className="w-full text-left p-4 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
               >
@@ -345,51 +401,9 @@ export default function BarangayListView() {
         </div>
       </div>
 
-      {/* Overall Progress - Dynamic Section */}
-      {!loading && barangays.length > 0 && (
-        <div className="bg-white rounded-lg p-6 shadow-sm mt-4">
-          <h2 className="text-2xl font-bold mb-4">SIGLA Survey 2025 - Overall Progress</h2>
-          <div className="space-y-2">
-            <p className="text-gray-600">Progress</p>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-green-500 h-2.5 rounded-full"
-                style={{ width: `${Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%` }}
-              />
-            </div>
-            <div className="text-right">{Math.round(barangays.reduce((acc, b) => acc + b.progress, 0) / barangays.length)}%</div>
-          </div>
-        </div>
-      )}
 
-      {/* Dynamic Barangay Grid */}
-      {!loading && barangays.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-          {barangays.slice(0, 12).map((barangay, index) => (
-            <Card key={barangay.id} className="p-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-sm">{barangay.name}</h3>
-                <Badge variant={
-                  barangay.status === "Completed" ? "default" : 
-                  barangay.status === "Pending" ? "secondary" : "default"
-                }>
-                  {barangay.status}
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <p className="text-gray-600 text-sm">Progress</p>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-green-500 h-2.5 rounded-full"
-                    style={{ width: `${barangay.progress}%` }}
-                  />
-                </div>
-                <div className="text-right text-sm">{barangay.progress}%</div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+
+
     </div>
   );
 }

@@ -28,7 +28,8 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
   const [showDemographics, setShowDemographics] = useState(false)
   const [demographics, setDemographics] = useState({
     age: 0,
-    gender: "",
+    sex: "",
+    genderIdentity: "",
     educationalAttainment: "",
     householdIncome: ""
   })
@@ -135,7 +136,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
       setDemographics(prev => ({
         ...prev,
         age: selectedAge,
-        gender: selectedRespondent.gender
+        sex: selectedRespondent.gender
       }))
       
       setShowModal(false)
@@ -145,11 +146,12 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
 
   const handleDemographicsSubmit = () => {
     // Validate demographics
-    if (!demographics.educationalAttainment || !demographics.householdIncome) {
+    if (!demographics.educationalAttainment || !demographics.householdIncome || !demographics.genderIdentity) {
       alert("Please complete all demographic information.")
       return
     }
 
+    console.log(`🏁 KishGrid: Demographics completed, calling onNext()`);
     // Update survey data with demographics
     onUpdate("respondentDemographics", demographics)
     onNext()
@@ -237,14 +239,14 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
                     <p className="text-xs text-gray-500 mt-1">Minimum age: 18 years</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sex *</label>
                     <select
                       value={member.gender}
                       onChange={(e) => handleMemberChange(index, "gender", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       required
                     >
-                      <option value="">Select gender</option>
+                      <option value="">Select sex</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
                     </select>
@@ -292,18 +294,33 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sex</label>
                 <select
-                  value={demographics.gender}
-                  onChange={(e) => setDemographics(prev => ({ ...prev, gender: e.target.value }))}
+                  value={demographics.sex}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, sex: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-gray-100"
                   disabled
                 >
-                  <option value="">Select gender</option>
+                  <option value="">Select sex</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Auto-filled from household member data</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gender Identity *</label>
+                <select
+                  value={demographics.genderIdentity}
+                  onChange={(e) => setDemographics(prev => ({ ...prev, genderIdentity: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                >
+                  <option value="">Select gender identity</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="LGBTQI+">LGBTQI+</option>
+                </select>
               </div>
 
               <div>
@@ -336,6 +353,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
                   required
                 >
                   <option value="">Select income range</option>
+                  <option value="₱0 – No income">₱0 – No income</option>
                   <option value="Below ₱10,000">Below ₱10,000</option>
                   <option value="₱10,000 - ₱20,000">₱10,000 - ₱20,000</option>
                   <option value="₱20,001 - ₱30,000">₱20,001 - ₱30,000</option>
@@ -382,7 +400,7 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
 
       {/* Modal */}
       {showModal && selectedRespondent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -401,16 +419,16 @@ export function KishGridSelection({ surveyNumber, selectedMember, data, onUpdate
                 </div>
                 <h4 className="text-xl font-semibold text-gray-900 mb-2">Member #{selectedRespondent.number}</h4>
                 <p className="text-lg text-gray-700 mb-2">{selectedRespondent.name}</p>
-                <div className="text-sm text-gray-600 mb-4">
+                <div className="text-sm text-gray-600 mb-6">
                   <p>Age: {selectedRespondent.age} years old</p>
-                  <p>Gender: {selectedRespondent.gender}</p>
+                  <p>Sex: {selectedRespondent.gender}</p>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 mb-6">
                   This respondent was selected using Kish Grid methodology based on your survey number.
                 </p>
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 mt-4">
                 <button
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

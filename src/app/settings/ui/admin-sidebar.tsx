@@ -9,7 +9,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { MapPin, Users, Settings, Target, Calendar, Database, HardDrive } from "lucide-react"
+import { MapPin, Users, Settings, Target, Calendar, Database, HardDrive, Award, Sparkles, UserCheck } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const navigationItems = [
   {
@@ -23,19 +24,24 @@ const navigationItems = [
     id: "barangays",
   },
   {
+    title: "Award Management",
+    icon: Award,
+    id: "award-management",
+  },
+  {
     title: "Survey Targets",
     icon: Target,
     id: "targets",
   },
   {
+    title: "Supervisor Assignments",
+    icon: UserCheck,
+    id: "supervisor-assignments",
+  },
+  {
     title: "Users & Roles",
     icon: Users,
     id: "users",
-  },
-  {
-    title: "Assignments",
-    icon: Database,
-    id: "assignments",
   },
   {
     title: "Backup",
@@ -50,30 +56,46 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
+  const { canAccessAdminSettings, canAccessBackupSettings } = usePermissions()
+  
+  // Filter navigation items based on permissions
+  const visibleItems = navigationItems.filter(item => {
+    // Backup is accessible to all authenticated users
+    if (item.id === "backup") {
+      return canAccessBackupSettings
+    }
+    // All other sections require admin/developer access
+    return canAccessAdminSettings
+  })
+
   return (
-    <Sidebar className="border-r border-gray-200">
-      <SidebarHeader className="border-b border-gray-200 p-4">
+    <Sidebar className="border-r border-slate-300 bg-white">
+      <SidebarHeader className="border-b border-slate-300 p-4 bg-slate-50">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
             <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">SIGLA Admin</h2>
-            <p className="text-sm text-gray-600">Settings Panel</p>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {canAccessAdminSettings ? "PULSE Admin" : "Settings"}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {canAccessAdminSettings ? "Settings Panel" : "Backup Access"}
+            </p>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
+      <SidebarContent className="p-2 bg-white">
         <SidebarMenu className="space-y-1">
-          {navigationItems.map((item) => (
+          {visibleItems.map((item) => (
             <SidebarMenuItem key={item.id}>
               <SidebarMenuButton
                 onClick={() => onSectionChange(item.id)}
                 isActive={activeSection === item.id}
                 className={cn(
-                  "w-full justify-start px-4 py-3 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors",
+                  "w-full justify-start px-4 py-3 text-sm font-medium hover:bg-slate-100 rounded-lg transition-colors text-slate-700",
                   activeSection === item.id &&
-                    "bg-blue-50 text-blue-700 hover:bg-blue-100 border-l-4 border-blue-500 shadow-sm",
+                    "bg-slate-700 text-white hover:bg-slate-600 shadow-sm",
                 )}
               >
                 <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />

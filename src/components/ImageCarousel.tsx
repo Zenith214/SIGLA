@@ -24,13 +24,16 @@ export function ImageCarousel({
   autoplay = true,
   loop = true,
 }: ImageCarouselProps) {
+  const [mounted, setMounted] = React.useState(false);
   const plugin = React.useRef(
-    autoplay
-      ? Autoplay({ delay: 4000, stopOnInteraction: false })
-      : undefined
+    Autoplay({ delay: 5000, stopOnInteraction: false })
   );
 
-  const pluginsToUse = autoplay && plugin.current ? [plugin.current] : [];
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const pluginsToUse = mounted && autoplay ? [plugin.current] : [];
 
   return (
     <Carousel

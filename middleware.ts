@@ -1,200 +1,119 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
-// Define routes that do NOT require authentication
-const PUBLIC_PATHS = [
-  '/',
-  '/login',
-  '/register',
-  '/success',
-];
+// Public paths that don't require authentication
+const PUBLIC_PATHS = ['/', '/login', '/register', '/success'];
 
-// Define admin-only routes
-const ADMIN_ROUTES = [
-  '/settings',
-  '/api/users',
-  '/api/barangays',
-  '/api/survey-cycles',
-  '/api/survey-targets',
-  '/api/assignments',
-  '/api/backups',
-];
+// Paths that require authentication
+const PROTECTED_PATHS = ['/dashboard', '/survey', '/fs-dashboard', '/cpap', '/admin', '/settings', '/tools', '/reportcard'];
 
-// Define interviewer-only routes
-const INTERVIEWER_ROUTES = [
-  '/survey/forms',
-  '/survey/barangay',
-];
-
-// Define all protected routes that require authentication
-const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/reportcard',
-  '/settings',
-  '/survey',
-  '/api/users',
-  '/api/barangays',
-  '/api/survey-cycles',
-  '/api/survey-targets',
-  '/api/assignments',
-  '/api/backups',
-  '/api/me',
-];
-
-// Helper to check if the path is public
-function isPublic(path: string) {
-  // Allow public API routes
-  if (
-    path.startsWith('/api/login') ||
-    path.startsWith('/api/register') ||
-    path.startsWith('/api/logout')
-  ) {
-    return true;
-  }
-  
-  // Allow static files and Next.js internals
-  if (
-    path.startsWith('/_next') ||
-    path.startsWith('/favicon.ico') ||
-    path.startsWith('/assets') ||
-    path.startsWith('/public') ||
-    path.match(/\.(svg|png|jpg|jpeg|css|js|ico|woff|woff2|ttf)$/)
-  ) {
-    return true;
-  }
-  
-  return PUBLIC_PATHS.includes(path);
-}
-
-// Helper to check if the path requires authentication
-function requiresAuth(path: string) {
-  // Check if path matches any protected route
-  return PROTECTED_ROUTES.some(route => path.startsWith(route));
-}
-
-// Helper to validate JWT token
-function validateToken(token: string): { valid: boolean; user?: any; error?: string } {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    if (!decoded || !decoded.id || !decoded.email) {
-      return { valid: false, error: 'Invalid token structure' };
-    }
-    return { valid: true, user: decoded };
-  } catch (error) {
-    return { valid: false, error: 'Invalid or expired token' };
-  }
-}
-
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  console.log('🔍 MIDDLEWARE - Checking path:', pathname);
+  
+  console.log('🚦 [MIDDLEWARE START]', pathname);
 
   // Allow public paths
-  if (isPublic(pathname)) {
-    console.log('✅ MIDDLEWARE - Public path, allowing through');
+  if (PUBLIC_PATHS.includes(pathname)) {
+    console.log('✅ [MIDDLEWARE] Public path, allowing:', pathname);
     return NextResponse.next();
   }
 
-  // Check if route requires authentication
-  if (!requiresAuth(pathname)) {
-    // Allow non-protected routes to pass through
+  // Allow public API routes
+  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies')) {
     return NextResponse.next();
   }
 
-  // Check for the sigla_token cookie
-  const token = request.cookies.get('sigla_token');
-  console.log('🍪 MIDDLEWARE - Token present:', !!token?.value);
+  // Check if path requires authentication
+  const requiresAuth = PROTECTED_PATHS.some(path => pathname.startsWith(path));
   
-  if (!token || !token.value) {
-    // Don't redirect if already on login page or register page
-    if (pathname === '/login' || pathname === '/register') {
-      console.log('📍 MIDDLEWARE - Already on auth page, allowing through');
-      return NextResponse.next();
+  if (!requiresAuth) {
+    return NextResponse.next();
+  }
+
+  // Check for authentication token
+  const cookieHeader = request.headers.get('cookie');
+  let token: string | null = null;
+  let tokenSource = 'none';
+  
+  // Try to get token from Cookie header first (more reliable in Next.js 16)
+  if (cookieHeader) {
+    const match = cookieHeader.match(/pulse_token=([^;]+)/);
+    if (match) {
+      token = match[1];
+      tokenSource = 'header';
     }
-    console.log('❌ MIDDLEWARE - No token, redirecting to login');
-    // No token found, redirect to login
+  }
+  
+  // Fallback to cookies API
+  if (!token) {
+    const cookieToken = request.cookies.get('pulse_token');
+    if (cookieToken?.value) {
+      token = cookieToken.value;
+      tokenSource = 'cookies-api';
+    }
+  }
+  
+  console.log('🔒 [MIDDLEWARE]', {
+    pathname,
+    hasToken: !!token,
+    tokenSource,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+    timestamp: new Date().toISOString()
+  });
+  
+  if (!token) {
+    console.log('❌ [MIDDLEWARE] No token found, redirecting to login');
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirected', '1');
-    loginUrl.searchParams.set('reason', 'no_token');
-    // Store the original URL for redirect after login
-    if (pathname !== '/') {
-      loginUrl.searchParams.set('redirect', pathname);
-    }
     return NextResponse.redirect(loginUrl);
   }
 
-  // Validate the token
-  const tokenValidation = validateToken(token.value);
-  console.log('🔐 MIDDLEWARE - Token valid:', tokenValidation.valid);
-  
-  if (!tokenValidation.valid) {
-    // Don't redirect if already on login page or register page
-    if (pathname === '/login' || pathname === '/register') {
-      console.log('📍 MIDDLEWARE - Invalid token but on auth page, allowing through');
-      return NextResponse.next();
+  // Validate token using jose (Edge-compatible)
+  try {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    
+    if (!payload || !payload.id || !payload.email) {
+      throw new Error('Invalid token payload');
     }
-    console.log('❌ MIDDLEWARE - Invalid token, redirecting to login');
-    // Invalid token, redirect to login
+    
+    console.log('✅ [MIDDLEWARE] Token valid for user:', payload.email);
+    
+    const response = NextResponse.next();
+    response.headers.set('x-user-id', String(payload.id));
+    response.headers.set('x-user-role', String(payload.role || 'officer').toLowerCase());
+    response.headers.set('x-user-email', String(payload.email));
+    return response;
+  } catch (error) {
+    console.log('❌ [MIDDLEWARE] Token validation failed:', error instanceof Error ? error.message : 'Unknown error');
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirected', '1');
-    loginUrl.searchParams.set('reason', 'invalid_token');
-    // Store the original URL for redirect after login
-    if (pathname !== '/') {
-      loginUrl.searchParams.set('redirect', pathname);
-    }
     return NextResponse.redirect(loginUrl);
   }
-
-  const user = tokenValidation.user!;
-  const userRole = (user.role || 'viewer').toLowerCase();
-
-  // Special redirect for interviewers accessing dashboard
-  if (pathname === '/dashboard' && userRole === 'interviewer') {
-    const surveyUrl = request.nextUrl.clone();
-    surveyUrl.pathname = '/survey/forms';
-    return NextResponse.redirect(surveyUrl);
-  }
-
-  // Check admin routes
-  if (ADMIN_ROUTES.some(route => pathname.startsWith(route))) {
-    if (userRole !== 'admin') {
-      // Redirect to dashboard for non-admin users
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = '/dashboard';
-      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
-
-  // Check interviewer routes
-  if (INTERVIEWER_ROUTES.some(route => pathname.startsWith(route))) {
-    if (userRole !== 'interviewer' && userRole !== 'admin') {
-      // Redirect to dashboard for non-interviewer users
-      const dashboardUrl = request.nextUrl.clone();
-      dashboardUrl.pathname = '/dashboard';
-      dashboardUrl.searchParams.set('reason', 'insufficient_permissions');
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
-
-  // Add user info to headers for client-side access
-  console.log('✅ MIDDLEWARE - Allowing access to:', pathname, 'for user:', user.email);
-  const response = NextResponse.next();
-  response.headers.set('x-user-id', user.id.toString());
-  response.headers.set('x-user-role', userRole);
-  response.headers.set('x-user-email', user.email);
-
-  return response;
 }
 
 export const config = {
   matcher: [
-    // Match all routes except static files and Next.js internals
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|css|js|ico|woff|woff2|ttf)$).*)',
+    '/',
+    '/login',
+    '/register',
+    '/dashboard/:path*',
+    '/survey/:path*',
+    '/fs-dashboard/:path*',
+    '/cpap/:path*',
+    '/admin/:path*',
+    '/settings/:path*',
+    '/tools/:path*',
+    '/reportcard/:path*',
+    '/api/:path*',
   ],
-}; 
+};

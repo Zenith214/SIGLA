@@ -18,14 +18,14 @@ export default function ReportHeader({ className = "" }: ReportHeaderProps) {
         {/* Center: Title */}
         <div className="flex-1 text-center px-4">
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 uppercase tracking-wide">
-            SIGLA Barangay Performance Report
+            PULSE Barangay Performance Report
           </h1>
         </div>
 
-        {/* Right: SIGLA Logo */}
+        {/* Right: PULSE Logo */}
         <div className="flex-shrink-0">
           <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xs">SIGLA</span>
+            <span className="text-white font-bold text-xs">PULSE</span>
           </div>
         </div>
       </div>

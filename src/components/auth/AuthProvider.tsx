@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, getCurrentUser, login, logout, LoginCredentials } from '@/lib/auth';
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +33,16 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Setup inactivity timeout - only active when user is authenticated
+  useInactivityTimeout({
+    timeoutMinutes: 10,
+    enabled: !!user,
+    onTimeout: () => {
+      console.log('User logged out due to inactivity');
+      setUser(null);
+    },
+  });
 
   const refreshUser = async () => {
     try {

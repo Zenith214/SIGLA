@@ -1,25 +1,27 @@
-# SIGLA - Satisfaction Index for Good Local Governance Assessment
+# PULSE - Public Understanding and Local Service Evaluation
 
-A comprehensive web application for assessing and monitoring barangay satisfaction indices and local governance performance in the Philippines.
+A comprehensive web application for measuring citizen satisfaction with local government services and evaluating barangay-level governance performance in the Philippines.
 
 ## 🏛️ Overview
 
-SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital platform designed to help Municipal Local Governance Resource Centers (MLGRC) evaluate, track, and improve barangay-level governance performance. The system provides interactive dashboards, detailed reporting, and data-driven insights to support evidence-based decision-making in local governance.
+PULSE (Public Understanding and Local Service Evaluation) is a digital platform designed to help Municipal Local Governance Resource Centers (MLGRC) systematically collect citizen feedback, evaluate service delivery effectiveness, and improve barangay-level governance performance. The system provides interactive dashboards, ML-powered analytics, detailed reporting, and data-driven insights to support evidence-based decision-making in local governance.
 
 ## ✨ Key Features
 
 ### 🗺️ Interactive Dashboard
 - **Interactive SVG Map**: Click and explore barangays with real-time data visualization
 - **Satisfaction Index Overview**: Visual representation of barangay performance metrics
-- **Dynamic Data Cards**: Real-time updates of barangay details and SGLGB history
-- **Action Grid Analysis**: Categorized service areas (Maintain, Opportunities, Monitor, Fix Now)
+- **Side Panel Details**: Real-time barangay information with survey progress tracking
+- **Cycle-Aware Data**: Historical data comparison across survey cycles
+- **Award System**: Visual indicators for SGLGB awardee barangays
 
-### 📊 Performance Reporting
-- **Comprehensive Report Cards**: Detailed barangay performance analysis
-- **AI-Generated Insights**: Automated summary and recommendations
-- **Service Area Breakdown**: Tabular analysis of satisfaction and action priorities
-- **Citizen Voice Integration**: Real citizen quotes and feedback
-- **PDF Export**: Professional reports ready for printing and sharing
+### 📊 Analytics & Reporting
+- **Dashboard Summary**: KPIs, leaderboards, and trend analysis
+- **Service Area Deep Dive**: Detailed performance metrics by service category
+- **Demographics Analytics**: Population-based insights and patterns
+- **Detailed Response View**: Individual survey response exploration
+- **ML-Powered Analysis**: Automated satisfaction scoring and need-for-action metrics
+- **CSV Export**: Data export for external analysis tools
 
 ### 🔐 Authentication & Security
 - **Route Protection**: Secure access to dashboard and administrative features
@@ -28,16 +30,20 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 - **Automatic Redirects**: Seamless login flow with return-to-intended-page functionality
 
 ### 📱 Survey Management
-- **Digital Survey Forms**: Comprehensive data collection tools
+- **Digital Survey Forms**: Multi-section comprehensive data collection
 - **Kish Grid Selection**: Statistical respondent selection methodology
-- **Geotagging Integration**: Location-based data collection
+- **Geotagging Integration**: Location-based data collection with Leaflet maps
 - **Progress Tracking**: Real-time survey completion monitoring
+- **Multi-language Support**: English and Filipino language options
+- **Offline Capability**: Continue surveys without internet connection
 
 ### ⚙️ Administrative Tools
-- **User Management**: Role assignment and access control
+- **User Management**: Role assignment and access control (Admin, Interviewer, Developer, FS)
 - **Barangay Management**: Territory and demographic data administration
-- **Survey Cycle Management**: Campaign planning and execution
-- **Data Export/Import**: Backup and restore functionality
+- **Survey Cycle Management**: Campaign planning and execution with cycle-specific data
+- **Award Management**: SGLGB awardee tracking per cycle
+- **Supervisor Assignments**: Interviewer-supervisor relationship management
+- **Data Seeding**: Automated test data generation for development
 
 ## 🛠️ Tech Stack
 
@@ -54,8 +60,10 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 
 ### **Database & Backend**
 - **Prisma** - Next-generation ORM for Node.js and TypeScript
-- **MySQL** - Relational database for data storage
+- **PostgreSQL** - Relational database for data storage (Railway deployment)
+- **MySQL** - Alternative database support for local development
 - **Next.js API Routes** - Serverless API endpoints
+- **Python ML Service** - Machine learning analysis for satisfaction scoring
 
 ### **Authentication & Security**
 - **JSON Web Tokens (JWT)** - Session management
@@ -64,26 +72,31 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 
 ### **Maps & Location**
 - **Leaflet.js** - Interactive map rendering (dynamically loaded)
+- **Custom SVG Maps** - Territory visualization with click interactions
+- **Nominatim API** - Geocoding and reverse geocoding services
 - **Custom Geotagging Service** - Location-based data collection utilities
 
 ### **Development Tools**
 - **ESLint** - Code linting and quality assurance
-- **Prettier** - Code formatting
 - **TypeScript** - Static type checking
+- **Jest** - Unit testing framework
+- **Playwright** - End-to-end testing
+- **Chart.js** - Data visualization and charting
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js 18+ 
 - npm, yarn, pnpm, or bun
-- MySQL database
+- PostgreSQL or MySQL database
+- Python 3.8+ (for ML service)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd SIGLA
+   cd PULSE
    ```
 
 2. **Install dependencies**
@@ -123,84 +136,116 @@ SIGLA (Satisfaction Index for Good Local Governance Assessment) is a digital pla
 ## 📁 Project Structure
 
 ```
-SIGLA/
+PULSE/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
+│   │   ├── api/                # API routes
+│   │   │   ├── analytics/      # Analytics endpoints
+│   │   │   ├── ml/             # ML service integration
+│   │   │   └── ...             # Other API routes
 │   │   ├── dashboard/          # Main dashboard interface
+│   │   ├── analytics/          # Analytics dashboard
 │   │   ├── reportcard/         # Performance report generation
 │   │   ├── settings/           # Administrative settings
 │   │   ├── survey/             # Survey management and forms
 │   │   ├── login/              # Authentication pages
 │   │   └── register/           # User registration
 │   ├── components/             # Reusable React components
+│   │   ├── analytics/          # Analytics components
 │   │   ├── auth/               # Authentication components
 │   │   ├── dashboard/          # Dashboard-specific components
-│   │   ├── reportcard/         # Report card components
+│   │   ├── survey-cycle/       # Survey cycle management
 │   │   └── ui/                 # shadcn/ui components
+│   ├── hooks/                  # Custom React hooks
 │   ├── lib/                    # Utility functions and configurations
-│   ├── data/                   # Static data and mock data
-│   └── assets/                 # Static assets (images, SVGs)
+│   ├── utils/                  # Helper utilities
+│   ├── data/                   # Static data and configurations
+│   └── types/                  # TypeScript type definitions
 ├── public/                     # Public static files
 ├── prisma/                     # Database schema and migrations
+├── ml/                         # Python ML service
+├── scripts/                    # Utility scripts
+├── tests/                      # Test files
 └── docs/                       # Documentation
 ```
 
 ## 🎯 Key Components
 
 ### Dashboard Components
-- **`InteractiveSVGMap`** - Main map interface with barangay selection
-- **`BarangaySatisfactionIndex`** - Detailed modal with action grid analysis
-- **`MapCard`** - Container for the interactive map with year selection
-- **`BarangayDetailsCard`** - Dynamic barangay information display
-- **`SGLGBHistoryCard`** - Historical performance tracking
+- **`InteractiveSVGMap`** - Main map interface with barangay selection and cycle-aware data
+- **`BarangaySatisfactionIndex`** - Detailed modal with ML-powered insights
+- **`MapCard`** - Container for the interactive map with cycle selection
+- **`BarangayDetailsCard`** - Side panel with real-time barangay information and survey progress
+- **`SGLGBHistoryCard`** - Historical performance tracking across cycles
+- **`MapView`** - Responsive layout manager for map and detail cards
 
-### Report Card System
-- **`ReportHeader`** - Professional header with logos and branding
-- **`PerformanceSnapshot`** - Donut charts for key metrics
-- **`ServiceAreaTable`** - Comprehensive data table with responsive design
-- **`KeyFindingsSection`** - AI insights with citizen voice integration
-- **`DonutChart`** - Reusable animated chart component
+### Analytics Components
+- **`DashboardSummaryView`** - KPIs, leaderboards, and trend visualization
+- **`ServiceAreaDeepDive`** - Detailed service area performance analysis
+- **`DemographicsAnalytics`** - Population-based insights
+- **`DetailedResponsesView`** - Individual survey response explorer
+
+### Survey Cycle Management
+- **`CycleSelector`** - Active cycle display and selection
+- **`HistoricalCycleSelector`** - Historical data comparison tool
+- **`useSurveyCycle`** - Custom hook for cycle state management
 
 ### Authentication System
 - **`AuthProvider`** - Global authentication state management
-- **`ProtectedRoute`** - Route-level access control
+- **`ProtectedRoute`** - Route-level access control with role-based permissions
 - **`UserDropdown`** - User menu with logout functionality
 
 ## 🔧 Configuration
 
 ### Environment Variables
 ```env
-DATABASE_URL="mysql://username:password@localhost:3306/sigla"
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/pulse"
+
+# Authentication
+JWT_SECRET="your-secret-key"
+COOKIE_NAME="pulse_token"
+
+# ML Service
+ML_SERVICE_URL="http://localhost:8000"
+
+# Application
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 ### Database Schema
-The application uses Prisma with MySQL for data persistence. Key entities include:
-- Users and authentication
-- Barangays and territorial data
-- Survey cycles and responses
-- Performance metrics and historical data
+The application uses Prisma with PostgreSQL/MySQL for data persistence. Key entities include:
+- **Users**: Authentication and role management
+- **Barangays**: Territorial data and demographics
+- **Survey Cycles**: Campaign management and cycle-specific data
+- **Survey Responses**: Individual survey submissions
+- **Survey Sections**: Structured survey data by section
+- **Survey Targets**: Target response counts per barangay
+- **Awards**: SGLGB awardee tracking per cycle
+- **Supervisor Assignments**: Interviewer-supervisor relationships
 
 ## 📊 Features in Detail
 
 ### Interactive Map Dashboard
-- **SVG-based map** of municipal territories
-- **Color-coded visualization** based on performance metrics
-- **Click-to-explore** functionality with detailed modals
-- **Real-time data updates** and filtering options
+- **SVG-based map** of municipal territories with custom barangay paths
+- **Cycle-aware visualization** with award indicators for SGLGB awardees
+- **Click-to-explore** functionality with pin markers and detail modals
+- **Side panel details** with real-time survey progress tracking
+- **Historical data comparison** across multiple survey cycles
 
-### Performance Analysis
-- **Action Grid Framework**: Four-quadrant analysis (Maintain, Opportunities, Monitor, Fix Now)
-- **Satisfaction Scoring**: Color-coded performance indicators
-- **Historical Tracking**: Multi-year performance comparison
-- **Citizen Feedback Integration**: Direct quotes and community voice
+### ML-Powered Analytics
+- **Automated Satisfaction Scoring**: Machine learning analysis of survey responses
+- **Need for Action Metrics**: Priority identification for service improvements
+- **Service Area Analysis**: Detailed breakdown by financial, disaster, safety, social, business, and environmental categories
+- **Trend Analysis**: Historical performance tracking and visualization
+- **Demographic Insights**: Population-based patterns and correlations
 
-### Report Generation
-- **Professional PDF Reports**: Print-ready performance summaries
-- **Dynamic Data Integration**: Real-time data from dashboard selections
-- **Comprehensive Analysis**: AI-generated insights and recommendations
-- **Stakeholder-Ready Format**: Suitable for official presentations and documentation
+### Survey Management
+- **Multi-section Forms**: Comprehensive data collection across 6 service areas
+- **Kish Grid Selection**: Statistical respondent selection for household surveys
+- **Progress Tracking**: Real-time completion monitoring per barangay
+- **Offline Support**: Continue surveys without internet connectivity
+- **Multi-language**: English and Filipino language support
 
 ## 🤝 Contributing
 
@@ -221,13 +266,27 @@ The application uses Prisma with MySQL for data persistence. Key entities includ
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🚀 Deployment
+
+### Railway Deployment
+The application is configured for deployment on Railway with:
+- PostgreSQL database
+- Automatic migrations on deploy
+- Environment variable management
+- Python ML service integration
+
+See `railway.json` and `nixpacks.toml` for deployment configuration.
+
+### Docker Support
+Docker configuration available for containerized deployment.
+
 ## 🏛️ Government Partnership
 
-Developed in collaboration with Municipal Local Governance Resource Centers (MLGRC) to support evidence-based local governance improvement initiatives in the Philippines.
+Developed in collaboration with the Department of the Interior and Local Government (DILG) and Municipal Local Governance Resource Centers (MLGRC) to support evidence-based local governance improvement initiatives in the Philippines.
 
 ## 📞 Support
 
-For technical support or questions about the SIGLA system, please contact the development team or create an issue in this repository.
+For technical support or questions about the PULSE system, please contact the development team or create an issue in this repository.
 
 ---
 

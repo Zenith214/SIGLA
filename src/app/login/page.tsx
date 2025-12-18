@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import Image from "next/image"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Lock } from "lucide-react"
 
-export default function SiglaLogin() {
+function PulseLoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -23,19 +24,23 @@ export default function SiglaLogin() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loginStatus, setLoginStatus] = useState<"idle" | "success" | "error">("idle")
+  const [loginErrorMessage, setLoginErrorMessage] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
   const [redirectMessage, setRedirectMessage] = useState("")
 
   const searchParams = useSearchParams()
-  const { login, user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
 
-  // Add page loading effect
+  // Add page loading effect and check if user is already authenticated
   useEffect(() => {
     const timer = setTimeout(() => {
       setPageLoading(false);
     }, 800);
+
+    // Removed the already authenticated user detection as requested
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
 
 
@@ -45,6 +50,7 @@ export default function SiglaLogin() {
   useEffect(() => {
     const redirected = searchParams.get('redirected');
     const reason = searchParams.get('reason');
+    const attemptedPath = searchParams.get('attempted_path');
 
     if (redirected === '1') {
       let message = "";
@@ -55,8 +61,18 @@ export default function SiglaLogin() {
         case 'invalid_token':
           message = "Your session has expired. Please log in again.";
           break;
+        case 'timeout':
+          message = "You were logged out due to inactivity. Please log in again.";
+          break;
         case 'insufficient_permissions':
-          message = "You don't have permission to access that page. Please log in with appropriate credentials.";
+          if (attemptedPath) {
+            message = `You don't have permission to access ${attemptedPath}. Please log in with appropriate credentials.`;
+          } else {
+            message = "You don't have permission to access that page. Please log in with appropriate credentials.";
+          }
+          break;
+        case 'logout':
+          message = "You have been successfully logged out.";
           break;
         default:
           message = "Please log in to continue.";
@@ -86,6 +102,7 @@ export default function SiglaLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔐 Login form submitted')
 
     // Validation
     const newErrors = {
@@ -108,42 +125,76 @@ export default function SiglaLogin() {
     setErrors(newErrors)
 
     if (newErrors.email || newErrors.password) {
+      console.log('❌ Validation failed:', newErrors)
       return
     }
 
+    console.log('✅ Validation passed, attempting login...')
     setIsSubmitting(true)
     setLoginStatus("idle")
+    setLoginErrorMessage("") // Clear any previous error messages
     setRedirectMessage("") // Clear any redirect messages
 
     try {
+      console.log('📡 Calling login API with email:', formData.email)
+      
       // Use the auth context login function
       const result = await login({
         email: formData.email,
         password: formData.password,
       });
 
+      console.log('📥 Login API response:', result)
+
       if (result.success) {
+        console.log('✅ Login successful! Role:', result.role)
         setLoginStatus("success");
 
         // Force refresh the auth state immediately
         await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for cookie to be set
+        
+        // Debug: Check if cookie was set
+        console.log('🍪 Checking cookies:', document.cookie);
+        const hasPulseToken = document.cookie.includes('pulse_token');
+        console.log('🍪 Has pulse_token cookie:', hasPulseToken);
 
         // Get redirect URL from search params
         const redirectUrl = searchParams.get('redirect') || '/dashboard';
+        console.log('🔄 Redirect URL:', redirectUrl)
+
+        // Validate the redirect URL to prevent open redirect vulnerabilities
+        const isValidRedirect = redirectUrl.startsWith('/') &&
+          !redirectUrl.startsWith('//') &&
+          !redirectUrl.includes(':');
 
         // Redirect based on role immediately
-        if (result.role === 'interviewer') {
-          window.location.href = "/survey/";
+        if (result.role === 'developer') {
+          console.log('🚀 Redirecting to /tools')
+          window.location.href = "/tools";
+        } else if (result.role === 'interviewer') {
+          console.log('🚀 Redirecting to /survey')
+          window.location.href = "/survey";
+        } else if (result.role === 'fs') {
+          console.log('🚀 Redirecting to /fs-dashboard')
+          window.location.href = "/fs-dashboard";
         } else {
-          window.location.href = redirectUrl;
+          console.log('🚀 Redirecting to:', isValidRedirect ? redirectUrl : '/dashboard')
+          // Use the redirect URL if valid, otherwise default to dashboard
+          window.location.href = isValidRedirect ? redirectUrl : '/dashboard';
         }
       } else {
+        console.error('❌ Login failed:', result.error)
         setLoginStatus("error");
-        setErrors(prev => ({ ...prev, password: result.error || 'Login failed' }));
+        setLoginErrorMessage(result.error || 'Invalid email or password. Please try again.');
+        // Don't set password error, let the Alert handle the message
+        setErrors(prev => ({ ...prev, password: "" }));
       }
     } catch (error) {
+      console.error('❌ Login error:', error)
       setLoginStatus("error");
-      setErrors(prev => ({ ...prev, password: 'Network error occurred' }));
+      setLoginErrorMessage('Unable to connect to the server. Please check your internet connection and try again.');
+      // Don't set password error, let the Alert handle the message
+      setErrors(prev => ({ ...prev, password: "" }));
     } finally {
       setIsSubmitting(false);
     }
@@ -151,11 +202,71 @@ export default function SiglaLogin() {
 
   if (pageLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+      <div className="min-h-screen flex relative overflow-hidden">
+        {/* Split Background - Desktop only */}
+        <div className="absolute inset-0">
+          {/* Mobile: Simple blue background */}
+          <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
+          
+          {/* Desktop: Background color behind the elevated card */}
+          <div className="hidden md:block absolute inset-0 bg-blue-50"></div>
+          
+          {/* Desktop: Left side - white elevated card with sharp edges */}
+          <div className="hidden md:block absolute inset-0 right-[62%] bg-white" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+          
+          {/* Divider line */}
+          <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-white" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+          
+          {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
+          <div className="hidden md:block absolute inset-0 left-[38%]">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-blue-100 to-green-100">
+              {/* Animated Blobs */}
+              <div className="absolute top-10 right-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+              <div className="absolute top-20 right-1/4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+              <div className="absolute bottom-20 right-1/3 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+              <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
+              
+              {/* Logo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image 
+                  src="/logo4k.png" 
+                  alt="PULSE Logo" 
+                  width={800}
+                  height={800}
+                  className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                  priority
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Blob Animation Styles */}
+        <style jsx global>{`
+          @keyframes blob {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -50px) scale(1.1); }
+            50% { transform: translate(-20px, 20px) scale(0.9); }
+            75% { transform: translate(50px, 50px) scale(1.05); }
+          }
+          .animate-blob {
+            animation: blob 20s infinite;
+          }
+          .animation-delay-2000 {
+            animation-delay: 2s;
+          }
+          .animation-delay-4000 {
+            animation-delay: 4s;
+          }
+          .animation-delay-6000 {
+            animation-delay: 6s;
+          }
+        `}</style>
+
         {/* Main Content */}
-        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+        <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
           <div className="w-full max-w-md">
-            <Card className="shadow-lg border-0">
+            <Card className="shadow-lg border-0 bg-blue-50 rounded-none">
               <CardHeader className="text-center pb-6">
                 <Skeleton className="h-8 w-48 mx-auto mb-2" />
                 <Skeleton className="h-4 w-64 mx-auto" />
@@ -164,70 +275,137 @@ export default function SiglaLogin() {
                 <SkeletonForm />
               </CardContent>
             </Card>
+            
+            {/* Logos Section Below Login Form */}
+            <div className="flex flex-col items-center mt-8">
+              {/* Logos Row */}
+              <div className="flex items-center justify-center gap-8 mb-4">
+                {/* DILG Logo - Circular */}
+                <div className="flex flex-col items-center">
+                  <img
+                    src="/dilg.png"
+                    alt="DILG Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+
+                {/* MLGRC Logo - Rectangular */}
+                <div className="flex flex-col items-center">
+                  <img
+                    src="/mlgrc.png"
+                    alt="MLGRC Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Text Below Logos */}
+              <div className="text-center">
+                <p className="text-sm text-gray-600 font-medium">
+                  Department of the Interior and Local Government
+                </p>
+                <p className="text-sm text-gray-600">
+                  (Partnership)
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  © 2024 PULSE System. All rights reserved.
+                </p>
+              </div>
+            </div>
           </div>
         </main>
-
-        {/* Logos Section Below Login Form */}
-        <div className="flex flex-col items-center mt-8 mb-8">
-          {/* Logos Row */}
-          <div className="flex items-center justify-center gap-8 mb-4">
-            {/* DILG Logo - Circular */}
-            <div className="flex flex-col items-center">
-              <img
-                src="/dilg.png"
-                alt="DILG Logo"
-                className="w-16 h-16 object-contain"
-              />
-            </div>
-
-            {/* MLGRC Logo - Rectangular */}
-            <div className="flex flex-col items-center">
-              <img
-                src="/mlgrc.png"
-                alt="MLGRC Logo"
-                className="w-16 h-16 object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Text Below Logos */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600 font-medium">
-              Department of the Interior and Local Government
-            </p>
-            <p className="text-sm text-gray-600">
-              (Partnership)
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              © 2024 SIGLA System. All rights reserved.
-            </p>
-          </div>
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* Split Background - Desktop only */}
+      <div className="absolute inset-0">
+        {/* Mobile: Simple blue background */}
+        <div className="absolute inset-0 bg-blue-50 md:hidden"></div>
+        
+        {/* Desktop: Background color behind the elevated card */}
+        <div className="hidden md:block absolute inset-0 bg-blue-50"></div>
+        
+        {/* Desktop: Left side - white elevated card with sharp edges */}
+        <div className="hidden md:block absolute inset-0 right-[62%] bg-white" style={{ boxShadow: '12px 0 80px rgba(0, 0, 0, 0.2), 8px 0 40px rgba(0, 0, 0, 0.15), 4px 0 20px rgba(0, 0, 0, 0.1)' }}></div>
+        
+        {/* Divider line */}
+        <div className="hidden md:block absolute inset-y-0 right-[62%] w-1 bg-white" style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}></div>
+        
+        {/* Desktop: Right side - gradient with animated blobs (vertical split) */}
+        <div className="hidden md:block absolute inset-0 left-[38%]">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-blue-100 to-green-100">
+            {/* Animated Blobs */}
+            <div className="absolute top-10 right-0 w-64 h-64 bg-red-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute top-20 right-1/4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div className="absolute bottom-20 right-1/3 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+            <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
+            
+            {/* Logo */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Image 
+                src="/logo4k.png" 
+                alt="PULSE Logo" 
+                width={800}
+                height={800}
+                className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                priority
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blob Animation Styles */}
+      <style jsx global>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        .animate-blob {
+          animation: blob 20s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .animation-delay-6000 {
+          animation-delay: 6s;
+        }
+      `}</style>
+
       {/* Main Content */}
-      <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+      <main className="flex flex-col items-center justify-center px-4 py-12 md:py-12 relative z-10 w-full md:w-[38%] min-h-screen">
         <div className="w-full max-w-md">
-          <Card className="shadow-lg border-0">
+          <Card className="shadow-lg border-0 bg-blue-50 rounded-none">
             <CardHeader className="text-center pb-6">
               <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
                 System Login
               </CardTitle>
               <CardDescription style={{ color: "#333333" }}>
-                Enter your credentials to access the SIGLA system
+                Enter your credentials to access the PULSE system
               </CardDescription>
             </CardHeader>
 
             <CardContent>
               {/* Redirect Messages */}
               {redirectMessage && (
-                <Alert className="mb-4 border-0" style={{ backgroundColor: "#0072CE", color: "white" }}>
-                  <Lock className="h-4 w-4" />
-                  <AlertDescription>{redirectMessage}</AlertDescription>
+                <Alert className={`mb-4 border-0 ${redirectMessage.includes('successfully') ? 'bg-green-50 text-green-800 border-green-200' : ''}`}
+                  style={{ backgroundColor: redirectMessage.includes('successfully') ? "#228B22" : "#0072CE", color: "white" }}>
+                  {redirectMessage.includes('successfully') ? (
+                    <CheckCircle2 className="h-4 w-4" style={{ color: "white" }} />
+                  ) : (
+                    <Lock className="h-4 w-4" style={{ color: "white" }} />
+                  )}
+                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                    {redirectMessage}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -242,7 +420,9 @@ export default function SiglaLogin() {
               {loginStatus === "error" && (
                 <Alert className="mb-4 border-0" style={{ backgroundColor: "#C8102E", color: "white" }}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>Invalid credentials. Please check your email and password.</AlertDescription>
+                  <AlertDescription style={{ color: 'white', fontWeight: 600, fontSize: '1rem', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
+                    {loginErrorMessage || 'Invalid credentials. Please check your email and password.'}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -338,11 +518,9 @@ export default function SiglaLogin() {
 
             </CardContent>
           </Card>
-        </div>
-      </main>
-
-      {/* Logos Section Below Login Form */}
-      <div className="flex flex-col items-center mt-8 mb-8">
+          
+          {/* Logos Section Below Login Form */}
+          <div className="flex flex-col items-center mt-8">
         {/* Logos Row */}
         <div className="flex items-center justify-center gap-8 mb-4">
           {/* DILG Logo - Circular */}
@@ -373,10 +551,20 @@ export default function SiglaLogin() {
             (Partnership)
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            © 2024 SIGLA System. All rights reserved.
+            © 2024 PULSE System. All rights reserved.
           </p>
         </div>
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   )
+}
+
+export default function PulseLogin() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <PulseLoginContent />
+    </Suspense>
+  );
 }

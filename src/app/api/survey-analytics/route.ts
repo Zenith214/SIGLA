@@ -1,48 +1,116 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { Pool } from 'pg';
+import { getActiveCycleId } from '@/utils/surveyCycleHelpers';
+import { CycleAwardsService } from '@/lib/services/cycleAwardsService';
+import { getQuestionLabel, getQuestionMetadata } from '@/utils/questionLabels';
 
-const prisma = new PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
 
 export async function GET(request: NextRequest) {
+  let client;
   try {
+    client = await pool.connect();
+
     const { searchParams } = new URL(request.url);
     const format = searchParams.get("format") || "summary";
     const barangayId = searchParams.get("barangayId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const section = searchParams.get("section");
+    const includeNonAwardees = searchParams.get("include_non_awardees") === 'true';
 
-    // Build where clause for filtering
-    const whereClause: any = {
-      status: "completed", // Only include completed surveys
-    };
+    // Get the active survey cycle ID
+    const activeCycleId = await getActiveCycleId();
+
+    if (!activeCycleId) {
+      // If no active cycle, return empty data
+      return NextResponse.json({
+        [format]: {
+          message: "No active survey cycle found",
+          totalResponses: 0,
+          data: []
+        }
+      });
+    }
+
+    // Get awardee barangay IDs for filtering (unless explicitly including non-awardees)
+    let awardeeBarangayIds: number[] = [];
+    if (!includeNonAwardees) {
+      try {
+        awardeeBarangayIds = await CycleAwardsService.getAwardeeBarangayIds(activeCycleId);
+      } catch (error) {
+        console.error('Error fetching awardee barangay IDs:', error);
+        // If we can't get awardee data, fall back to showing all data
+        awardeeBarangayIds = [];
+      }
+    }
+
+    // Build where conditions for filtering - always include active cycle
+    const whereConditions = ['sr.status IN (\'completed\', \'submitted\')', 'sr.survey_cycle_id = $1'];
+    const queryParams: any[] = [activeCycleId];
+    let paramIndex = 2;
+
+    // Filter by awardee status (only include awardees unless explicitly requested otherwise)
+    if (!includeNonAwardees && awardeeBarangayIds.length > 0) {
+      const placeholders = awardeeBarangayIds.map((_, index) => `$${paramIndex + index}`).join(', ');
+      whereConditions.push(`sr.barangay_id IN (${placeholders})`);
+      queryParams.push(...awardeeBarangayIds);
+      paramIndex += awardeeBarangayIds.length;
+    } else if (!includeNonAwardees && awardeeBarangayIds.length === 0) {
+      // No awardees found for this cycle, return empty results
+      return NextResponse.json({
+        [format]: {
+          message: "No awardee barangays found for the active cycle",
+          totalResponses: 0,
+          data: []
+        }
+      });
+    }
 
     if (barangayId) {
-      whereClause.barangay_id = parseInt(barangayId);
+      whereConditions.push(`sr.barangay_id = $${paramIndex}`);
+      queryParams.push(parseInt(barangayId));
+      paramIndex++;
     }
 
-    if (startDate || endDate) {
-      whereClause.completed_at = {};
-      if (startDate) {
-        whereClause.completed_at.gte = new Date(startDate);
-      }
-      if (endDate) {
-        whereClause.completed_at.lte = new Date(endDate);
-      }
+    if (startDate) {
+      whereConditions.push(`sr.completed_at >= $${paramIndex}`);
+      queryParams.push(startDate);
+      paramIndex++;
     }
+
+    if (endDate) {
+      whereConditions.push(`sr.completed_at <= $${paramIndex}`);
+      queryParams.push(endDate);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.join(' AND ');
 
     switch (format) {
       case "summary":
-        return await getSummaryAnalytics(whereClause);
+        return await getSummaryAnalytics(client, whereClause, queryParams);
 
       case "detailed":
-        return await getDetailedAnalytics(whereClause, section);
+        return await getDetailedAnalytics(client, whereClause, queryParams, section);
 
       case "export":
-        return await getExportData(whereClause);
+        return await getExportData(client, whereClause, queryParams);
 
       case "aggregated":
-        return await getAggregatedAnalytics(whereClause);
+        return await getAggregatedAnalytics(client, whereClause, queryParams);
 
       default:
         return NextResponse.json(
@@ -57,61 +125,69 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (client) {
+      client.release();
+    }
   }
 }
 
-async function getSummaryAnalytics(whereClause: any) {
+async function getSummaryAnalytics(client: any, whereClause: string, queryParams: any[]) {
   // Get basic statistics
-  const totalResponses = await prisma.survey_response.count({
-    where: whereClause,
-  });
+  const totalResponsesQuery = `
+    SELECT COUNT(*) as total_responses, AVG(progress) as avg_progress
+    FROM survey_response sr
+    WHERE ${whereClause}
+  `;
 
-  const avgProgress = await prisma.survey_response.aggregate({
-    where: whereClause,
-    _avg: { progress: true },
-  });
+  const totalResult = await client.query(totalResponsesQuery, queryParams);
+  const totalResponses = parseInt(totalResult.rows[0].total_responses) || 0;
+  const avgProgress = parseFloat(totalResult.rows[0].avg_progress) || 0;
 
   // Responses by barangay
-  const responsesByBarangay = await prisma.survey_response.groupBy({
-    where: whereClause,
-    by: ["barangay_id"],
-    _count: { response_id: true },
-  });
+  const barangayStatsQuery = `
+    SELECT 
+      sr.barangay_id,
+      b.barangay_name,
+      b.population,
+      b.households,
+      COUNT(sr.response_id) as responses
+    FROM survey_response sr
+    LEFT JOIN barangay b ON sr.barangay_id = b.barangay_id
+    WHERE ${whereClause}
+    GROUP BY sr.barangay_id, b.barangay_name, b.population, b.households
+    ORDER BY b.barangay_name
+  `;
 
-  const barangayStats = await Promise.all(
-    responsesByBarangay.map(async (group) => {
-      const barangay = await prisma.barangay.findUnique({
-        where: { barangay_id: group.barangay_id },
-        select: { barangay_name: true, population: true, households: true },
-      });
-      return {
-        barangayId: group.barangay_id,
-        barangayName: barangay?.barangay_name,
-        population: barangay?.population,
-        households: barangay?.households,
-        responses: group._count.response_id,
-      };
-    })
-  );
+  const barangayResult = await client.query(barangayStatsQuery, queryParams);
+  const barangayStats = barangayResult.rows.map((row: any) => ({
+    barangayId: row.barangay_id,
+    barangayName: row.barangay_name,
+    population: row.population,
+    households: row.households,
+    responses: parseInt(row.responses),
+  }));
 
   // Responses over time
-  const responsesOverTime = await prisma.survey_response.groupBy({
-    where: whereClause,
-    by: ["completed_at"],
-    _count: { response_id: true },
-    orderBy: { completed_at: "asc" },
-  });
+  const timeSeriesQuery = `
+    SELECT 
+      DATE(completed_at) as date,
+      COUNT(*) as count
+    FROM survey_response sr
+    WHERE ${whereClause} AND completed_at IS NOT NULL
+    GROUP BY DATE(completed_at)
+    ORDER BY DATE(completed_at) ASC
+  `;
 
-  const timeSeriesData = responsesOverTime.map((item) => ({
-    date: item.completed_at?.toISOString().split("T")[0],
-    count: item._count.response_id,
+  const timeSeriesResult = await client.query(timeSeriesQuery, queryParams);
+  const timeSeriesData = timeSeriesResult.rows.map((row: any) => ({
+    date: row.date,
+    count: parseInt(row.count),
   }));
 
   return NextResponse.json({
     summary: {
       totalResponses,
-      averageProgress: avgProgress._avg.progress,
+      averageProgress: avgProgress,
       barangayStats,
       timeSeriesData,
     },
@@ -119,75 +195,112 @@ async function getSummaryAnalytics(whereClause: any) {
 }
 
 async function getDetailedAnalytics(
-  whereClause: any,
+  client: any,
+  whereClause: string,
+  queryParams: any[],
   sectionFilter?: string | null
 ) {
-  const responses = await prisma.survey_response.findMany({
-    where: whereClause,
-    include: {
-      barangay: {
-        select: {
-          barangay_name: true,
-          population: true,
-          households: true,
+  let sectionCondition = '';
+  let sectionParams = [...queryParams];
+
+  if (sectionFilter) {
+    sectionCondition = `AND ss.section_key = $${queryParams.length + 1}`;
+    sectionParams.push(sectionFilter);
+  }
+
+  const detailedQuery = `
+    SELECT 
+      sr.response_id,
+      sr.survey_number,
+      sr.barangay_id,
+      sr.respondent_name,
+      sr.respondent_age,
+      sr.biological_sex,
+      sr.gender_identity,
+      sr.location_lat,
+      sr.location_lng,
+      sr.location_address,
+      sr.location_barangay,
+      sr.location_municipality,
+      sr.location_province,
+      sr.location_accuracy,
+      sr.progress,
+      sr.completed_at,
+      sr.submitted_at,
+      b.barangay_name,
+      b.population,
+      b.households,
+      u."firstName" as interviewer_first_name,
+      u."lastName" as interviewer_last_name,
+      u.email as interviewer_email,
+      ss.section_name,
+      ss.section_key,
+      ss.status as section_status,
+      ss.data as section_data,
+      ss.completed_at as section_completed_at
+    FROM survey_response sr
+    LEFT JOIN barangay b ON sr.barangay_id = b.barangay_id
+    LEFT JOIN "user" u ON sr.interviewer_id = u.id
+    LEFT JOIN survey_section ss ON sr.response_id = ss.response_id ${sectionCondition}
+    WHERE ${whereClause}
+    ORDER BY sr.completed_at DESC
+  `;
+
+  const result = await client.query(detailedQuery, sectionParams);
+
+  // Group sections by response
+  const responseMap = new Map();
+
+  result.rows.forEach((row: any) => {
+    if (!responseMap.has(row.response_id)) {
+      responseMap.set(row.response_id, {
+        responseId: row.response_id,
+        surveyNumber: row.survey_number,
+        barangay: {
+          id: row.barangay_id,
+          name: row.barangay_name,
+          population: row.population,
+          households: row.households,
         },
-      },
-      user: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
+        interviewer: {
+          name: `${row.interviewer_first_name || ''} ${row.interviewer_last_name || ''}`.trim(),
+          email: row.interviewer_email,
         },
-      },
-      survey_section: sectionFilter
-        ? {
-            where: { section_key: sectionFilter },
-          }
-        : true,
-    },
-    orderBy: { completed_at: "desc" },
+        respondent: {
+          name: row.respondent_name,
+          age: row.respondent_age,
+          sex: row.biological_sex,
+          genderIdentity: row.gender_identity,
+        },
+        location: {
+          lat: row.location_lat ? parseFloat(row.location_lat.toString()) : null,
+          lng: row.location_lng ? parseFloat(row.location_lng.toString()) : null,
+          address: row.location_address,
+          barangay: row.location_barangay,
+          municipality: row.location_municipality,
+          province: row.location_province,
+          accuracy: row.location_accuracy ? parseFloat(row.location_accuracy.toString()) : null,
+        },
+        progress: row.progress,
+        completedAt: row.completed_at,
+        submittedAt: row.submitted_at,
+        sections: [],
+      });
+    }
+
+    if (row.section_name) {
+      responseMap.get(row.response_id).sections.push({
+        name: row.section_name,
+        key: row.section_key,
+        status: row.section_status,
+        // JSONB data is already an object, no need to parse
+        data: row.section_data || null,
+        completedAt: row.section_completed_at,
+      });
+    }
   });
 
-  const detailedData = responses.map((response) => ({
-    responseId: response.response_id,
-    surveyNumber: response.survey_number,
-    barangay: {
-      id: response.barangay_id,
-      name: response.barangay?.barangay_name,
-      population: response.barangay?.population,
-      households: response.barangay?.households,
-    },
-    interviewer: {
-      name: `${response.user?.firstName} ${response.user?.lastName}`,
-      email: response.user?.email,
-    },
-    respondent: {
-      name: response.respondent_name,
-      age: response.respondent_age,
-      gender: response.respondent_gender,
-    },
-    location: {
-      lat: parseFloat(response.location_lat.toString()),
-      lng: parseFloat(response.location_lng.toString()),
-      address: response.location_address,
-      barangay: response.location_barangay,
-      municipality: response.location_municipality,
-      province: response.location_province,
-      accuracy: response.location_accuracy
-        ? parseFloat(response.location_accuracy.toString())
-        : null,
-    },
-    progress: response.progress,
-    completedAt: response.completed_at,
-    submittedAt: response.submitted_at,
-    sections: response.survey_section.map((section) => ({
-      name: section.section_name,
-      key: section.section_key,
-      status: section.status,
-      data: section.data ? JSON.parse(section.data) : null,
-      completedAt: section.completed_at,
-    })),
-  }));
+  const detailedData = Array.from(responseMap.values());
 
   return NextResponse.json({
     detailed: {
@@ -197,59 +310,95 @@ async function getDetailedAnalytics(
   });
 }
 
-async function getExportData(whereClause: any) {
-  const responses = await prisma.survey_response.findMany({
-    where: whereClause,
-    include: {
-      barangay: true,
-      user: true,
-      survey_section: true,
-    },
-    orderBy: { completed_at: "desc" },
+async function getExportData(client: any, whereClause: string, queryParams: any[]) {
+  const exportQuery = `
+    SELECT 
+      sr.response_id,
+      sr.survey_number,
+      sr.respondent_name,
+      sr.respondent_age,
+      sr.biological_sex,
+      sr.gender_identity,
+      sr.location_lat,
+      sr.location_lng,
+      sr.location_address,
+      sr.location_barangay,
+      sr.location_municipality,
+      sr.location_province,
+      sr.progress,
+      sr.completed_at,
+      sr.submitted_at,
+      b.barangay_name,
+      b.population as barangay_population,
+      u."firstName" as interviewer_first_name,
+      u."lastName" as interviewer_last_name,
+      u.email as interviewer_email,
+      ss.section_key,
+      ss.data as section_data
+    FROM survey_response sr
+    LEFT JOIN barangay b ON sr.barangay_id = b.barangay_id
+    LEFT JOIN "user" u ON sr.interviewer_id = u.id
+    LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
+    WHERE ${whereClause}
+    ORDER BY sr.completed_at DESC
+  `;
+
+  const result = await client.query(exportQuery, queryParams);
+
+  // Group by response and flatten section data
+  const responseMap = new Map();
+
+  result.rows.forEach((row: any) => {
+    if (!responseMap.has(row.response_id)) {
+      responseMap.set(row.response_id, {
+        response_id: row.response_id,
+        survey_number: row.survey_number,
+        barangay_name: row.barangay_name,
+        barangay_population: row.barangay_population,
+        interviewer_name: `${row.interviewer_first_name || ''} ${row.interviewer_last_name || ''}`.trim(),
+        interviewer_email: row.interviewer_email,
+        respondent_name: row.respondent_name,
+        respondent_age: row.respondent_age,
+        biological_sex: row.biological_sex,
+        gender_identity: row.gender_identity,
+        location_lat: row.location_lat,
+        location_lng: row.location_lng,
+        location_address: row.location_address,
+        location_barangay: row.location_barangay,
+        location_municipality: row.location_municipality,
+        location_province: row.location_province,
+        progress: row.progress,
+        completed_at: row.completed_at,
+        submitted_at: row.submitted_at,
+      });
+    }
+
+    // Add section data as flattened columns
+    if (row.section_data && row.section_key) {
+      try {
+        // PostgreSQL JSONB columns are already parsed as objects, no need to JSON.parse
+        const parsedData = typeof row.section_data === 'string' 
+          ? JSON.parse(row.section_data) 
+          : row.section_data;
+        
+        // Scenario 8: Validate that parsed data is an object
+        if (parsedData && typeof parsedData === 'object') {
+          Object.keys(parsedData).forEach((key) => {
+            responseMap.get(row.response_id)[`${row.section_key}_${key}`] = parsedData[key];
+          });
+        } else {
+          console.warn(`Malformed JSONB data in section ${row.section_key} (response ${row.response_id}): not an object`);
+          responseMap.get(row.response_id)[`${row.section_key}_error`] = 'malformed_data';
+        }
+      } catch (e) {
+        // Scenario 8: Log and mark malformed data
+        console.warn(`Failed to parse JSONB data in section ${row.section_key} (response ${row.response_id}):`, e);
+        responseMap.get(row.response_id)[`${row.section_key}_error`] = 'parse_error';
+      }
+    }
   });
 
-  // Flatten data for CSV export
-  const exportData = [];
-
-  for (const response of responses) {
-    const baseData = {
-      response_id: response.response_id,
-      survey_number: response.survey_number,
-      barangay_name: response.barangay?.barangay_name,
-      barangay_population: response.barangay?.population,
-      interviewer_name: `${response.user?.firstName} ${response.user?.lastName}`,
-      interviewer_email: response.user?.email,
-      respondent_name: response.respondent_name,
-      respondent_age: response.respondent_age,
-      respondent_gender: response.respondent_gender,
-      location_lat: response.location_lat,
-      location_lng: response.location_lng,
-      location_address: response.location_address,
-      location_barangay: response.location_barangay,
-      location_municipality: response.location_municipality,
-      location_province: response.location_province,
-      progress: response.progress,
-      completed_at: response.completed_at,
-      submitted_at: response.submitted_at,
-    };
-
-    // Add section data as columns
-    const sectionData: any = {};
-    response.survey_section.forEach((section) => {
-      if (section.data) {
-        try {
-          const parsedData = JSON.parse(section.data);
-          Object.keys(parsedData).forEach((key) => {
-            sectionData[`${section.section_key}_${key}`] = parsedData[key];
-          });
-        } catch (e) {
-          sectionData[`${section.section_key}_raw`] = section.data;
-        }
-      }
-    });
-
-    exportData.push({ ...baseData, ...sectionData });
-  }
+  const exportData = Array.from(responseMap.values());
 
   return NextResponse.json({
     export: {
@@ -260,47 +409,70 @@ async function getExportData(whereClause: any) {
   });
 }
 
-async function getAggregatedAnalytics(whereClause: any) {
-  // Get all responses with section data
-  const responses = await prisma.survey_response.findMany({
-    where: whereClause,
-    include: {
-      barangay: true,
-      survey_section: true,
-    },
-  });
+async function getAggregatedAnalytics(client: any, whereClause: string, queryParams: any[]) {
+  const aggregatedQuery = `
+    SELECT 
+      sr.response_id,
+      ss.section_key,
+      ss.section_name,
+      ss.status as section_status,
+      ss.data as section_data
+    FROM survey_response sr
+    LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
+    WHERE ${whereClause}
+    ORDER BY sr.response_id, ss.section_key
+  `;
+
+  const result = await client.query(aggregatedQuery, queryParams);
 
   // Aggregate section responses
   const sectionAggregations: any = {};
   const questionAggregations: any = {};
+  let malformedDataCount = 0;
 
-  responses.forEach((response) => {
-    response.survey_section.forEach((section) => {
-      if (!sectionAggregations[section.section_key]) {
-        sectionAggregations[section.section_key] = {
-          name: section.section_name,
+  result.rows.forEach((row: any) => {
+    if (row.section_key) {
+      if (!sectionAggregations[row.section_key]) {
+        sectionAggregations[row.section_key] = {
+          name: row.section_name,
           totalResponses: 0,
           completedResponses: 0,
           questions: {},
         };
       }
 
-      sectionAggregations[section.section_key].totalResponses++;
+      sectionAggregations[row.section_key].totalResponses++;
 
-      if (section.status === "completed") {
-        sectionAggregations[section.section_key].completedResponses++;
+      if (row.section_status === "completed") {
+        sectionAggregations[row.section_key].completedResponses++;
       }
 
-      if (section.data) {
+      if (row.section_data) {
         try {
-          const sectionData = JSON.parse(section.data);
+          // PostgreSQL JSONB columns are already parsed as objects, no need to JSON.parse
+          const sectionData = typeof row.section_data === 'string' 
+            ? JSON.parse(row.section_data) 
+            : row.section_data;
+          
+          // Scenario 8: Validate that parsed data is an object
+          if (!sectionData || typeof sectionData !== 'object') {
+            console.warn(`Malformed JSONB data in section ${row.section_key} (response ${row.response_id}): not an object, skipping`);
+            malformedDataCount++;
+            return;
+          }
+          
           Object.keys(sectionData).forEach((questionKey) => {
-            const fullKey = `${section.section_key}_${questionKey}`;
+            const fullKey = `${row.section_key}_${questionKey}`;
 
             if (!questionAggregations[fullKey]) {
+              const metadata = getQuestionMetadata(fullKey);
               questionAggregations[fullKey] = {
-                section: section.section_key,
+                section: row.section_key,
                 question: questionKey,
+                questionLabel: getQuestionLabel(fullKey),
+                questionType: metadata?.type || 'other',
+                sectionName: metadata?.section || row.section_name,
+                description: metadata?.description || null,
                 responses: [],
                 valueCount: {},
               };
@@ -317,10 +489,12 @@ async function getAggregatedAnalytics(whereClause: any) {
             }
           });
         } catch (e) {
-          // Handle non-JSON data
+          // Scenario 8: Log and skip malformed JSONB data
+          console.warn(`Failed to parse JSONB data in section ${row.section_key} (response ${row.response_id}), skipping:`, e);
+          malformedDataCount++;
         }
       }
-    });
+    }
   });
 
   // Calculate statistics for numeric questions
@@ -345,11 +519,19 @@ async function getAggregatedAnalytics(whereClause: any) {
     }
   });
 
-  return NextResponse.json({
+  // Scenario 8: Include count of excluded responses in response
+  const response: any = {
     aggregated: {
       sections: sectionAggregations,
       questions: questionAggregations,
-      totalResponses: responses.length,
+      totalResponses: result.rows.length,
     },
-  });
+  };
+
+  if (malformedDataCount > 0) {
+    response.aggregated.malformedDataCount = malformedDataCount;
+    response.aggregated.warning = `Excluded ${malformedDataCount} responses with malformed JSONB data`;
+  }
+
+  return NextResponse.json(response);
 }

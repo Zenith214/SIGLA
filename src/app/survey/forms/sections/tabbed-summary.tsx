@@ -3,6 +3,7 @@
 import { JSX, useState } from "react"
 import { ArrowLeft, Send } from "lucide-react"
 import type { SurveyData, SectionStatus } from "../page"
+import { getAssignedSections } from "../utils/sectionAssignment"
 
 interface TabbedSummaryProps {
   data: SurveyData
@@ -12,17 +13,48 @@ interface TabbedSummaryProps {
 }
 
 export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummaryProps) {
-  const [activeTab, setActiveTab] = useState("demographics")
+  // Get all sections for the survey (6 service sections + overall evaluation)
+  const getAssignedTabs = () => {
+    const tabs = [
+      { id: "demographics", name: "Demographics", dataKey: "respondentDemographics" as keyof SurveyData },
+    ];
 
-  const surveyTabs = [
-    { id: "demographics", name: "Demographics", dataKey: "respondentDemographics" as keyof SurveyData },
-    { id: "financial", name: "Financial Admin", dataKey: "financialAdmin" as keyof SurveyData },
-    { id: "disaster", name: "Disaster Prep", dataKey: "disasterPrep" as keyof SurveyData },
-    { id: "safety", name: "Peace & Order", dataKey: "safetyPeace" as keyof SurveyData },
-    { id: "social", name: "Social Protection", dataKey: "socialProtection" as keyof SurveyData },
-    { id: "business", name: "Business Friendly", dataKey: "businessFriendly" as keyof SurveyData },
-    { id: "environmental", name: "Environmental", dataKey: "environmental" as keyof SurveyData },
-  ]
+    // Add all 6 service sections in the order they were assigned
+    if (data.assignedSections && data.assignedSections.length > 0) {
+      const sectionMap: Record<string, { name: string; dataKey: keyof SurveyData }> = {
+        financial: { name: "Financial Admin", dataKey: "financialAdmin" },
+        disaster: { name: "Disaster Prep", dataKey: "disasterPrep" },
+        safety: { name: "Peace & Order", dataKey: "safetyPeace" },
+        social: { name: "Social Protection", dataKey: "socialProtection" },
+        business: { name: "Business Friendly", dataKey: "businessFriendly" },
+        environmental: { name: "Environmental", dataKey: "environmental" },
+      };
+
+      data.assignedSections.forEach(sectionId => {
+        const sectionInfo = sectionMap[sectionId];
+        if (sectionInfo) {
+          tabs.push({
+            id: sectionId,
+            name: sectionInfo.name,
+            dataKey: sectionInfo.dataKey
+          });
+        }
+      });
+    }
+
+    // Add overall evaluation section
+    tabs.push({
+      id: "overall",
+      name: "Overall Evaluation",
+      dataKey: "overallEvaluation" as keyof SurveyData
+    });
+
+    console.log(`📊 Summary: Showing ${tabs.length} tabs (Demographics + ${data.assignedSections?.length || 0} service sections + Overall)`);
+    return tabs;
+  };
+
+  const surveyTabs = getAssignedTabs();
+  const [activeTab, setActiveTab] = useState(surveyTabs[0]?.id || "demographics")
 
   const formatValue = (value: any): string | JSX.Element => {
     if (Array.isArray(value)) {
@@ -57,6 +89,27 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
 
     const sectionData = data[activeTabData.dataKey] as Record<string, any>
     const sectionStatus = getSectionStatus(activeTab)
+    
+    // Debug: Log section data to help identify mapping issues
+    console.log(`📋 Rendering ${activeTab} (${activeTabData.dataKey}):`, Object.keys(sectionData || {}))
+    
+    // Detect data mapping issues
+    const keys = Object.keys(sectionData || {}).filter(k => !k.endsWith('_skipReason'));
+    const patterns = {
+      financial: /corruption|projects|financial|socialPrograms/i,
+      disaster: /disaster|evacuation/i,
+      safety: /tanods|lupon|antiDrug/i,
+      social: /health|women|children|community/i,
+      business: /business|clearance/i,
+      environmental: /waste|garbage/i,
+    };
+    
+    for (const [type, pattern] of Object.entries(patterns)) {
+      const matches = keys.filter(k => pattern.test(k)).length;
+      if (matches > 0 && type !== activeTab) {
+        console.warn(`⚠️ ${activeTab} section contains ${matches} ${type} questions - DATA MAPPING ERROR!`);
+      }
+    }
 
     if (!sectionData || Object.keys(sectionData).length === 0) {
       return (
@@ -72,21 +125,51 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
             </svg>
           </div>
           <p className="text-gray-500">No data available for this section</p>
-          <p className="text-sm text-gray-400 mt-1">Complete the survey section to see responses here</p>
+          <p className="text-sm text-gray-400 mt-1">This section was assigned but not completed</p>
         </div>
       )
     }
 
+    // Filter out skip reason fields for cleaner display
+    const displayData = Object.entries(sectionData).filter(([key]) => !key.endsWith('_skipReason'));
+    const skippedQuestions = Object.entries(sectionData).filter(([key, value]) => 
+      key.endsWith('_skipReason') || value === null
+    );
+
     return (
       <div className="space-y-6">
-        {Object.entries(sectionData).map(([key, value]) => (
-          <div key={key} className="border-b border-gray-100 pb-4 last:border-b-0">
-            <dt className="text-sm font-medium text-gray-600 mb-2 capitalize">
-              {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-            </dt>
-            <dd className="text-base text-gray-700">{formatValue(value)}</dd>
+        {/* Show answered questions */}
+        {displayData.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-green-700 mb-3 flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              Answered Questions ({displayData.length})
+            </h4>
+            <div className="space-y-4">
+              {displayData.map(([key, value]) => (
+                <div key={key} className="border-b border-gray-100 pb-4 last:border-b-0">
+                  <dt className="text-sm font-medium text-gray-600 mb-2 capitalize">
+                    {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                  </dt>
+                  <dd className="text-base text-gray-700">{formatValue(value)}</dd>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+        )}
+
+        {/* Show skipped questions summary */}
+        {skippedQuestions.length > 0 && (
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-yellow-700 mb-2 flex items-center">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+              Skipped Questions ({skippedQuestions.length})
+            </h4>
+            <p className="text-sm text-yellow-600">
+              Some questions were skipped based on your previous answers (e.g., answering "No" to awareness questions).
+            </p>
+          </div>
+        )}
       </div>
     )
   }
@@ -96,6 +179,13 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Survey Summary & Review</h2>
         <p className="text-gray-600">Review your responses before submitting the survey</p>
+        {data.surveyNumber && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Survey #{data.surveyNumber}</strong> - Demographics + {data.assignedSections?.length || 6} Service Sections + Overall Evaluation
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Section Tabs */}
@@ -139,13 +229,16 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {sections.filter((s) => s.id !== "initialization" && s.id !== "summary").length}
+              {surveyTabs.length}
             </div>
-            <div className="text-sm text-blue-800">Total Sections</div>
+            <div className="text-sm text-blue-800">Assigned Sections</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {sections.filter((s) => s.status === "completed" && s.id !== "initialization").length}
+              {surveyTabs.filter((tab) => {
+                const status = getSectionStatus(tab.id);
+                return status === "completed";
+              }).length}
             </div>
             <div className="text-sm text-green-800">Completed</div>
           </div>

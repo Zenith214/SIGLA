@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Plus, Edit, Trash2, Shield, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Shield, AlertTriangle, Search, ChevronDown, ChevronUp } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
-const roleOptions = ["admin", "interviewer", "viewer"];
+const roleOptions = ["admin", "fs", "interviewer", "officer", "viewer"];
 const statusOptions = ["active", "inactive"];
 
 export function UsersRoles() {
   const [users, setUsers] = useState<any[]>([])
+  const [barangays, setBarangays] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingUser, setEditingUser] = useState<any | null>(null)
@@ -26,35 +28,63 @@ export function UsersRoles() {
     lastName: "",
     email: "",
     password: "",
-    role: "viewer",
+    role: "officer",
     status: "active",
     lastLogin: new Date().toISOString().slice(0, 10),
+    barangayDesignation: null,
+  })
+  const [searchTerm, setSearchTerm] = useState("")
+  const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
+  const { toast } = useToast()
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    if (!searchTerm) return true
+    
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      user.status.toLowerCase().includes(searchLower)
+    )
   })
 
   useEffect(() => {
     setLoading(true)
-    fetch("/api/users")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch users")
-        return res.json()
-      })
-      .then((data) => {
-        setUsers(data.users || data) // Handle both new and old API response formats
+    // Fetch users and barangays
+    Promise.all([
+      fetch("/api/users").then(res => res.ok ? res.json() : Promise.reject("Failed to fetch users")),
+      fetch("/api/barangays").then(res => res.ok ? res.json() : Promise.reject("Failed to fetch barangays"))
+    ])
+      .then(([usersData, barangaysData]) => {
+        console.log("Barangays API Response:", barangaysData)
+        setUsers(usersData.users || usersData)
+        // Handle different API response formats
+        // New format: { success: true, data: [...] }
+        // Old format: { barangays: [...] } or [...]
+        const barangaysList = barangaysData.data || barangaysData.barangays || barangaysData
+        console.log("Extracted barangays list:", barangaysList)
+        console.log("Is array?", Array.isArray(barangaysList))
+        setBarangays(Array.isArray(barangaysList) ? barangaysList : [])
         setLoading(false)
       })
       .catch((err) => {
-        setError(err.message)
+        console.error("Error fetching data:", err)
+        setError(err.message || err)
         setLoading(false)
       })
   }, [])
 
   // Edit
-  const handleEditClick = (user: any) => {
-    setEditingUser(user)
+  const handleEditClick = async (user: any) => {
+    // Set initial form data immediately to prevent null errors
     setEditForm({ 
       ...user,
-      role: user.role?.toLowerCase() || 'viewer'
+      role: user.role?.toLowerCase() || 'officer',
+      barangayDesignation: user.barangayDesignation || ""
     })
+    setEditingUser(user)
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
@@ -62,18 +92,35 @@ export function UsersRoles() {
   const handleEditSave = async () => {
     setSaving(true)
     try {
+      // Update user with all edited fields
       const res = await fetch(`/api/users/${editForm.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: editForm.role }),
+        body: JSON.stringify({ 
+          firstName: editForm.firstName,
+          lastName: editForm.lastName,
+          role: editForm.role,
+          status: editForm.status,
+          lastLogin: editForm.lastLogin,
+          barangayDesignation: editForm.barangayDesignation
+        }),
       })
       if (!res.ok) throw new Error("Failed to update user")
       const updated = await res.json()
+      
       setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
       setEditForm(null)
+      toast({
+        title: "User Updated Successfully!",
+        description: `${editForm.firstName} ${editForm.lastName}'s information has been updated.`,
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the user.",
+      });
     } finally {
       setSaving(false)
     }
@@ -93,8 +140,16 @@ export function UsersRoles() {
       if (!res.ok) throw new Error("Failed to delete user")
       setUsers(users.filter(u => u.id !== deletingUser.id))
       setDeletingUser(null)
+      toast({
+        title: "User Deleted",
+        description: `${deletingUser.firstName} ${deletingUser.lastName} has been removed from the system.`,
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the user.",
+      });
     } finally {
       setSaving(false)
     }
@@ -108,9 +163,10 @@ export function UsersRoles() {
       lastName: "",
       email: "",
       password: "",
-      role: "viewer",
+      role: "officer",
       status: "Active",
       lastLogin: new Date().toISOString().slice(0, 10),
+      barangayDesignation: null,
     })
   }
   const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -120,7 +176,11 @@ export function UsersRoles() {
     setSaving(true)
     try {
       // Ensure lastLogin is a full ISO string
-      const payload = { ...addForm, lastLogin: addForm.lastLogin ? new Date(addForm.lastLogin).toISOString() : undefined };
+      const payload = { 
+        ...addForm, 
+        lastLogin: addForm.lastLogin ? new Date(addForm.lastLogin).toISOString() : undefined,
+        barangayDesignation: addForm.barangayDesignation || null
+      };
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,6 +188,7 @@ export function UsersRoles() {
       })
       if (!res.ok) throw new Error("Failed to add user")
       const response = await res.json()
+      
       setUsers([response.user, ...users])
       setAddingUser(false)
       setAddForm({
@@ -135,22 +196,40 @@ export function UsersRoles() {
         lastName: "",
         email: "",
         password: "",
-        role: "viewer",
+        role: "officer",
         status: "active",
         lastLogin: new Date().toISOString().slice(0, 10),
+        barangayDesignation: null,
       })
+      toast({
+        title: "User Added Successfully!",
+        description: `${addForm.firstName} ${addForm.lastName} has been added to the system.`,
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        variant: "destructive",
+        title: "Add User Failed",
+        description: err.message || "An unexpected error occurred while adding the user.",
+      });
     } finally {
       setSaving(false)
     }
   }
 
-  // Role stats
+  // Role stats (case-insensitive, includes developer in admin count)
   const roleStats = [
-    { role: "admin", count: users.filter(u => u.role === "admin").length, color: "bg-red-100 text-red-800" },
-    { role: "interviewer", count: users.filter(u => u.role === "interviewer").length, color: "bg-blue-100 text-blue-800" },
-    { role: "viewer", count: users.filter(u => u.role === "viewer").length, color: "bg-gray-100 text-gray-800" },
+    { 
+      role: "admin", 
+      count: users.filter(u => {
+        const role = u.role?.toLowerCase();
+        return role === "admin" || role === "developer";
+      }).length, 
+      color: "bg-red-100 text-red-800" 
+    },
+    { role: "fs", count: users.filter(u => u.role?.toLowerCase() === "fs").length, color: "bg-purple-100 text-purple-800" },
+    { role: "interviewer", count: users.filter(u => u.role?.toLowerCase() === "interviewer").length, color: "bg-blue-100 text-blue-800" },
+    { role: "officer", count: users.filter(u => u.role?.toLowerCase() === "officer").length, color: "bg-gray-100 text-gray-800" },
+    { role: "viewer", count: users.filter(u => u.role?.toLowerCase() === "viewer").length, color: "bg-green-100 text-green-800" },
   ]
 
   if (loading) {
@@ -181,18 +260,97 @@ export function UsersRoles() {
         </Button>
       </div>
 
+      {/* Role Permissions - Collapsible */}
+      <Card>
+        <CardHeader className="pb-2">
+          <Button
+            variant="ghost"
+            onClick={() => setRolePermissionsVisible(!rolePermissionsVisible)}
+            className="w-full justify-between p-0 h-auto hover:bg-transparent"
+          >
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-blue-500" />
+              <span>Role Permissions</span>
+            </CardTitle>
+            {rolePermissionsVisible ? (
+              <ChevronUp className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            )}
+          </Button>
+        </CardHeader>
+        {rolePermissionsVisible && (
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                  <h3 className="font-semibold text-red-800">Admin</h3>
+                  <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
+                  <ul className="text-xs text-red-600 mt-2 space-y-1">
+                    <li>• Manage all settings</li>
+                    <li>• Create/delete users</li>
+                    <li>• Export data</li>
+                    <li>• System backup</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-purple-200 rounded-lg bg-purple-50">
+                  <h3 className="font-semibold text-purple-800">Supervisor</h3>
+                  <p className="text-sm text-purple-600 mt-1">Manage field operations and monitor interviewers</p>
+                  <ul className="text-xs text-purple-600 mt-2 space-y-1">
+                    <li>• Allocate spots and assignments</li>
+                    <li>• Monitor fieldwork progress</li>
+                    <li>• Manage interviewer assignments</li>
+                    <li>• View performance metrics</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                  <h3 className="font-semibold text-blue-800">Interviewer</h3>
+                  <p className="text-sm text-blue-600 mt-1">Conduct surveys and view assigned data</p>
+                  <ul className="text-xs text-blue-600 mt-2 space-y-1">
+                    <li>• Conduct interviews</li>
+                    <li>• View assigned barangays</li>
+                    <li>• Submit responses</li>
+                    <li>• Basic reporting</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-gray-800">Officer</h3>
+                  <p className="text-sm text-gray-600 mt-1">LGU official with governance responsibilities</p>
+                  <ul className="text-xs text-gray-600 mt-2 space-y-1">
+                    <li>• View reports</li>
+                    <li>• Create and manage CPAPs</li>
+                    <li>• Dashboard access</li>
+                    <li>• Track action plan progress</li>
+                  </ul>
+                </div>
+                <div className="p-4 border border-green-200 rounded-lg bg-green-50">
+                  <h3 className="font-semibold text-green-800">Viewer</h3>
+                  <p className="text-sm text-green-600 mt-1">Read-only access to dashboards and data</p>
+                  <ul className="text-xs text-green-600 mt-2 space-y-1">
+                    <li>• View dashboards (Map & Analytics)</li>
+                    <li>• View CPAP submissions</li>
+                    <li>• Access backup settings</li>
+                    <li>• No write operations</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Role Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {roleStats.map((stat) => (
           <Card key={stat.role}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.role}s</p>
+                  <p className="text-sm font-medium text-gray-600 capitalize">{stat.role === "fs" ? "Supervisors" : `${stat.role}s`}</p>
                   <p className="text-2xl font-bold text-gray-900">{stat.count}</p>
                 </div>
                 <div className={`p-3 rounded-full ${stat.color}`}>
-                  {stat.role === "Admin" ? <Shield className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+                  {stat.role === "admin" ? <Shield className="w-6 h-6" /> : <Users className="w-6 h-6" />}
                 </div>
               </div>
             </CardContent>
@@ -208,6 +366,20 @@ export function UsersRoles() {
             <span>User Management</span>
           </CardTitle>
         </CardHeader>
+        
+        {/* Search Bar */}
+        <div className="px-6 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search users by name, email, role, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+        </div>
+        
         <CardContent>
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
@@ -220,13 +392,29 @@ export function UsersRoles() {
                   <TableHead className="font-medium">Name</TableHead>
                   <TableHead className="font-medium">Email</TableHead>
                   <TableHead className="font-medium">Role</TableHead>
+                  <TableHead className="font-medium">Barangay</TableHead>
                   <TableHead className="font-medium">Status</TableHead>
                   <TableHead className="font-medium">Last Login</TableHead>
                   <TableHead className="font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUsers.length === 0 && searchTerm ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-lg font-medium text-gray-900 mb-2">No users found</p>
+                      <p className="text-gray-500 mb-4">No users match your search criteria "{searchTerm}"</p>
+                      <Button 
+                        onClick={() => setSearchTerm("")} 
+                        variant="outline"
+                        className="text-gray-600 hover:text-gray-800"
+                      >
+                        Clear Search
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
                     <TableCell className="text-gray-600">{user.email}</TableCell>
@@ -236,13 +424,26 @@ export function UsersRoles() {
                         className={`text-xs ${
                           user.role === "admin"
                             ? "border-red-200 text-red-700"
-                            : user.role === "interviewer"
-                              ? "border-blue-200 text-blue-700"
-                              : "border-gray-200 text-gray-700"
+                            : user.role === "fs"
+                              ? "border-purple-200 text-purple-700"
+                              : user.role === "interviewer"
+                                ? "border-blue-200 text-blue-700"
+                                : user.role === "viewer"
+                                  ? "border-green-200 text-green-700"
+                                  : "border-gray-200 text-gray-700"
                         }`}
                       >
-                        {user.role}
+                        {user.role === "fs" ? "Supervisor" : user.role}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {user.role?.toLowerCase() === 'officer' && user.barangayDesignation ? (
+                        barangays.find(b => (b.id || b.barangay_id) === user.barangayDesignation)?.name || 
+                        barangays.find(b => (b.id || b.barangay_id) === user.barangayDesignation)?.barangay_name || 
+                        '-'
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
@@ -269,8 +470,8 @@ export function UsersRoles() {
       </Card>
 
       {/* Edit Modal */}
-      {editingUser && (
-        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) setEditingUser(null) }}>
+      {editingUser && editForm && (
+        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) { setEditingUser(null); setEditForm(null); } }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
@@ -278,25 +479,45 @@ export function UsersRoles() {
             <div className="space-y-4 mt-2">
               <div>
                 <label className="block text-sm font-medium mb-1">First Name</label>
-                <Input name="firstName" value={editForm.firstName} onChange={handleEditChange} />
+                <Input name="firstName" value={editForm?.firstName || ""} onChange={handleEditChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Last Name</label>
-                <Input name="lastName" value={editForm.lastName} onChange={handleEditChange} />
+                <Input name="lastName" value={editForm?.lastName || ""} onChange={handleEditChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <Input name="email" value={editForm.email} readOnly disabled />
+                <Input name="email" value={editForm?.email || ""} readOnly disabled />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
-                <select name="role" value={editForm.role} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+                <select name="role" value={editForm?.role || "officer"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                  {roleOptions.map(role => (
+                    <option key={role} value={role}>
+                      {role === 'fs' ? 'Supervisor' : role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
+              {editForm.role === 'officer' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Barangay Designation</label>
+                    <select name="barangayDesignation" value={editForm.barangayDesignation || ""} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                      <option value="">No Designation</option>
+                      {Array.isArray(barangays) && barangays.map(barangay => (
+                        <option key={barangay.id || barangay.barangay_id} value={barangay.id || barangay.barangay_id}>
+                          {barangay.name || barangay.barangay_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Officer's designated barangay (optional)</p>
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
-                <select name="status" value={editForm.status} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
+                <select name="status" value={editForm?.status || "active"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
                   {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
               </div>
@@ -363,9 +584,29 @@ export function UsersRoles() {
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select name="role" value={addForm.role} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
-                  {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+                  {roleOptions.map(role => (
+                    <option key={role} value={role}>
+                      {role === 'fs' ? 'Supervisor' : role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
+              {addForm.role === 'officer' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Barangay Designation</label>
+                    <select name="barangayDesignation" value={addForm.barangayDesignation || ""} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
+                      <option value="">No Designation</option>
+                      {Array.isArray(barangays) && barangays.map(barangay => (
+                        <option key={barangay.id || barangay.barangay_id} value={barangay.id || barangay.barangay_id}>
+                          {barangay.name || barangay.barangay_name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Officer's designated barangay (optional)</p>
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
                 <select name="status" value={addForm.status} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
@@ -385,51 +626,7 @@ export function UsersRoles() {
         </Dialog>
       )}
 
-      {/* Role Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-blue-500" />
-            <span>Role Permissions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                <h3 className="font-semibold text-red-800">Admin</h3>
-                <p className="text-sm text-red-600 mt-1">Full system access and user management</p>
-                <ul className="text-xs text-red-600 mt-2 space-y-1">
-                  <li>• Manage all settings</li>
-                  <li>• Create/delete users</li>
-                  <li>• Export data</li>
-                  <li>• System backup</li>
-                </ul>
-              </div>
-              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-                <h3 className="font-semibold text-blue-800">Interviewer</h3>
-                <p className="text-sm text-blue-600 mt-1">Conduct surveys and view assigned data</p>
-                <ul className="text-xs text-blue-600 mt-2 space-y-1">
-                  <li>• Conduct interviews</li>
-                  <li>• View assigned barangays</li>
-                  <li>• Submit responses</li>
-                  <li>• Basic reporting</li>
-                </ul>
-              </div>
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h3 className="font-semibold text-gray-800">Viewer</h3>
-                <p className="text-sm text-gray-600 mt-1">Read-only access to reports and data</p>
-                <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                  <li>• View reports</li>
-                  <li>• Export reports</li>
-                  <li>• Dashboard access</li>
-                  <li>• No data modification</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   )
 }

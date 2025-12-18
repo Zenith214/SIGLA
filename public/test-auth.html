@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0072CE;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #0072CE;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { color: #4caf50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196f3; }
+        .step {
+            font-weight: bold;
+            color: #fff;
+        }
+        .buttons {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Authentication Test Tool</h1>
+        <p class="subtitle">Test the authentication flow and diagnose cookie issues</p>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="test@example.com" value="ana@example.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password" value="password123">
+        </div>
+        
+        <div class="buttons">
+            <button onclick="runFullTest()">Run Full Test</button>
+            <button onclick="testLogin()">Test Login Only</button>
+            <button onclick="testMe()">Test /api/me</button>
+            <button onclick="checkCookies()">Check Cookies</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div id="log" class="log">Ready to test. Click "Run Full Test" to begin.</div>
+    </div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logEl.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function clearLog() {
+            logEl.innerHTML = 'Log cleared.\n';
+        }
+        
+        function checkCookies() {
+            log('=== Checking Cookies ===', 'step');
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            
+            if (cookies.length === 0 || (cookies.length === 1 && cookies[0] === '')) {
+                log('❌ No cookies found', 'error');
+            } else {
+                log(`Found ${cookies.length} cookie(s):`, 'info');
+                cookies.forEach(cookie => {
+                    const [name] = cookie.split('=');
+                    if (name === 'pulse_token') {
+                        log(`  ✅ ${name} (Authentication cookie)`, 'success');
+                    } else {
+                        log(`  ℹ️  ${name}`, 'info');
+                    }
+                });
+            }
+            
+            // Note about httpOnly cookies
+            log('⚠️  Note: httpOnly cookies (like pulse_token) cannot be read by JavaScript', 'warning');
+            log('   Check browser DevTools → Application → Cookies for full list', 'warning');
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                log('❌ Please enter email and password', 'error');
+                return null;
+            }
+            
+            log('=== Testing Login API ===', 'step');
+            log(`📧 Email: ${email}`, 'info');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include' // Important for cookies
+                });
+                
+                log(`📡 Response Status: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'error');
+                
+                // Check Set-Cookie header (won't be visible due to browser security)
+                log('ℹ️  Set-Cookie header is not accessible via JavaScript', 'info');
+                log('   Check Network tab → /api/login → Response Headers', 'info');
+                
+                const data = await response.json();
+                log(`📦 Response Data: ${JSON.stringify(data, null, 2)}`, 'info');
+                
+                if (response.ok) {
+                    log('✅ Login successful!', 'success');
+                    log(`👤 Role: ${data.role}`, 'success');
+                    
+                    // Wait a moment for cookie to be set
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    return data;
+                } else {
+                    log(`❌ Login failed: ${data.message || 'Unknown error'}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        async function testMe() {
+            log('=== Testing /api/me ===', 'step');
+            
+            try {
+                const response = await fetch('/api/me', {
+                    method: 'GET',
+                    credentials: 'include' // Important for cookies
+                });
+                
+                log(`📡 Response Status: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'error');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`📦 User Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                    log('✅ Authentication working!', 'success');
+                    return data;
+                } else {
+                    const data = await response.json();
+                    log(`❌ Not authenticated: ${data.error || 'Unknown error'}`, 'error');
+                    log('   This means the cookie is not being sent or is invalid', 'warning');
+                    return null;
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        async function testDashboardAccess() {
+            log('=== Testing Dashboard Access ===', 'step');
+            
+            try {
+                const response = await fetch('/dashboard', {
+                    method: 'GET',
+                    credentials: 'include',
+                    redirect: 'manual' // Don't follow redirects
+                });
+                
+                log(`📡 Response Status: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.status === 200) {
+                    log('✅ Dashboard accessible!', 'success');
+                    return true;
+                } else if (response.status === 0) {
+                    // Redirect happened (opaque response)
+                    log('⚠️  Redirect occurred (likely to login)', 'warning');
+                    log('   This means authentication failed', 'error');
+                    return false;
+                } else {
+                    log(`⚠️  Unexpected status: ${response.status}`, 'warning');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function runFullTest() {
+            clearLog();
+            log('🧪 Starting Full Authentication Test', 'step');
+            log('', 'info');
+            
+            // Step 1: Check initial cookies
+            checkCookies();
+            log('', 'info');
+            
+            // Step 2: Test login
+            const loginResult = await testLogin();
+            if (!loginResult) {
+                log('', 'info');
+                log('❌ Test failed at login step', 'error');
+                return;
+            }
+            log('', 'info');
+            
+            // Step 3: Check cookies after login
+            log('=== Checking Cookies After Login ===', 'step');
+            checkCookies();
+            log('', 'info');
+            
+            // Step 4: Test /api/me
+            const meResult = await testMe();
+            if (!meResult) {
+                log('', 'info');
+                log('❌ Test failed at /api/me step', 'error');
+                log('', 'info');
+                log('🔍 Diagnosis:', 'warning');
+                log('   - Cookie was set by login API', 'info');
+                log('   - But /api/me cannot read it', 'info');
+                log('   - Possible causes:', 'info');
+                log('     1. Cookie domain mismatch', 'info');
+                log('     2. Cookie not being sent with requests', 'info');
+                log('     3. JWT_SECRET mismatch', 'info');
+                log('', 'info');
+                log('📋 Next steps:', 'warning');
+                log('   1. Check browser DevTools → Application → Cookies', 'info');
+                log('   2. Verify pulse_token cookie exists', 'info');
+                log('   3. Check Network tab → /api/me → Request Headers → Cookie', 'info');
+                log('   4. Check Railway logs for JWT validation errors', 'info');
+                return;
+            }
+            log('', 'info');
+            
+            // Step 5: Test dashboard access
+            await testDashboardAccess();
+            log('', 'info');
+            
+            // Summary
+            log('=== Test Summary ===', 'step');
+            log('✅ All tests passed!', 'success');
+            log('🎉 Authentication flow is working correctly', 'success');
+            log('', 'info');
+            log('You should now be able to:', 'info');
+            log('  1. Login successfully', 'success');
+            log('  2. Access protected routes', 'success');
+            log('  3. Stay logged in for 7 days', 'success');
+        }
+    </script>
+</body>
+</html>

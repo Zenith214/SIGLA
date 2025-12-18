@@ -1,0 +1,46 @@
+# Development and testing files
+coverage/
+test-results/
+playwright-report/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+tests/
+
+# Documentation (not needed in production)
+docs/
+ml-algorithm-selection/
+README-*.md
+database/*.md
+
+# Development scripts
+scripts/examples/
+scripts/test-*.ts
+scripts/db-fresh.ts
+scripts/db-truncate.ts
+scripts/db-unseed.ts
+
+# PowerShell scripts
+*.ps1
+
+# Database files
+*.sql
+sigla_db.sql
+missing_survey_features.sql
+
+# Python ML (deploy separately)
+ml/
+.venv/
+
+# IDE and config
+.vscode/
+.kiro/
+
+# Build info
+tsconfig.tsbuildinfo
+
+# Logs and temp files
+*.log
+.pnpm-debug.log*

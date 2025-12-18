@@ -1,11 +1,13 @@
 "use client"
 
+import Image from "next/image"
 import { MapPin, FileText, User, Navigation, AlertCircle, ChevronDown, LogOut, LayoutDashboard } from "lucide-react"
 import { useState, useEffect } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
+import { calculateDisplayId } from "@/utils/displayIdCalculator"
 
 interface HeaderProps {
   user: {
@@ -15,6 +17,8 @@ interface HeaderProps {
     avatar: string
   }
   currentSection?: string
+  questionnaireId?: string
+  displayId?: number | null
 }
 
 interface LocationData {
@@ -25,10 +29,11 @@ interface LocationData {
   address?: string
 }
 
-export function Header({ user, currentSection }: HeaderProps) {
+export function Header({ user, currentSection, questionnaireId, displayId }: HeaderProps) {
   const [location, setLocation] = useState<LocationData | null>(null)
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState<string>('')
+  const [calculatedDisplayId, setCalculatedDisplayId] = useState<number | null>(null)
   const router = useRouter()
   const { logout } = useAuth()
 
@@ -105,6 +110,23 @@ export function Header({ user, currentSection }: HeaderProps) {
     getCurrentLocation()
   }, [])
 
+  // Calculate display_id as fallback if not provided
+  useEffect(() => {
+    if (displayId !== undefined && displayId !== null) {
+      // Use provided display_id
+      setCalculatedDisplayId(displayId)
+    } else if (questionnaireId) {
+      // Calculate from questionnaireId (full_id) as fallback
+      const calculated = calculateDisplayId(questionnaireId)
+      setCalculatedDisplayId(calculated)
+      if (calculated === null) {
+        console.warn(`Could not calculate display_id from questionnaireId: ${questionnaireId}`)
+      }
+    } else {
+      setCalculatedDisplayId(null)
+    }
+  }, [displayId, questionnaireId])
+
   // Get location status display
   const getLocationStatusDisplay = () => {
     switch (locationStatus) {
@@ -148,28 +170,28 @@ export function Header({ user, currentSection }: HeaderProps) {
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">
-                SIGLA Survey Forms
+            <Image 
+              src="/headerlogo4k.png" 
+              alt="PULSE Survey" 
+              width={100}
+              height={36}
+              className="h-8 w-auto"
+              priority
+            />
+            <div className="border-l border-gray-600 pl-3">
+              <h1 
+                className="text-base font-semibold text-white"
+                aria-label={calculatedDisplayId !== null ? `Interview number ${calculatedDisplayId}` : (questionnaireId ? `Questionnaire ${questionnaireId}` : "Survey Forms")}
+              >
+                {calculatedDisplayId !== null ? `Interview #${calculatedDisplayId}` : (questionnaireId || "Survey Forms")}
               </h1>
-              <p className="text-sm text-gray-300">
-                {currentSection ? `${currentSection} • Community Assessment Survey Tool` : "Community Assessment Survey Tool"}
+              <p className="text-xs text-gray-300">
+                {currentSection || "Community Assessment"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Location Status (visible outside dropdown for quick glance) */}
-            <div className="hidden md:flex items-center space-x-2 text-white">
-              {getLocationStatusDisplay()}
-            </div>
-
-            {/* Separator */}
-            <div className="text-gray-400">|</div>
-
             {/* User Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -181,9 +203,6 @@ export function Header({ user, currentSection }: HeaderProps) {
                   />
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-medium text-white">{user.name}</p>
-                    <p className="text-xs text-gray-300">
-                      {user.role} • {user.id}
-                    </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-300" />
                 </Button>
@@ -191,8 +210,6 @@ export function Header({ user, currentSection }: HeaderProps) {
               <DropdownMenuContent align="end" className="w-64 bg-card border-border shadow-lg">
                 <div className="p-4">
                   <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                  <p className="text-xs text-gray-600">{user.role}</p>
-                  <p className="text-xs text-gray-600">{user.id}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={getCurrentLocation} disabled={locationStatus === 'requesting'} className="cursor-pointer">
@@ -211,7 +228,7 @@ export function Header({ user, currentSection }: HeaderProps) {
                 {user.role?.toLowerCase() !== 'field interviewer' && (
                   <DropdownMenuItem onClick={() => router.push('/survey')} className="cursor-pointer">
                     <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Back to Dashboard</span>
+                    <span>Back to Survey Dashboard</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">

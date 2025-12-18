@@ -1,0 +1,32 @@
+# Test Data Directory
+
+Store test data and database backups here:
+
+```
+data/
+├── 2024-11-17/
+│   ├── test-db-backup.sql
+│   ├── sample-surveys.json
+│   ├── test-config.json
+│   └── ...
+├── 2024-11-18/
+│   └── ...
+```
+
+## What to Store
+
+- Database backups before/after testing
+- Sample survey data used in tests
+- Configuration files
+- Log files
+- IndexedDB exports
+- Test user data
+
+## Naming Convention
+
+`[type]-[description]-[date].[ext]`
+
+Examples:
+- `test-db-backup-2024-11-17.sql`
+- `sample-surveys-kish-grid-2024-11-17.json`
+- `test-config-offline-mode-2024-11-17.json`

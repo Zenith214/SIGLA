@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Target, TrendingUp, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+import { useActiveCycle } from "@/hooks/useSurveyCycle"
 
 export function SurveyTargets() {
   const [targets, setTargets] = useState<any[]>([])
@@ -15,49 +17,116 @@ export function SurveyTargets() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [addModal, setAddModal] = useState(false)
-  const [addForm, setAddForm] = useState<any>({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
+  const [addForm, setAddForm] = useState<any>({ barangay_id: "", target: 150 })
   const [saving, setSaving] = useState(false)
   const [editingTarget, setEditingTarget] = useState<any | null>(null)
   const [editForm, setEditForm] = useState<any | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<any | null>(null)
+  const [bulkCreating, setBulkCreating] = useState(false)
+  const { toast } = useToast()
+  const { activeCycle, hasActiveCycle, loading: cycleLoading } = useActiveCycle()
 
   useEffect(() => {
+    if (!hasActiveCycle || !activeCycle) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     Promise.all([
       fetch("/api/survey-targets").then(r => r.json()),
+      fetch(`/api/cycle-awards?cycle_id=${activeCycle.cycle_id}`).then(r => r.json()),
       fetch("/api/barangays").then(r => r.json()),
     ])
-      .then(([targetsData, barangaysData]) => {
+      .then(([targetsData, awardsResponse, barangaysData]) => {
         setTargets(targetsData)
-        setBarangays(barangaysData)
+        
+        // Get all barangays data
+        let allBarangays: any[] = []
+        if (Array.isArray(barangaysData)) {
+          allBarangays = barangaysData
+        } else if (barangaysData?.data && Array.isArray(barangaysData.data)) {
+          allBarangays = barangaysData.data
+        }
+        
+        // Extract awards data from response
+        const awardsData = awardsResponse?.data || awardsResponse || []
+        
+        // Get barangay IDs that have awards in the active cycle
+        const awardedBarangayIds = new Set(
+          Array.isArray(awardsData) ? awardsData.map((award: any) => award.barangay_id) : []
+        )
+        
+        // Get barangay IDs that already have targets
+        const targetedBarangayIds = new Set(
+          Array.isArray(targetsData) ? targetsData.map((target: any) => target.barangay_id) : []
+        )
+        
+        // Filter barangays: include those with awards OR those that already have targets
+        const filteredBarangays = allBarangays.filter((b: any) => 
+          awardedBarangayIds.has(b.id) || targetedBarangayIds.has(b.id)
+        )
+        
+        setBarangays(filteredBarangays)
         setLoading(false)
       })
       .catch((err) => {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [hasActiveCycle, activeCycle])
 
   // Add Target
   const handleAddChange = (e: any) => {
     setAddForm({ ...addForm, [e.target.name]: e.target.value })
   }
   const handleAddSave = async () => {
+    // Validation
+    if (!addForm.barangay_id) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a barangay.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const targetValue = Number(addForm.target);
+    if (targetValue <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Target responses must be greater than zero.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSaving(true)
     try {
-      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: Number(addForm.target), achieved: Number(addForm.achieved), percentage: Number(addForm.percentage) }
+      const payload = { ...addForm, barangay_id: Number(addForm.barangay_id), target: targetValue }
       const res = await fetch("/api/survey-targets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error("Failed to add target")
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to add target");
+      }
       const created = await res.json()
       setTargets([...targets, created])
       setAddModal(false)
-      setAddForm({ barangay_id: "", target: 0, achieved: 0, percentage: 0 })
+      setAddForm({ barangay_id: "", target: 150 })
+      toast({
+        title: "Survey Target Added!",
+        description: "New survey target has been created successfully.",
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        title: "Add Target Failed",
+        description: err.message || "An unexpected error occurred while adding the survey target.",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false)
     }
@@ -72,21 +141,48 @@ export function SurveyTargets() {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
   const handleEditSave = async () => {
+    // Validation
+    const targetValue = Number(editForm.target);
+    if (targetValue <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Target responses must be greater than zero.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSaving(true)
     try {
-      const payload = { ...editForm, target_id: Number(editForm.target_id), barangay_id: Number(editForm.barangay_id), target: Number(editForm.target), achieved: Number(editForm.achieved), percentage: Number(editForm.percentage) }
+      // Only send fields that should be updated (exclude survey_cycle_id)
+      const payload = { 
+        target_id: Number(editForm.target_id), 
+        barangay_id: Number(editForm.barangay_id), 
+        target: targetValue
+      }
       const res = await fetch("/api/survey-targets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error("Failed to update target")
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update target");
+      }
       const updated = await res.json()
       setTargets(targets.map(t => (t.target_id === updated.target_id ? updated : t)))
       setEditingTarget(null)
       setEditForm(null)
+      toast({
+        title: "Survey Target Updated!",
+        description: "Survey target has been updated successfully.",
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        title: "Update Failed",
+        description: err.message || "An unexpected error occurred while updating the survey target.",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false)
     }
@@ -106,10 +202,70 @@ export function SurveyTargets() {
       if (!res.ok) throw new Error("Failed to delete target")
       setTargets(targets.filter(t => t.target_id !== deletingTarget.target_id))
       setDeletingTarget(null)
+      toast({
+        title: "Survey Target Deleted",
+        description: "Survey target has been deleted successfully.",
+      });
     } catch (err: any) {
-      alert(err.message)
+      toast({
+        title: "Delete Failed",
+        description: err.message || "An unexpected error occurred while deleting the survey target.",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Bulk Create Targets for All Awardees
+  const handleBulkCreateTargets = async () => {
+    if (!activeCycle) {
+      toast({
+        title: "No Active Cycle",
+        description: "Please set an active cycle first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!confirm(`Create survey targets (150 responses each) for all awardees in ${activeCycle.name}?\n\nThis will only create targets for awardees that don't already have targets.`)) {
+      return;
+    }
+
+    setBulkCreating(true);
+    try {
+      const response = await fetch('/api/survey-targets/bulk-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cycle_id: activeCycle.cycle_id,
+          default_target: 150
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Targets Created",
+          description: `Successfully created ${data.created} survey targets for awardees.`,
+        });
+        
+        // Refresh targets list
+        const targetsResponse = await fetch("/api/survey-targets");
+        const targetsData = await targetsResponse.json();
+        setTargets(targetsData);
+      } else {
+        throw new Error(data.error || 'Failed to create targets');
+      }
+    } catch (err: any) {
+      toast({
+        title: "Bulk Create Failed",
+        description: err.message || "Failed to create survey targets.",
+        variant: "destructive"
+      });
+    } finally {
+      setBulkCreating(false);
     }
   }
 
@@ -119,11 +275,31 @@ export function SurveyTargets() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Survey Targets</h1>
           <p className="text-gray-600 text-lg">Set and monitor survey response targets by barangay</p>
+          {hasActiveCycle && (
+            <p className="text-sm text-blue-600 mt-1">
+              Active Cycle: {activeCycle?.name} ({activeCycle?.year})
+            </p>
+          )}
+          {!hasActiveCycle && !cycleLoading && (
+            <p className="text-sm text-amber-600 mt-1">
+              ⚠️ No active survey cycle - Contact admin to set up a cycle
+            </p>
+          )}
         </div>
-        <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
-          <Target className="w-4 h-4 mr-2" />
-          Add Target
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            className="bg-green-500 hover:bg-green-600 text-white" 
+            onClick={handleBulkCreateTargets}
+            disabled={bulkCreating || !hasActiveCycle}
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            {bulkCreating ? 'Creating...' : 'Bulk Create Targets'}
+          </Button>
+          <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={() => setAddModal(true)}>
+            <Target className="w-4 h-4 mr-2" />
+            Add Target
+          </Button>
+        </div>
       </div>
 
       {/* Add Target Modal */}
@@ -138,22 +314,15 @@ export function SurveyTargets() {
                 <label className="block text-sm font-medium mb-1">Barangay</label>
                 <select name="barangay_id" value={addForm.barangay_id} onChange={handleAddChange} className="w-full border rounded px-2 py-1">
                   <option value="">Select Barangay</option>
-                  {barangays.map((b: any) => (
+                  {Array.isArray(barangays) && barangays.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Target Responses</label>
-                <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Achieved</label>
-                <Input name="achieved" type="number" value={addForm.achieved} onChange={handleAddChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Percentage</label>
-                <Input name="percentage" type="number" value={addForm.percentage} onChange={handleAddChange} min={0} max={100} />
+                <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={1} />
+                <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
@@ -175,22 +344,15 @@ export function SurveyTargets() {
               <div>
                 <label className="block text-sm font-medium mb-1">Barangay</label>
                 <select name="barangay_id" value={editForm.barangay_id} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
-                  {barangays.map((b: any) => (
+                  {Array.isArray(barangays) && barangays.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Target Responses</label>
-                <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Achieved</label>
-                <Input name="achieved" type="number" value={editForm.achieved} onChange={handleEditChange} min={0} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Percentage</label>
-                <Input name="percentage" type="number" value={editForm.percentage} onChange={handleEditChange} min={0} max={100} />
+                <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={1} />
+                <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
@@ -240,7 +402,7 @@ export function SurveyTargets() {
           ) : Array.isArray(targets) && targets.length > 0 ? (
             <div className="space-y-6">
               {targets.map((target) => {
-                const barangay = barangays.find((b: any) => b.id === target.barangay_id)
+                const barangay = Array.isArray(barangays) ? barangays.find((b: any) => b.id === target.barangay_id) : null
                 return (
                   <div key={target.target_id} className="space-y-3 p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">

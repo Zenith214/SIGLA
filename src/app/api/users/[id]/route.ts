@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as Prisma from '@prisma/client';
+import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 
-const prisma = new Prisma.PrismaClient();
+// Initialize PostgreSQL connection pool
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Missing DATABASE_URL in environment variables');
+}
+
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase connections
+  }
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key';
 
-// Helper to verify admin role
+// Helper to verify admin role (or developer role)
 async function verifyAdminRole(request: NextRequest) {
-  const token = request.cookies.get('sigla_token')?.value;
+  const token = request.cookies.get('pulse_token')?.value;
   if (!token) {
     return false;
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    return decoded.role === 'admin';
+    const role = decoded.role?.toLowerCase();
+    return role === 'admin' || role === 'developer';
   } catch {
     return false;
   }
@@ -29,32 +43,82 @@ export async function PATCH(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
   }
 
-  const { role } = await request.json();
+  const body = await request.json();
   const resolvedParams = await params;
   const userId = parseInt(resolvedParams.id);
 
-  if (!role || !['admin', 'interviewer', 'viewer'].includes(role)) {
+  // Validate role if provided
+  if (body.role && !['admin', 'fs', 'interviewer', 'officer', 'developer'].includes(body.role)) {
     return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
   }
 
+  let client;
   try {
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { role },
-    });
+    client = await pool.connect();
+    
+    // Build dynamic update query based on provided fields
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (body.firstName !== undefined) {
+      updateFields.push(`"firstName" = $${paramIndex++}`);
+      values.push(body.firstName);
+    }
+    if (body.lastName !== undefined) {
+      updateFields.push(`"lastName" = $${paramIndex++}`);
+      values.push(body.lastName);
+    }
+    if (body.role !== undefined) {
+      updateFields.push(`role = $${paramIndex++}`);
+      values.push(body.role);
+    }
+    if (body.status !== undefined) {
+      updateFields.push(`status = $${paramIndex++}`);
+      values.push(body.status);
+    }
+    if (body.lastLogin !== undefined) {
+      updateFields.push(`"lastLogin" = $${paramIndex++}`);
+      values.push(body.lastLogin);
+    }
+    if (body.barangayDesignation !== undefined) {
+      updateFields.push(`"barangayDesignation" = $${paramIndex++}`);
+      values.push(body.barangayDesignation === '' || body.barangayDesignation === null ? null : parseInt(body.barangayDesignation));
+    }
+
+    if (updateFields.length === 0) {
+      return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
+    }
+
+    values.push(userId);
+    
+    const query = `
+      UPDATE "user" 
+      SET ${updateFields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING id, "firstName", "lastName", email, role, status, "lastLogin", "barangayDesignation", "createdAt"
+    `;
+    
+    const result = await client.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to update user');
+    }
 
     return NextResponse.json({ 
-      message: 'User role updated successfully',
-      user: {
-        id: updatedUser.id,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        email: updatedUser.email,
-        role: updatedUser.role,
-      }
+      message: 'User updated successfully',
+      user: result.rows[0]
     });
   } catch (error) {
-    return NextResponse.json({ message: 'Failed to update user role' }, { status: 500 });
+    console.error('Update user error:', error);
+    return NextResponse.json({ 
+      message: 'Failed to update user',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -71,29 +135,22 @@ export async function GET(
   const resolvedParams = await params;
   const userId = parseInt(resolvedParams.id);
 
+  let client;
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        organization: true,
-        jobTitle: true,
-        createdAt: true,
-        lastLogin: true,
-      },
-    });
+    client = await pool.connect();
+    const result = await client.query('SELECT * FROM "user" WHERE id = $1', [userId]);
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
-  } catch {
+    return NextResponse.json({ user: result.rows[0] });
+  } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch user' }, { status: 500 });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -110,13 +167,17 @@ export async function DELETE(
   const resolvedParams = await params;
   const userId = parseInt(resolvedParams.id);
 
+  let client;
   try {
-    await prisma.user.delete({
-      where: { id: userId }
-    });
+    client = await pool.connect();
+    await client.query('DELETE FROM "user" WHERE id = $1', [userId]);
 
     return NextResponse.json({ message: 'User deleted successfully' });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ message: 'Failed to delete user' }, { status: 500 });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }

@@ -1,0 +1,66 @@
+{
+  "timestamp": "2025-10-12T10:36:36.975Z",
+  "tests": [
+    {
+      "name": "Backup History API",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testBackupHistoryAPI (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:62:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:334:5)",
+      "timestamp": "2025-10-12T10:36:37.428Z"
+    },
+    {
+      "name": "Create Backup API",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testCreateBackupAPI (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:95:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:337:5)",
+      "timestamp": "2025-10-12T10:36:37.470Z"
+    },
+    {
+      "name": "Survey Data Export",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testSurveyDataExport (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:134:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:340:5)",
+      "timestamp": "2025-10-12T10:36:37.490Z"
+    },
+    {
+      "name": "User Data Export",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testUserDataExport (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:182:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:341:5)",
+      "timestamp": "2025-10-12T10:36:37.504Z"
+    },
+    {
+      "name": "Barangay Data Export",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testBarangayDataExport (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:212:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:342:5)",
+      "timestamp": "2025-10-12T10:36:37.519Z"
+    },
+    {
+      "name": "Reports Export",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testReportsExport (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:246:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:343:5)",
+      "timestamp": "2025-10-12T10:36:37.535Z"
+    },
+    {
+      "name": "Invalid Export Type Error",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testInvalidExportType (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:281:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:346:5)",
+      "timestamp": "2025-10-12T10:36:37.550Z"
+    },
+    {
+      "name": "Invalid Backup Action Error",
+      "status": "FAILED",
+      "error": "fetch failed",
+      "stack": "TypeError: fetch failed\n    at node:internal/deps/undici/undici:13502:13\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async BackupTester.testInvalidBackupAction (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:303:22)\n    at async BackupTester.runTest (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:32:22)\n    at async BackupTester.runAllTests (C:\\xampp\\htdocs\\SIGLA-2\\scripts\\test-backup-functionality.js:347:5)",
+      "timestamp": "2025-10-12T10:36:37.562Z"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 8
+  }
+}

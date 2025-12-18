@@ -1,6 +1,18 @@
-import type { Question } from "../page"
+import type { Question } from "@/types/survey"
+import { 
+  createUnawarenessReasonQuestion, 
+  createNonAvailmentReasonQuestion,
+  detectLanguage 
+} from "./conditionalQuestions"
+import { getQuestionsWithConditionals } from "./questionsWithConditionals"
 
 export function getQuestionsForSection(sectionId: string): Question[] {
+  // For now, use the original questions with conditional modules integrated
+  // The getQuestionsWithConditionals is incomplete, so we'll use the working version
+  return getOriginalQuestionsForSection(sectionId);
+}
+
+function getOriginalQuestionsForSection(sectionId: string): Question[] {
   // Define a generic placeholder question
   const placeholderQuestion: Question = {
     id: "placeholderQuestion",
@@ -49,9 +61,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessFinancial" } // Skip to Q5 (start of Part B)
+            { value: "Hindi", skipToId: "projects_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Projects
+        createUnawarenessReasonQuestion("projects", "awarenessProjects", "filipino"),
         {
           id: "benefitedProjects",
           type: "radio",
@@ -61,9 +75,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessProjects",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessFinancial" } // Skip to Q5 (start of Part B)
+            { value: "Hindi", skipToId: "projects_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Projects
+        createNonAvailmentReasonQuestion("projects", "awarenessProjects", "benefitedProjects", "filipino"),
         {
           id: "satisfactionProjects",
           type: "radio",
@@ -74,11 +90,20 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Oo",
         },
         {
+          id: "nfaBinaryProjects",
+          type: "radio",
+          ...formatQuestionText("4. PANGANGAILANGAN PARA SA AKSYON:\nBatay sa iyong karanasan, sa tingin mo ba kailangan ng pagpapabuti ang serbisyong ito mula sa barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Oo", "Hindi"],
+          required: true,
+          dependsOn: "benefitedProjects",
+          dependsOnValue: "Oo",
+        },
+        {
           id: "suggestionsProjects",
           type: "textarea",
-          ...formatQuestionText("4. PANGANGAILANGAN PARA SA AKSYON / MUNGKAHI:\nAno ang iyong mga partikular na komento o mungkahi tungkol sa mga proyektong konstruksyon ng barangay? (hal., lokasyon, kalidad, ano pa ang dapat itayo?) / What are your specific comments or suggestions about the barangay's construction projects? (e.g., location, quality, what should be built next?)"),
+          ...formatQuestionText("5. MUNGKAHI:\nAno ang iyong mga partikular na komento o mungkahi tungkol sa mga proyektong konstruksyon ng barangay? (hal., lokasyon, kalidad, ano pa ang dapat itayo?) / What are your specific comments or suggestions about the barangay's construction projects? (e.g., location, quality, what should be built next?)"),
           required: false,
-          dependsOn: "benefitedProjects", // This should depend on Q2 being "Oo"
+          dependsOn: "nfaBinaryProjects",
           dependsOnValue: "Oo",
         },
 
@@ -90,9 +115,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessSocialPrograms" } // Skip to Q9 (start of Part C)
+            { value: "Hindi", skipToId: "financial_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Financial Transparency
+        createUnawarenessReasonQuestion("financial", "awarenessFinancial", "filipino"),
         {
           id: "usedFinancialInfo",
           type: "radio",
@@ -102,9 +129,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessFinancial",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessSocialPrograms" } // Skip to Q9 (start of Part C)
+            { value: "Hindi", skipToId: "financial_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Financial Transparency
+        createNonAvailmentReasonQuestion("financial", "awarenessFinancial", "usedFinancialInfo", "filipino"),
         {
           id: "satisfactionFinancial",
           type: "radio",
@@ -115,11 +144,20 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Oo",
         },
         {
+          id: "nfaBinaryFinancial",
+          type: "radio",
+          ...formatQuestionText("8. PANGANGAILANGAN PARA SA AKSYON:\nBatay sa iyong karanasan, sa tingin mo ba kailangan ng pagpapabuti ang serbisyong ito mula sa barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Oo", "Hindi"],
+          required: true,
+          dependsOn: "usedFinancialInfo",
+          dependsOnValue: "Oo",
+        },
+        {
           id: "suggestionsFinancial",
           type: "textarea",
-          ...formatQuestionText("8. PANGANGAILANGAN PARA SA AKSYON / MUNGKAHI:\nAno ang maaaring gawin ng barangay upang mas madaling maunawaan at makuha ng mga residente ang badyet at gastusin nito? / What can the barangay do to make its budget and spending easier for residents to understand and access?"),
+          ...formatQuestionText("9. MUNGKAHI:\nAno ang maaaring gawin ng barangay upang mas madaling maunawaan at makuha ng mga residente ang badyet at gastusin nito? / What can the barangay do to make its budget and spending easier for residents to understand and access?"),
           required: false,
-          dependsOn: "usedFinancialInfo",
+          dependsOn: "nfaBinaryFinancial",
           dependsOnValue: "Oo",
         },
 
@@ -131,9 +169,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Oo", "Hindi"],
           required: true,
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessCorruption" } // Skip to Q13 (start of Part D)
+            { value: "Hindi", skipToId: "socialPrograms_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Social Programs
+        createUnawarenessReasonQuestion("socialPrograms", "awarenessSocialPrograms", "filipino"),
         {
           id: "participatedSocialPrograms",
           type: "radio",
@@ -143,9 +183,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessSocialPrograms",
           dependsOnValue: "Oo",
           conditionalNext: [
-            { value: "Hindi", skipToId: "awarenessCorruption" } // Skip to Q13 (start of Part D)
+            { value: "Hindi", skipToId: "socialPrograms_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Social Programs
+        createNonAvailmentReasonQuestion("socialPrograms", "awarenessSocialPrograms", "participatedSocialPrograms", "filipino"),
         {
           id: "satisfactionSocialPrograms",
           type: "radio",
@@ -156,41 +198,48 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Oo",
         },
         {
+          id: "nfaBinarySocialPrograms",
+          type: "radio",
+          ...formatQuestionText("12. PANGANGAILANGAN PARA SA AKSYON:\nBatay sa iyong karanasan, sa tingin mo ba kailangan ng pagpapabuti ang serbisyong ito mula sa barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Oo", "Hindi"],
+          required: true,
+          dependsOn: "participatedSocialPrograms",
+          dependsOnValue: "Oo",
+        },
+        {
           id: "suggestionsSocialPrograms",
           type: "textarea",
-          ...formatQuestionText("12. PANGANGAILANGAN PARA SA AKSYON / MUNGKAHI:\nAno ang iyong mungkahi para mapabuti ang mga programang panlipunan ng barangay? Mayroon pa bang ibang uri ng tulong na kailangan? / What are your suggestions for improving the barangay's social programs? Are there other types of assistance that are needed?"),
+          ...formatQuestionText("13. MUNGKAHI:\nAno ang iyong mungkahi para mapabuti ang mga programang panlipunan ng barangay? Mayroon pa bang ibang uri ng tulong na kailangan? / What are your suggestions for improving the barangay's social programs? Are there other types of assistance that are needed?"),
           required: false,
-          dependsOn: "participatedSocialPrograms",
+          dependsOn: "nfaBinarySocialPrograms",
           dependsOnValue: "Oo",
         },
 
         // Part D: Perception of Corruption
+        // SPECIAL CASE: This section uses custom skip logic, NOT the standard conditional modules
         {
           id: "awarenessCorruption",
           type: "radio",
-          ...formatQuestionText("D. Perception of Corruption:\n13. AWARENESS:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat? / Are you aware that our barangay or municipality is expected to follow rules and processes to prevent corruption, and that officials should serve with integrity?"),
+          ...formatQuestionText("D. Perception of Corruption:\n13. KAALAMAN:\nAlam ba ninyo kung may mga patakaran at proseso laban sa korapsyon sa ating barangay o bayan, at na ang mga opisyal ay dapat maglingkod nang tapat? / Are you aware that our barangay or municipality is expected to follow rules and processes to prevent corruption, and that officials should serve with integrity?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
-          conditionalNext: [
-            { value: "Hindi (No)", skipToId: "endOfFinancialSection" } // Special ID to indicate end of section
-          ]
+          // No skip - always proceed to Q14
         },
         {
           id: "experiencedCorruption",
           type: "radio",
-          ...formatQuestionText("14. EXPERIENCE:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon? / In the past 12 months, did you (or any of your household members) experience or witness any action by a barangay or municipal official/staff that you consider a form of corruption?"),
+          ...formatQuestionText("14. KARANASAN:\nSa nakalipas na 12 buwan, kayo ba (o sinumang miyembro ng inyong pamilya) ay nakaranas o nakasaksi ng anumang gawain ng opisyal o kawani ng barangay o bayan na maituturing ninyong uri ng korapsyon? / In the past 12 months, did you (or any of your household members) experience or witness any action by a barangay or municipal official/staff that you consider a form of corruption?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
-          dependsOn: "awarenessCorruption",
-          dependsOnValue: "Oo (Yes)",
+          // No dependsOn - always shown after Q13
           conditionalNext: [
-            { value: "Hindi (No)", skipToId: "endOfFinancialSection" } // Special ID to indicate end of section
+            { value: "Hindi (No)", skipToId: "suggestionsCorruption" } // Skip Q15-18, go directly to Q19
           ]
         },
         {
           id: "detailsCorruption",
           type: "textarea",
-          ...formatQuestionText("15. DETAILS OF EXPERIENCE:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.) / What specific action or practice did you experience or witness? (Please specify the service or situation. This must be a first-hand experience from you or a household member.)"),
+          ...formatQuestionText("15. MGA DETALYE NG KARANASAN:\nAno ang partikular na gawain na inyong naranasan o nasaksihan? (Pakilagay ang partikular na serbisyo o sitwasyon. Tiyakin na ito ay unang karanasan mula sa inyo o miyembro ng inyong pamilya.) / What specific action or practice did you experience or witness? (Please specify the service or situation. This must be a first-hand experience from you or a household member.)"),
           required: true,
           dependsOn: "experiencedCorruption",
           dependsOnValue: "Oo (Yes)",
@@ -198,29 +247,52 @@ export function getQuestionsForSection(sectionId: string): Question[] {
         {
           id: "reportedCorruption",
           type: "radio",
-          ...formatQuestionText("16. REPORTING:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan? / Did you report your experience to any government authority?"),
+          ...formatQuestionText("16. PAG-UULAT:\nIdinulog ba ninyo ang inyong naranasan o nasaksihan sa alinmang awtoridad sa pamahalaan? / Did you report your experience to any government authority?"),
           options: ["Oo (Yes)", "Hindi (No)"],
           required: true,
           dependsOn: "experiencedCorruption",
           dependsOnValue: "Oo (Yes)",
-          conditionalNext: [
-            { value: "Hindi (No)", skipToId: "reasonsNotReporting" }, // Jump to Q17
-            { value: "Oo (Yes)", skipToId: "satisfactionReportResponse" } // Jump to Q18
-          ]
+          // No conditionalNext - let the dependsOn logic handle Q17/Q18
         },
         {
           id: "reasonsNotReporting",
           type: "checkbox",
-          ...formatQuestionText("17. REASONS FOR NOT REPORTING:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat? / What was the main reason you did not report the incident?"),
-          options: ["Ginagawa rin ito ng iba o ng karamihan. (Everyone is doing it)", "Normal o SOP na itong gawain. (This has become a normal practice)", "Natakot akong magsumbong. (I feared for my safety)", "Nakapagbilis ito ng transaksyon. (It made the process faster/easier)", "Walang mangyayari kung i-uulat. (Reporting would not solve the problem)", "Wala namang dahilan. (No reason)", "Iba pa: ________________________ (Other)"],
+          ...formatQuestionText("17. MGA DAHILAN NG HINDI PAG-UULAT:\nAno ang pangunahing dahilan kung bakit hindi ninyo iniulat? / What was the main reason you did not report the incident?"),
+          options: [
+            "Ginagawa rin ito ng iba o ng karamihan. (Everyone is doing it)", 
+            "Normal o SOP na itong gawain. (This has become a normal practice)", 
+            "Natakot akong magsumbong. (I feared for my safety)", 
+            "Nakapagbilis ito ng transaksyon. (It made the process faster/easier)", 
+            "Walang mangyayari kung i-uulat. (Reporting would not solve the problem)", 
+            "Wala namang dahilan. (No reason)", 
+            "Iba pa (Other)"
+          ],
           required: false,
           dependsOn: "reportedCorruption",
           dependsOnValue: "Hindi (No)",
+          followUpQuestions: [
+            {
+              id: "reasonsNotReporting_other",
+              type: "textarea",
+              question: "Please specify:",
+              required: (formData: any) => {
+                const mainAnswer = formData["reasonsNotReporting"];
+                // Check if "Other" is selected in the checkbox array
+                return Array.isArray(mainAnswer) && (
+                  mainAnswer.includes("Iba pa (Other)") ||
+                  mainAnswer.includes("Laing rason (Other)") ||
+                  mainAnswer.includes("Other")
+                );
+              },
+              dependsOn: "reasonsNotReporting",
+              dependsOnValue: "Iba pa (Other)" // This will be checked differently for checkbox
+            }
+          ]
         },
         {
           id: "satisfactionReportResponse",
           type: "radio",
-          ...formatQuestionText("18. SATISFACTION WITH RESPONSE:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon? / If you reported it, did the authorities respond to your complaint, and how satisfied were you with their action?"),
+          ...formatQuestionText("18. KASIYAHAN SA TUGON:\nKung iniulat ninyo, tumugon ba ang mga awtoridad sa inyong reklamo at nasiyahan ba kayo sa naging tugon? / If you reported it, did the authorities respond to your complaint, and how satisfied were you with their action?"),
           options: ["5 - Lubos na Nasiyahan (Very Satisfied)", "4 - Nasiyahan (Satisfied)", "3 - Neutral (Neutral)", "2 - Hindi Nasiyahan (Dissatisfied)", "1 - Lubos na Hindi Nasiyahan (Very Dissatisfied)"],
           required: true,
           dependsOn: "reportedCorruption",
@@ -229,9 +301,16 @@ export function getQuestionsForSection(sectionId: string): Question[] {
         {
           id: "suggestionsCorruption",
           type: "textarea",
-          ...formatQuestionText("19. PANGANGAILANGAN PARA SA AKSYON / MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan? / What are your suggestions to better prevent or address corruption in our barangay or municipality?"),
+          ...formatQuestionText("19. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan? / What are your suggestions to better prevent or address corruption in our barangay or municipality?"),
           required: false,
-          dependsOn: "experiencedCorruption",
+          // No dependsOn - always shown to everyone who reaches this point
+        },
+        {
+          id: "suggestionsCorruption",
+          type: "textarea",
+          ...formatQuestionText("20. MUNGKAHI:\nAno ang inyong mungkahi para mas maiwasan o masugpo ang korapsyon sa ating barangay o bayan? / What are your suggestions to better prevent or address corruption in our barangay or municipality?"),
+          required: false,
+          dependsOn: "nfaBinaryCorruption",
           dependsOnValue: "Oo (Yes)",
         },
       ];
@@ -246,9 +325,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           options: ["Yes", "No"],
           required: true,
           conditionalNext: [
-            { value: "No", skipToId: "awarenessEvacuation" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "disasterInfo_unawareness_reason" } // Skip to unawareness module
           ]
         },
+        // Unawareness Reason Module for Disaster Information
+        createUnawarenessReasonQuestion("disasterInfo", "awarenessDisasterInfo", "english"),
         {
           id: "availmentDisasterInfo",
           type: "radio",
@@ -258,9 +339,11 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOn: "awarenessDisasterInfo",
           dependsOnValue: "Yes",
           conditionalNext: [
-            { value: "No", skipToId: "awarenessEvacuation" } // Skip to Q5 (start of Part B)
+            { value: "No", skipToId: "disasterInfo_non_availment_reason" } // Skip to non-availment module
           ]
         },
+        // Non-Availment Reason Module for Disaster Information
+        createNonAvailmentReasonQuestion("disasterInfo", "awarenessDisasterInfo", "availmentDisasterInfo", "english"),
         {
           id: "satisfactionDisasterInfo",
           type: "radio",
@@ -271,11 +354,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryDisasterInfo",
+          type: "radio",
+          ...formatQuestionText("4. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentDisasterInfo",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsDisasterInfo",
           type: "textarea",
-          ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nHow could the barangay improve the way it informs and warns residents about disasters? / How could the barangay improve the way it informs and warns residents about disasters?"),
+          ...formatQuestionText("5. SUGGESTION:\nHow could the barangay improve the way it informs and warns residents about disasters? / How could the barangay improve the way it informs and warns residents about disasters?"),
           required: false,
-          // This question is for EVERYONE who answers Q3, so no dependency on Q3's value
+          dependsOn: "nfaBinaryDisasterInfo",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Evacuation and Emergency Response Resources
@@ -311,11 +404,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryEvacuation",
+          type: "radio",
+          ...formatQuestionText("8. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "locationEvacuation",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsEvacuation",
           type: "textarea",
-          ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency? / What are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency?"),
+          ...formatQuestionText("9. SUGGESTION:\nWhat are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency? / What are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency?"),
           required: false,
-          // This question is for EVERYONE who answers Q7, so no dependency on Q7's value
+          dependsOn: "nfaBinaryEvacuation",
+          dependsOnValue: "Yes",
         },
       ];
 
@@ -354,10 +457,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryTanods",
+          type: "radio",
+          ...formatQuestionText("4. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "experienceTanods",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsTanods",
           type: "textarea",
-          ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving the overall safety in our barangay or the performance of our Tanods? / What are your suggestions for improving the overall safety in our barangay or the performance of our Tanods?"),
+          ...formatQuestionText("5. SUGGESTION:\nWhat are your suggestions for improving the overall safety in our barangay or the performance of our Tanods? / What are your suggestions for improving the overall safety in our barangay or the performance of our Tanods?"),
           required: false,
+          dependsOn: "nfaBinaryTanods",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Community Dispute Resolution (Lupon)
@@ -393,10 +507,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryLupon",
+          type: "radio",
+          ...formatQuestionText("8. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "experienceLupon",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsLupon",
           type: "textarea",
-          ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nDo you have any suggestions on how the barangay can better help residents resolve conflicts peacefully? / Do you have any suggestions on how the barangay can better help residents resolve conflicts peacefully?"),
+          ...formatQuestionText("9. SUGGESTION:\nDo you have any suggestions on how the barangay can better help residents resolve conflicts peacefully? / Do you have any suggestions on how the barangay can better help residents resolve conflicts peacefully?"),
           required: false,
+          dependsOn: "nfaBinaryLupon",
+          dependsOnValue: "Yes",
         },
 
         // Part C: Anti-Illegal Drug Programs
@@ -432,10 +557,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryAntiDrug",
+          type: "radio",
+          ...formatQuestionText("12. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "experienceAntiDrug",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsAntiDrug",
           type: "textarea",
-          ...formatQuestionText("12. NEED FOR ACTION / SUGGESTION:\nWhat are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives? / What are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives?"),
+          ...formatQuestionText("13. SUGGESTION:\nWhat are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives? / What are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives?"),
           required: false,
+          dependsOn: "nfaBinaryAntiDrug",
+          dependsOnValue: "Yes",
         },
       ];
     case "social":
@@ -473,10 +609,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryHealthServices",
+          type: "radio",
+          ...formatQuestionText("4. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentHealthServices",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsHealthServices",
           type: "textarea",
-          ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training) / What are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training)"),
+          ...formatQuestionText("5. SUGGESTION:\nWhat are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training) / What are your suggestions for improving the health services in our barangay? (e.g., more services, better hours, staff training)"),
           required: false,
+          dependsOn: "nfaBinaryHealthServices",
+          dependsOnValue: "Yes",
         },
 
         // Part B: Protection Services for Women and Children
@@ -512,10 +659,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryWomenChildrenProtection",
+          type: "radio",
+          ...formatQuestionText("8. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentWomenChildrenProtection",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsWomenChildrenProtection",
           type: "textarea",
-          ...formatQuestionText("8. NEED FOR ACTION / SUGGESTION:\nWhat more can the barangay do to ensure the safety and well-being of women and children in our community? / What more can the barangay do to ensure the safety and well-being of women and children in our community?"),
+          ...formatQuestionText("9. SUGGESTION:\nWhat more can the barangay do to ensure the safety and well-being of women and children in our community? / What more can the barangay do to ensure the safety and well-being of women and children in our community?"),
           required: false,
+          dependsOn: "nfaBinaryWomenChildrenProtection",
+          dependsOnValue: "Yes",
         },
 
         // Part C: Community Participation and Development
@@ -551,10 +709,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryCommunityParticipation",
+          type: "radio",
+          ...formatQuestionText("12. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentCommunityParticipation",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsCommunityParticipation",
           type: "textarea",
-          ...formatQuestionText("12. NEED FOR ACTION / MUNGKAHI:\nWhat kind of community programs or activities would you like the barangay to start or improve? / What kind of community programs or activities would you like the barangay to start or improve?"),
+          ...formatQuestionText("13. MUNGKAHI:\nWhat kind of community programs or activities would you like the barangay to start or improve? / What kind of community programs or activities would you like the barangay to start or improve?"),
           required: false,
+          dependsOn: "nfaBinaryCommunityParticipation",
+          dependsOnValue: "Yes",
         },
       ];
     case "business":
@@ -592,10 +761,21 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryBusinessClearance",
+          type: "radio",
+          ...formatQuestionText("4. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentBusinessClearance",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsBusinessClearance",
           type: "textarea",
-          ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier? / What are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier?"),
+          ...formatQuestionText("5. SUGGESTION:\nWhat are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier? / What are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier?"),
           required: false,
+          dependsOn: "nfaBinaryBusinessClearance",
+          dependsOnValue: "Yes",
         },
       ];
     case "environmental":
@@ -633,10 +813,39 @@ export function getQuestionsForSection(sectionId: string): Question[] {
           dependsOnValue: "Yes",
         },
         {
+          id: "nfaBinaryWasteManagement",
+          type: "radio",
+          ...formatQuestionText("4. NEED FOR ACTION:\nBased on your experience, do you believe this service needs improvement from the barangay? / Based on your experience, do you believe this service needs improvement from the barangay?"),
+          options: ["Yes", "No"],
+          required: true,
+          dependsOn: "availmentWasteManagement",
+          dependsOnValue: "Yes",
+        },
+        {
           id: "suggestionsWasteManagement",
           type: "textarea",
-          ...formatQuestionText("4. NEED FOR ACTION / SUGGESTION:\nWhat are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay? / What are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay?"),
+          ...formatQuestionText("5. SUGGESTION:\nWhat are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay? / What are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay?"),
           required: false,
+          dependsOn: "nfaBinaryWasteManagement",
+          dependsOnValue: "Yes",
+        },
+      ];
+
+    case "overall":
+      return [
+        {
+          id: "overallSatisfaction",
+          type: "radio",
+          ...formatQuestionText("PART X: PANGKALAHATANG EBALWASYON (OVERALL EVALUATION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, gaano ka nasisiyahan? / Overall, thinking about all the services provided by the barangay in the past 12 months, how satisfied are you?"),
+          options: ["5 - Very Satisfied / Lubos na Nasiyahan", "4 - Satisfied / Nasiyahan", "3 - Neutral / Neither Satisfied nor Dissatisfied", "2 - Dissatisfied / Hindi Nasiyahan", "1 - Very Dissatisfied / Lubos na Hindi Nasiyahan"],
+          required: true,
+        },
+        {
+          id: "overallNeedForAction",
+          type: "radio",
+          ...formatQuestionText("M2: Overall Need for Action\nSa iyong pangkalahatang pananaw, sa kabuuan, kailangan bang gumawa ng aksyon ang barangay para mapabuti ang mga serbisyo nito? / On the whole, would you say that the barangay's services, in general, need action for improvement?"),
+          options: ["Yes / Oo", "No / Hindi"],
+          required: true,
         },
       ];
 

@@ -1,8 +1,9 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const params = useSearchParams()
   const type = params.get("type")
   return (
@@ -19,7 +20,7 @@ export default function SuccessPage() {
           {type === "register"
             ? "Your account has been created. You can now log in."
             : type === "login"
-            ? "You are now logged in. Welcome to SIGLA!"
+            ? "You are now logged in. Welcome to PULSE!"
             : "Operation completed successfully."}
         </p>
         <a
@@ -31,4 +32,12 @@ export default function SuccessPage() {
       </div>
     </div>
   )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <SuccessPageContent />
+    </Suspense>
+  );
 } 
