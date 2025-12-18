@@ -29,22 +29,23 @@ export type ValidBinaryValue = typeof VALID_BINARY_VALUES[number];
 
 /**
  * Service indicator IDs that should have NFA fields
+ * Note: These use snake_case to match the database field naming convention
  */
 export const SERVICE_INDICATORS = [
   'projects',
   'financial',
-  'socialPrograms',
+  'social_programs',
   'corruption',
-  'disasterInfo',
+  'disaster_info',
   'evacuation',
   'tanods',
   'lupon',
-  'antiDrug',
-  'healthServices',
-  'womenChildrenProtection',
-  'communityParticipation',
-  'businessClearance',
-  'wasteManagement'
+  'anti_drug',
+  'health_services',
+  'women_children_protection',
+  'community_participation',
+  'business_clearance',
+  'waste_management'
 ] as const;
 
 /**
@@ -84,18 +85,24 @@ export function validateNFAFieldPair(
   // Requirement 3.3: Check if both fields are present
   const hasBinaryField = binaryFieldName in data;
   const hasSuggestionField = suggestionFieldName in data;
+  
+  const binaryValue = data[binaryFieldName];
+  const suggestionValue = data[suggestionFieldName];
 
-  if (!hasBinaryField && !hasSuggestionField) {
-    // Both fields missing - this might be intentional if the section wasn't completed
+  // If both fields are missing OR both are null, this section was likely skipped
+  if ((!hasBinaryField && !hasSuggestionField) || 
+      (binaryValue === null && suggestionValue === null)) {
+    // Both fields missing/null - this might be intentional if the section wasn't completed
     warnings.push(`NFA fields for '${indicatorId}' are missing (may be incomplete section)`);
     return { valid: true, errors: [], warnings };
   }
-
-  if (!hasBinaryField) {
+  
+  // If binary field is null but suggestion exists, or vice versa, it's an error
+  if (binaryValue === null && hasSuggestionField && suggestionValue !== null) {
     errors.push(`Missing binary field '${binaryFieldName}' for indicator '${indicatorId}'`);
   }
-
-  if (!hasSuggestionField) {
+  
+  if (suggestionValue === null && hasBinaryField && binaryValue !== null) {
     errors.push(`Missing suggestion field '${suggestionFieldName}' for indicator '${indicatorId}'`);
   }
 
@@ -104,17 +111,15 @@ export function validateNFAFieldPair(
     return { valid: false, errors, warnings };
   }
 
-  // Requirement 3.1: Validate binary value
-  const binaryValue = data[binaryFieldName];
-  if (!isValidBinaryValue(binaryValue)) {
+  // Requirement 3.1: Validate binary value (only if not null)
+  if (binaryValue !== null && !isValidBinaryValue(binaryValue)) {
     errors.push(
       `Invalid binary value '${binaryValue}' for '${binaryFieldName}'. ` +
       `Must be one of: ${VALID_BINARY_VALUES.join(', ')}`
     );
   }
 
-  // Requirement 3.2: Validate suggestion field type
-  const suggestionValue = data[suggestionFieldName];
+  // Requirement 3.2: Validate suggestion field type (only if not null)
   if (suggestionValue !== null && typeof suggestionValue !== 'string') {
     errors.push(
       `Invalid suggestion value type for '${suggestionFieldName}'. ` +
@@ -122,8 +127,8 @@ export function validateNFAFieldPair(
     );
   }
 
-  // Additional validation: Check logical consistency
-  if (isValidBinaryValue(binaryValue) && isBinaryYes(binaryValue)) {
+  // Additional validation: Check logical consistency (only if binary value is valid and not null)
+  if (binaryValue !== null && isValidBinaryValue(binaryValue) && isBinaryYes(binaryValue)) {
     // Only check for empty suggestion if it's a valid string type
     if (typeof suggestionValue === 'string' && suggestionValue.trim() === '') {
       warnings.push(

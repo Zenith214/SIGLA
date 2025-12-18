@@ -232,6 +232,34 @@ export const translations: Record<string, SectionTranslations> = {
       filipino: "9. MUNGKAHI:\nAno ang iyong mga mungkahi para mapabuti ang ating mga evacuation center o ang kakayahan ng barangay na tumugon sa panahon ng emerhensiya?",
       english: "9. SUGGESTION:\nWhat are your suggestions for improving our evacuation centers or the barangay's ability to respond during an emergency?"
     },
+    
+    // Conditional: Unawareness Reason for Disaster Info
+    disasterInfo_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Disaster Info
+    disasterInfo_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Conditional: Unawareness Reason for Evacuation
+    evacuation_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Evacuation
+    evacuation_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
   },
   safety: {
     // Part A: Barangay Tanod Services
@@ -313,6 +341,48 @@ export const translations: Record<string, SectionTranslations> = {
       bisaya: "13. SUGYOT:\nUnsa ang imong espesipikong mga komento o suhestiyon bahin sa mga programa ug inisyatibo sa barangay batok sa droga?",
       filipino: "13. MUNGKAHI:\nAno ang iyong mga partikular na komento o mungkahi tungkol sa mga programa at inisyatiba ng barangay laban sa droga?",
       english: "13. SUGGESTION:\nWhat are your specific comments or suggestions regarding the barangay's anti-drug programs and initiatives?"
+    },
+    
+    // Conditional: Unawareness Reason for Tanods
+    tanods_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Tanods
+    tanods_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Conditional: Unawareness Reason for Lupon
+    lupon_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Lupon
+    lupon_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Conditional: Unawareness Reason for Anti-Drug
+    antiDrug_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Anti-Drug
+    antiDrug_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
     },
   },
   social: {
@@ -396,6 +466,48 @@ export const translations: Record<string, SectionTranslations> = {
       filipino: "13. MUNGKAHI:\nAnong uri ng mga programang pangkomunidad o aktibidad ang nais mong simulan o pagandahin pa ng barangay?",
       english: "13. SUGGESTION:\nWhat community programs or activities would you like the barangay to start or improve?"
     },
+    
+    // Conditional: Unawareness Reason for Health Services
+    healthServices_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Health Services
+    healthServices_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Conditional: Unawareness Reason for Women & Children Protection
+    womenChildrenProtection_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Women & Children Protection
+    womenChildrenProtection_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
+    
+    // Conditional: Unawareness Reason for Community Participation
+    communityParticipation_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Community Participation
+    communityParticipation_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
   },
   business: {
     // Part A: Barangay Clearance for Business
@@ -424,6 +536,20 @@ export const translations: Record<string, SectionTranslations> = {
       filipino: "5. MUNGKAHI:\nAno ang iyong mga partikular na mungkahi upang maging mas mabilis at mas madali ang proseso ng pagkuha ng business clearances o iba pang permit mula sa barangay?",
       english: "5. SUGGESTION:\nWhat are your specific suggestions for making the process of getting business clearances or other permits from the barangay faster and easier?"
     },
+    
+    // Conditional: Unawareness Reason for Business Clearance
+    businessClearance_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Business Clearance
+    businessClearance_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
+    },
   },
   environmental: {
     // Part A: Solid Waste Management
@@ -451,6 +577,20 @@ export const translations: Record<string, SectionTranslations> = {
       bisaya: "5. SUGYOT:\nUnsa man ang imong mga espesipikong komento o sugyot aron mapalambo ang koleksyon sa basura, pag-recycle, o ang kinatibuk-ang kahinlo sa atong barangay?",
       filipino: "5. MUNGKAHI:\nAno ang iyong mga partikular na komento o mungkahi para mapabuti ang pangongolekta ng basura, pagre-recycle, o ang pangkalahatang kalinisan ng ating barangay?",
       english: "5. SUGGESTION:\nWhat are your specific comments or suggestions for improving garbage collection, recycling, or the overall cleanliness of our barangay?"
+    },
+    
+    // Conditional: Unawareness Reason for Waste Management
+    wasteManagement_unawareness_reason: {
+      bisaya: "Adunay daghang rason nganong ang usa ka residente dili makadungog bahin sa usa ka serbisyo. Gikan niining listahan, unsa sa imong hunahuna ang nag-unang rason nga wala ka makahibalo niini?",
+      filipino: "Maraming dahilan kung bakit hindi nababalitaan ng isang residente ang isang serbisyo. Mula sa listahang ito, ano sa tingin mo ang pangunahing dahilan kung bakit hindi mo ito nalaman?",
+      english: "There are many reasons why a resident might not hear about a service. From this list, what do you think is the main reason you were not aware of this one?"
+    },
+    
+    // Conditional: Non-Availment Reason for Waste Management
+    wasteManagement_non_availment_reason: {
+      bisaya: "Imong gihisgotan nga nahibal-an nimo kini nga serbisyo apan wala nimo kini gigamit. Gikan niining listahan, unsa ang nag-unang rason nga wala nimo o sa imong panimalay kini gipahimuslan?",
+      filipino: "Nabanggit ninyo na alam ninyo ang tungkol sa serbisyong ito ngunit hindi ninyo ito ginamit. Mula sa listahang ito, ano ang pangunahing dahilan kung bakit hindi ninyo o ng inyong sambahayan ito ginamit?",
+      english: "You mentioned you were aware of this service but didn't use it. From this list, what was the main reason you or your household did not avail of it?"
     },
   },
   overall: {

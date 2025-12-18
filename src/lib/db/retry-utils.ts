@@ -86,7 +86,9 @@ export function isRetryableError(error: any): boolean {
     'etimedout',
     'network',
     'unavailable',
-    'temporary'
+    'temporary',
+    'prepared statement',
+    'does not exist'
   ];
 
   return retryableMessages.some(msg => errorMessage.includes(msg));
