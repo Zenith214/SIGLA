@@ -320,9 +320,38 @@ export function SurveyTargets() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Target Responses</label>
+                <label className="block text-sm font-medium mb-1">Target Number of Respondents</label>
                 <Input name="target" type="number" value={addForm.target} onChange={handleAddChange} min={1} />
                 <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
+              </div>
+              
+              {/* Statistical Precision Reminder */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-1">Statistical Precision Reminder</h4>
+                    <p className="text-sm text-blue-800 font-medium mb-2">
+                      At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
+                        const n = Number(addForm.target) || 150;
+                        const moe = (1 / Math.sqrt(n)) * 100;
+                        return moe.toFixed(1);
+                      })()}%</span>
+                    </p>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      The Margin of Error at a 95% confidence level. This number represents how much the survey results can vary from the true opinion of the entire population. A lower margin of error means the results are more precise.
+                    </p>
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <p className="text-xs text-blue-600 italic">
+                        💡 Tip: Higher sample sizes reduce the margin of error but require more resources.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
@@ -350,9 +379,38 @@ export function SurveyTargets() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Target Responses</label>
+                <label className="block text-sm font-medium mb-1">Target Number of Respondents</label>
                 <Input name="target" type="number" value={editForm.target} onChange={handleEditChange} min={1} />
                 <p className="text-xs text-gray-500 mt-1">Must be greater than zero</p>
+              </div>
+              
+              {/* Statistical Precision Reminder */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-1">Statistical Precision Reminder</h4>
+                    <p className="text-sm text-blue-800 font-medium mb-2">
+                      At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
+                        const n = Number(editForm.target) || 150;
+                        const moe = (1 / Math.sqrt(n)) * 100;
+                        return moe.toFixed(1);
+                      })()}%</span>
+                    </p>
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      The Margin of Error at a 95% confidence level. This number represents how much the survey results can vary from the true opinion of the entire population. A lower margin of error means the results are more precise.
+                    </p>
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <p className="text-xs text-blue-600 italic">
+                        💡 Tip: Higher sample sizes reduce the margin of error but require more resources.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

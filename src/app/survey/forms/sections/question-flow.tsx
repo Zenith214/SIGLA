@@ -43,6 +43,7 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
 
   // Get translated question text
   const getQuestionText = (question: Question): string => {
+    // For conditional questions, check if the question ID is in translations
     const translated = getTranslatedQuestion(sectionId, question.id, language);
     return translated || question.question;
   };
@@ -50,6 +51,7 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
   // Get translated options
   const getQuestionOptions = (question: Question): string[] => {
     if (!question.options) return [];
+    // This will translate both regular and conditional question options
     return getTranslatedOptions(question.options, language);
   };
 

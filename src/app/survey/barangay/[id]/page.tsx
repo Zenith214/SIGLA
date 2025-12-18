@@ -699,7 +699,7 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                           if (typeof value === 'object') {
                             // Handle objects with main/followUp structure (conditional questions)
                             if ('main' in value) {
-                              let result = Array.isArray(value.main) 
+                              const mainAnswer = Array.isArray(value.main) 
                                 ? value.main.join(', ') 
                                 : String(value.main);
                               
@@ -707,12 +707,13 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                               if (value.followUp && typeof value.followUp === 'object') {
                                 const followUpEntries = Object.entries(value.followUp)
                                   .filter(([_, v]) => v !== null && v !== undefined && v !== '')
-                                  .map(([k, v]) => `${k}: ${v}`);
+                                  .map(([_, v]) => String(v));
+                                
                                 if (followUpEntries.length > 0) {
-                                  result += ` (${followUpEntries.join('; ')})`;
+                                  return `${mainAnswer}\nDetails: ${followUpEntries.join('; ')}`;
                                 }
                               }
-                              return result;
+                              return mainAnswer;
                             }
                             // For other objects, try to stringify nicely
                             return JSON.stringify(value, null, 2);
@@ -726,16 +727,34 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                             <div className="space-y-2">
                               {Object.entries(sectionData)
                                 .filter(([key]) => !key.endsWith('_skipReason')) // Exclude skip reasons
-                                .map(([key, value]) => (
-                                  <div key={key} className="flex justify-between items-start">
-                                    <span className="text-sm font-medium text-gray-700 capitalize">
-                                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}:
-                                    </span>
-                                    <span className="text-sm text-gray-900 ml-2 text-right whitespace-pre-wrap">
-                                      {formatValue(value)}
-                                    </span>
-                                  </div>
-                                ))}
+                                .map(([key, value]) => {
+                                  // Format question ID into readable title
+                                  const formatQuestionTitle = (questionId: string): string => {
+                                    return questionId
+                                      // Replace underscores with spaces
+                                      .replace(/_/g, ' ')
+                                      // Add space before capital letters
+                                      .replace(/([A-Z])/g, ' $1')
+                                      // Capitalize first letter of each word
+                                      .split(' ')
+                                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                      .join(' ')
+                                      // Clean up extra spaces
+                                      .replace(/\s+/g, ' ')
+                                      .trim();
+                                  };
+                                  
+                                  return (
+                                    <div key={key} className="flex justify-between items-start">
+                                      <span className="text-sm font-medium text-gray-700">
+                                        {formatQuestionTitle(key)}:
+                                      </span>
+                                      <span className="text-sm text-gray-900 ml-2 text-right whitespace-pre-wrap">
+                                        {formatValue(value)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                             </div>
                           </div>
                         )

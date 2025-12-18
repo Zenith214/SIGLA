@@ -61,7 +61,38 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
       return value.length > 0 ? value.join(", ") : "None selected"
     }
     if (typeof value === "object" && value !== null) {
-      // Handle object case - render key-value pairs
+      // Handle conditional question answers (unawareness/non-availment modules)
+      if ('main' in value && 'followUp' in value) {
+        const mainAnswer = value.main;
+        const followUpAnswers = value.followUp || {};
+        
+        // Check if there are any follow-up answers
+        const hasFollowUps = Object.keys(followUpAnswers).length > 0;
+        
+        if (hasFollowUps) {
+          return (
+            <div className="space-y-2">
+              <div><strong>Answer:</strong> {mainAnswer}</div>
+              {Object.entries(followUpAnswers).map(([key, val]) => {
+                // Only show non-empty follow-up answers
+                if (val && val !== '') {
+                  return (
+                    <div key={key} className="ml-4 text-sm text-gray-600">
+                      <strong>Details:</strong> {String(val)}
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          );
+        } else {
+          // No follow-ups, just show the main answer
+          return String(mainAnswer);
+        }
+      }
+      
+      // Handle other object types - render key-value pairs
       return (
         <div>
           {Object.entries(value).map(([key, val]) => (
@@ -146,14 +177,32 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
               Answered Questions ({displayData.length})
             </h4>
             <div className="space-y-4">
-              {displayData.map(([key, value]) => (
-                <div key={key} className="border-b border-gray-100 pb-4 last:border-b-0">
-                  <dt className="text-sm font-medium text-gray-600 mb-2 capitalize">
-                    {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-                  </dt>
-                  <dd className="text-base text-gray-700">{formatValue(value)}</dd>
-                </div>
-              ))}
+              {displayData.map(([key, value]) => {
+                // Format question ID into readable title
+                const formatQuestionTitle = (questionId: string): string => {
+                  return questionId
+                    // Replace underscores with spaces
+                    .replace(/_/g, ' ')
+                    // Add space before capital letters
+                    .replace(/([A-Z])/g, ' $1')
+                    // Capitalize first letter of each word
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ')
+                    // Clean up extra spaces
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                };
+                
+                return (
+                  <div key={key} className="border-b border-gray-100 pb-4 last:border-b-0">
+                    <dt className="text-sm font-medium text-gray-600 mb-2">
+                      {formatQuestionTitle(key)}
+                    </dt>
+                    <dd className="text-base text-gray-700">{formatValue(value)}</dd>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

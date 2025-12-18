@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 // Dynamically import map components to avoid SSR issues
 const MapContainer = dynamic(
@@ -92,10 +93,6 @@ export default function ProgressMap({ spots, loading = false }: ProgressMapProps
     // Import Leaflet library
     import("leaflet").then((leaflet) => {
       setL(leaflet);
-      // Import CSS dynamically
-      if (typeof window !== "undefined") {
-        require("leaflet/dist/leaflet.css");
-      }
     });
   }, []);
 
