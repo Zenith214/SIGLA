@@ -27,7 +27,6 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
     householdIncome: data.respondentDemographics?.householdIncome ?? "",
     purok: data.respondentDemographics?.purok ?? ""
   })
-  const [isLoggingVisit, setIsLoggingVisit] = useState(false)
 
   // Update local state when data changes
   useEffect(() => {
@@ -48,82 +47,19 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
       return
     }
 
-    setIsLoggingVisit(true)
-
     try {
       // Update survey data first
       onUpdate("respondentDemographics", demographics)
 
-      // Log Visit 1 if this is a new survey (not a callback) and no visits exist yet
-      if (questionnaireIdParam && cycleIdParam) {
-        const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
-        
-        // Only log Visit 1 if no visits exist yet (new survey)
-        if (record && record.visits.length === 0) {
-          console.log(`📝 Logging Visit 1 for new survey ${questionnaireIdParam}`)
-          
-          // Get current location if available
-          let location = null
-          if (navigator.geolocation) {
-            try {
-              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                  timeout: 5000,
-                  enableHighAccuracy: false,
-                })
-              })
-              location = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              }
-            } catch (error) {
-              console.log("Could not get location for visit logging:", error)
-            }
-          }
-
-          // Log to IndexedDB
-          await addVisit(
-            questionnaireIdParam,
-            parseInt(cycleIdParam),
-            'Interview_Started',
-            'Visit 1 - Respondent demographics completed',
-            location || undefined
-          )
-
-          // Log to API
-          try {
-            const response = await fetch("/api/visits", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                questionnaireId: questionnaireIdParam,
-                outcome: 'Interview_Started',
-                notes: 'Visit 1 - Respondent demographics completed',
-                location,
-              }),
-            })
-
-            if (response.ok) {
-              console.log(`✅ Visit 1 logged successfully for ${questionnaireIdParam}`)
-            } else {
-              console.warn(`⚠️ Failed to log visit to API, but continuing...`)
-            }
-          } catch (error) {
-            console.warn(`⚠️ Error logging visit to API:`, error)
-            // Continue anyway - IndexedDB has the visit logged
-          }
-        } else if (record && record.visits.length > 0) {
-          console.log(`ℹ️ Visit already logged for ${questionnaireIdParam}, skipping duplicate`)
-        }
-      }
+      // NOTE: Visit logging for first visit is now deferred until survey submission
+      // This ensures we only log visits when meaningful progress (survey responses) is made
+      console.log(`📝 Demographics completed for ${questionnaireIdParam} - visit will be logged on survey submission`)
 
       // Continue to next section
       onNext()
     } catch (error) {
       console.error("Error in handleSubmit:", error)
       alert("An error occurred. Please try again.")
-    } finally {
-      setIsLoggingVisit(false)
     }
   }
 
@@ -260,10 +196,9 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
           <div className="flex justify-end mt-6">
             <button
               onClick={handleSubmit}
-              disabled={isLoggingVisit}
-              className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
             >
-              {isLoggingVisit ? 'Saving...' : 'Continue to Survey →'}
+              Continue to Survey →
             </button>
           </div>
         </div>

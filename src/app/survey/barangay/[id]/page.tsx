@@ -683,7 +683,43 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="space-y-6">
                       {selectedResponse.survey_section.map((section, index) => {
-                        const sectionData = JSON.parse(section.data)
+                        // Handle both string and object data formats
+                        const sectionData = typeof section.data === 'string' 
+                          ? JSON.parse(section.data) 
+                          : section.data;
+                        
+                        // Helper function to format values properly
+                        const formatValue = (value: any): string => {
+                          if (value === null || value === undefined || value === '') {
+                            return 'Skipped';
+                          }
+                          if (Array.isArray(value)) {
+                            return value.join(', ');
+                          }
+                          if (typeof value === 'object') {
+                            // Handle objects with main/followUp structure (conditional questions)
+                            if ('main' in value) {
+                              let result = Array.isArray(value.main) 
+                                ? value.main.join(', ') 
+                                : String(value.main);
+                              
+                              // Add follow-up answers if present
+                              if (value.followUp && typeof value.followUp === 'object') {
+                                const followUpEntries = Object.entries(value.followUp)
+                                  .filter(([_, v]) => v !== null && v !== undefined && v !== '')
+                                  .map(([k, v]) => `${k}: ${v}`);
+                                if (followUpEntries.length > 0) {
+                                  result += ` (${followUpEntries.join('; ')})`;
+                                }
+                              }
+                              return result;
+                            }
+                            // For other objects, try to stringify nicely
+                            return JSON.stringify(value, null, 2);
+                          }
+                          return String(value);
+                        };
+                        
                         return (
                           <div key={index} className="border border-gray-200 rounded-lg p-4">
                             <h4 className="font-medium text-gray-900 mb-3">{section.section_name}</h4>
@@ -695,9 +731,8 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                                     <span className="text-sm font-medium text-gray-700 capitalize">
                                       {key.replace(/([A-Z])/g, ' $1').toLowerCase()}:
                                     </span>
-                                    <span className="text-sm text-gray-900 ml-2 text-right">
-                                      {value === null || value === undefined || value === '' ? 'Skipped' :
-                                       Array.isArray(value) ? value.join(', ') : String(value)}
+                                    <span className="text-sm text-gray-900 ml-2 text-right whitespace-pre-wrap">
+                                      {formatValue(value)}
                                     </span>
                                   </div>
                                 ))}

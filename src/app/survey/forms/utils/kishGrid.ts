@@ -174,6 +174,17 @@ export function selectRespondentKishGrid(
     // Grid values are 1-based, array indices are 0-based
     const selectedIndex = gridValue - 1;
     
+    // DEBUG: Log the selection process
+    console.log('🔍 Kish Grid Selection Debug:', {
+      questionnaireNumber,
+      eligibleMembersCount: eligibleMembers.length,
+      row,
+      col,
+      gridValue,
+      selectedIndex,
+      selectedMemberName: eligibleMembers[selectedIndex]?.name
+    });
+    
     // Validate that the selected index is within bounds
     if (selectedIndex < 0 || selectedIndex >= eligibleMembers.length) {
       throw new KishGridError(

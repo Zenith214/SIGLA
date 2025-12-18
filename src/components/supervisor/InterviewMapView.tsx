@@ -10,6 +10,7 @@ import {
   type GPSCoordinates,
   type GPSVerificationResult,
 } from "@/app/survey/forms/utils/gpsVerification";
+import "leaflet/dist/leaflet.css";
 
 // Dynamically import map components to avoid SSR issues
 const MapContainer = dynamic(
@@ -108,10 +109,8 @@ export default function InterviewMapView({
     // Import Leaflet library
     import("leaflet").then((leaflet) => {
       setL(leaflet.default);
-      // Import CSS dynamically
+      
       if (typeof window !== "undefined") {
-        require("leaflet/dist/leaflet.css");
-        
         // Fix for default marker icons in Leaflet
         delete (leaflet.default.Icon.Default.prototype as any)._getIconUrl;
         leaflet.default.Icon.Default.mergeOptions({

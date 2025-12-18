@@ -254,7 +254,7 @@ export function validateSurveyNFAData(
  */
 function getSectionIndicators(sectionKey: string): string[] {
   const sectionMap: Record<string, string[]> = {
-    financial: ['projects', 'financial', 'socialPrograms', 'corruption'],
+    financial: ['projects', 'financial', 'socialPrograms'], // 'corruption' excluded - uses custom skip logic
     disaster: ['disasterInfo', 'evacuation'],
     safety: ['tanods', 'lupon', 'antiDrug'],
     social: ['healthServices', 'womenChildrenProtection', 'communityParticipation'],

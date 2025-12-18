@@ -500,6 +500,11 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
           onNext={handleNext}
           isNextButtonDisabled={!isCurrentQuestionAnswered()}
           nextButtonText={getNextButtonText()}
+          disabledReason={
+            !isCurrentQuestionAnswered() && isQuestionEnabled(currentQuestion)
+              ? validateAnswer(currentQuestion, answers[currentQuestion.id], answers)?.message
+              : undefined
+          }
         />
       </div>
     </div>

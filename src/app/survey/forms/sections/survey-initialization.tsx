@@ -202,10 +202,12 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       // Save to IndexedDB
       const record = await getSurveyRecordByQuestionnaire(questionnaireIdParam)
       if (record) {
+        // Convert outcome from underscore format to space format for IndexedDB
+        const outcomeForIndexedDB = outcome.replace(/_/g, ' ') as any
         await addVisit(
           questionnaireIdParam,
           parseInt(cycleIdParam),
-          outcome as any,
+          outcomeForIndexedDB,
           finalNotes || "",
           location || undefined
         )
@@ -237,6 +239,13 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
   }
 
   const handleNext = async () => {
+    // If on Reminders tab, just switch to Visitation Log tab
+    if (activeTab === 'reminders') {
+      setActiveTab('log')
+      return
+    }
+
+    // If on Visitation Log tab, proceed with the actual logic
     // Validate visit form if questionnaire context exists and user filled out visit form
     if (hasQuestionnaireContext && outcome && !validateVisitForm()) {
       return
@@ -246,8 +255,20 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
     setIsLoggingVisit(hasQuestionnaireContext && !!outcome)
 
     try {
-      // Log visit if questionnaire context exists AND outcome is selected AND outcome is NOT "Interview_Started"
-      // For "Interview_Started", the visit will be logged when demographics is completed
+      // FIRST VISIT + CALLBACK: Log visit and return to spots
+      if (hasQuestionnaireContext && outcome === "Callback_Needed" && currentVisitCount === 0) {
+        await logVisit()
+        
+        console.log(`📍 First visit callback logged. Redirecting to spots dashboard...`)
+        
+        alert("Visit logged successfully. You can return later to complete the interview. Remember: up to 3 total visits allowed for callbacks.");
+        
+        // Redirect back to survey dashboard
+        window.location.href = `/survey`;
+        return;
+      }
+
+      // OTHER OUTCOMES (NQR, OR, Moved, etc.): Log visit and return to spots
       if (hasQuestionnaireContext && outcome && outcome !== "Interview_Started") {
         await logVisit()
         
@@ -273,6 +294,14 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
         // Redirect back to survey dashboard
         window.location.href = `/survey`;
         return;
+      }
+
+      // FIRST VISIT + INTERVIEW STARTED: Don't log visit yet, continue to survey
+      // Visit will be logged when survey responses are submitted
+      if (hasQuestionnaireContext && outcome === "Interview_Started" && currentVisitCount === 0) {
+        console.log(`📝 First visit - interview started. Visit will be logged on survey submission.`)
+        onNext()
+        return
       }
 
       // Check if we already have a survey number (from localStorage after refresh)
@@ -462,9 +491,9 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-700">
                     {isCallback ? (
-                      <><strong>Callback Interview:</strong> This is a return visit. Go to the <strong>Visitation Log</strong> tab to record your visit status before continuing.</>
+                      <><strong>Callback Interview:</strong> This is a return visit. If you need to log a callback, go to the <strong>Visitation Log</strong> tab before continuing to the survey.</>
                     ) : (
-                      <><strong>First Visit:</strong> If you encounter any issues (no one home, refusal, etc.), go to the <strong>Visitation Log</strong> tab to record the outcome before leaving.</>
+                      <><strong>First Visit:</strong> If you encounter any issues (no one home, refusal, etc.), go to the <strong>Visitation Log</strong> tab to record the outcome. If starting the interview, your visit will be logged automatically when you submit the survey responses.</>
                     )}
                   </p>
                 </div>
@@ -517,6 +546,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                         visit.outcome === 'Interview Started' ? 'bg-blue-100 text-blue-800' :
                         visit.outcome === 'Callback Needed' ? 'bg-yellow-100 text-yellow-800' :
                         visit.outcome === 'Refused' ? 'bg-red-100 text-red-800' :
+                        visit.outcome === 'Household Moved' ? 'bg-gray-100 text-gray-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {visit.outcome}
@@ -780,7 +810,13 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
           disabled={isGeneratingNumber || isLoggingVisit}
           className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoggingVisit ? 'Logging Visit...' : isGeneratingNumber ? 'Generating Number...' : (hasQuestionnaireContext && outcome) ? 'Log Visit & Continue →' : 'Continue to Survey →'}
+          {isLoggingVisit ? 'Logging Visit...' : 
+           isGeneratingNumber ? 'Generating Number...' : 
+           activeTab === 'reminders' ? 'Next →' :
+           (hasQuestionnaireContext && outcome === "Callback_Needed" && currentVisitCount === 0) ? 'Log Visit & Return to Spots' :
+           (hasQuestionnaireContext && outcome && outcome !== "Interview_Started") ? 'Log Visit & Return to Spots' :
+           (hasQuestionnaireContext && outcome === "Interview_Started") ? 'Continue to Survey →' :
+           'Continue to Survey →'}
         </button>
       </div>
     </div>

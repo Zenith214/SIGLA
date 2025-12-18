@@ -313,35 +313,44 @@ export async function POST(request: NextRequest) {
         WHERE questionnaire_id = $1
       `;
       const visitCountResult = await client.query(visitCountQuery, [questionnaireId]);
-      const nextVisitNumber = visitCountResult.rows[0].max_visit + 1;
+      const currentMaxVisit = visitCountResult.rows[0].max_visit;
+      const nextVisitNumber = currentMaxVisit + 1;
 
-      // Insert visit record
-      const visitInsertQuery = `
-        INSERT INTO visits (
-          questionnaire_id, visit_number, visit_timestamp, outcome, notes,
-          location_lat, location_lng, created_at
-        ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, NOW())
-      `;
+      // Only log visit if this is the first visit (no previous visits exist)
+      // For callbacks, visits are already logged in the visitation log
+      if (currentMaxVisit === 0) {
+        // Insert visit record for first visit
+        const visitInsertQuery = `
+          INSERT INTO visits (
+            questionnaire_id, visit_number, visit_timestamp, outcome, notes,
+            location_lat, location_lng, created_at
+          ) VALUES ($1, $2, NOW(), $3, $4, $5, $6, NOW())
+        `;
 
-      await client.query(visitInsertQuery, [
-        questionnaireId,
-        nextVisitNumber,
-        'Interview_Completed',
-        'Interview completed successfully',
-        parseFloat(location.lat),
-        parseFloat(location.lng)
-      ]);
+        await client.query(visitInsertQuery, [
+          questionnaireId,
+          nextVisitNumber,
+          'Interview_Completed',
+          'First visit - Interview completed successfully',
+          parseFloat(location.lat),
+          parseFloat(location.lng)
+        ]);
 
-      // Update questionnaire status to "Completed" and increment visit_count
+        console.log(`✅ Visit 1 logged for ${questionnaireId} on survey submission`);
+      } else {
+        console.log(`ℹ️ Callback interview completed for ${questionnaireId} - visit already logged`);
+      }
+
+      // Update questionnaire status to "Completed" and set visit_count to nextVisitNumber
       const updateQuestionnaireQuery = `
         UPDATE questionnaires SET
           status = $1,
-          visit_count = visit_count + 1,
+          visit_count = $2,
           updated_at = NOW()
-        WHERE questionnaire_id = $2
+        WHERE questionnaire_id = $3
       `;
 
-      await client.query(updateQuestionnaireQuery, ['Completed', questionnaireId]);
+      await client.query(updateQuestionnaireQuery, ['Completed', nextVisitNumber, questionnaireId]);
     }
 
     // Update survey target progress for the barangay in the active cycle (only for new records)
@@ -523,6 +532,7 @@ export async function GET(request: NextRequest) {
       SELECT
         sr.response_id,
         sr.survey_number,
+        sr.questionnaire_id,
         sr.respondent_name,
         sr.respondent_age,
         sr.respondent_gender,
@@ -542,7 +552,7 @@ export async function GET(request: NextRequest) {
       FROM survey_response sr
       LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
       ${whereClause}
-      GROUP BY sr.response_id, sr.survey_number, sr.respondent_name, sr.respondent_age, sr.respondent_gender, sr.respondent_educational_attainment, sr.respondent_household_income, sr.submitted_at, sr.status
+      GROUP BY sr.response_id, sr.survey_number, sr.questionnaire_id, sr.respondent_name, sr.respondent_age, sr.respondent_gender, sr.respondent_educational_attainment, sr.respondent_household_income, sr.submitted_at, sr.status
       ORDER BY sr.created_at DESC
     `;
 
