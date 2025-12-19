@@ -264,12 +264,12 @@ export function validateSurveyNFAData(
  */
 function getSectionIndicators(sectionKey: string): string[] {
   const sectionMap: Record<string, string[]> = {
-    financial: ['projects', 'financial', 'socialPrograms'], // 'corruption' excluded - uses custom skip logic
-    disaster: ['disasterInfo', 'evacuation'],
-    safety: ['tanods', 'lupon', 'antiDrug'],
-    social: ['healthServices', 'womenChildrenProtection', 'communityParticipation'],
-    business: ['businessClearance'],
-    environmental: ['wasteManagement']
+    financial: ['projects', 'financial', 'social_programs'], // 'corruption' excluded - uses custom skip logic
+    disaster: ['disaster_info', 'evacuation'],
+    safety: ['tanods', 'lupon', 'anti_drug'],
+    social: ['health_services', 'women_children_protection', 'community_participation'],
+    business: ['business_clearance'],
+    environmental: ['waste_management']
   };
 
   return sectionMap[sectionKey] || [];

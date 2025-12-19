@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { User, ArrowLeft } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import type { SurveyData } from "../page"
-import { getSurveyRecordByQuestionnaire, addVisit } from "@/lib/indexedDB"
 
 interface RespondentDemographicsProps {
   data: SurveyData
