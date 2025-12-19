@@ -34,6 +34,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
 
+    // Check if user is admin or developer (they can see all barangays)
+    const isAdminOrDeveloper = userRole === 'admin' || userRole === 'developer';
+
     // Get active cycle
     const activeCycle = await getActiveCycle();
     if (!activeCycle) {
@@ -80,8 +83,9 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching barangay assignments:', assignmentsError);
     }
 
-    // Get spots assigned to this interviewer in the active cycle
-    const { data: spots, error: spotsError } = await supabaseAdmin
+    // Get spots for the active cycle
+    // Admin/Developer can see all spots, FI can only see their assigned spots
+    let spotsQuery = supabaseAdmin
       .from('spots')
       .select(`
         spot_id,
@@ -97,8 +101,14 @@ export async function GET(request: NextRequest) {
           visit_count
         )
       `)
-      .eq('cycle_id', activeCycle.cycle_id)
-      .eq('assigned_fi_id', userId);
+      .eq('cycle_id', activeCycle.cycle_id);
+
+    // Filter by assigned FI only if user is not admin/developer
+    if (!isAdminOrDeveloper) {
+      spotsQuery = spotsQuery.eq('assigned_fi_id', userId);
+    }
+
+    const { data: spots, error: spotsError } = await spotsQuery;
 
     if (spotsError) {
       console.error('Error fetching spots:', spotsError);
@@ -119,8 +129,10 @@ export async function GET(request: NextRequest) {
     
     if (barangays) {
       barangays.forEach(barangay => {
-        // Only include barangays where the interviewer has assignments (either spot or barangay-level)
-        if (allAssignedBarangayIds.has(barangay.barangay_id)) {
+        // Admin/Developer can see all barangays, FI can only see assigned barangays
+        const shouldInclude = isAdminOrDeveloper || allAssignedBarangayIds.has(barangay.barangay_id);
+        
+        if (shouldInclude) {
           const targetInfo = targetMap.get(barangay.barangay_id) || { target: 0, achieved: 0 };
           const barangayAssignment = barangayAssignments?.find(a => a.barangay_id === barangay.barangay_id);
           

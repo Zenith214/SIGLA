@@ -21,8 +21,15 @@ export async function POST(req: NextRequest) {
   try {
     client = await pool.connect();
     
-    // Get active cycle ID
-    const activeCycleId = await getActiveCycleId();
+    // Get optional parameters from request body
+    const { barangay_id, barangayId, cycle_id, cycleId } = await req.json().catch(() => ({}));
+    
+    // Support both naming conventions
+    const targetBarangayId = barangay_id || barangayId;
+    const targetCycleId = cycle_id || cycleId;
+    
+    // Get active cycle ID if not provided
+    const activeCycleId = targetCycleId || await getActiveCycleId();
     if (!activeCycleId) {
       return NextResponse.json(
         { error: 'No active survey cycle found. Cannot calculate progress.' },
@@ -30,15 +37,12 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Get optional barangay_id from request body to calculate for specific barangay
-    const { barangay_id } = await req.json().catch(() => ({}));
-    
     let whereClause = 'WHERE st.survey_cycle_id = $1';
     let queryParams = [activeCycleId];
     
-    if (barangay_id) {
+    if (targetBarangayId) {
       whereClause += ' AND st.barangay_id = $2';
-      queryParams.push(barangay_id);
+      queryParams.push(targetBarangayId);
     }
     
     // Calculate achieved count from survey responses for each target
@@ -58,12 +62,14 @@ export async function POST(req: NextRequest) {
         FROM survey_response sr
         WHERE sr.survey_cycle_id = $1
           AND sr.status IN ('completed', 'submitted')
-          ${barangay_id ? 'AND sr.barangay_id = $2' : ''}
+          ${targetBarangayId ? 'AND sr.barangay_id = $2' : ''}
         GROUP BY sr.barangay_id
-      ) response_counts
+      ) response_counts,
+      barangay b
       ${whereClause}
         AND st.barangay_id = response_counts.barangay_id
-      RETURNING st.*, b.barangay_name
+        AND st.barangay_id = b.barangay_id
+      RETURNING st.target_id, st.barangay_id, st.survey_cycle_id, st.target, st.achieved, st.percentage, st.created_at, st.updated_at, b.barangay_name
     `;
     
     // Also update targets that have no responses (set achieved to 0)
@@ -82,7 +88,7 @@ export async function POST(req: NextRequest) {
             AND sr.survey_cycle_id = st.survey_cycle_id
             AND sr.status IN ('completed', 'submitted')
         )
-      RETURNING st.*, b.barangay_name
+      RETURNING st.target_id, st.barangay_id, st.survey_cycle_id, st.target, st.achieved, st.percentage, st.created_at, st.updated_at, b.barangay_name
     `;
     
     // Execute both queries

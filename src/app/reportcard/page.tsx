@@ -433,15 +433,31 @@ function ReportCardContent() {
       console.log(`  - Quotes:`, scores.quotes);
       console.log(`  - Recommendations:`, scores.recommendations);
 
+      // Handle both structured format (with percentage field) and old format
+      const awarenessValue = typeof scores.awareness === 'object' && scores.awareness?.percentage !== undefined
+        ? scores.awareness.percentage
+        : (scores.awareness_score || scores.awareness || 0);
+      
+      const availmentValue = typeof scores.availment === 'object' && scores.availment?.percentage !== undefined
+        ? scores.availment.percentage
+        : (scores.availment_score || scores.availment || 0);
+      
+      const satisfactionValue = typeof scores.satisfaction === 'object' && scores.satisfaction?.percentage !== undefined
+        ? scores.satisfaction.percentage
+        : (scores.satisfaction_score || scores.satisfaction || 0);
+
       processedFunnel[serviceKey] = {
-        awareness: scores.awareness_score || scores.awareness || 0,
-        availment: scores.availment_score || scores.availment || 0,
-        satisfaction: scores.satisfaction_score || scores.satisfaction || 0,
+        awareness: awarenessValue,
+        availment: availmentValue,
+        satisfaction: satisfactionValue,
         total: funnelData.total_responses || 100,
         concerns: scores.concerns || [],
         quotes: scores.quotes || {},
         bottleneck: scores.bottleneck || 'satisfaction',
-        recommendations: scores.recommendations || {}
+        recommendations: scores.recommendations || {},
+        awareness_metrics: scores.awareness_metrics,
+        availment_metrics: scores.availment_metrics,
+        satisfaction_metrics: scores.satisfaction_metrics
       };
 
       // Extract trends from action grid
@@ -617,6 +633,9 @@ function ReportCardContent() {
     const funnelInfo = funnelData[category.key] || {};
     const trendInfo = trendsData[category.key] || {};
 
+    console.log('Service Area Clicked:', category.key);
+    console.log('Funnel Info:', funnelInfo);
+
     setSelectedServiceArea({
       ...category,
       funnel: {
@@ -627,7 +646,10 @@ function ReportCardContent() {
         concerns: funnelInfo.concerns || [],
         quotes: funnelInfo.quotes || {},
         bottleneck: funnelInfo.bottleneck || 'satisfaction',
-        recommendations: funnelInfo.recommendations || {}
+        recommendations: funnelInfo.recommendations || {},
+        awareness_metrics: funnelInfo.awareness_metrics,
+        availment_metrics: funnelInfo.availment_metrics,
+        satisfaction_metrics: funnelInfo.satisfaction_metrics
       },
       trend: trendInfo
     });
@@ -2182,47 +2204,114 @@ function ReportCardContent() {
                 {/* Funnel Visualization */}
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold mb-4">Service Funnel Analysis</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="bg-blue-500 text-white p-4 rounded-lg mb-2">
-                        <div className="text-2xl font-bold">{selectedServiceArea.funnel?.awareness || 0}%</div>
-                        <div className="text-sm">Awareness</div>
+                  
+                  {/* Vertical Stack Layout for Funnel */}
+                  <div className="space-y-4">
+                    {/* Awareness Card */}
+                    <div className="flex items-center gap-4 bg-blue-500 text-white p-4 rounded-lg">
+                      <div className="flex-shrink-0 text-center min-w-[120px]">
+                        <div className="text-3xl font-bold">{selectedServiceArea.funnel?.awareness || 0}%</div>
+                        <div className="text-sm font-medium">Awareness</div>
                       </div>
-                      <div className="text-xs text-gray-600">Know about the service</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="bg-green-500 text-white p-4 rounded-lg mb-2">
-                        <div className="text-2xl font-bold">{selectedServiceArea.funnel?.availment || 0}%</div>
-                        <div className="text-sm">Availment</div>
+                      <div className="flex-1 text-sm">
+                        {selectedServiceArea.funnel?.awareness_metrics ? (
+                          <span>
+                            <strong>{selectedServiceArea.funnel.awareness_metrics.count} out of {selectedServiceArea.funnel.awareness_metrics.total}</strong> residents know about the service.
+                          </span>
+                        ) : (
+                          <span>Residents who know about the service.</span>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-600">Actually used the service</div>
                     </div>
-                    <div className="text-center">
-                      <div className="bg-purple-500 text-white p-4 rounded-lg mb-2">
-                        <div className="text-2xl font-bold">{selectedServiceArea.score || 0}%</div>
-                        <div className="text-sm">Satisfaction</div>
+
+                    {/* Availment Card */}
+                    <div className="flex items-center gap-4 bg-green-500 text-white p-4 rounded-lg">
+                      <div className="flex-shrink-0 text-center min-w-[120px]">
+                        <div className="text-3xl font-bold">{selectedServiceArea.funnel?.availment || 0}%</div>
+                        <div className="text-sm font-medium">Availment</div>
                       </div>
-                      <div className="text-xs text-gray-600">Satisfied with service</div>
+                      <div className="flex-1 text-sm">
+                        {selectedServiceArea.funnel?.availment_metrics && selectedServiceArea.funnel?.awareness_metrics ? (
+                          <span>
+                            <strong>{selectedServiceArea.funnel.availment_metrics.count} out of {selectedServiceArea.funnel.awareness_metrics.count}</strong> aware residents actually used the service.
+                          </span>
+                        ) : (
+                          <span>Aware residents who actually used the service.</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="bg-red-500 text-white p-4 rounded-lg mb-2">
-                        <div className="text-2xl font-bold">
-                          {(100 - (selectedServiceArea.funnel?.awareness || 0)).toFixed(2)}%
+
+                    {/* Satisfaction Card */}
+                    <div className="flex items-center gap-4 bg-purple-500 text-white p-4 rounded-lg">
+                      <div className="flex-shrink-0 text-center min-w-[120px]">
+                        <div className="text-3xl font-bold">{selectedServiceArea.funnel?.satisfaction || selectedServiceArea.score || 0}%</div>
+                        <div className="text-sm font-medium">Satisfaction</div>
+                      </div>
+                      <div className="flex-1 text-sm">
+                        {selectedServiceArea.funnel?.satisfaction_metrics && selectedServiceArea.funnel?.availment_metrics ? (
+                          <span>
+                            <strong>{selectedServiceArea.funnel.satisfaction_metrics.count} out of {selectedServiceArea.funnel.availment_metrics.count}</strong> users were satisfied with the service.
+                          </span>
+                        ) : (
+                          <span>Users who were satisfied with the service.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Skipped Card */}
+                    <div className="flex items-center gap-4 bg-red-500 text-white p-4 rounded-lg">
+                      <div className="flex-shrink-0 text-center min-w-[120px]">
+                        <div className="text-3xl font-bold">
+                          {(100 - (selectedServiceArea.funnel?.awareness || 0)).toFixed(1)}%
                         </div>
-                        <div className="text-sm">Skipped</div>
+                        <div className="text-sm font-medium">Skipped</div>
                       </div>
-                      <div className="text-xs text-gray-600">No awareness</div>
+                      <div className="flex-1 text-sm">
+                        {selectedServiceArea.funnel?.awareness_metrics ? (
+                          <span>
+                            <strong>{selectedServiceArea.funnel.awareness_metrics.total - selectedServiceArea.funnel.awareness_metrics.count} out of {selectedServiceArea.funnel.awareness_metrics.total}</strong> residents have no awareness of the service.
+                          </span>
+                        ) : (
+                          <span>Residents with no awareness of the service.</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Bottleneck Analysis */}
-                  <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                  <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
                     <h4 className="font-semibold text-yellow-800">🤖 AI Analysis: Bottleneck Identified</h4>
-                    <p className="text-yellow-700 mt-1">
-                      The main bottleneck is in <strong>{selectedServiceArea.funnel?.bottleneck}</strong>.
-                      {selectedServiceArea.funnel?.bottleneck === 'awareness' && ' Focus on information campaigns and outreach programs.'}
-                      {selectedServiceArea.funnel?.bottleneck === 'availment' && ' Improve service accessibility and reduce barriers to usage.'}
-                      {selectedServiceArea.funnel?.bottleneck === 'satisfaction' && ' Enhance service quality and address user concerns.'}
+                    <p className="text-yellow-700 mt-2">
+                      {(() => {
+                        const bottleneck = selectedServiceArea.funnel?.bottleneck || 'satisfaction';
+                        const awarenessMetrics = selectedServiceArea.funnel?.awareness_metrics;
+                        const availmentMetrics = selectedServiceArea.funnel?.availment_metrics;
+                        const satisfactionMetrics = selectedServiceArea.funnel?.satisfaction_metrics;
+                        
+                        if (bottleneck === 'awareness' && awarenessMetrics) {
+                          const unaware = awarenessMetrics.total - awarenessMetrics.count;
+                          return `The main bottleneck is in awareness. Only ${awarenessMetrics.count} out of ${awarenessMetrics.total} residents know about the service, leaving ${unaware} residents unaware. Focus on information campaigns and outreach programs.`;
+                        } else if (bottleneck === 'availment' && availmentMetrics && awarenessMetrics) {
+                          const notAvailed = awarenessMetrics.count - availmentMetrics.count;
+                          return `The main bottleneck is in availment. While ${awarenessMetrics.count} residents are aware, only ${availmentMetrics.count} actually used the service (${notAvailed} aware residents did not avail). Improve service accessibility and reduce barriers to usage.`;
+                        } else if (bottleneck === 'satisfaction' && satisfactionMetrics && availmentMetrics) {
+                          const dissatisfied = availmentMetrics.count - satisfactionMetrics.count;
+                          return `The main bottleneck is in satisfaction. While ${availmentMetrics.count} residents used the service, a significant portion (${dissatisfied} out of ${availmentMetrics.count}) were not satisfied. Enhance service quality and address user concerns.`;
+                        } else {
+                          // Fallback for when metrics are not available
+                          return (
+                            <>
+                              The main bottleneck is in <strong>{bottleneck}</strong>.
+                              {bottleneck === 'awareness' && ' Focus on information campaigns and outreach programs.'}
+                              {bottleneck === 'availment' && ' Improve service accessibility and reduce barriers to usage.'}
+                              {bottleneck === 'satisfaction' && ' Enhance service quality and address user concerns.'}
+                            </>
+                          );
+                        }
+                      })()}
+                    </p>
+                    <p className="text-xs text-yellow-600 italic mt-3">
+                      Note: AI analysis is experimental and may occasionally produce incorrect or misleading insights. Always cross-reference with the raw data.
                     </p>
                   </div>
                 </div>

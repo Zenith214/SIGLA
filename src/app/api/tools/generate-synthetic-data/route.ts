@@ -394,16 +394,14 @@ async function generateSurveyResponse(
     });
 
     // Add overall satisfaction section (after all service areas)
+    // NEW FORMAT: Binary Yes/No for satisfaction
+    const satisfactionScore = profileConfig.satisfactionRange[0] + 
+      Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0]);
+    
     sectionData['overall'] = {
-      overallSatisfaction: `${Math.max(1, Math.min(5, Math.round(
-        (profileConfig.satisfactionRange[0] + 
-         Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0])) * 5
-      )))} - ${['Very Dissatisfied / Lubos na Hindi Nasiyahan', 'Dissatisfied / Hindi Nasiyahan', 'Neutral / Neither Satisfied nor Dissatisfied', 'Satisfied / Nasiyahan', 'Very Satisfied / Lubos na Nasiyahan'][Math.max(1, Math.min(5, Math.round(
-        (profileConfig.satisfactionRange[0] + 
-         Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0])) * 5
-      ))) - 1]}`,
+      overallSatisfaction: satisfactionScore > 0.5 ? 'Yes' : 'No',
       overallNeedForAction: (profileConfig.needActionRange[0] + 
-        Math.random() * (profileConfig.needActionRange[1] - profileConfig.needActionRange[0])) > 0.5 ? 'Yes / Oo' : 'No / Hindi'
+        Math.random() * (profileConfig.needActionRange[1] - profileConfig.needActionRange[0])) > 0.5 ? 'Yes' : 'No'
     };
 
     // Insert survey response
@@ -530,6 +528,22 @@ function generateSectionData(sectionName: string, profileConfig: any) {
   const sectionQuestions = getSectionQuestionStructure(sectionName);
   const sectionData: any = {};
   
+  // Unawareness reason options (English keys for all languages)
+  const unawarenessReasons = [
+    'Not informed by barangay',
+    'No access to information',
+    'Not interested',
+    'Other reason'
+  ];
+  
+  // Non-availment reason options (English keys for all languages)
+  const nonAvailmentReasons = [
+    'Did not need it',
+    'Too far or inconvenient',
+    'Not eligible',
+    'Other reason'
+  ];
+  
   // Generate responses for each part in the section
   sectionQuestions.forEach(part => {
     // Generate awareness response - use random value against the probability range
@@ -537,6 +551,16 @@ function generateSectionData(sectionName: string, profileConfig: any) {
       Math.random() * (profileConfig.awarenessRange[1] - profileConfig.awarenessRange[0]);
     const isAware = Math.random() < awarenessProb; // Compare random value to probability
     sectionData[part.awarenessId] = isAware ? part.yesValue : part.noValue;
+    
+    // If not aware and has conditional module, generate unawareness reason
+    if (!isAware && part.unawarenessModuleId && !part.skipConditionalModules) {
+      const randomReason = unawarenessReasons[Math.floor(Math.random() * unawarenessReasons.length)];
+      sectionData[part.unawarenessModuleId] = {
+        main: randomReason,
+        followUp: randomReason === 'Other reason' ? 'Sample other reason for unawareness' : undefined
+      };
+      return; // Skip rest of questions for this part
+    }
     
     // If not aware, skip the rest of this part
     if (!isAware) return;
@@ -546,6 +570,16 @@ function generateSectionData(sectionName: string, profileConfig: any) {
       Math.random() * (profileConfig.availmentRange[1] - profileConfig.availmentRange[0]);
     const hasAvailed = Math.random() < availmentProb; // Compare random value to probability
     sectionData[part.availmentId] = hasAvailed ? part.yesValue : part.noValue;
+    
+    // If hasn't availed and has conditional module, generate non-availment reason
+    if (!hasAvailed && part.nonAvailmentModuleId && !part.skipConditionalModules) {
+      const randomReason = nonAvailmentReasons[Math.floor(Math.random() * nonAvailmentReasons.length)];
+      sectionData[part.nonAvailmentModuleId] = {
+        main: randomReason,
+        followUp: randomReason === 'Other reason' ? 'Sample other reason for non-availment' : undefined
+      };
+      return; // Skip satisfaction and NFA for this part
+    }
     
     // If hasn't availed, skip satisfaction and NFA
     if (!hasAvailed) return;
@@ -572,34 +606,195 @@ function generateSectionData(sectionName: string, profileConfig: any) {
 
 function getSectionQuestionStructure(sectionName: string) {
   // Define the question structure for each section based on the actual survey
+  // Updated to match current question IDs and include conditional module support
   const structures: Record<string, any[]> = {
     financial: [
-      { awarenessId: 'awarenessProjects', availmentId: 'benefitedProjects', satisfactionId: 'satisfactionProjects', nfaId: 'nfaBinaryProjects', suggestionId: 'suggestionsProjects', yesValue: 'Oo', noValue: 'Hindi' },
-      { awarenessId: 'awarenessFinancial', availmentId: 'usedFinancialInfo', satisfactionId: 'satisfactionFinancial', nfaId: 'nfaBinaryFinancial', suggestionId: 'suggestionsFinancial', yesValue: 'Oo', noValue: 'Hindi' },
-      { awarenessId: 'awarenessSocialPrograms', availmentId: 'benefitedSocialPrograms', satisfactionId: 'satisfactionSocialPrograms', nfaId: 'nfaBinarySocialPrograms', suggestionId: 'suggestionsSocialPrograms', yesValue: 'Oo', noValue: 'Hindi' },
-      { awarenessId: 'awarenessCorruption', availmentId: 'reportedCorruption', satisfactionId: 'satisfactionCorruption', nfaId: 'nfaBinaryCorruption', suggestionId: 'suggestionsCorruption', yesValue: 'Oo (Yes)', noValue: 'Hindi (No)' }
+      { 
+        awarenessId: 'awarenessProjects', 
+        availmentId: 'benefitedProjects', 
+        satisfactionId: 'satisfactionProjects', 
+        nfaId: 'nfaBinaryProjects', 
+        suggestionId: 'suggestionsProjects', 
+        yesValue: 'Oo', 
+        noValue: 'Hindi',
+        unawarenessModuleId: 'projects_unawareness_reason',
+        nonAvailmentModuleId: 'projects_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessFinancial', 
+        availmentId: 'usedFinancialInfo', 
+        satisfactionId: 'satisfactionFinancial', 
+        nfaId: 'nfaBinaryFinancial', 
+        suggestionId: 'suggestionsFinancial', 
+        yesValue: 'Oo', 
+        noValue: 'Hindi',
+        unawarenessModuleId: 'financial_unawareness_reason',
+        nonAvailmentModuleId: 'financial_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessSocialPrograms', 
+        availmentId: 'benefitedSocialPrograms', 
+        satisfactionId: 'satisfactionSocialPrograms', 
+        nfaId: 'nfaBinarySocialPrograms', 
+        suggestionId: 'suggestionsSocialPrograms', 
+        yesValue: 'Oo', 
+        noValue: 'Hindi',
+        unawarenessModuleId: 'socialPrograms_unawareness_reason',
+        nonAvailmentModuleId: 'socialPrograms_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessCorruption', 
+        availmentId: 'reportedCorruption', 
+        satisfactionId: 'satisfactionCorruption', 
+        nfaId: 'nfaBinaryCorruption', 
+        suggestionId: 'suggestionsCorruption', 
+        yesValue: 'Oo (Yes)', 
+        noValue: 'Hindi (No)',
+        // Corruption uses custom skip logic, not conditional modules
+        skipConditionalModules: true
+      }
     ],
     disaster: [
-      { awarenessId: 'awarenessDisasterInfo', availmentId: 'receivedDisasterInfo', satisfactionId: 'satisfactionDisasterInfo', nfaId: 'nfaBinaryDisasterInfo', suggestionId: 'suggestionsDisasterInfo', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessEvacuation', availmentId: 'usedEvacuation', satisfactionId: 'satisfactionEvacuation', nfaId: 'nfaBinaryEvacuation', suggestionId: 'suggestionsEvacuation', yesValue: 'Yes', noValue: 'No' }
+      { 
+        awarenessId: 'awarenessDisasterInfo', 
+        availmentId: 'receivedDisasterInfo', 
+        satisfactionId: 'satisfactionDisasterInfo', 
+        nfaId: 'nfaBinaryDisasterInfo', 
+        suggestionId: 'suggestionsDisasterInfo', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'disasterInfo_unawareness_reason',
+        nonAvailmentModuleId: 'disasterInfo_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessEvacuation', 
+        availmentId: 'usedEvacuation', 
+        satisfactionId: 'satisfactionEvacuation', 
+        nfaId: 'nfaBinaryEvacuation', 
+        suggestionId: 'suggestionsEvacuation', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'evacuation_unawareness_reason',
+        nonAvailmentModuleId: 'evacuation_non_availment_reason'
+      }
     ],
     safety: [
-      { awarenessId: 'awarenessTanods', availmentId: 'experiencedTanods', satisfactionId: 'satisfactionTanods', nfaId: 'nfaBinaryTanods', suggestionId: 'suggestionsTanods', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessLupon', availmentId: 'usedLupon', satisfactionId: 'satisfactionLupon', nfaId: 'nfaBinaryLupon', suggestionId: 'suggestionsLupon', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessAntiDrug', availmentId: 'participatedAntiDrug', satisfactionId: 'satisfactionAntiDrug', nfaId: 'nfaBinaryAntiDrug', suggestionId: 'suggestionsAntiDrug', yesValue: 'Yes', noValue: 'No' }
+      { 
+        awarenessId: 'awarenessTanods', 
+        availmentId: 'experiencedTanods', 
+        satisfactionId: 'satisfactionTanods', 
+        nfaId: 'nfaBinaryTanods', 
+        suggestionId: 'suggestionsTanods', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'tanods_unawareness_reason',
+        nonAvailmentModuleId: 'tanods_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessLupon', 
+        availmentId: 'usedLupon', 
+        satisfactionId: 'satisfactionLupon', 
+        nfaId: 'nfaBinaryLupon', 
+        suggestionId: 'suggestionsLupon', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'lupon_unawareness_reason',
+        nonAvailmentModuleId: 'lupon_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessAntiDrug', 
+        availmentId: 'participatedAntiDrug', 
+        satisfactionId: 'satisfactionAntiDrug', 
+        nfaId: 'nfaBinaryAntiDrug', 
+        suggestionId: 'suggestionsAntiDrug', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'antiDrug_unawareness_reason',
+        nonAvailmentModuleId: 'antiDrug_non_availment_reason'
+      }
     ],
     social: [
-      { awarenessId: 'awarenessHealthServices', availmentId: 'usedHealthServices', satisfactionId: 'satisfactionHealthServices', nfaId: 'nfaBinaryHealthServices', suggestionId: 'suggestionsHealthServices', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessWomenChildrenProtection', availmentId: 'accessedWomenChildrenProtection', satisfactionId: 'satisfactionWomenChildrenProtection', nfaId: 'nfaBinaryWomenChildrenProtection', suggestionId: 'suggestionsWomenChildrenProtection', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessCommunityParticipation', availmentId: 'participatedCommunity', satisfactionId: 'satisfactionCommunityParticipation', nfaId: 'nfaBinaryCommunityParticipation', suggestionId: 'suggestionsCommunityParticipation', yesValue: 'Yes', noValue: 'No' }
+      { 
+        awarenessId: 'awarenessHealthServices', 
+        availmentId: 'usedHealthServices', 
+        satisfactionId: 'satisfactionHealthServices', 
+        nfaId: 'nfaBinaryHealthServices', 
+        suggestionId: 'suggestionsHealthServices', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'healthServices_unawareness_reason',
+        nonAvailmentModuleId: 'healthServices_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessWomenChildrenProtection', 
+        availmentId: 'accessedWomenChildrenProtection', 
+        satisfactionId: 'satisfactionWomenChildrenProtection', 
+        nfaId: 'nfaBinaryWomenChildrenProtection', 
+        suggestionId: 'suggestionsWomenChildrenProtection', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'womenChildrenProtection_unawareness_reason',
+        nonAvailmentModuleId: 'womenChildrenProtection_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessCommunityParticipation', 
+        availmentId: 'participatedCommunity', 
+        satisfactionId: 'satisfactionCommunityParticipation', 
+        nfaId: 'nfaBinaryCommunityParticipation', 
+        suggestionId: 'suggestionsCommunityParticipation', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'communityParticipation_unawareness_reason',
+        nonAvailmentModuleId: 'communityParticipation_non_availment_reason'
+      }
     ],
     business: [
-      { awarenessId: 'awarenessBusinessClearance', availmentId: 'obtainedBusinessClearance', satisfactionId: 'satisfactionBusinessClearance', nfaId: 'nfaBinaryBusinessClearance', suggestionId: 'suggestionsBusinessClearance', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessBusinessSupport', availmentId: 'receivedBusinessSupport', satisfactionId: 'satisfactionBusinessSupport', nfaId: 'nfaBinaryBusinessSupport', suggestionId: 'suggestionsBusinessSupport', yesValue: 'Yes', noValue: 'No' }
+      { 
+        awarenessId: 'awarenessBusinessClearance', 
+        availmentId: 'obtainedBusinessClearance', 
+        satisfactionId: 'satisfactionBusinessClearance', 
+        nfaId: 'nfaBinaryBusinessClearance', 
+        suggestionId: 'suggestionsBusinessClearance', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'businessClearance_unawareness_reason',
+        nonAvailmentModuleId: 'businessClearance_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessBusinessSupport', 
+        availmentId: 'receivedBusinessSupport', 
+        satisfactionId: 'satisfactionBusinessSupport', 
+        nfaId: 'nfaBinaryBusinessSupport', 
+        suggestionId: 'suggestionsBusinessSupport', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'businessSupport_unawareness_reason',
+        nonAvailmentModuleId: 'businessSupport_non_availment_reason'
+      }
     ],
     environmental: [
-      { awarenessId: 'awarenessWasteManagement', availmentId: 'usedWasteManagement', satisfactionId: 'satisfactionWasteManagement', nfaId: 'nfaBinaryWasteManagement', suggestionId: 'suggestionsWasteManagement', yesValue: 'Yes', noValue: 'No' },
-      { awarenessId: 'awarenessEnvironmentalPrograms', availmentId: 'participatedEnvironmentalPrograms', satisfactionId: 'satisfactionEnvironmentalPrograms', nfaId: 'nfaBinaryEnvironmentalPrograms', suggestionId: 'suggestionsEnvironmentalPrograms', yesValue: 'Yes', noValue: 'No' }
+      { 
+        awarenessId: 'awarenessWasteManagement', 
+        availmentId: 'usedWasteManagement', 
+        satisfactionId: 'satisfactionWasteManagement', 
+        nfaId: 'nfaBinaryWasteManagement', 
+        suggestionId: 'suggestionsWasteManagement', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'wasteManagement_unawareness_reason',
+        nonAvailmentModuleId: 'wasteManagement_non_availment_reason'
+      },
+      { 
+        awarenessId: 'awarenessEnvironmentalPrograms', 
+        availmentId: 'participatedEnvironmentalPrograms', 
+        satisfactionId: 'satisfactionEnvironmentalPrograms', 
+        nfaId: 'nfaBinaryEnvironmentalPrograms', 
+        suggestionId: 'suggestionsEnvironmentalPrograms', 
+        yesValue: 'Yes', 
+        noValue: 'No',
+        unawarenessModuleId: 'environmentalPrograms_unawareness_reason',
+        nonAvailmentModuleId: 'environmentalPrograms_non_availment_reason'
+      }
     ]
   };
   
@@ -607,41 +802,75 @@ function getSectionQuestionStructure(sectionName: string) {
 }
 
 function generateSuggestion(sectionName: string, needActionScore: number): string {
-  if (needActionScore < 0.3) return '';
-  
+  // Always generate a suggestion when called (this function is only called when NFA = Yes)
   const suggestions: Record<string, string[]> = {
     financial: [
-      'More transparent budget reporting needed',
-      'Improve project implementation timeline',
-      'Better communication of financial information'
+      'The barangay should post budget information more prominently and in simpler language.',
+      'More frequent barangay assemblies would help residents stay informed about projects.',
+      'Project timelines should be clearly communicated and updates provided regularly.',
+      'Better quality materials should be used for construction projects.',
+      'More consultation with residents before starting major projects.',
+      'Improve transparency in how funds are allocated and spent.',
+      'Social programs need better promotion so more people know about them.',
+      'Faster processing of financial assistance applications for seniors and PWDs.'
     ],
     disaster: [
-      'More evacuation drills needed',
-      'Improve early warning systems',
-      'Better disaster preparedness training'
+      'Conduct more regular evacuation drills so residents know what to do.',
+      'Improve the early warning system - some areas do not receive alerts.',
+      'Evacuation centers need better facilities and supplies.',
+      'More training for barangay emergency response teams.',
+      'Better communication about disaster risks in our area.',
+      'Improve drainage systems to prevent flooding.',
+      'Provide more disaster preparedness information to households.',
+      'Emergency supplies should be pre-positioned in strategic locations.'
     ],
     safety: [
-      'More tanod patrols at night',
-      'Improve street lighting',
-      'Faster response to incidents'
+      'More tanod patrols especially at night and in dark areas.',
+      'Improve street lighting in poorly lit areas.',
+      'Faster response time when residents report safety concerns.',
+      'Better training for tanods on how to handle different situations.',
+      'The Lupon should be more accessible and process cases faster.',
+      'More visible presence of tanods to deter crime.',
+      'Anti-drug programs need more community involvement.',
+      'Better coordination between barangay and police for serious incidents.'
     ],
     social: [
-      'More health programs for seniors',
-      'Improve access to social services',
-      'Better support for vulnerable groups'
+      'Health center needs more medicines and medical supplies.',
+      'Extend health center operating hours for working residents.',
+      'More health programs specifically for seniors and children.',
+      'Better facilities and equipment at the health center.',
+      'More training for barangay health workers.',
+      'Improve protection services for women and children.',
+      'More community activities to bring residents together.',
+      'Better support for vulnerable groups like PWDs and solo parents.'
     ],
     business: [
-      'Simplify permit processing',
-      'More support for small businesses',
-      'Improve business registration process'
+      'Simplify the requirements for getting business clearances.',
+      'Reduce processing time for permits and clearances.',
+      'Provide more information about business requirements and procedures.',
+      'Offer more support programs for small businesses and entrepreneurs.',
+      'Make the application process available online or more accessible.',
+      'Reduce fees for small businesses and startups.',
+      'Provide business development training and seminars.',
+      'Better coordination between barangay and municipal offices for permits.'
     ],
     environmental: [
-      'Better waste management',
-      'More tree planting activities',
-      'Improve drainage systems'
+      'More regular garbage collection schedule.',
+      'Provide more trash bins in public areas.',
+      'Better enforcement of waste segregation rules.',
+      'More tree planting and greening activities.',
+      'Improve drainage and flood control systems.',
+      'More environmental awareness campaigns.',
+      'Establish a materials recovery facility for recycling.',
+      'Regular cleanup drives in the community.'
     ]
   };
 
-  const sectionSuggestions = suggestions[sectionName] || ['General improvement needed'];
+  const sectionSuggestions = suggestions[sectionName] || [
+    'The barangay should improve this service.',
+    'More resources and better implementation needed.',
+    'Better communication with residents about this service.'
+  ];
+  
   return sectionSuggestions[Math.floor(Math.random() * sectionSuggestions.length)];
 }

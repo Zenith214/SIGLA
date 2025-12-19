@@ -202,11 +202,21 @@ export function isYesAnswer(answer: any): boolean {
 
 /**
  * Parses a satisfaction rating from an answer
- * Returns a number between 1-5, or null if invalid
+ * Returns 5 for Yes/satisfied, 1 for No/dissatisfied, or null if invalid
+ * Also handles legacy Likert scale (1-5) for backward compatibility
  */
 export function parseRating(answer: any): number | null {
-  const numValue = typeof answer === 'string' ? parseInt(answer) : answer;
+  // Handle binary Yes/No responses (new format)
+  const stringValue = String(answer).toLowerCase();
+  if (stringValue.includes('yes') || stringValue.includes('oo')) {
+    return 5; // Treat "Yes" as fully satisfied
+  }
+  if (stringValue.includes('no') || stringValue.includes('hindi')) {
+    return 1; // Treat "No" as not satisfied
+  }
   
+  // Handle legacy Likert scale (1-5) for backward compatibility
+  const numValue = typeof answer === 'string' ? parseInt(answer) : answer;
   if (typeof numValue === 'number' && numValue >= 1 && numValue <= 5) {
     return numValue;
   }
@@ -385,26 +395,25 @@ export function calculateSatisfactionFromAvailed(
     });
   });
   
+  // Total is ALL availed respondents, not just those who answered satisfaction questions
+  const total = availedIds.size;
+  
   if (respondentRatings.size === 0) {
     return {
       count: 0,
-      total: 0,
-      percentage: null
+      total: total,
+      percentage: total > 0 ? 0 : null
     };
   }
   
   // Get all ratings (one per respondent)
   const satisfactionScores = Array.from(respondentRatings.values());
   
-  // Calculate average satisfaction rating and convert to percentage
-  const avgRating = satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length;
-  const percentage = Math.round((avgRating / 5) * 1000) / 10;
-  
   // Count satisfied respondents (rating >= 4 as "satisfied")
   const satisfiedCount = satisfactionScores.filter(rating => rating >= 4).length;
   
-  // Total is the number of availed respondents who answered satisfaction questions
-  const total = respondentRatings.size;
+  // Calculate percentage: (satisfied_count / total_availed) * 100
+  const percentage = Math.round((satisfiedCount / total) * 1000) / 10;
   
   return {
     count: satisfiedCount,

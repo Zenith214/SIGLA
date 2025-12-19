@@ -269,6 +269,52 @@ export function SurveyTargets() {
     }
   }
 
+  // Recalculate Progress
+  const [recalculating, setRecalculating] = useState(false);
+  const handleRecalculateProgress = async () => {
+    if (!activeCycle) {
+      toast({
+        title: "No Active Cycle",
+        description: "Please set an active cycle first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setRecalculating(true);
+    try {
+      const response = await fetch('/api/survey-targets/calculate-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Progress Recalculated",
+          description: `Successfully updated progress for ${data.updated_count} survey targets.`,
+        });
+        
+        // Refresh targets list
+        const targetsResponse = await fetch("/api/survey-targets");
+        const targetsData = await targetsResponse.json();
+        setTargets(targetsData);
+      } else {
+        throw new Error(data.error || 'Failed to recalculate progress');
+      }
+    } catch (err: any) {
+      toast({
+        title: "Recalculation Failed",
+        description: err.message || "Failed to recalculate survey target progress.",
+        variant: "destructive"
+      });
+    } finally {
+      setRecalculating(false);
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-6xl">
       <div className="flex items-center justify-between">
@@ -287,6 +333,15 @@ export function SurveyTargets() {
           )}
         </div>
         <div className="flex gap-2">
+          <Button 
+            className="bg-purple-500 hover:bg-purple-600 text-white" 
+            onClick={handleRecalculateProgress}
+            disabled={recalculating || !hasActiveCycle}
+            title="Recalculate progress based on actual survey responses"
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            {recalculating ? 'Recalculating...' : 'Recalculate Progress'}
+          </Button>
           <Button 
             className="bg-green-500 hover:bg-green-600 text-white" 
             onClick={handleBulkCreateTargets}

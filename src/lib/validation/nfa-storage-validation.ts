@@ -106,8 +106,18 @@ export function validateNFAFieldPair(
     errors.push(`Missing binary field '${binaryFieldName}' for indicator '${indicatorId}'`);
   }
   
+  // Only require suggestion field if binary answer is "Yes" or "Oo"
+  // If binary is "No" or "Hindi", suggestion can be null/empty
   if (isNullish(suggestionValue) && hasBinaryField && !isNullish(binaryValue)) {
-    errors.push(`Missing suggestion field '${suggestionFieldName}' for indicator '${indicatorId}'`);
+    const binaryStr = String(binaryValue).toLowerCase();
+    const isYes = binaryStr.includes('yes') || binaryStr.includes('oo');
+    
+    if (isYes) {
+      // Binary is "Yes" but suggestion is missing - this might be intentional (user didn't provide suggestion)
+      // Downgrade to warning instead of error
+      warnings.push(`Binary answer is 'Yes' for '${indicatorId}' but suggestion is empty. This may indicate incomplete data.`);
+    }
+    // If binary is "No", it's fine for suggestion to be null - no error or warning needed
   }
 
   // If either field is missing, return early

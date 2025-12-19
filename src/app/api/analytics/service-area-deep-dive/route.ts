@@ -208,10 +208,22 @@ export async function GET(request: NextRequest) {
           if (key.toLowerCase().startsWith('satisfaction')) {
             const value = data[key]
             if (value) {
-              const satValue = parseInt(String(value).charAt(0))
-              if (!isNaN(satValue) && satValue >= 1 && satValue <= 5) {
-                satisfactionSum += (satValue / 5) * 100
+              const satisfactionValue = String(value).toLowerCase();
+              
+              // Check if it's the new binary format
+              if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+                satisfactionSum += 100
                 satisfactionCount++
+              } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+                satisfactionSum += 0
+                satisfactionCount++
+              } else {
+                // Old format: 1-5 scale
+                const satValue = parseInt(satisfactionValue.charAt(0))
+                if (!isNaN(satValue) && satValue >= 1 && satValue <= 5) {
+                  satisfactionSum += (satValue / 5) * 100
+                  satisfactionCount++
+                }
               }
             }
           }

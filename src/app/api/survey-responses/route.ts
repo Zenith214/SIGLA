@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 import { verifyGPSLocation, validateGPSCoordinates, type GPSCoordinates } from '@/app/survey/forms/utils/gpsVerification';
 import { validateSurveyNFAData } from '@/lib/validation/nfa-storage-validation';
+import { transformNFAFields } from '@/app/survey/forms/utils/nfaFieldTransform';
 import { getClientWithRetry, withRetry } from '@/lib/db/retry-utils';
 import {
   badRequestResponse,
@@ -25,6 +26,44 @@ const pool = new Pool({
     rejectUnauthorized: false // Required for Supabase connections
   }
 });
+
+/**
+ * Recalculate survey target progress for a specific barangay and cycle
+ * This counts actual completed/submitted responses and updates the survey_target table
+ */
+async function recalculateSurveyTargetProgress(client: any, barangayId: number, cycleId: number) {
+  try {
+    // Count actual completed/submitted responses
+    const countQuery = `
+      SELECT COUNT(*) as count
+      FROM survey_response
+      WHERE barangay_id = $1 
+        AND survey_cycle_id = $2
+        AND status IN ('completed', 'submitted')
+    `;
+    const countResult = await client.query(countQuery, [barangayId, cycleId]);
+    const actualCount = parseInt(countResult.rows[0].count) || 0;
+
+    // Update the survey target with actual count
+    const updateQuery = `
+      UPDATE survey_target
+      SET 
+        achieved = $1,
+        percentage = CASE 
+          WHEN target > 0 THEN ROUND(($1::decimal / target::decimal) * 100)
+          ELSE 0 
+        END,
+        updated_at = NOW()
+      WHERE barangay_id = $2 AND survey_cycle_id = $3
+    `;
+    await client.query(updateQuery, [actualCount, barangayId, cycleId]);
+    
+    console.log(`✅ Recalculated progress for barangay ${barangayId}: ${actualCount} responses`);
+  } catch (error) {
+    console.error('Error recalculating survey target progress:', error);
+    // Don't throw - this is a non-critical operation
+  }
+}
 
 export async function POST(request: NextRequest) {
   let client;
@@ -50,9 +89,48 @@ export async function POST(request: NextRequest) {
       return missingFieldsResponse(missingFields);
     }
 
-    // Requirement 3.3: Validate NFA data structure completeness before storage
+    // Transform NFA field names from internal format to database format
+    let transformedSections = sections;
     if (sections) {
-      const nfaValidation = validateSurveyNFAData(sections);
+      console.log('🔍 [NFA Transform] Original sections keys:', Object.keys(sections));
+      transformedSections = Object.entries(sections).reduce((acc, [sectionKey, sectionData]: [string, any]) => {
+        console.log(`🔍 [NFA Transform] Processing section: ${sectionKey}`, {
+          hasSectionData: !!sectionData,
+          hasDataProperty: sectionData && 'data' in sectionData,
+          sampleKeys: sectionData ? Object.keys(sectionData).slice(0, 5) : []
+        });
+        
+        const dataToTransform = sectionData.data || sectionData;
+        const transformed = transformNFAFields(dataToTransform);
+        
+        console.log(`🔍 [NFA Transform] Section ${sectionKey} - Before/After sample:`, {
+          beforeKeys: Object.keys(dataToTransform).filter(k => k.includes('nfa') || k.includes('suggestion')),
+          afterKeys: Object.keys(transformed).filter(k => k.includes('need_for_action'))
+        });
+        
+        acc[sectionKey] = {
+          ...sectionData,
+          data: transformed
+        };
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
+    // Requirement 3.3: Validate NFA data structure completeness before storage
+    if (transformedSections) {
+      // Debug: Check financial section data
+      if (transformedSections.financial && transformedSections.financial.data) {
+        const financialData = transformedSections.financial.data;
+        console.log('🔍 [NFA Debug] Financial section NFA fields:', {
+          has_binary_financial: 'need_for_action_binary_financial' in financialData,
+          binary_financial_value: financialData.need_for_action_binary_financial,
+          has_suggestion_financial: 'need_for_action_suggestion_financial' in financialData,
+          suggestion_financial_value: financialData.need_for_action_suggestion_financial,
+          suggestion_type: typeof financialData.need_for_action_suggestion_financial
+        });
+      }
+      
+      const nfaValidation = validateSurveyNFAData(transformedSections);
       if (!nfaValidation.valid) {
         console.warn('NFA validation errors:', nfaValidation.errors);
         if (nfaValidation.warnings) {
@@ -270,9 +348,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save survey sections data
-    if (sections && typeof sections === 'object') {
-      for (const [sectionKey, sectionData] of Object.entries(sections)) {
+    // Save survey sections data (use transformed sections with standardized field names)
+    if (transformedSections && typeof transformedSections === 'object') {
+      for (const [sectionKey, sectionData] of Object.entries(transformedSections)) {
         if (sectionData && typeof sectionData === 'object' && 'data' in sectionData && sectionData.data) {
           const sectionInsertQuery = `
             INSERT INTO survey_section (
@@ -353,22 +431,9 @@ export async function POST(request: NextRequest) {
       await client.query(updateQuestionnaireQuery, ['Completed', nextVisitNumber, questionnaireId]);
     }
 
-    // Update survey target progress for the barangay in the active cycle (only for new records)
-    if (!isUpdate) {
-      const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2 LIMIT 1';
-      const targetResult = await client.query(targetQuery, [parseInt(barangayId), activeCycle.cycle_id]);
-      
-      if (targetResult.rows.length > 0) {
-        const surveyTarget = targetResult.rows[0];
-        const newAchieved = (surveyTarget.achieved || 0) + 1;
-        const newPercentage = Math.round((newAchieved / surveyTarget.target) * 100);
-        
-        await client.query(
-          'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
-          [newAchieved, newPercentage, surveyTarget.target_id]
-        );
-      }
-    }
+    // Recalculate survey target progress for the barangay in the active cycle
+    // This ensures accurate counts even after deletions or updates
+    await recalculateSurveyTargetProgress(client, parseInt(barangayId), activeCycle.cycle_id);
 
     return NextResponse.json({
       success: true,
@@ -426,8 +491,8 @@ export async function DELETE(request: NextRequest) {
       await client.query('DELETE FROM survey_validation WHERE response_id IN (SELECT response_id FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2)', [parseInt(barangayId), activeCycle.cycle_id]);
       const result = await client.query('DELETE FROM survey_response WHERE barangay_id = $1 AND survey_cycle_id = $2', [parseInt(barangayId), activeCycle.cycle_id]);
 
-      // Reset survey target progress for the active cycle
-      await client.query('UPDATE survey_target SET achieved = 0, percentage = 0 WHERE barangay_id = $1 AND survey_cycle_id = $2', [parseInt(barangayId), activeCycle.cycle_id]);
+      // Recalculate survey target progress for the active cycle
+      await recalculateSurveyTargetProgress(client, parseInt(barangayId), activeCycle.cycle_id);
 
       return NextResponse.json({
         success: true,
@@ -436,6 +501,16 @@ export async function DELETE(request: NextRequest) {
       })
 
     } else if (responseId) {
+      // Get the survey response details BEFORE deleting
+      const responseQuery = 'SELECT barangay_id, survey_cycle_id FROM survey_response WHERE response_id = $1';
+      const responseResult = await client.query(responseQuery, [parseInt(responseId)]);
+      
+      if (responseResult.rows.length === 0) {
+        return NextResponse.json({ error: 'Response not found' }, { status: 404 });
+      }
+      
+      const { barangay_id, survey_cycle_id } = responseResult.rows[0];
+      
       // Delete single response
       await client.query('DELETE FROM survey_section WHERE response_id = $1', [parseInt(responseId)]);
       await client.query('DELETE FROM survey_metadata WHERE response_id = $1', [parseInt(responseId)]);
@@ -444,29 +519,9 @@ export async function DELETE(request: NextRequest) {
       await client.query('DELETE FROM survey_validation WHERE response_id = $1', [parseInt(responseId)]);
       const result = await client.query('DELETE FROM survey_response WHERE response_id = $1', [parseInt(responseId)]);
 
-      // Update survey target progress for the cycle
+      // Recalculate survey target progress for the cycle
       if (result.rowCount && result.rowCount > 0) {
-        // Get the survey response details to find the cycle
-        const responseQuery = 'SELECT barangay_id, survey_cycle_id FROM survey_response WHERE response_id = $1';
-        const responseResult = await client.query(responseQuery, [parseInt(responseId)]);
-        
-        if (responseResult.rows.length > 0) {
-          const { barangay_id, survey_cycle_id } = responseResult.rows[0];
-          
-          const targetQuery = 'SELECT * FROM survey_target WHERE barangay_id = $1 AND survey_cycle_id = $2';
-          const targetResult = await client.query(targetQuery, [barangay_id, survey_cycle_id]);
-          
-          if (targetResult.rows.length > 0) {
-            const surveyTarget = targetResult.rows[0];
-            const newAchieved = Math.max(0, (surveyTarget.achieved || 0) - 1);
-            const newPercentage = Math.round((newAchieved / surveyTarget.target) * 100);
-
-            await client.query(
-              'UPDATE survey_target SET achieved = $1, percentage = $2, updated_at = NOW() WHERE target_id = $3',
-              [newAchieved, newPercentage, surveyTarget.target_id]
-            );
-          }
-        }
+        await recalculateSurveyTargetProgress(client, barangay_id, survey_cycle_id);
       }
 
       return NextResponse.json({

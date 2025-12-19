@@ -372,6 +372,7 @@ function InterviewDetailsWrapper({
     <InterviewDetailModal
       isOpen={true}
       onClose={onClose}
+      showGPSVerification={false}
       interviewId={responseId}
       questionnaireId={questionnaireId}
     />

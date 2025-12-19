@@ -217,6 +217,87 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
     fetchData()
   }, [barangayId])
 
+  // Refresh data when page becomes visible (e.g., after navigating back from survey form)
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('📊 Page visible - refreshing barangay data...');
+        // Re-fetch data when page becomes visible
+        const fetchData = async () => {
+          try {
+            // Add cache-busting parameter
+            const response = await fetch(`/api/barangays/${barangayId}?t=${Date.now()}`)
+            if (!response.ok) {
+              throw new Error('Failed to fetch barangay data')
+            }
+            const data = await response.json()
+
+            // Fetch survey responses for this barangay
+            const responsesResponse = await fetch(`/api/survey-responses?barangayId=${barangayId}&t=${Date.now()}`)
+            const surveyResponses = responsesResponse.ok ? await responsesResponse.json() : []
+
+            // Update barangay data with actual survey responses
+            const updatedData = {
+              ...data,
+              survey_response: surveyResponses,
+              surveyTargets: data.surveyTargets?.map((target: any) => ({
+                ...target,
+                achieved: surveyResponses.length,
+                percentage: target.target > 0 ? Math.min(100, Math.round((surveyResponses.length / target.target) * 100)) : 0
+              })) || []
+            }
+            
+            setBarangay(updatedData)
+          } catch (error) {
+            console.error("Error refreshing barangay data:", error)
+          }
+        }
+        fetchData()
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh when window gains focus
+    const handleFocus = () => {
+      console.log('📊 Window focused - refreshing barangay data...');
+      const fetchData = async () => {
+        try {
+          const response = await fetch(`/api/barangays/${barangayId}?t=${Date.now()}`)
+          if (!response.ok) {
+            throw new Error('Failed to fetch barangay data')
+          }
+          const data = await response.json()
+
+          const responsesResponse = await fetch(`/api/survey-responses?barangayId=${barangayId}&t=${Date.now()}`)
+          const surveyResponses = responsesResponse.ok ? await responsesResponse.json() : []
+
+          const updatedData = {
+            ...data,
+            survey_response: surveyResponses,
+            surveyTargets: data.surveyTargets?.map((target: any) => ({
+              ...target,
+              achieved: surveyResponses.length,
+              percentage: target.target > 0 ? Math.min(100, Math.round((surveyResponses.length / target.target) * 100)) : 0
+            })) || []
+          }
+          
+          setBarangay(updatedData)
+        } catch (error) {
+          console.error("Error refreshing barangay data:", error)
+        }
+      }
+      fetchData()
+    };
+    
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [barangayId]);
+
   // Set document title with barangay name
   React.useEffect(() => {
     if (barangay?.barangay_name) {

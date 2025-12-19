@@ -21,6 +21,7 @@ interface InterviewDetailModalProps {
   onClose: () => void;
   interviewId: number;
   questionnaireId: string;
+  showGPSVerification?: boolean; // Optional prop to control GPS verification tab visibility
 }
 
 interface InterviewDetails {
@@ -48,6 +49,7 @@ export default function InterviewDetailModal({
   onClose,
   interviewId,
   questionnaireId,
+  showGPSVerification = true, // Default to true for backward compatibility
 }: InterviewDetailModalProps) {
   const [interview, setInterview] = useState<InterviewDetails | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -144,7 +146,7 @@ export default function InterviewDetailModal({
 
           {interview && !loading && !error && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className={`grid w-full ${showGPSVerification ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="visit-history">
                   Visit History
@@ -152,12 +154,14 @@ export default function InterviewDetailModal({
                     <span className="ml-1 text-xs">({visits.length})</span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="gps-verification">
-                  GPS Verification
-                  {interview.gps_verification_status === "flagged" && (
-                    <AlertTriangle className="h-4 w-4 ml-2 text-red-500" />
-                  )}
-                </TabsTrigger>
+                {showGPSVerification && (
+                  <TabsTrigger value="gps-verification">
+                    GPS Verification
+                    {interview.gps_verification_status === "flagged" && (
+                      <AlertTriangle className="h-4 w-4 ml-2 text-red-500" />
+                    )}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="respondent">Respondent Info</TabsTrigger>
               </TabsList>
 
@@ -291,26 +295,28 @@ export default function InterviewDetailModal({
                 )}
               </TabsContent>
 
-              {/* GPS Verification Tab */}
-              <TabsContent value="gps-verification" className="mt-4">
-                {interview.spot_location && interview.verification_location ? (
-                  <InterviewMapView
-                    surveyResponse={{
-                      id: interview.response_id,
-                      questionnaireId: interview.questionnaire_id,
-                      assignedSpot: interview.spot_location,
-                      verificationLocation: interview.verification_location,
-                    }}
-                    verificationThreshold={200}
-                  />
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>GPS verification data not available</p>
-                    {!interview.spot_location && <p className="text-sm mt-2">No assigned spot location</p>}
-                    {!interview.verification_location && <p className="text-sm mt-2">No verification location captured</p>}
-                  </div>
-                )}
-              </TabsContent>
+              {/* GPS Verification Tab - Only shown when showGPSVerification is true */}
+              {showGPSVerification && (
+                <TabsContent value="gps-verification" className="mt-4">
+                  {interview.spot_location && interview.verification_location ? (
+                    <InterviewMapView
+                      surveyResponse={{
+                        id: interview.response_id,
+                        questionnaireId: interview.questionnaire_id,
+                        assignedSpot: interview.spot_location,
+                        verificationLocation: interview.verification_location,
+                      }}
+                      verificationThreshold={200}
+                    />
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <p>GPS verification data not available</p>
+                      {!interview.spot_location && <p className="text-sm mt-2">No assigned spot location</p>}
+                      {!interview.verification_location && <p className="text-sm mt-2">No verification location captured</p>}
+                    </div>
+                  )}
+                </TabsContent>
+              )}
 
               {/* Respondent Info Tab */}
               <TabsContent value="respondent" className="space-y-4 mt-4">

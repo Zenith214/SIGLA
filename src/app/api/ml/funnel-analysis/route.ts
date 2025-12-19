@@ -261,11 +261,24 @@ async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cyc
         overallSectionData.forEach((row: any) => {
           const data = row.data;
           if (data && data.overallSatisfaction) {
-            // Extract numeric value from format like "5 - Very Satisfied / Lubos na Nasiyahan"
-            const numericValue = parseInt(String(data.overallSatisfaction).charAt(0));
-            if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-              satisfactionSum += numericValue;
+            const satisfactionValue = String(data.overallSatisfaction).toLowerCase();
+            
+            // Check if it's the new binary format
+            if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+              // Binary "Yes" = satisfied = 100%
+              satisfactionSum += 5; // Use 5 to maintain compatibility with old calculation
               satisfactionCount++;
+            } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+              // Binary "No" = not satisfied = 0%
+              satisfactionSum += 0;
+              satisfactionCount++;
+            } else {
+              // Old format: Extract numeric value from format like "5 - Very Satisfied / Lubos na Nasiyahan"
+              const numericValue = parseInt(satisfactionValue.charAt(0));
+              if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+                satisfactionSum += numericValue;
+                satisfactionCount++;
+              }
             }
           }
         });
