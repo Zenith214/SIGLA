@@ -89,13 +89,10 @@ export default function ProgressMap({ spots, loading = false }: ProgressMapProps
 
   useEffect(() => {
     setIsClient(true);
-    // Import Leaflet library
+    // Import Leaflet library and CSS
+    import("leaflet/dist/leaflet.css");
     import("leaflet").then((leaflet) => {
       setL(leaflet);
-      // Import CSS dynamically
-      if (typeof window !== "undefined") {
-        require("leaflet/dist/leaflet.css");
-      }
     });
   }, []);
 

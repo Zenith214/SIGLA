@@ -308,7 +308,7 @@ function PulseLoginContent() {
                   (Partnership)
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  © 2024 PULSE System. All rights reserved.
+                  © 2025 PULSE System. All rights reserved.
                 </p>
               </div>
             </div>

@@ -15,10 +15,21 @@ export default function FSNavbar({ activeTab, onTabChange }: FSNavbarProps) {
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      // Convert to Philippine time (UTC+8)
-      const philippineTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-      const timeString = philippineTime.toISOString().slice(0, 19).replace('T', ' ');
+      // Get current time in Philippine Standard Time (GMT+8)
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      };
+      
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      const timeString = formatter.format(new Date());
+      
       setCurrentTime(timeString);
     };
 

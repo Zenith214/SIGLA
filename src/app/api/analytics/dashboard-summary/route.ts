@@ -36,12 +36,25 @@ async function calculateBarangaySatisfaction(client: any, barangayId: number, cy
   result.rows.forEach((row: any) => {
     const satisfactionStr = row.overall_satisfaction
     if (satisfactionStr) {
-      // Extract the numeric value (first character)
-      const numericValue = parseInt(String(satisfactionStr).charAt(0))
-      if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-        // Convert 1-5 scale to percentage (1=20%, 2=40%, 3=60%, 4=80%, 5=100%)
-        totalSatisfaction += (numericValue / 5) * 100
+      const satisfactionValue = String(satisfactionStr).toLowerCase();
+      
+      // Check if it's the new binary format
+      if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+        // Binary "Yes" = satisfied = 100%
+        totalSatisfaction += 100
         count++
+      } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+        // Binary "No" = not satisfied = 0%
+        totalSatisfaction += 0
+        count++
+      } else {
+        // Old format: Extract the numeric value (first character)
+        const numericValue = parseInt(satisfactionValue.charAt(0))
+        if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+          // Convert 1-5 scale to percentage (1=20%, 2=40%, 3=60%, 4=80%, 5=100%)
+          totalSatisfaction += (numericValue / 5) * 100
+          count++
+        }
       }
     }
   })

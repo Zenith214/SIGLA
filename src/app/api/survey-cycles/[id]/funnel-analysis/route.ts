@@ -230,10 +230,23 @@ function calculateSectionScores(responses: any[]): any {
       Object.entries(data).forEach(([key, value]: [string, any]) => {
         if (key.toLowerCase().includes('satisf')) {
           totalSatisfactionQuestions++;
-          const numValue = typeof value === 'string' ? parseInt(value) : value;
-          if ((typeof numValue === 'number' || typeof value === 'number') &&
-              numValue >= 1 && numValue <= 5) {
-            satisfactionSum += numValue;
+          // Handle binary Yes/No responses
+          const stringValue = String(value).toLowerCase();
+          if (value === 1 || value === true || value === '1' || 
+              stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true' ||
+              stringValue.includes('yes') || stringValue.includes('oo')) {
+            satisfactionSum++; // Count as satisfied
+          }
+          // For backward compatibility with old Likert scale data (1-5)
+          else {
+            const numValue = typeof value === 'string' ? parseInt(value) : value;
+            if ((typeof numValue === 'number' || typeof value === 'number') &&
+                numValue >= 1 && numValue <= 5) {
+              // Convert Likert scale to binary: 4-5 = satisfied, 1-3 = not satisfied
+              if (numValue >= 4) {
+                satisfactionSum++;
+              }
+            }
           }
         }
       });
@@ -265,8 +278,10 @@ function calculateSectionScores(responses: any[]): any {
     ? Math.round((availmentCount / totalAvailmentQuestions) * 100)
     : 0;
 
+  // For binary Yes/No responses, satisfactionSum is already a count of "Yes" responses
+  // So we calculate percentage directly
   const satisfactionScore = totalSatisfactionQuestions > 0
-    ? Math.round(((satisfactionSum / totalSatisfactionQuestions) / 5) * 100)
+    ? Math.round((satisfactionSum / totalSatisfactionQuestions) * 100)
     : 0;
 
   const needActionScore = totalNeedActionQuestions > 0

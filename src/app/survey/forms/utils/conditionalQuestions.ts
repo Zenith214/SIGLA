@@ -79,6 +79,8 @@ export const NON_AVAILMENT_REASON_OPTIONS = {
 
 /**
  * Get unawareness reason question text with translations
+ * NOTE: This is kept for backward compatibility but the actual translation
+ * should be handled by getTranslatedQuestion() in the question flow
  */
 export function getUnawarenessQuestionText(language: 'english' | 'filipino' | 'bisaya' = 'english'): string {
   const texts = {
@@ -91,6 +93,8 @@ export function getUnawarenessQuestionText(language: 'english' | 'filipino' | 'b
 
 /**
  * Get non-availment reason question text with translations
+ * NOTE: This is kept for backward compatibility but the actual translation
+ * should be handled by getTranslatedQuestion() in the question flow
  */
 export function getNonAvailmentQuestionText(language: 'english' | 'filipino' | 'bisaya' = 'english'): string {
   const texts = {
@@ -118,14 +122,14 @@ export function createUnawarenessReasonQuestion(
   // Use the question ID for translation lookup instead of hardcoded text
   const questionId = `${serviceId}_unawareness_reason`;
   
-  // Always use English option keys - they will be translated by getTranslatedOptions()
+  // ALWAYS use English option keys - they will be translated dynamically by getTranslatedOptions()
   const englishOptions = UNAWARENESS_REASON_OPTIONS.english;
   
   const question: Question = {
     id: questionId,
     type: 'radio',
     question: getUnawarenessQuestionText(language),
-    options: UNAWARENESS_REASON_OPTIONS[language],
+    options: englishOptions, // Use English keys for values
     required: (formData: any) => {
       const answer = formData[awarenessQuestionId];
       return answer === 'No' || answer === 'Hindi' || answer === 'Hindi (No)' || answer === 'Dili';
@@ -136,13 +140,11 @@ export function createUnawarenessReasonQuestion(
       {
         id: `${serviceId}_unawareness_reason_other`,
         type: 'textarea',
-        question: OTHER_REASON_LABELS[language],
+        question: 'Please specify:', // Use English key for translation
         required: (formData: any) => {
           const mainAnswer = formData[questionId];
-          // Check against all language versions of "Other Reason"
-          return mainAnswer === 'Other Reason' || 
-                 mainAnswer === 'Iba pang dahilan' || 
-                 mainAnswer === 'Laing rason';
+          // Only check against English key since we're using English options
+          return mainAnswer === 'Other Reason';
         },
         dependsOn: questionId,
         dependsOnValue: 'Other Reason' // English key
@@ -169,14 +171,14 @@ export function createNonAvailmentReasonQuestion(
   // Use the question ID for translation lookup instead of hardcoded text
   const questionId = `${serviceId}_non_availment_reason`;
   
-  // Always use English option keys - they will be translated by getTranslatedOptions()
+  // ALWAYS use English option keys - they will be translated dynamically by getTranslatedOptions()
   const englishOptions = NON_AVAILMENT_REASON_OPTIONS.english;
   
   return {
     id: questionId,
     type: 'radio',
     question: getNonAvailmentQuestionText(language),
-    options: NON_AVAILMENT_REASON_OPTIONS[language],
+    options: englishOptions, // Use English keys for values
     required: (formData: any) => {
       const isAware = formData[awarenessQuestionId] === 'Yes' || 
                      formData[awarenessQuestionId] === 'Oo' || 
@@ -193,13 +195,11 @@ export function createNonAvailmentReasonQuestion(
       {
         id: `${serviceId}_non_availment_reason_other`,
         type: 'textarea',
-        question: OTHER_REASON_LABELS[language],
+        question: 'Please specify:', // Use English key for translation
         required: (formData: any) => {
           const mainAnswer = formData[questionId];
-          // Check against all language versions of "Other Reason"
-          return mainAnswer === 'Other Reason' || 
-                 mainAnswer === 'Iba pang dahilan' || 
-                 mainAnswer === 'Laing rason';
+          // Only check against English key since we're using English options
+          return mainAnswer === 'Other Reason';
         },
         dependsOn: questionId,
         dependsOnValue: 'Other Reason' // English key

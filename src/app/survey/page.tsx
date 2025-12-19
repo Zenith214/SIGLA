@@ -125,36 +125,65 @@ function SurveyDashboardContent() {
   }
 
   // Fetch barangays with assignments from database
-  useEffect(() => {
-    const fetchBarangays = async () => {
-      try {
-        const response = await fetch('/api/barangays-with-assignments');
-        if (!response.ok) {
-          throw new Error('Failed to fetch barangays with assignments');
-        }
-        const data = await response.json();
-        setBarangays(data);
-
-        // Filter assignments for current user if they're an interviewer
-        if (user?.id && user?.role?.toLowerCase() === 'interviewer') {
-          const userAssignments = data.filter((b: Barangay) => 
-            b.assignment && b.assignment.interviewer.email === user.email
-          );
-          setMyAssignments(userAssignments);
-        }
-      } catch (error) {
-        console.error('Error fetching barangays with assignments:', error);
-        // Fallback to empty array if fetch fails
-        setBarangays([]);
-        setMyAssignments([]);
-      } finally {
-        setLoading(false);
+  const fetchBarangays = async () => {
+    try {
+      setLoading(true);
+      // Add cache-busting parameter to ensure fresh data
+      const response = await fetch(`/api/barangays-with-assignments?t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch barangays with assignments');
       }
-    };
+      const data = await response.json();
+      setBarangays(data);
 
+      // Filter assignments for current user if they're an interviewer
+      if (user?.id && user?.role?.toLowerCase() === 'interviewer') {
+        const userAssignments = data.filter((b: Barangay) => 
+          b.assignment && b.assignment.interviewer.email === user.email
+        );
+        setMyAssignments(userAssignments);
+      }
+    } catch (error) {
+      console.error('Error fetching barangays with assignments:', error);
+      // Fallback to empty array if fetch fails
+      setBarangays([]);
+      setMyAssignments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (user) {
       fetchBarangays();
     }
+  }, [user]);
+
+  // Refresh data when page becomes visible (e.g., after navigating back from survey form)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        console.log('📊 Page visible - refreshing barangay data...');
+        fetchBarangays();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh when window gains focus
+    const handleFocus = () => {
+      if (user) {
+        console.log('📊 Window focused - refreshing barangay data...');
+        fetchBarangays();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [user]);
 
   // Update time display
@@ -346,7 +375,9 @@ function SurveyDashboardContent() {
                 >
                   Overall Progress
                 </button>
-                {user?.role?.toLowerCase() === 'interviewer' && (
+                {(user?.role?.toLowerCase() === 'interviewer' || 
+                  user?.role?.toLowerCase() === 'admin' || 
+                  user?.role?.toLowerCase() === 'developer') && (
                   <>
                     <button
                       onClick={() => setActiveTab('spots')}
@@ -356,7 +387,7 @@ function SurveyDashboardContent() {
                           : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                       }`}
                     >
-                      My Spots
+                      {user?.role?.toLowerCase() === 'interviewer' ? 'My Spots' : 'All Spots'}
                     </button>
 
                   </>
@@ -470,7 +501,7 @@ function SurveyDashboardContent() {
                     <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-semibold text-[#111827] text-sm">{barangay.name}</h4>
+                          <h4 className="font-semibold text-[#111827] text-sm">Brgy. {barangay.name}</h4>
                           <span
                             className={`px-2 py-1 text-xs rounded-full font-medium ${
                               (() => {
@@ -554,7 +585,9 @@ function SurveyDashboardContent() {
                 </div>
               )}
 
-              {activeTab === 'spots' && user?.role?.toLowerCase() === 'interviewer' && (
+              {activeTab === 'spots' && (user?.role?.toLowerCase() === 'interviewer' || 
+                user?.role?.toLowerCase() === 'admin' || 
+                user?.role?.toLowerCase() === 'developer') && (
                 <div>
                   <MySpotAssignments cycleId={activeCycle?.cycle_id} />
                 </div>

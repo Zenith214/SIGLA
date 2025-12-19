@@ -200,7 +200,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
     setHoveredBarangay(null);
   };
 
-  const handlePathClick = (pathId: string, event: React.MouseEvent) => {
+  const handlePathClick = async (pathId: string, event: React.MouseEvent) => {
     console.log('🖱️ Path clicked:', pathId); // Debug log
     
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
@@ -261,6 +261,39 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       isAwardee: barangay.isAwardee,
       viewingCycleData
     });
+
+    // Fetch historical award data for this barangay
+    if (barangay.id > 0) {
+      try {
+        console.log('🔍 Fetching history for barangay ID:', barangay.id);
+        const historyResponse = await fetch(`/api/barangays/${barangay.id}/history`);
+        console.log('📡 History API response status:', historyResponse.status);
+        
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          console.log('📊 History API data:', historyData);
+          
+          if (historyData.success && historyData.data.length > 0) {
+            barangay = {
+              ...barangay,
+              history: historyData.data
+            };
+            console.log('📜 Historical data loaded:', historyData.data);
+          } else {
+            console.log('⚠️ No historical data in response');
+          }
+        } else {
+          console.error('❌ History API failed with status:', historyResponse.status);
+          const errorText = await historyResponse.text();
+          console.error('Error response:', errorText);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching history:', error);
+        // Continue with existing history data if fetch fails
+      }
+    } else {
+      console.log('⚠️ Barangay ID is 0, skipping history fetch');
+    }
 
     setSelectedBarangay(barangayName);
     onBarangaySelect?.(barangay);

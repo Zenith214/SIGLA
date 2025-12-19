@@ -412,10 +412,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
   if (sectionData['awarenessProjects'] === "Oo") {
     sectionData['benefitedProjects'] = availmentScore > 0.3 ? "Oo" : "Hindi";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['benefitedProjects'] === "Oo") {
-      const satisfactionRating = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionProjects'] = satisfactionRating.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionProjects'] = satisfactionScore > 0.5 ? "Oo" : "Hindi";
     }
   }
   
@@ -449,10 +449,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
   if (sectionData['awarenessFinancial'] === "Oo") {
     sectionData['usedFinancialInfo'] = availmentScore > 0.3 ? "Oo" : "Hindi";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['usedFinancialInfo'] === "Oo") {
-      const satisfactionRatingFinancial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionFinancial'] = satisfactionRatingFinancial.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionFinancial'] = satisfactionScore > 0.5 ? "Oo" : "Hindi";
     }
   }
   
@@ -469,10 +469,10 @@ function generateFinancialSectionData(sectionData: { [key: string]: any }, profi
   if (sectionData['awarenessSocialPrograms'] === "Oo") {
     sectionData['participatedSocialPrograms'] = availmentScore > 0.3 ? "Oo" : "Hindi";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['participatedSocialPrograms'] === "Oo") {
-      const satisfactionRatingSocial = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionSocialPrograms'] = satisfactionRatingSocial.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionSocialPrograms'] = satisfactionScore > 0.5 ? "Oo" : "Hindi";
     }
   }
   
@@ -528,10 +528,10 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
   if (sectionData['awarenessDisasterInfo'] === "Yes") {
     sectionData['availmentDisasterInfo'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentDisasterInfo'] === "Yes") {
-      const satisfactionRatingDisaster = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionDisasterInfo'] = satisfactionRatingDisaster.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionDisasterInfo'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -548,10 +548,10 @@ function generateDisasterSectionData(sectionData: { [key: string]: any }, profil
   if (sectionData['awarenessEvacuation'] === "Yes") {
     sectionData['locationEvacuation'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['locationEvacuation'] === "Yes") {
-      const satisfactionRatingEvacuation = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionEvacuation'] = satisfactionRatingEvacuation.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionEvacuation'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -583,10 +583,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessTanods'] === "Yes") {
     sectionData['experienceTanods'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['experienceTanods'] === "Yes") {
-      const satisfactionRatingTanods = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionTanods'] = satisfactionRatingTanods.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionTanods'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -603,10 +603,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessLupon'] === "Yes") {
     sectionData['experienceLupon'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['experienceLupon'] === "Yes") {
-      const satisfactionRatingLupon = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionLupon'] = satisfactionRatingLupon.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionLupon'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -623,10 +623,10 @@ function generateSafetySectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessAntiDrug'] === "Yes") {
     sectionData['experienceAntiDrug'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['experienceAntiDrug'] === "Yes") {
-      const satisfactionRatingAntiDrug = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionAntiDrug'] = satisfactionRatingAntiDrug.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionAntiDrug'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -658,10 +658,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessHealthServices'] === "Yes") {
     sectionData['availmentHealthServices'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentHealthServices'] === "Yes") {
-      const satisfactionRatingHealth = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionHealthServices'] = satisfactionRatingHealth.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionHealthServices'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -678,10 +678,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessWomenChildrenProtection'] === "Yes") {
     sectionData['availmentWomenChildrenProtection'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentWomenChildrenProtection'] === "Yes") {
-      const satisfactionRatingWomen = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionWomenChildrenProtection'] = satisfactionRatingWomen.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionWomenChildrenProtection'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -698,10 +698,10 @@ function generateSocialSectionData(sectionData: { [key: string]: any }, profileR
   if (sectionData['awarenessCommunityParticipation'] === "Yes") {
     sectionData['availmentCommunityParticipation'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentCommunityParticipation'] === "Yes") {
-      const satisfactionRatingCommunity = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionCommunityParticipation'] = satisfactionRatingCommunity.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionCommunityParticipation'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -733,10 +733,10 @@ function generateBusinessSectionData(sectionData: { [key: string]: any }, profil
   if (sectionData['awarenessBusinessClearance'] === "Yes") {
     sectionData['availmentBusinessClearance'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentBusinessClearance'] === "Yes") {
-      const satisfactionRatingBusiness = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionBusinessClearance'] = satisfactionRatingBusiness.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionBusinessClearance'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   
@@ -768,10 +768,10 @@ function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, p
   if (sectionData['awarenessWasteManagement'] === "Yes") {
     sectionData['availmentWasteManagement'] = availmentScore > 0.3 ? "Yes" : "No";
     
-    // Only generate satisfaction rating if they availed
+    // Only generate satisfaction rating if they availed (BINARY FORMAT: Yes/No)
     if (sectionData['availmentWasteManagement'] === "Yes") {
-      const satisfactionRatingWaste = Math.max(1, Math.min(5, Math.round(satisfactionScore * 5)));
-      sectionData['satisfactionWasteManagement'] = satisfactionRatingWaste.toString();
+      // Binary satisfaction: Yes if satisfaction score > 0.5, No otherwise
+      sectionData['satisfactionWasteManagement'] = satisfactionScore > 0.5 ? "Yes" : "No";
     }
   }
   

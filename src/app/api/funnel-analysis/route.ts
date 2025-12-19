@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Process survey data to calculate funnel scores
-    const serviceScores = calculateServiceScores(surveyData);
+    const serviceScores = await calculateServiceScores(surveyData, client, barangayId, activeCycleId);
 
     // Calculate Action Grid classifications
     const actionGrid = calculateActionGrid(serviceScores);
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function calculateServiceScores(surveyData: any[]): { [key: string]: any } {
+async function calculateServiceScores(surveyData: any[], client: any, barangayId: string, activeCycleId: number): Promise<{ [key: string]: any }> {
   const serviceScores: { [key: string]: any } = {};
 
   // Group data by section
@@ -171,26 +171,26 @@ function calculateServiceScores(surveyData: any[]): { [key: string]: any } {
   });
 
   // Calculate scores for each section
-  Object.entries(sectionsData).forEach(([sectionKey, responses]) => {
+  for (const [sectionKey, responses] of Object.entries(sectionsData)) {
     // Skip demographics section - it doesn't have service scores
     if (sectionKey === 'respondent_demographics' || sectionKey === 'respondent demographics') {
-      return;
+      continue;
     }
     
     // Handle "overall" section specially as it has different question structure
     if (sectionKey === 'overall') {
-      const overallScores = calculateOverallSectionScores(responses);
+      const overallScores = await calculateOverallSectionScores(responses, client, parseInt(barangayId), activeCycleId);
       if (overallScores) {
         serviceScores[sectionKey] = overallScores;
       }
-      return;
+      continue;
     }
     
     const scores = calculateSectionScores(responses);
     if (scores) {
       serviceScores[sectionKey] = scores;
     }
-  });
+  }
 
   return serviceScores;
 }
@@ -256,15 +256,30 @@ function calculateSectionScores(responses: any[]): any {
       });
 
       // Count satisfaction questions (questions containing 'satisf')
+      // IMPORTANT: Satisfaction is calculated from those who AVAILED, not total questions
       Object.entries(data).forEach(([key, value]: [string, any]) => {
         if (key.toLowerCase().includes('satisf')) {
           totalSatisfactionQuestions++;
-          const numValue = typeof value === 'string' ? parseInt(value) : value;
-          if ((typeof numValue === 'number' || typeof value === 'number') &&
-              numValue >= 1 && numValue <= 5) {
-            satisfactionSum += numValue;
-            // Track for debugging
-            satisfactionQuestionsFound.push({ key, value, numValue });
+          
+          // Handle binary Yes/No format (new)
+          const stringValue = String(value).toLowerCase();
+          if (stringValue.includes('yes') || stringValue.includes('oo')) {
+            satisfactionSum++; // Count as satisfied
+            satisfactionQuestionsFound.push({ key, value, satisfied: true });
+          } else if (stringValue.includes('no') || stringValue.includes('hindi')) {
+            // Count as not satisfied (don't increment satisfactionSum)
+            satisfactionQuestionsFound.push({ key, value, satisfied: false });
+          } else {
+            // Handle legacy 1-5 scale format
+            const numValue = typeof value === 'string' ? parseInt(value) : value;
+            if ((typeof numValue === 'number' || typeof value === 'number') &&
+                numValue >= 1 && numValue <= 5) {
+              // Convert to binary: 4-5 = satisfied, 1-3 = not satisfied
+              if (numValue >= 4) {
+                satisfactionSum++;
+              }
+              satisfactionQuestionsFound.push({ key, value, numValue, satisfied: numValue >= 4 });
+            }
           }
         }
       });
@@ -315,12 +330,15 @@ function calculateSectionScores(responses: any[]): any {
     ? Math.round((availmentCount / totalAvailmentQuestions) * 100)
     : 0;
 
-  const satisfactionScore = totalSatisfactionQuestions > 0
-    ? Math.round(((satisfactionSum / totalSatisfactionQuestions) / 5) * 100)
+  // CORRECT: Satisfaction = (number_satisfied / number_availed) * 100
+  // Use availmentCount as denominator (those who availed the service)
+  const satisfactionScore = availmentCount > 0
+    ? Math.round((satisfactionSum / availmentCount) * 100)
     : 0;
 
-  const needActionScore = totalNeedActionQuestions > 0
-    ? Math.round((needActionCount / totalNeedActionQuestions) * 100)
+  // Need for Action is also calculated from those who availed
+  const needActionScore = availmentCount > 0
+    ? Math.round((needActionCount / availmentCount) * 100)
     : 0;
 
   // Identify bottleneck (lowest score in the funnel)
@@ -393,8 +411,24 @@ function calculateSectionScores(responses: any[]): any {
   };
 }
 
-function calculateOverallSectionScores(responses: any[]): any {
+async function calculateOverallSectionScores(responses: any[], client: any, barangayId: number, cycleId: number): Promise<any> {
   if (responses.length === 0) return null;
+
+  // Get the target sample size from survey_target table
+  let targetSampleSize = responses.length; // Default to actual responses
+  try {
+    const targetQuery = `
+      SELECT target FROM survey_target 
+      WHERE barangay_id = $1 AND survey_cycle_id = $2
+    `;
+    const targetResult = await client.query(targetQuery, [barangayId, cycleId]);
+    if (targetResult.rows.length > 0 && targetResult.rows[0].target) {
+      targetSampleSize = parseInt(targetResult.rows[0].target);
+      console.log(`📊 [OVERALL] Using target sample size: ${targetSampleSize} for barangay ${barangayId}`);
+    }
+  } catch (error) {
+    console.warn('Could not fetch target sample size, using response count:', error);
+  }
 
   let satisfactionSum = 0;
   let satisfactionCount = 0;
@@ -410,14 +444,31 @@ function calculateOverallSectionScores(responses: any[]): any {
 
       if (!data || typeof data !== 'object') return;
 
-      // Process overallSatisfaction (format: "5 - Very Satisfied / Lubos na Nasiyahan")
+      // Process overallSatisfaction (M1 question)
+      // NEW: binary "Yes"/"No" or "Oo"/"Hindi"
+      // Count number of satisfied respondents (not sum of ratings)
       if (data.overallSatisfaction) {
-        const satisfactionValue = String(data.overallSatisfaction);
-        // Extract the numeric value (first character)
-        const numericValue = parseInt(satisfactionValue.charAt(0));
-        if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-          satisfactionSum += numericValue;
+        const satisfactionValue = String(data.overallSatisfaction).toLowerCase();
+        
+        // Check if it's the new binary format
+        if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+          // Binary "Yes" = satisfied
+          satisfactionSum++; // Count as 1 satisfied respondent
           satisfactionCount++;
+        } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+          // Binary "No" = not satisfied
+          // Don't increment satisfactionSum, but count the response
+          satisfactionCount++;
+        } else {
+          // Old format: Extract the numeric value (first character)
+          const numericValue = parseInt(satisfactionValue.charAt(0));
+          if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+            // Convert to binary: 4-5 = satisfied, 1-3 = not satisfied
+            if (numericValue >= 4) {
+              satisfactionSum++;
+            }
+            satisfactionCount++;
+          }
         }
       }
 
@@ -434,12 +485,15 @@ function calculateOverallSectionScores(responses: any[]): any {
     }
   });
 
-  const satisfactionScore = satisfactionCount > 0
-    ? Math.round((satisfactionSum / satisfactionCount / 5) * 100)
+  // CORRECT: Overall Satisfaction = (number_satisfied / total_sample_size) * 100
+  // Use target sample size from survey_target table (e.g., 150)
+  const satisfactionScore = targetSampleSize > 0
+    ? Math.round((satisfactionSum / targetSampleSize) * 100)
     : 0;
 
-  const needActionScore = needActionTotalCount > 0
-    ? Math.round((needActionYesCount / needActionTotalCount) * 100)
+  // CORRECT: Overall Need for Action = (number_needs_action / total_sample_size) * 100
+  const needActionScore = targetSampleSize > 0
+    ? Math.round((needActionYesCount / targetSampleSize) * 100)
     : 0;
 
   console.log('🔍 [OVERALL SECTION] Calculation:', {

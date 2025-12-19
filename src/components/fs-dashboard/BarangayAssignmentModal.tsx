@@ -36,7 +36,7 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
   const [formData, setFormData] = useState({
     user_id: "",
     barangay_id: "",
-    status: "Assigned",
+    status: "Active",
   });
   const { toast } = useToast();
   const { activeCycle, hasActiveCycle } = useActiveCycle();
@@ -183,7 +183,7 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
       setFormData({
         user_id: "",
         barangay_id: "",
-        status: "Assigned",
+        status: "Active",
       });
 
       onSuccess();
@@ -205,7 +205,7 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
       setFormData({
         user_id: "",
         barangay_id: "",
-        status: "Assigned",
+        status: "Active",
       });
       onClose();
     }
@@ -291,9 +291,9 @@ export default function BarangayAssignmentModal({ open, onClose, onSuccess }: Ba
                 required
                 disabled={saving}
               >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
                 <option value="Assigned">Assigned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
               </select>
             </div>
           </div>

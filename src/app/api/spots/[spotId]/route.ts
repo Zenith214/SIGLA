@@ -71,6 +71,17 @@ export async function DELETE(
       );
     }
 
+    // Get barangay_id before deletion for progress recalculation
+    const { data: spotDetails, error: spotDetailsError } = await supabaseAdmin
+      .from('spots')
+      .select('barangay_id, cycle_id')
+      .eq('spot_id', spotId)
+      .single();
+
+    if (spotDetailsError) {
+      throw handleDatabaseError(spotDetailsError, 'fetch spot details');
+    }
+
     // Delete the spot (questionnaires will be cascade deleted due to foreign key constraint)
     const { error: deleteError } = await supabaseAdmin
       .from('spots')
@@ -79,6 +90,33 @@ export async function DELETE(
 
     if (deleteError) {
       throw handleDatabaseError(deleteError, 'delete spot');
+    }
+
+    // Recalculate survey target progress for the affected barangay
+    // This ensures the dashboard shows updated progress after spot deletion
+    if (spotDetails) {
+      try {
+        const recalcResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/survey-targets/calculate-progress`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              barangayId: spotDetails.barangay_id,
+              cycleId: spotDetails.cycle_id
+            })
+          }
+        );
+
+        if (!recalcResponse.ok) {
+          console.warn('Failed to recalculate survey target progress after spot deletion');
+        }
+      } catch (recalcError) {
+        console.error('Error recalculating survey target progress:', recalcError);
+        // Don't fail the deletion if recalculation fails
+      }
     }
 
     return NextResponse.json({

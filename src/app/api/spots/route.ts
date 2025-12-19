@@ -823,6 +823,31 @@ export async function DELETE(request: NextRequest) {
       throw handleDatabaseError(deleteSpotError, 'delete spot');
     }
 
+    // Recalculate survey target progress for the affected barangay
+    // This ensures the dashboard shows updated progress after spot deletion
+    try {
+      const recalcResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/survey-targets/calculate-progress`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            barangayId: spot.barangay_id,
+            cycleId: spot.cycle_id
+          })
+        }
+      );
+
+      if (!recalcResponse.ok) {
+        console.warn('Failed to recalculate survey target progress after spot deletion');
+      }
+    } catch (recalcError) {
+      console.error('Error recalculating survey target progress:', recalcError);
+      // Don't fail the deletion if recalculation fails
+    }
+
     const response: any = {
       message: force ? 'Spot force deleted successfully (including all survey data)' : 'Spot deleted successfully',
       deletedSpot: {

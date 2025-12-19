@@ -227,8 +227,9 @@ describe('Funnel Calculations', () => {
         
         expect(satisfaction.total).toBe(2);
         expect(satisfaction.percentage).not.toBeNull();
-        // Average of 5 and 4 is 4.5, which is 90% of 5
-        expect(satisfaction.percentage).toBe(90);
+        // Both respondents have rating >= 4 (satisfied), so 2/2 = 100%
+        expect(satisfaction.count).toBe(2);
+        expect(satisfaction.percentage).toBe(100);
       });
 
       it('should return null percentage when no one availed', () => {
@@ -298,13 +299,14 @@ describe('Funnel Calculations', () => {
         // Verify availment stage (30 out of 45 aware = 66.7%)
         expect(result.availment.count).toBe(30);
         expect(result.availment.total).toBe(45);
-        expect(result.availment.percentage).toBe(67); // Rounded
+        expect(result.availment.percentage).toBe(66.7); // One decimal place precision
         
         // Verify satisfaction stage (calculated from availed respondents)
         expect(result.satisfaction.total).toBe(30);
         expect(result.satisfaction.percentage).not.toBeNull();
-        // Average rating: (25*5 + 5*2) / 30 = 135/30 = 4.5, which is 90% of 5
-        expect(result.satisfaction.percentage).toBe(90);
+        // 25 out of 30 have rating >= 4 (satisfied), so 25/30 = 83.3%
+        expect(result.satisfaction.count).toBe(25);
+        expect(result.satisfaction.percentage).toBe(83.3);
       });
     });
 

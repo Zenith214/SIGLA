@@ -174,7 +174,28 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
               <h3 className="text-lg font-semibold text-gray-900">GPS Verification</h3>
               <p className="text-sm text-gray-600">Monitor interview location verification</p>
             </div>
-            <MapPin className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchGPSVerificationData}
+                disabled={loading}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </>
+                )}
+              </button>
+              <MapPin className="h-6 w-6 text-blue-600" />
+            </div>
           </div>
 
           {/* Summary cards */}

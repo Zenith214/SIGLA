@@ -30,7 +30,6 @@ export function UsersRoles() {
     password: "",
     role: "officer",
     status: "active",
-    lastLogin: new Date().toISOString().slice(0, 10),
     barangayDesignation: null,
   })
   const [searchTerm, setSearchTerm] = useState("")
@@ -101,7 +100,6 @@ export function UsersRoles() {
           lastName: editForm.lastName,
           role: editForm.role,
           status: editForm.status,
-          lastLogin: editForm.lastLogin,
           barangayDesignation: editForm.barangayDesignation
         }),
       })
@@ -517,10 +515,6 @@ export function UsersRoles() {
                 <select name="status" value={editForm?.status || "active"} onChange={handleEditChange} className="w-full border rounded px-2 py-1">
                   {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Last Login</label>
-                <Input name="lastLogin" type="date" value={editForm.lastLogin ? editForm.lastLogin.slice(0, 10) : ""} onChange={handleEditChange} />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

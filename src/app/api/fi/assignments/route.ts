@@ -24,9 +24,11 @@ export async function GET(request: NextRequest) {
     }
 
     let userId: number;
+    let userRole: string;
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
       userId = decoded.id;
+      userRole = (decoded.role || '').toLowerCase();
       
       if (!userId || typeof userId !== 'number') {
         throw createAuthError('Invalid token payload');
@@ -37,6 +39,10 @@ export async function GET(request: NextRequest) {
       }
       throw e;
     }
+
+    // Check if user is admin or developer (they can see all spots)
+    const isAdminOrDeveloper = userRole === 'admin' || userRole === 'developer';
+    console.log('[FI Assignments API] User:', userId, 'Role:', userRole, 'isAdminOrDeveloper:', isAdminOrDeveloper);
 
     // Get cycle_id from query params (optional)
     const { searchParams } = new URL(request.url);
@@ -68,14 +74,18 @@ export async function GET(request: NextRequest) {
 
     // If no cycle found, return empty assignments
     if (!cycleId) {
+      console.log('[FI Assignments API] No active cycle found');
       return NextResponse.json({
         assignments: [],
         message: "No active cycle found"
       });
     }
+    
+    console.log('[FI Assignments API] Using cycle:', cycleId);
 
-    // Fetch spots assigned to this FI for the specified cycle
-    const { data: spots, error: spotsError } = await supabaseAdmin
+    // Fetch spots for the specified cycle
+    // Admin/Developer can see all spots, FI can only see their assigned spots
+    let spotsQuery = supabaseAdmin
       .from('spots')
       .select(`
         spot_id,
@@ -107,13 +117,25 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('assigned_fi_id', userId)
       .eq('cycle_id', cycleId)
       .order('created_at', { ascending: true });
 
+    // Filter by assigned FI only if user is not admin/developer
+    if (!isAdminOrDeveloper) {
+      console.log('[FI Assignments API] Filtering by assigned_fi_id:', userId);
+      spotsQuery = spotsQuery.eq('assigned_fi_id', userId);
+    } else {
+      console.log('[FI Assignments API] Admin/Developer - fetching all spots');
+    }
+
+    const { data: spots, error: spotsError } = await spotsQuery;
+
     if (spotsError) {
+      console.error('[FI Assignments API] Database error:', spotsError);
       throw handleDatabaseError(spotsError, 'fetch FI assignments');
     }
+    
+    console.log('[FI Assignments API] Found', spots?.length || 0, 'spots');
 
     // Format the response with progress information
     const assignments = (spots || []).map(spot => {

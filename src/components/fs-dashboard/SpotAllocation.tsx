@@ -128,7 +128,7 @@ export default function SpotAllocation() {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Spot Allocation</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Click on the map to create spots, then assign them to field interviewers
+              View and manage spot assignments for field interviewers
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -140,14 +140,6 @@ export default function SpotAllocation() {
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setShowCreationModal(true)}
-              disabled={!activeCycle?.cycle_id}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Spot
             </Button>
           </div>
         </div>

@@ -103,6 +103,8 @@ class FeatureEngineer:
     def _calculate_satisfaction_from_availed(self, responses, service_area, availed_ids):
         """Calculate satisfaction metrics only from respondents who availed services.
         
+        Now handles binary Yes/No responses (new format) and legacy Likert scale (1-5).
+        
         Args:
             responses (list): List of response dictionaries
             service_area (str): Service area to filter questions for
@@ -114,8 +116,8 @@ class FeatureEngineer:
         if not availed_ids:
             return {'count': 0, 'total': 0, 'percentage': None}
         
-        # Track satisfaction ratings per respondent (use dict to store highest rating per respondent)
-        respondent_ratings = {}
+        # Track satisfaction per respondent (True = satisfied, False = not satisfied)
+        respondent_satisfaction = {}
         
         for response in responses:
             respondent_id = response.get('respondent_id')
@@ -130,7 +132,19 @@ class FeatureEngineer:
             if 'satisf' in question_text or 'rate' in question_text or 'quality' in question_text:
                 answer = response.get('answer')
                 
-                # Parse rating (1-5 scale)
+                # Handle binary Yes/No responses (new format)
+                answer_str = str(answer).lower()
+                if 'yes' in answer_str or 'oo' in answer_str:
+                    # "Yes" = satisfied
+                    respondent_satisfaction[respondent_id] = True
+                    continue
+                elif 'no' in answer_str or 'hindi' in answer_str:
+                    # "No" = not satisfied
+                    if respondent_id not in respondent_satisfaction:
+                        respondent_satisfaction[respondent_id] = False
+                    continue
+                
+                # Handle legacy Likert scale (1-5) for backward compatibility
                 try:
                     if isinstance(answer, str) and answer.isdigit():
                         rating = int(answer)
@@ -141,31 +155,30 @@ class FeatureEngineer:
                     
                     # Validate rating is in range
                     if 1 <= rating <= 5:
-                        # Store the highest rating for this respondent
-                        if respondent_id not in respondent_ratings or rating > respondent_ratings[respondent_id]:
-                            respondent_ratings[respondent_id] = rating
+                        # Convert Likert to binary: 4-5 = satisfied, 1-3 = not satisfied
+                        is_satisfied = rating >= 4
+                        # Only update if not already set or if this is more positive
+                        if respondent_id not in respondent_satisfaction or (is_satisfied and not respondent_satisfaction[respondent_id]):
+                            respondent_satisfaction[respondent_id] = is_satisfied
                 except (ValueError, TypeError):
                     continue
         
-        if not respondent_ratings:
-            return {'count': 0, 'total': len(availed_ids), 'percentage': None}
+        # Total is ALL availed respondents, not just those who answered satisfaction questions
+        total_availed = len(availed_ids)
         
-        # Get all ratings (one per respondent)
-        satisfaction_ratings = list(respondent_ratings.values())
+        if not respondent_satisfaction:
+            return {'count': 0, 'total': total_availed, 'percentage': 0 if total_availed > 0 else None}
         
-        # Calculate average rating and convert to percentage
-        avg_rating = sum(satisfaction_ratings) / len(satisfaction_ratings)
-        percentage = (avg_rating / 5) * 100
+        # Count satisfied respondents
+        satisfied_count = sum(1 for is_satisfied in respondent_satisfaction.values() if is_satisfied)
         
-        # Count satisfied respondents (rating >= 4 as "satisfied")
-        satisfied_count = sum(1 for r in satisfaction_ratings if r >= 4)
-        
-        # Total is the number of availed respondents who answered satisfaction questions
-        total_with_satisfaction = len(respondent_ratings)
+        # Calculate percentage: (satisfied_count / total_availed) * 100
+        # IMPORTANT: Denominator is ALL who availed, not just those who answered satisfaction questions
+        percentage = (satisfied_count / total_availed) * 100 if total_availed > 0 else 0
         
         return {
             'count': satisfied_count,
-            'total': total_with_satisfaction,
+            'total': total_availed,
             'percentage': round(percentage, 1)
         }
     
@@ -473,30 +486,45 @@ class FeatureEngineer:
         return round(sum(question_percentages) / len(question_percentages)) if question_percentages else 0
     
     def _calculate_satisfaction_score(self, group, questions):
-        """Calculate satisfaction score from 1-5 scale questions - matches dashboard calculation."""
+        """Calculate satisfaction score from binary Yes/No or legacy 1-5 scale questions.
+        
+        New format: (satisfied_count / total_count) * 100
+        Legacy format: (avg_rating / 5) * 100
+        """
         if not questions:
             return 0
         
-        # Calculate average score per question, then convert to percentage
+        # Calculate percentage per question
         question_percentages = []
         
         for question in questions:
             if question in group.columns:
-                question_sum = 0
-                question_count = 0
+                satisfied_count = 0
+                total_count = 0
                 
                 for _, value in group[question].items():
                     if pd.notna(value):
-                        # Convert to numeric like dashboard does
+                        # Handle binary Yes/No responses (new format)
+                        value_str = str(value).lower()
+                        if 'yes' in value_str or 'oo' in value_str:
+                            satisfied_count += 1
+                            total_count += 1
+                            continue
+                        elif 'no' in value_str or 'hindi' in value_str:
+                            total_count += 1
+                            continue
+                        
+                        # Handle legacy Likert scale (1-5) for backward compatibility
                         num_value = int(value) if isinstance(value, str) and value.isdigit() else value
                         if isinstance(num_value, (int, float)) and 1 <= num_value <= 5:
-                            question_sum += num_value
-                            question_count += 1
+                            total_count += 1
+                            # Convert Likert to binary: 4-5 = satisfied
+                            if num_value >= 4:
+                                satisfied_count += 1
                 
-                # Calculate percentage for this question
-                if question_count > 0:
-                    avg_rating = question_sum / question_count
-                    percentage = (avg_rating / 5) * 100
+                # Calculate percentage for this question: (satisfied / total) * 100
+                if total_count > 0:
+                    percentage = (satisfied_count / total_count) * 100
                     question_percentages.append(percentage)
         
         # Return average percentage across all questions

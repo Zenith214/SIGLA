@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { getActiveCycle, generateSurveyNumber, getNextSurveySequence } from '@/utils/surveyCycleHelpers';
 import { verifyGPSLocation, GPSCoordinates } from '@/app/survey/forms/utils/gpsVerification';
 import { validateSurveyNFAData } from '@/lib/validation/nfa-storage-validation';
+import { transformNFAFields } from '@/app/survey/forms/utils/nfaFieldTransform';
 import { getClientWithRetry } from '@/lib/db/retry-utils';
 import {
   badRequestResponse,
@@ -90,9 +91,21 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Requirement 3.3: Validate NFA data structure completeness before storage
+        // Transform NFA field names from internal format to database format
+        let transformedSections = sections;
         if (sections) {
-          const nfaValidation = validateSurveyNFAData(sections);
+          transformedSections = Object.entries(sections).reduce((acc, [sectionKey, sectionData]: [string, any]) => {
+            acc[sectionKey] = {
+              ...sectionData,
+              data: transformNFAFields(sectionData.data || sectionData)
+            };
+            return acc;
+          }, {} as Record<string, any>);
+        }
+
+        // Requirement 3.3: Validate NFA data structure completeness before storage
+        if (transformedSections) {
+          const nfaValidation = validateSurveyNFAData(transformedSections);
           if (!nfaValidation.valid) {
             console.warn(`NFA validation errors for ${questionnaireId}:`, nfaValidation.errors);
             results.push({
@@ -332,9 +345,9 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Save survey sections data
-        if (sections && typeof sections === 'object') {
-          for (const [sectionKey, sectionData] of Object.entries(sections)) {
+        // Save survey sections data (use transformed sections with standardized field names)
+        if (transformedSections && typeof transformedSections === 'object') {
+          for (const [sectionKey, sectionData] of Object.entries(transformedSections)) {
             if (sectionData && typeof sectionData === 'object' && 'data' in sectionData && sectionData.data) {
               const sectionInsertQuery = `
                 INSERT INTO survey_section (

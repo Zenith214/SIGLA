@@ -70,12 +70,22 @@ export async function GET(request: NextRequest) {
     const puroks: Record<string, { count: number, satisfactionSum: number }> = {}
 
     result.rows.forEach((row: any) => {
-      // Calculate satisfaction (1-5 scale to percentage)
+      // Calculate satisfaction (binary or 1-5 scale to percentage)
       let satisfaction = 0
       if (row.overall_satisfaction) {
-        const satValue = parseInt(String(row.overall_satisfaction).charAt(0))
-        if (!isNaN(satValue) && satValue >= 1 && satValue <= 5) {
-          satisfaction = (satValue / 5) * 100
+        const satisfactionValue = String(row.overall_satisfaction).toLowerCase();
+        
+        // Check if it's the new binary format
+        if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+          satisfaction = 100
+        } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+          satisfaction = 0
+        } else {
+          // Old format: 1-5 scale
+          const satValue = parseInt(satisfactionValue.charAt(0))
+          if (!isNaN(satValue) && satValue >= 1 && satValue <= 5) {
+            satisfaction = (satValue / 5) * 100
+          }
         }
       }
 

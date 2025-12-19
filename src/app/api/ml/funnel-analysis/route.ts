@@ -254,25 +254,40 @@ async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cyc
         .not('data', 'is', null);
       
       if (overallSectionData && overallSectionData.length > 0) {
-        // Calculate satisfaction from overallSatisfaction field
-        let satisfactionSum = 0;
-        let satisfactionCount = 0;
+        // Calculate satisfaction from overallSatisfaction field using count-based approach
+        let satisfiedCount = 0;
+        let totalCount = 0;
         
         overallSectionData.forEach((row: any) => {
           const data = row.data;
           if (data && data.overallSatisfaction) {
-            // Extract numeric value from format like "5 - Very Satisfied / Lubos na Nasiyahan"
-            const numericValue = parseInt(String(data.overallSatisfaction).charAt(0));
-            if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-              satisfactionSum += numericValue;
-              satisfactionCount++;
+            const satisfactionValue = String(data.overallSatisfaction).toLowerCase();
+            totalCount++;
+            
+            // Check if it's the new binary format
+            if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
+              // Binary "Yes" = satisfied
+              satisfiedCount++;
+            } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
+              // Binary "No" = not satisfied
+              // Don't increment satisfiedCount
+            } else {
+              // Old format: Extract numeric value from format like "5 - Very Satisfied / Lubos na Nasiyahan"
+              const numericValue = parseInt(satisfactionValue.charAt(0));
+              if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+                // Rating >= 4 is considered satisfied
+                if (numericValue >= 4) {
+                  satisfiedCount++;
+                }
+              }
             }
           }
         });
         
-        if (satisfactionCount > 0) {
-          funnelData.overall_satisfaction = Math.round((satisfactionSum / satisfactionCount / 5) * 100);
-          console.log(`📊 [ML FUNNEL] Using overall section satisfaction: ${funnelData.overall_satisfaction}% (from ${satisfactionCount} responses for barangay ${barangayId}, cycle ${cycleId})`);
+        if (totalCount > 0) {
+          // Overall Satisfaction % = (Number Satisfied / Total Sample Size) × 100
+          funnelData.overall_satisfaction = Math.round((satisfiedCount / totalCount) * 1000) / 10;
+          console.log(`📊 [ML FUNNEL] Using overall section satisfaction: ${funnelData.overall_satisfaction}% (${satisfiedCount} satisfied out of ${totalCount} responses for barangay ${barangayId}, cycle ${cycleId})`);
         }
       }
     } catch (error) {
