@@ -18,12 +18,135 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'bisaya' | 'filipino' | 'english'>('bisaya');
+  const [translating, setTranslating] = useState(false);
+  const [translationCache, setTranslationCache] = useState<Record<string, any>>({
+    bisaya: null, // Will be populated with original content
+    filipino: null,
+    english: null
+  });
 
   useEffect(() => {
     if (barangayId && cycleId) {
       fetchExecutiveSummary();
     }
   }, [barangayId, cycleId]);
+
+  useEffect(() => {
+    // When summary is loaded, cache it as Bisaya content
+    if (summary && !summary.surveyIncomplete) {
+      setTranslationCache(prev => ({
+        ...prev,
+        bisaya: {
+          executiveSummary: summary.executiveSummary,
+          keyFindings: summary.keyFindings,
+          criticalIssues: summary.criticalIssues
+        }
+      }));
+    }
+  }, [summary]);
+
+  useEffect(() => {
+    // When language changes, translate if not cached
+    if (selectedLanguage !== 'bisaya' && summary && !summary.surveyIncomplete) {
+      if (!translationCache[selectedLanguage]) {
+        translateContent(selectedLanguage);
+      }
+    }
+  }, [selectedLanguage]);
+
+  const translateContent = async (targetLanguage: 'filipino' | 'english') => {
+    if (!summary || translating) return;
+
+    setTranslating(true);
+    try {
+      // Translate executive summary
+      const summaryResponse = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: summary.executiveSummary,
+          targetLanguage,
+          sourceLanguage: 'bisaya'
+        })
+      });
+      const summaryData = await summaryResponse.json();
+
+      // Translate key findings (one by one)
+      const translatedFindings = await Promise.all(
+        (summary.keyFindings || []).map(async (finding: string) => {
+          const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: finding,
+              targetLanguage,
+              sourceLanguage: 'bisaya'
+            })
+          });
+          const data = await response.json();
+          return data.translatedText;
+        })
+      );
+
+      // Translate critical issues
+      const translatedIssues = await Promise.all(
+        (summary.criticalIssues || []).map(async (issue: any) => {
+          const [issueText, impactText, areaText] = await Promise.all([
+            fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: issue.issue,
+                targetLanguage,
+                sourceLanguage: 'bisaya'
+              })
+            }).then(r => r.json()),
+            fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: issue.impact,
+                targetLanguage,
+                sourceLanguage: 'bisaya'
+              })
+            }).then(r => r.json()),
+            fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: issue.affectedArea,
+                targetLanguage,
+                sourceLanguage: 'bisaya'
+              })
+            }).then(r => r.json())
+          ]);
+
+          return {
+            issue: issueText.translatedText,
+            impact: impactText.translatedText,
+            affectedArea: areaText.translatedText
+          };
+        })
+      );
+
+      // Cache the translations
+      setTranslationCache(prev => ({
+        ...prev,
+        [targetLanguage]: {
+          executiveSummary: summaryData.translatedText,
+          keyFindings: translatedFindings,
+          criticalIssues: translatedIssues
+        }
+      }));
+
+    } catch (error) {
+      console.error('Translation failed:', error);
+      // Fallback to original content if translation fails
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const fetchExecutiveSummary = async () => {
     try {
@@ -152,28 +275,86 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
       {/* Executive Summary */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-semibold text-blue-900">Executive Summary</h4>
-          <Button
-            onClick={regenerateSummary}
-            disabled={generating}
-            variant="outline"
-            size="sm"
-            className="no-print"
-          >
-            {generating ? 'Regenerating...' : 'Regenerate'}
-          </Button>
+          <h4 className="font-semibold text-blue-900">
+            {selectedLanguage === 'bisaya' && 'Ehekutibong Sumaryo'}
+            {selectedLanguage === 'filipino' && 'Buod ng Ehekutibo'}
+            {selectedLanguage === 'english' && 'Executive Summary'}
+          </h4>
+          <div className="flex items-center gap-2">
+            {/* Language Toggle Buttons */}
+            <div className="flex gap-1.5 no-print">
+              <button
+                onClick={() => setSelectedLanguage('bisaya')}
+                disabled={translating}
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                  selectedLanguage === 'bisaya'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                } ${translating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Bisaya
+              </button>
+              <button
+                onClick={() => setSelectedLanguage('filipino')}
+                disabled={translating}
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                  selectedLanguage === 'filipino'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                } ${translating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Filipino
+                {translating && selectedLanguage === 'filipino' && (
+                  <span className="ml-1 inline-block animate-spin">⟳</span>
+                )}
+              </button>
+              <button
+                onClick={() => setSelectedLanguage('english')}
+                disabled={translating}
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                  selectedLanguage === 'english'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                } ${translating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                English
+                {translating && selectedLanguage === 'english' && (
+                  <span className="ml-1 inline-block animate-spin">⟳</span>
+                )}
+              </button>
+            </div>
+            <Button
+              onClick={regenerateSummary}
+              disabled={generating}
+              variant="outline"
+              size="sm"
+              className="no-print"
+            >
+              {generating ? 'Regenerating...' : 'Regenerate'}
+            </Button>
+          </div>
         </div>
+        {translating && (
+          <div className="mb-2 text-xs text-purple-600 flex items-center gap-1">
+            <span className="animate-spin">⟳</span>
+            <span>Translating content...</span>
+          </div>
+        )}
         <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-          {summary.executiveSummary}
+          {translationCache[selectedLanguage]?.executiveSummary || summary.executiveSummary}
         </p>
       </div>
 
       {/* Key Findings */}
       {summary.keyFindings && summary.keyFindings.length > 0 && (
         <div>
-          <h4 className="font-semibold text-blue-900 mb-2">Key Findings</h4>
+          <h4 className="font-semibold text-blue-900 mb-2">
+            {selectedLanguage === 'bisaya' && 'Importanteng Mga Nakit-an'}
+            {selectedLanguage === 'filipino' && 'Pangunahing Natuklasan'}
+            {selectedLanguage === 'english' && 'Key Findings'}
+          </h4>
           <ul className="space-y-2">
-            {summary.keyFindings.map((finding: string, index: number) => (
+            {(translationCache[selectedLanguage]?.keyFindings || summary.keyFindings).map((finding: string, index: number) => (
               <li key={index} className="flex items-start gap-2 text-sm">
                 <Badge variant="outline" className="mt-0.5">{index + 1}</Badge>
                 <span className="text-gray-700">{finding}</span>
@@ -186,13 +367,25 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
       {/* Critical Issues */}
       {summary.criticalIssues && summary.criticalIssues.length > 0 && (
         <div>
-          <h4 className="font-semibold text-red-900 mb-2">Critical Issues</h4>
+          <h4 className="font-semibold text-red-900 mb-2">
+            {selectedLanguage === 'bisaya' && 'Kritikal nga mga Isyu'}
+            {selectedLanguage === 'filipino' && 'Kritikal na mga Isyu'}
+            {selectedLanguage === 'english' && 'Critical Issues'}
+          </h4>
           <div className="space-y-3">
-            {summary.criticalIssues.slice(0, 3).map((issue: any, index: number) => (
+            {(translationCache[selectedLanguage]?.criticalIssues || summary.criticalIssues).slice(0, 3).map((issue: any, index: number) => (
               <div key={index} className="border-l-4 border-red-500 pl-3 py-1">
                 <div className="font-medium text-sm text-gray-900">{issue.issue}</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  <strong>Impact:</strong> {issue.impact} | <strong>Area:</strong> {issue.affectedArea}
+                  <strong>
+                    {selectedLanguage === 'bisaya' && 'Epekto:'}
+                    {selectedLanguage === 'filipino' && 'Epekto:'}
+                    {selectedLanguage === 'english' && 'Impact:'}
+                  </strong> {issue.impact} | <strong>
+                    {selectedLanguage === 'bisaya' && 'Lugar:'}
+                    {selectedLanguage === 'filipino' && 'Lugar:'}
+                    {selectedLanguage === 'english' && 'Area:'}
+                  </strong> {issue.affectedArea}
                 </div>
               </div>
             ))}
@@ -1847,11 +2040,13 @@ function ReportCardContent() {
             {/* Executive Summary - Moved after Service Area Performance */}
             <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 print:section print:page-break-before">
               <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-purple-900 text-base sm:text-lg">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
-                  <h2 className="hidden print:show">Executive Summary</h2>
-                  <span className="print:hidden">📋 Executive Summary</span>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-purple-900 text-base sm:text-lg">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full print:hidden"></div>
+                    <h2 className="hidden print:show">Executive Summary</h2>
+                    <span className="print:hidden">📋 Executive Summary</span>
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <ExecutiveSummarySection

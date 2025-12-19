@@ -279,6 +279,9 @@ async function generateAISummary(data: any) {
   const prompt = `### ROLE ###
 You are a data analyst writing a direct, actionable report for barangay officials. Your job is to tell them what's working, what needs fixing, and what to do about it. No fluff, no technical jargon.
 
+### LANGUAGE REQUIREMENT ###
+Write the ENTIRE report in Bisaya (Cebuano). Use natural Cebuano expressions and terminology appropriate for local government and barangay services. The report should be easily understood by barangay officials who speak Bisaya as their primary language.
+
 ### CONTEXT ###
 This is a citizen satisfaction survey report for barangay officials. They want to know:
 1. What services are residents happy with
@@ -310,12 +313,13 @@ Write a direct, no-nonsense executive summary for barangay officials. Structure:
 4. **What To Do Next**: Give 3-5 specific, actionable recommendations prioritized by urgency.
 
 WRITING STYLE:
+- Write EVERYTHING in Bisaya (Cebuano) - this is critical
 - Direct and conversational, like you're briefing them in person
 - No formal greetings or closings
 - No mentions of "CSIS", "Dynamic Cut-Off", "Action Grid", or technical methodology
-- Use simple language - avoid bureaucratic terms
+- Use simple Bisaya language - avoid bureaucratic terms
 - Focus on ACTIONS, not analysis
-- Be honest - if something is bad, say it clearly
+- Be honest - if something is bad, say it clearly in Bisaya
 
 ### BARANGAY INFORMATION ###
 - Name: ${data.barangay.barangay_name}
@@ -330,59 +334,59 @@ ${JSON.stringify(serviceDataWithMoE, null, 2)}
 Note: The MoE is calculated as 0.98 / sqrt(n), where n is the sample size for each service indicator.
 
 ### OUTPUT FORMAT ###
-Provide your analysis in the following JSON format:
+Provide your analysis in the following JSON format. ALL TEXT CONTENT MUST BE IN BISAYA (CEBUANO):
 
 {
-  "executiveSummary": "Direct, 2-3 paragraph summary following the structure above. Start with overall performance, then what's working, then what needs fixing. No greetings, no technical terms, no fluff.",
+  "executiveSummary": "Direct, 2-3 paragraph summary IN BISAYA following the structure above. Start with overall performance, then what's working, then what needs fixing. No greetings, no technical terms, no fluff. WRITE IN BISAYA.",
   "keyFindings": [
-    "Brief, specific finding about resident satisfaction or concerns",
-    "Another key finding",
-    "Another key finding"
+    "Brief, specific finding IN BISAYA about resident satisfaction or concerns",
+    "Another key finding IN BISAYA",
+    "Another key finding IN BISAYA"
   ],
   "criticalIssues": [
     {
-      "issue": "Specific problem residents identified",
-      "impact": "High/Medium/Low",
-      "affectedArea": "Service name",
-      "recommendation": "Specific action to fix it"
+      "issue": "Specific problem residents identified (IN BISAYA)",
+      "impact": "Taas/Tunga/Ubos (High/Medium/Low in Bisaya)",
+      "affectedArea": "Service name (IN BISAYA)",
+      "recommendation": "Specific action to fix it (IN BISAYA)"
     }
   ],
   "actionPlan": {
     "immediate": [
       {
-        "action": "Specific action to take NOW (within 1-3 months)",
-        "priority": "High",
-        "resources": "What you need to do it",
-        "expectedOutcome": "What will improve"
+        "action": "Specific action to take NOW (within 1-3 months) - IN BISAYA",
+        "priority": "Taas (High)",
+        "resources": "What you need to do it - IN BISAYA",
+        "expectedOutcome": "What will improve - IN BISAYA"
       }
     ],
     "shortTerm": [
       {
-        "action": "Action to take in 3-6 months",
-        "priority": "Medium",
-        "resources": "What you need",
-        "expectedOutcome": "Expected result"
+        "action": "Action to take in 3-6 months - IN BISAYA",
+        "priority": "Tunga (Medium)",
+        "resources": "What you need - IN BISAYA",
+        "expectedOutcome": "Expected result - IN BISAYA"
       }
     ],
     "longTerm": [
       {
-        "action": "Action to take in 6-12 months",
-        "priority": "Low",
-        "resources": "What you need",
-        "expectedOutcome": "Expected result"
+        "action": "Action to take in 6-12 months - IN BISAYA",
+        "priority": "Ubos (Low)",
+        "resources": "What you need - IN BISAYA",
+        "expectedOutcome": "Expected result - IN BISAYA"
       }
     ]
   },
   "recommendations": {
-    "governance": ["Specific governance recommendation", "Another recommendation"],
-    "serviceDelivery": ["Specific service improvement", "Another improvement"],
-    "communityEngagement": ["Specific engagement action", "Another action"]
+    "governance": ["Specific governance recommendation IN BISAYA", "Another recommendation IN BISAYA"],
+    "serviceDelivery": ["Specific service improvement IN BISAYA", "Another improvement IN BISAYA"],
+    "communityEngagement": ["Specific engagement action IN BISAYA", "Another action IN BISAYA"]
   },
   "successMetrics": [
     {
-      "metric": "Measurable indicator of success",
-      "target": "Specific target to achieve",
-      "timeline": "When to achieve it"
+      "metric": "Measurable indicator of success - IN BISAYA",
+      "target": "Specific target to achieve - IN BISAYA",
+      "timeline": "When to achieve it - IN BISAYA"
     }
   ]
 }
