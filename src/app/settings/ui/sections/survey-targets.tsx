@@ -6,10 +6,88 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Target, TrendingUp, Edit, Trash2, AlertTriangle } from "lucide-react"
+import { Target, TrendingUp, Edit, Trash2, AlertTriangle, Calculator } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
 import { useActiveCycle } from "@/hooks/useSurveyCycle"
+
+// MoE Calculation Display Component
+function MoECalculationPopover({ sampleSize }: { sampleSize: number }) {
+  const n = sampleSize || 150;
+  const moe = (0.98 / Math.sqrt(n)) * 100;
+  
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 underline decoration-dotted underline-offset-2 transition-colors">
+          <Calculator className="w-3.5 h-3.5" />
+          <span className="text-xs font-medium">Show Calculation</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-96 p-4 z-[10000]" align="start" sideOffset={8}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Calculator className="w-5 h-5 text-blue-600" />
+            <h4 className="font-semibold text-gray-900">Margin of Error Calculation</h4>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="bg-gray-50 rounded-lg p-3 font-mono text-sm">
+              <div className="text-gray-700 mb-1">Formula:</div>
+              <div className="text-lg font-semibold text-gray-900">
+                MoE = 0.98 / √n
+              </div>
+            </div>
+            
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-600">Where:</span>
+              </div>
+              <div className="pl-3 space-y-1">
+                <div className="flex items-start gap-2">
+                  <span className="font-mono font-semibold text-blue-600 min-w-[60px]">MoE</span>
+                  <span className="text-gray-700">= Margin of Error (as a percentage)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-mono font-semibold text-blue-600 min-w-[60px]">0.98</span>
+                  <span className="text-gray-700">= Z-score constant for 95% confidence level</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-mono font-semibold text-blue-600 min-w-[60px]">n</span>
+                  <span className="text-gray-700">= Sample size (number of respondents)</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <div className="text-xs font-semibold text-blue-900 mb-2">Current Calculation:</div>
+              <div className="font-mono text-sm space-y-1">
+                <div className="text-gray-700">
+                  MoE = 0.98 / √{n}
+                </div>
+                <div className="text-gray-700">
+                  MoE = 0.98 / {Math.sqrt(n).toFixed(2)}
+                </div>
+                <div className="text-blue-900 font-semibold text-base pt-1 border-t border-blue-200">
+                  MoE = ±{moe.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-xs text-gray-600 leading-relaxed pt-2 border-t">
+              <strong>What this means:</strong> If you survey {n} people, your results will be accurate within ±{moe.toFixed(1)}% of the true population value, 95% of the time.
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function SurveyTargets() {
   const [targets, setTargets] = useState<any[]>([])
@@ -390,13 +468,16 @@ export function SurveyTargets() {
                   </div>
                   <div className="flex-1">
                     <h4 className="text-sm font-semibold text-blue-900 mb-1">Statistical Precision Reminder</h4>
-                    <p className="text-sm text-blue-800 font-medium mb-2">
-                      At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
-                        const n = Number(addForm.target) || 150;
-                        const moe = (1 / Math.sqrt(n)) * 100;
-                        return moe.toFixed(1);
-                      })()}%</span>
-                    </p>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <p className="text-sm text-blue-800 font-medium">
+                        At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
+                          const n = Number(addForm.target) || 150;
+                          const moe = (0.98 / Math.sqrt(n)) * 100;
+                          return moe.toFixed(1);
+                        })()}%</span>
+                      </p>
+                      <MoECalculationPopover sampleSize={Number(addForm.target) || 150} />
+                    </div>
                     <p className="text-xs text-blue-700 leading-relaxed">
                       The Margin of Error at a 95% confidence level. This number represents how much the survey results can vary from the true opinion of the entire population. A lower margin of error means the results are more precise.
                     </p>
@@ -449,13 +530,16 @@ export function SurveyTargets() {
                   </div>
                   <div className="flex-1">
                     <h4 className="text-sm font-semibold text-blue-900 mb-1">Statistical Precision Reminder</h4>
-                    <p className="text-sm text-blue-800 font-medium mb-2">
-                      At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
-                        const n = Number(editForm.target) || 150;
-                        const moe = (1 / Math.sqrt(n)) * 100;
-                        return moe.toFixed(1);
-                      })()}%</span>
-                    </p>
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <p className="text-sm text-blue-800 font-medium">
+                        At this target, your Margin of Error will be: <span className="text-lg font-bold">±{(() => {
+                          const n = Number(editForm.target) || 150;
+                          const moe = (0.98 / Math.sqrt(n)) * 100;
+                          return moe.toFixed(1);
+                        })()}%</span>
+                      </p>
+                      <MoECalculationPopover sampleSize={Number(editForm.target) || 150} />
+                    </div>
                     <p className="text-xs text-blue-700 leading-relaxed">
                       The Margin of Error at a 95% confidence level. This number represents how much the survey results can vary from the true opinion of the entire population. A lower margin of error means the results are more precise.
                     </p>
