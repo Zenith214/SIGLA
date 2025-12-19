@@ -7,6 +7,62 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 })
 
+// Helper function to calculate need for action from binary questions
+async function calculateBarangayNeedForAction(client: any, barangayId: number, cycleId: number): Promise<number> {
+  // Get all survey sections for this barangay
+  const query = `
+    SELECT 
+      ss.section_key,
+      ss.data
+    FROM survey_response sr
+    LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
+    WHERE sr.barangay_id = $1 
+      AND sr.survey_cycle_id = $2 
+      AND sr.status IN ('completed', 'submitted')
+      AND ss.section_key IN ('financial', 'disaster', 'safety', 'social', 'business', 'environmental')
+  `
+  
+  const result = await client.query(query, [barangayId, cycleId])
+  
+  if (result.rows.length === 0) {
+    return 0
+  }
+  
+  // Count respondents who answered "Yes" to any need_for_action_binary question
+  const respondentsWithNeed = new Set<number>()
+  let totalRespondents = 0
+  
+  result.rows.forEach((row: any) => {
+    if (row.data) {
+      const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data
+      
+      // Look for need_for_action_binary fields
+      Object.keys(data).forEach(key => {
+        if (key.startsWith('need_for_action_binary_')) {
+          const answer = String(data[key]).toLowerCase().trim()
+          if (answer === 'yes' || answer === 'oo') {
+            respondentsWithNeed.add(row.response_id)
+          }
+        }
+      })
+    }
+  })
+  
+  // Get total unique respondents for this barangay
+  const totalQuery = `
+    SELECT COUNT(DISTINCT response_id) as total
+    FROM survey_response
+    WHERE barangay_id = $1 
+      AND survey_cycle_id = $2 
+      AND status IN ('completed', 'submitted')
+  `
+  const totalResult = await client.query(totalQuery, [barangayId, cycleId])
+  totalRespondents = parseInt(totalResult.rows[0]?.total || 0)
+  
+  // Need for Action % = (Count with Need / Total Respondents) × 100
+  return totalRespondents > 0 ? Math.round((respondentsWithNeed.size / totalRespondents) * 100) : 0
+}
+
 // Helper function to calculate satisfaction from survey responses
 async function calculateBarangaySatisfaction(client: any, barangayId: number, cycleId: number): Promise<number> {
   // Get the overall satisfaction from the "overall" section
@@ -28,38 +84,39 @@ async function calculateBarangaySatisfaction(client: any, barangayId: number, cy
     return 0
   }
   
-  // Calculate average satisfaction from responses
-  // Format is like "5 - Very Satisfied / Lubos na Nasiyahan"
-  let totalSatisfaction = 0
-  let count = 0
+  // Calculate satisfaction using count-based approach
+  // Count respondents who are satisfied (rating >= 4 or "Yes")
+  let satisfiedCount = 0
+  let totalCount = 0
   
   result.rows.forEach((row: any) => {
     const satisfactionStr = row.overall_satisfaction
     if (satisfactionStr) {
       const satisfactionValue = String(satisfactionStr).toLowerCase();
+      totalCount++
       
       // Check if it's the new binary format
       if (satisfactionValue.includes('yes') || satisfactionValue.includes('oo')) {
-        // Binary "Yes" = satisfied = 100%
-        totalSatisfaction += 100
-        count++
+        // Binary "Yes" = satisfied
+        satisfiedCount++
       } else if (satisfactionValue.includes('no') || satisfactionValue.includes('hindi')) {
-        // Binary "No" = not satisfied = 0%
-        totalSatisfaction += 0
-        count++
+        // Binary "No" = not satisfied
+        // Don't increment satisfiedCount
       } else {
         // Old format: Extract the numeric value (first character)
         const numericValue = parseInt(satisfactionValue.charAt(0))
         if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-          // Convert 1-5 scale to percentage (1=20%, 2=40%, 3=60%, 4=80%, 5=100%)
-          totalSatisfaction += (numericValue / 5) * 100
-          count++
+          // Rating >= 4 is considered satisfied
+          if (numericValue >= 4) {
+            satisfiedCount++
+          }
         }
       }
     }
   })
   
-  return count > 0 ? Math.round(totalSatisfaction / count) : 0
+  // Overall Satisfaction % = (Satisfied Count / Total Count) × 100
+  return totalCount > 0 ? Math.round((satisfiedCount / totalCount) * 100) : 0
 }
 
 export async function GET(request: NextRequest) {
@@ -103,21 +160,44 @@ export async function GET(request: NextRequest) {
     
     console.log('[Dashboard Summary] Found barangays with completed surveys:', barangays.length)
     
-    // Calculate satisfaction for each barangay
-    const barangayScores: Array<{barangayId: number, barangayName: string, satisfaction: number}> = []
+    // Calculate satisfaction and need for action for each barangay
+    const barangayScores: Array<{barangayId: number, barangayName: string, satisfaction: number, needForAction: number, responseCount: number}> = []
     let totalSatisfaction = 0
     let totalNeedForAction = 0
     
+    // Minimum sample size for statistical validity (at least 30 responses recommended)
+    const MIN_SAMPLE_SIZE = 30
+    
     for (const barangay of barangays) {
+      // Get response count for this barangay
+      const countQuery = `
+        SELECT COUNT(*) as count
+        FROM survey_response
+        WHERE barangay_id = $1 
+          AND survey_cycle_id = $2 
+          AND status IN ('completed', 'submitted')
+      `
+      const countResult = await client.query(countQuery, [barangay.barangay_id, activeCycleId])
+      const responseCount = parseInt(countResult.rows[0]?.count || 0)
+      
+      // Only include barangays with sufficient sample size
+      if (responseCount < MIN_SAMPLE_SIZE) {
+        console.log(`[Dashboard Summary] Skipping ${barangay.barangay_name} - insufficient sample size (${responseCount} < ${MIN_SAMPLE_SIZE})`)
+        continue
+      }
+      
       const satisfaction = await calculateBarangaySatisfaction(client, barangay.barangay_id, activeCycleId)
+      const needForAction = await calculateBarangayNeedForAction(client, barangay.barangay_id, activeCycleId)
+      
       barangayScores.push({
         barangayId: barangay.barangay_id,
         barangayName: barangay.barangay_name,
-        satisfaction
+        satisfaction,
+        needForAction,
+        responseCount
       })
       totalSatisfaction += satisfaction
-      // Need for action is inverse of satisfaction
-      totalNeedForAction += (100 - satisfaction)
+      totalNeedForAction += needForAction
     }
     
     // Sort by satisfaction

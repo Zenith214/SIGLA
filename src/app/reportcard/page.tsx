@@ -309,7 +309,7 @@ function ReportCardContent() {
       if (cachedFunnelData && !forceRefresh) {
         console.log('✅ [REPORT CARD] Using cached funnel data');
         console.log('📦 [REPORT CARD] Cached action_grid:', (cachedFunnelData as any).action_grid);
-        processFunnelData(cachedFunnelData);
+        await processFunnelData(cachedFunnelData, barangayId, cycleId);
       } else {
         if (forceRefresh) {
           console.log('🔄 [REPORT CARD] Force refresh - bypassing cache...');
@@ -341,7 +341,7 @@ function ReportCardContent() {
             reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
 
             // Process ML-enhanced funnel data
-            processFunnelData(funnelData);
+            await processFunnelData(funnelData, barangayId, cycleId);
           }
         } else {
           console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
@@ -392,7 +392,78 @@ function ReportCardContent() {
     }
   };
 
-  const processFunnelData = (funnelData: any) => {
+  const fetchConditionalReasons = async (barangayId: string, cycleId: number, processedFunnel: any) => {
+    try {
+      console.log(`🔍 [CONDITIONAL REASONS] Starting fetch for barangay ${barangayId} (type: ${typeof barangayId}), cycle ${cycleId}`);
+      const targetBarangayId = parseInt(barangayId);
+      console.log(`🔍 [CONDITIONAL REASONS] Target barangay ID as number: ${targetBarangayId}`);
+      
+      if (isNaN(targetBarangayId)) {
+        console.error(`❌ [CONDITIONAL REASONS] Invalid barangay ID: ${barangayId}`);
+        return;
+      }
+      
+      // Fetch conditional reasons for each service area
+      const serviceAreas = ['financial', 'disaster', 'safety', 'social', 'business', 'environmental'];
+      
+      for (const serviceArea of serviceAreas) {
+        if (!processedFunnel[serviceArea]) {
+          console.log(`⚠️ [CONDITIONAL REASONS] No funnel data for ${serviceArea}, skipping`);
+          continue;
+        }
+        
+        console.log(`🔍 [CONDITIONAL REASONS] Fetching for ${serviceArea}...`);
+        const response = await fetch(`/api/analytics/service-area-deep-dive?serviceArea=${serviceArea}&cycleId=${cycleId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`📊 [CONDITIONAL REASONS] API response for ${serviceArea}:`, data);
+          console.log(`📊 [CONDITIONAL REASONS] All barangay IDs in response:`, data.rankings?.map((r: any) => `${r.barangayName} (ID: ${r.barangayId})`));
+          
+          // Find this barangay's data - STRICT equality check
+          const barangayRanking = data.rankings?.find((r: any) => {
+            console.log(`🔍 [CONDITIONAL REASONS] Comparing: ${r.barangayId} (${typeof r.barangayId}) === ${targetBarangayId} (${typeof targetBarangayId})`);
+            return r.barangayId === targetBarangayId;
+          });
+          console.log(`🔍 [CONDITIONAL REASONS] Looking for barangay ID ${targetBarangayId} in ${serviceArea}`);
+          console.log(`🔍 [CONDITIONAL REASONS] Found barangay ranking:`, barangayRanking);
+          
+          if (barangayRanking) {
+            const hasUnawarenessReasons = barangayRanking.unawarenessReasons && barangayRanking.unawarenessReasons.length > 0;
+            const hasNonAvailmentReasons = barangayRanking.nonAvailmentReasons && barangayRanking.nonAvailmentReasons.length > 0;
+            
+            processedFunnel[serviceArea].conditionalReasons = {
+              unawarenessReasons: barangayRanking.unawarenessReasons || [],
+              nonAvailmentReasons: barangayRanking.nonAvailmentReasons || []
+            };
+            console.log(`✅ [CONDITIONAL REASONS] Set for ${serviceArea}:`, {
+              unawareness: hasUnawarenessReasons ? `${barangayRanking.unawarenessReasons.length} reasons` : 'none',
+              nonAvailment: hasNonAvailmentReasons ? `${barangayRanking.nonAvailmentReasons.length} reasons` : 'none'
+            });
+          } else {
+            console.warn(`⚠️ [CONDITIONAL REASONS] No ranking found for barangay ${targetBarangayId} in ${serviceArea}`);
+            console.warn(`⚠️ [CONDITIONAL REASONS] Available barangays:`, data.rankings?.map((r: any) => `${r.barangayName} (${r.barangayId})`));
+            // Set empty arrays to indicate no data (not null, which means not fetched)
+            processedFunnel[serviceArea].conditionalReasons = {
+              unawarenessReasons: [],
+              nonAvailmentReasons: []
+            };
+          }
+        } else {
+          console.error(`❌ [CONDITIONAL REASONS] Failed to fetch ${serviceArea}:`, response.status);
+          // Set empty arrays on error
+          processedFunnel[serviceArea].conditionalReasons = {
+            unawarenessReasons: [],
+            nonAvailmentReasons: []
+          };
+        }
+      }
+      console.log(`✅ [CONDITIONAL REASONS] Fetch complete. Final funnel data:`, processedFunnel);
+    } catch (error) {
+      console.error('❌ [CONDITIONAL REASONS] Failed to fetch:', error);
+    }
+  };
+
+  const processFunnelData = async (funnelData: any, barangayId?: string, cycleId?: number) => {
     // Process ML-enhanced funnel data
     console.log('🔍 Processing funnel data:', funnelData);
     console.log('🔍 Service scores:', funnelData.service_scores);
@@ -457,7 +528,8 @@ function ReportCardContent() {
         recommendations: scores.recommendations || {},
         awareness_metrics: scores.awareness_metrics,
         availment_metrics: scores.availment_metrics,
-        satisfaction_metrics: scores.satisfaction_metrics
+        satisfaction_metrics: scores.satisfaction_metrics,
+        conditionalReasons: null // Will be fetched separately
       };
 
       // Extract trends from action grid
@@ -488,8 +560,20 @@ function ReportCardContent() {
     });
 
     console.log(`📈 [TREND UI] All processed trends:`, processedTrends);
+    
+    // Set funnel and trends data first
     setFunnelData(processedFunnel);
     setTrendsData(processedTrends);
+    
+    // Fetch conditional reasons for each service area (if barangayId and cycleId are provided)
+    // This happens after setting state so the UI renders, then updates when reasons are fetched
+    if (barangayId && cycleId) {
+      console.log(`🔍 [CONDITIONAL REASONS] Starting fetch for barangay ${barangayId}, cycle ${cycleId}`);
+      await fetchConditionalReasons(barangayId, cycleId, processedFunnel);
+      // Update state again with conditional reasons
+      setFunnelData({...processedFunnel});
+      console.log(`✅ [CONDITIONAL REASONS] State updated with conditional reasons`);
+    }
 
     // Extract common needs from ML insights
     const processedNeeds: any = {};
@@ -635,6 +719,7 @@ function ReportCardContent() {
 
     console.log('Service Area Clicked:', category.key);
     console.log('Funnel Info:', funnelInfo);
+    console.log('Conditional Reasons:', funnelInfo.conditionalReasons);
 
     setSelectedServiceArea({
       ...category,
@@ -651,6 +736,7 @@ function ReportCardContent() {
         availment_metrics: funnelInfo.availment_metrics,
         satisfaction_metrics: funnelInfo.satisfaction_metrics
       },
+      conditionalReasons: funnelInfo.conditionalReasons || null,
       trend: trendInfo
     });
     setShowServiceModal(true);
@@ -2277,9 +2363,10 @@ function ReportCardContent() {
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Bottleneck Analysis */}
-                  <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                {/* Bottleneck Analysis */}
+                <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
                     <h4 className="font-semibold text-yellow-800">🤖 AI Analysis: Bottleneck Identified</h4>
                     <p className="text-yellow-700 mt-2">
                       {(() => {
@@ -2314,10 +2401,77 @@ function ReportCardContent() {
                       Note: AI analysis is experimental and may occasionally produce incorrect or misleading insights. Always cross-reference with the raw data.
                     </p>
                   </div>
-                </div>
 
-                {/* Top Concerns */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Conditional Reasons - Unawareness & Non-Availment */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold text-gray-800 mb-3">Conditional Insights</h4>
+                    {selectedServiceArea.conditionalReasons && 
+                     (selectedServiceArea.conditionalReasons.unawarenessReasons?.length > 0 || 
+                      selectedServiceArea.conditionalReasons.nonAvailmentReasons?.length > 0) ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Unawareness Reasons */}
+                        <div className="p-4 bg-blue-50 border-l-4 border-blue-400">
+                          <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+                            <span>📢</span> Top Unawareness Reasons
+                          </h4>
+                          <p className="text-xs text-blue-600 mt-1 mb-3">Why residents don't know about this service</p>
+                          {selectedServiceArea.conditionalReasons.unawarenessReasons && selectedServiceArea.conditionalReasons.unawarenessReasons.length > 0 ? (
+                            <div className="space-y-2">
+                              {selectedServiceArea.conditionalReasons.unawarenessReasons.map((item: {reason: string, count: number}, index: number) => (
+                                <div key={index} className="flex items-start gap-2">
+                                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded min-w-[24px] text-center">{index + 1}</span>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-blue-900">{item.reason}</p>
+                                    <p className="text-xs text-blue-600 mt-1">{item.count} {item.count === 1 ? 'mention' : 'mentions'}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-blue-700 italic">No unawareness reasons reported by residents.</p>
+                          )}
+                        </div>
+
+                        {/* Non-Availment Reasons */}
+                        <div className="p-4 bg-orange-50 border-l-4 border-orange-400">
+                          <h4 className="font-semibold text-orange-800 flex items-center gap-2">
+                            <span>🚫</span> Top Non-Availment Reasons
+                          </h4>
+                          <p className="text-xs text-orange-600 mt-1 mb-3">Why aware residents don't use this service</p>
+                          {selectedServiceArea.conditionalReasons.nonAvailmentReasons && selectedServiceArea.conditionalReasons.nonAvailmentReasons.length > 0 ? (
+                            <div className="space-y-2">
+                              {selectedServiceArea.conditionalReasons.nonAvailmentReasons.map((item: {reason: string, count: number}, index: number) => (
+                                <div key={index} className="flex items-start gap-2">
+                                  <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded min-w-[24px] text-center">{index + 1}</span>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-orange-900">{item.reason}</p>
+                                    <p className="text-xs text-orange-600 mt-1">{item.count} {item.count === 1 ? 'mention' : 'mentions'}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-orange-700 italic">No non-availment reasons reported by residents.</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p className="text-sm text-gray-600 text-center">
+                          <span className="block mb-2">📊</span>
+                          No conditional insights data available for this service area. This typically occurs when:
+                        </p>
+                        <ul className="text-xs text-gray-500 mt-2 space-y-1 list-disc list-inside">
+                          <li>High awareness and availment rates (residents are already engaged)</li>
+                          <li>Survey responses did not include detailed reason fields</li>
+                          <li>Data is from synthetic/generated sources without conditional modules</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Concerns */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Top 3 Citizen Concerns</h3>
                     {selectedServiceArea.funnel?.concerns && selectedServiceArea.funnel.concerns.length > 0 ? (

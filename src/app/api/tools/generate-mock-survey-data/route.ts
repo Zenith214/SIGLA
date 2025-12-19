@@ -46,28 +46,28 @@ const RESPONSE_PROFILES = {
 // Service score ranges for different performance profiles
 const SCORE_RANGES = {
   highPerformer: {
-    awareness: [0.85, 0.95],
-    availment: [0.85, 0.95],
-    satisfaction: [0.80, 0.90],
-    needAction: [0.05, 0.15]
+    awareness: [0.80, 0.90],
+    availment: [0.80, 0.90],
+    satisfaction: [0.75, 0.85],
+    needAction: [0.10, 0.20]
   },
   needsImprovement: {
-    awareness: [0.40, 0.60],
-    availment: [0.20, 0.40],
-    satisfaction: [0.20, 0.40],
-    needAction: [0.70, 0.85]
+    awareness: [0.35, 0.55],
+    availment: [0.25, 0.45],
+    satisfaction: [0.25, 0.45],
+    needAction: [0.65, 0.80]
   },
   growthPotential: {
-    awareness: [0.75, 0.85],
-    availment: [0.70, 0.80],
-    satisfaction: [0.70, 0.80],
-    needAction: [0.60, 0.75]
+    awareness: [0.65, 0.80],
+    availment: [0.60, 0.75],
+    satisfaction: [0.60, 0.75],
+    needAction: [0.50, 0.65]
   },
   stableLow: {
-    awareness: [0.50, 0.65],
-    availment: [0.45, 0.60],
-    satisfaction: [0.40, 0.55],
-    needAction: [0.20, 0.35]
+    awareness: [0.45, 0.60],
+    availment: [0.40, 0.55],
+    satisfaction: [0.35, 0.50],
+    needAction: [0.25, 0.40]
   },
   mixed: {
     // Random distribution for mixed profile
@@ -782,6 +782,68 @@ function generateEnvironmentalSectionData(sectionData: { [key: string]: any }, p
 }
 
 // Generate Need for Action data with two-step generation
+// Generate conditional responses (unawareness and non-availment reasons)
+function generateConditionalResponses(sections: { [key: string]: any }) {
+  const unawarenessReasons: Record<string, string> = {};
+  const nonAvailmentReasons: Record<string, string> = {};
+  
+  const unawarenessOptions = [
+    "No information dissemination",
+    "Not posted in public areas",
+    "No announcements made",
+    "Information not clear",
+    "Language barrier"
+  ];
+  
+  const nonAvailmentOptions = [
+    "Too far from residence",
+    "No time to avail",
+    "Requirements too difficult",
+    "Long processing time",
+    "Not eligible for service",
+    "Service not needed"
+  ];
+  
+  // Service ID mapping
+  const serviceMapping: Record<string, string[]> = {
+    financial: ['financial', 'projects'],
+    disaster: ['disasterInfo', 'evacuation'],
+    safety: ['tanods', 'lupon', 'antiDrug'],
+    social: ['socialPrograms', 'healthServices', 'womenChildrenProtection', 'communityParticipation'],
+    business: ['businessClearance'],
+    environmental: ['wasteManagement']
+  };
+  
+  // For each section, check awareness and availment
+  Object.keys(sections).forEach(sectionKey => {
+    const sectionData = sections[sectionKey];
+    const serviceIds = serviceMapping[sectionKey] || [];
+    
+    serviceIds.forEach(serviceId => {
+      // Check if unaware - add unawareness reason
+      const awarenessKey = `awareness${serviceId.charAt(0).toUpperCase() + serviceId.slice(1)}`;
+      if (sectionData[awarenessKey] === 'No' || sectionData[awarenessKey] === 'Hindi') {
+        // 70% chance of having a reason
+        if (Math.random() > 0.3) {
+          unawarenessReasons[serviceId] = unawarenessOptions[Math.floor(Math.random() * unawarenessOptions.length)];
+        }
+      }
+      
+      // Check if aware but didn't avail - add non-availment reason
+      const availmentKey = `availment${serviceId.charAt(0).toUpperCase() + serviceId.slice(1)}`;
+      if ((sectionData[awarenessKey] === 'Yes' || sectionData[awarenessKey] === 'Oo') &&
+          (sectionData[availmentKey] === 'No' || sectionData[availmentKey] === 'Hindi')) {
+        // 70% chance of having a reason
+        if (Math.random() > 0.3) {
+          nonAvailmentReasons[serviceId] = nonAvailmentOptions[Math.floor(Math.random() * nonAvailmentOptions.length)];
+        }
+      }
+    });
+  });
+  
+  return { unawarenessReasons, nonAvailmentReasons };
+}
+
 // Step 1: Determine binary value based on needActionScore
 // Step 2: Conditionally generate suggestion based on binary value
 function generateNeedForActionData(
@@ -1008,6 +1070,9 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       throw new Error(`Survey number ${responseData.surveyNumber} already exists`);
     }
 
+    // Generate conditional responses (unawareness and non-availment reasons)
+    const conditionalResponses = generateConditionalResponses(responseData.sections);
+    
     // Create the survey response record with cycle linkage
     const insertQuery = `
       INSERT INTO survey_response (
@@ -1016,8 +1081,9 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
         respondent_household_income, respondent_purok, location_lat, location_lng,
         location_address, location_accuracy, location_timestamp,
         location_barangay, location_municipality, location_province,
+        unawareness_reasons, non_availment_reasons,
         status, progress, completed_at, submitted_at, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW(), NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW(), NOW())
       RETURNING response_id
     `;
 
@@ -1041,6 +1107,8 @@ async function submitSurveyResponse(client: any, barangayId: number, responseDat
       'Sample Barangay',
       'Sample Municipality',
       'Cebu',
+      JSON.stringify(conditionalResponses.unawarenessReasons),
+      JSON.stringify(conditionalResponses.nonAvailmentReasons),
       'completed',
       100
     ]);

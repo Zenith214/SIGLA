@@ -207,6 +207,10 @@ function calculateSectionScores(responses: any[]): any {
   let totalSatisfactionQuestions = 0;
   let totalNeedActionQuestions = 0;
 
+  // Track unique respondents who availed (for correct satisfaction denominator)
+  const respondentsWhoAvailed = new Set<string>();
+  const respondentsWhoAreSatisfied = new Set<string>();
+  
   // Debug: Track satisfaction questions found
   const satisfactionQuestionsFound: any[] = [];
   
@@ -218,6 +222,32 @@ function calculateSectionScores(responses: any[]): any {
   };
   const concerns: string[] = [];
 
+  // Define which services belong to which section
+  const sectionServiceMap: Record<string, string[]> = {
+    financial: ['projects', 'financial', 'corruption'],
+    disaster: ['disasterinfo', 'evacuation'],
+    safety: ['tanods', 'lupon', 'antidrug'],
+    social: ['socialprograms', 'healthservices', 'womenchildrenprotection', 'communityparticipation'],
+    business: ['businessclearance'],
+    environmental: ['wastemanagement', 'environmentalprograms']
+  };
+  
+  // Get the section key from first response
+  const currentSection = responses[0]?.section_key?.toLowerCase() || '';
+  const validServices = sectionServiceMap[currentSection] || [];
+  
+  console.log(`🔍 [FUNNEL] Section: ${currentSection}, Valid services:`, validServices);
+  
+  // Helper function to check if a key belongs to this section
+  const belongsToSection = (key: string): boolean => {
+    const keyLower = key.toLowerCase();
+    const belongs = validServices.some(service => keyLower.includes(service));
+    if (keyLower.includes('satisfaction') && Math.random() < 0.05) {
+      console.log(`🔍 [FUNNEL] Checking key "${key}": belongs=${belongs}`);
+    }
+    return belongs;
+  };
+
   // Process each response
   responses.forEach(response => {
     try {
@@ -225,9 +255,9 @@ function calculateSectionScores(responses: any[]): any {
         ? JSON.parse(response.section_data)
         : response.section_data;
 
-      // Count awareness questions (questions containing 'aware')
+      // Count awareness questions (questions containing 'aware') - only for this section's services
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('aware')) {
+        if (key.toLowerCase().includes('aware') && belongsToSection(key)) {
           totalAwarenessQuestions++;
           // Handle various positive response formats
           const stringValue = String(value).toLowerCase();
@@ -238,37 +268,55 @@ function calculateSectionScores(responses: any[]): any {
         }
       });
 
-      // Count availment questions (questions indicating usage/participation/experience)
+      // Count availment questions (questions indicating usage/participation/experience) - only for this section's services
+      // Also track which respondents availed (for satisfaction denominator)
+      let respondentAvailed = false;
       Object.entries(data).forEach(([key, value]: [string, any]) => {
         const keyLower = key.toLowerCase();
-        if (keyLower.includes('avail') || keyLower.includes('experience') || 
+        const hasAvailmentKeyword = keyLower.includes('avail') || keyLower.includes('experience') || 
             keyLower.includes('benefited') || keyLower.includes('participated') || 
             keyLower.includes('used') || keyLower.includes('accessed') ||
-            keyLower.includes('utilized') || keyLower.includes('received')) {
+            keyLower.includes('utilized') || keyLower.includes('received') || keyLower.includes('obtained');
+        
+        if (hasAvailmentKeyword && belongsToSection(key)) {
           totalAvailmentQuestions++;
           // Handle various positive response formats
           const stringValue = String(value).toLowerCase();
           if (value === 1 || value === true || value === '1' || 
               stringValue === 'yes' || stringValue === 'oo' || stringValue === 'true') {
             availmentCount++;
+            respondentAvailed = true; // This respondent availed at least one service in this section
+            
+            // Debug logging for business section
+            if (currentSection === 'business' && Math.random() < 0.1) {
+              console.log(`🔍 [FUNNEL AVAILMENT] Business availment found:`, { key, value, respondentAvailed });
+            }
           }
         }
       });
+      
+      // Track this respondent as someone who availed
+      if (respondentAvailed) {
+        respondentsWhoAvailed.add(response.response_id);
+      }
 
-      // Count satisfaction questions (questions containing 'satisf')
+      // Count satisfaction questions (questions containing 'satisf') - only for this section's services
       // IMPORTANT: Satisfaction is calculated from those who AVAILED, not total questions
+      // Track if THIS respondent is satisfied (at least one "Yes" to satisfaction questions)
+      let respondentSatisfied = false;
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.toLowerCase().includes('satisf')) {
+        if (key.toLowerCase().includes('satisf') && belongsToSection(key)) {
           totalSatisfactionQuestions++;
           
           // Handle binary Yes/No format (new)
           const stringValue = String(value).toLowerCase();
           if (stringValue.includes('yes') || stringValue.includes('oo')) {
             satisfactionSum++; // Count as satisfied
-            satisfactionQuestionsFound.push({ key, value, satisfied: true });
+            respondentSatisfied = true; // This respondent is satisfied
+            satisfactionQuestionsFound.push({ key, value, satisfied: true, format: 'binary' });
           } else if (stringValue.includes('no') || stringValue.includes('hindi')) {
             // Count as not satisfied (don't increment satisfactionSum)
-            satisfactionQuestionsFound.push({ key, value, satisfied: false });
+            satisfactionQuestionsFound.push({ key, value, satisfied: false, format: 'binary' });
           } else {
             // Handle legacy 1-5 scale format
             const numValue = typeof value === 'string' ? parseInt(value) : value;
@@ -277,17 +325,23 @@ function calculateSectionScores(responses: any[]): any {
               // Convert to binary: 4-5 = satisfied, 1-3 = not satisfied
               if (numValue >= 4) {
                 satisfactionSum++;
+                respondentSatisfied = true;
               }
-              satisfactionQuestionsFound.push({ key, value, numValue, satisfied: numValue >= 4 });
+              satisfactionQuestionsFound.push({ key, value, numValue, satisfied: numValue >= 4, format: 'numeric' });
             }
           }
         }
       });
+      
+      // Track this respondent as satisfied if they answered "Yes" to any satisfaction question
+      if (respondentSatisfied && respondentAvailed) {
+        respondentsWhoAreSatisfied.add(response.response_id);
+      }
 
-      // Count need for action using binary fields only
+      // Count need for action using binary fields only - only for this section's services
       // Field naming pattern: need_for_action_binary_{indicator}
       Object.entries(data).forEach(([key, value]: [string, any]) => {
-        if (key.startsWith('need_for_action_binary_') || key.startsWith('nfaBinary')) {
+        if ((key.startsWith('need_for_action_binary_') || key.startsWith('nfaBinary')) && belongsToSection(key)) {
           totalNeedActionQuestions++;
           // Check for "Yes" (English) or "Oo" (Tagalog)
           const stringValue = String(value).toLowerCase().trim();
@@ -330,10 +384,11 @@ function calculateSectionScores(responses: any[]): any {
     ? Math.round((availmentCount / totalAvailmentQuestions) * 100)
     : 0;
 
-  // CORRECT: Satisfaction = (number_satisfied / number_availed) * 100
-  // Use availmentCount as denominator (those who availed the service)
-  const satisfactionScore = availmentCount > 0
-    ? Math.round((satisfactionSum / availmentCount) * 100)
+  // CORRECT: Satisfaction = (number_of_satisfied_respondents / number_of_respondents_who_availed) * 100
+  // Use unique respondents who availed as denominator (not total availment question count)
+  // This is the correct denominator per the formula documentation
+  const satisfactionScore = respondentsWhoAvailed.size > 0
+    ? Math.round((respondentsWhoAreSatisfied.size / respondentsWhoAvailed.size) * 100)
     : 0;
 
   // Need for Action is also calculated from those who availed

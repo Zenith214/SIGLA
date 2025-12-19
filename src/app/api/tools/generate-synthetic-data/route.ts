@@ -587,7 +587,19 @@ function generateSectionData(sectionName: string, profileConfig: any) {
     // Generate satisfaction response (1-5 scale)
     const satisfactionProb = profileConfig.satisfactionRange[0] + 
       Math.random() * (profileConfig.satisfactionRange[1] - profileConfig.satisfactionRange[0]);
-    sectionData[part.satisfactionId] = Math.max(1, Math.min(5, Math.round(satisfactionProb * 5))).toString();
+    // Binary format: Yes/No (satisfied if probability > 0.5, which roughly equals rating >= 4)
+    const satisfactionValue = satisfactionProb > 0.5 ? 'Yes' : 'No';
+    sectionData[part.satisfactionId] = satisfactionValue;
+    
+    // Debug log first few responses
+    if (Math.random() < 0.01) {
+      console.log('🔍 [SYNTHETIC] Generated satisfaction:', {
+        serviceId: part.satisfactionId,
+        probability: satisfactionProb.toFixed(2),
+        value: satisfactionValue,
+        type: typeof satisfactionValue
+      });
+    }
     
     // Generate need for action response
     const needActionProb = profileConfig.needActionRange[0] + 

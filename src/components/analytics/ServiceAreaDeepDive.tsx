@@ -16,6 +16,8 @@ interface ServiceAreaData {
   needForAction: number
   responseCount: number
   trend: 'up' | 'down' | 'stable'
+  unawarenessReasons?: Array<{ reason: string; count: number }>
+  nonAvailmentReasons?: Array<{ reason: string; count: number }>
 }
 
 const SERVICE_AREAS = [
@@ -49,6 +51,8 @@ export default function ServiceAreaDeepDive() {
       const response = await fetch(`/api/analytics/service-area-deep-dive?${params}`)
       if (response.ok) {
         const result = await response.json()
+        console.log('[ServiceAreaDeepDive] API Response:', result)
+        console.log('[ServiceAreaDeepDive] First barangay data:', result.rankings?.[0])
         setData(result.rankings || [])
       }
     } catch (error) {
@@ -73,6 +77,34 @@ export default function ServiceAreaDeepDive() {
     if (score >= 70) return 'text-green-600 bg-green-50'
     if (score >= 50) return 'text-yellow-600 bg-yellow-50'
     return 'text-red-600 bg-red-50'
+  }
+
+  // Aggregate all unawareness reasons across barangays
+  const aggregateUnawarenessReasons = () => {
+    const reasonCounts: Record<string, number> = {}
+    data.forEach(barangay => {
+      barangay.unawarenessReasons?.forEach(item => {
+        reasonCounts[item.reason] = (reasonCounts[item.reason] || 0) + item.count
+      })
+    })
+    return Object.entries(reasonCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([reason, count]) => ({ reason, count }))
+  }
+
+  // Aggregate all non-availment reasons across barangays
+  const aggregateNonAvailmentReasons = () => {
+    const reasonCounts: Record<string, number> = {}
+    data.forEach(barangay => {
+      barangay.nonAvailmentReasons?.forEach(item => {
+        reasonCounts[item.reason] = (reasonCounts[item.reason] || 0) + item.count
+      })
+    })
+    return Object.entries(reasonCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([reason, count]) => ({ reason, count }))
   }
 
   return (
@@ -181,6 +213,73 @@ export default function ServiceAreaDeepDive() {
           )}
         </CardContent>
       </Card>
+
+      {/* Conditional Insights Cards */}
+      {data.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Unawareness Reasons Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Unawareness Reasons</CardTitle>
+              <p className="text-sm text-gray-500">
+                Why residents are unaware of this service
+              </p>
+            </CardHeader>
+            <CardContent>
+              {aggregateUnawarenessReasons().length > 0 ? (
+                <div className="space-y-3">
+                  {aggregateUnawarenessReasons().map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
+                          {idx + 1}
+                        </div>
+                        <span className="text-sm font-medium">{item.reason}</span>
+                      </div>
+                      <Badge variant="secondary">{item.count} responses</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No unawareness data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Non-Availment Reasons Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Non-Availment Reasons</CardTitle>
+              <p className="text-sm text-gray-500">
+                Why residents didn't avail of this service
+              </p>
+            </CardHeader>
+            <CardContent>
+              {aggregateNonAvailmentReasons().length > 0 ? (
+                <div className="space-y-3">
+                  {aggregateNonAvailmentReasons().map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-700 rounded-full font-semibold text-sm">
+                          {idx + 1}
+                        </div>
+                        <span className="text-sm font-medium">{item.reason}</span>
+                      </div>
+                      <Badge variant="secondary">{item.count} responses</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No non-availment data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Action Grid Visualization */}
       {data.length > 0 && (
