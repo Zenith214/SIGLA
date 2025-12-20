@@ -260,7 +260,12 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     let isSkipping = false;
 
     if (currentQuestion.conditionalNext) {
-      const currentAnswerValue = answers[currentQuestion.id];
+      // Get the answer value - handle both simple values and objects with follow-ups
+      const rawAnswer = answers[currentQuestion.id];
+      const currentAnswerValue = (rawAnswer && typeof rawAnswer === 'object' && 'main' in rawAnswer) 
+        ? rawAnswer.main 
+        : rawAnswer;
+      
       const jumpCondition = currentQuestion.conditionalNext.find(
         (condition) => condition.value === currentAnswerValue
       );
@@ -295,7 +300,12 @@ export function QuestionFlow({ sectionId, data, onUpdate, onComplete, onBack, on
     setShowValidation(false);
     
     if (currentQuestion.conditionalNext) {
-      const currentAnswerValue = answers[currentQuestion.id];
+      // Get the answer value - handle both simple values and objects with follow-ups
+      const rawAnswer = answers[currentQuestion.id];
+      const currentAnswerValue = (rawAnswer && typeof rawAnswer === 'object' && 'main' in rawAnswer) 
+        ? rawAnswer.main 
+        : rawAnswer;
+      
       const jumpCondition = currentQuestion.conditionalNext.find(
         (condition) => condition.value === currentAnswerValue
       );

@@ -113,7 +113,8 @@ export function createUnawarenessReasonQuestion(
   serviceId: string, 
   awarenessQuestionId: string,
   language: 'english' | 'filipino' | 'bisaya' = 'english',
-  customNoValue?: string  // Allow custom "No" value for special cases
+  customNoValue?: string,  // Allow custom "No" value for special cases
+  sectionId?: string  // Section ID to determine skip target
 ): Question {
   // Determine the correct "No" value based on language
   // Use customNoValue if provided (for questions like corruption that use "Hindi (No)")
@@ -124,6 +125,9 @@ export function createUnawarenessReasonQuestion(
   
   // ALWAYS use English option keys - they will be translated dynamically by getTranslatedOptions()
   const englishOptions = UNAWARENESS_REASON_OPTIONS.english;
+  
+  // Determine the skip target based on service (skip to next part, not end of section)
+  const skipTarget = getSkipTargetForService(serviceId, sectionId);
   
   const question: Question = {
     id: questionId,
@@ -136,6 +140,11 @@ export function createUnawarenessReasonQuestion(
     },
     dependsOn: awarenessQuestionId,
     dependsOnValue: noValue,
+    // Add conditional skip logic - after answering unawareness, skip to end of section
+    conditionalNext: englishOptions.map(option => ({
+      value: option,
+      skipToId: skipTarget
+    })),
     followUpQuestions: [
       {
         id: `${serviceId}_unawareness_reason_other`,
@@ -163,7 +172,8 @@ export function createNonAvailmentReasonQuestion(
   serviceId: string, 
   awarenessQuestionId: string,
   availmentQuestionId: string,
-  language: 'english' | 'filipino' | 'bisaya' = 'english'
+  language: 'english' | 'filipino' | 'bisaya' = 'english',
+  sectionId?: string  // Section ID to determine skip target
 ): Question {
   // Determine the correct "No" value based on language
   const noValue = language === 'filipino' ? 'Hindi' : language === 'bisaya' ? 'Dili' : 'No';
@@ -173,6 +183,9 @@ export function createNonAvailmentReasonQuestion(
   
   // ALWAYS use English option keys - they will be translated dynamically by getTranslatedOptions()
   const englishOptions = NON_AVAILMENT_REASON_OPTIONS.english;
+  
+  // Determine the skip target based on service (skip to next part, not end of section)
+  const skipTarget = getSkipTargetForService(serviceId, sectionId);
   
   return {
     id: questionId,
@@ -191,6 +204,11 @@ export function createNonAvailmentReasonQuestion(
     },
     dependsOn: availmentQuestionId,
     dependsOnValue: noValue,
+    // Add conditional skip logic - after answering unavailment, skip to end of section
+    conditionalNext: englishOptions.map(option => ({
+      value: option,
+      skipToId: skipTarget
+    })),
     followUpQuestions: [
       {
         id: `${serviceId}_non_availment_reason_other`,
@@ -337,4 +355,63 @@ export function detectLanguage(sectionId: string, questionText?: string): 'engli
   
   // Default to English for disaster, safety, social, business, environmental sections
   return 'english';
+}
+
+/**
+ * Get the skip target for a specific service within a section
+ * This determines where to skip after answering unawareness/unavailment modules
+ * 
+ * For sections with multiple parts (services), skip to the next part
+ * For the last part in a section, skip to end of section
+ */
+export function getSkipTargetForService(serviceId: string, sectionId?: string): string {
+  // Map each service to its skip target (next service or end of section)
+  const serviceSkipTargets: Record<string, string> = {
+    // Financial section (3 services)
+    'projects': 'awarenessFinancial',  // Skip to Financial Transparency
+    'financial': 'awarenessSocialPrograms',  // Skip to Social Programs
+    'socialPrograms': 'awarenessCorruption',  // Skip to Corruption (last part, but has no availment)
+    'corruption': 'endOfFinancialSection',  // End of financial section
+    
+    // Disaster section (2 services)
+    'disasterInfo': 'awarenessEvacuation',  // Skip to Evacuation
+    'evacuation': 'endOfDisasterSection',  // End of disaster section
+    
+    // Safety section (3 services)
+    'tanods': 'awarenessLupon',  // Skip to Lupon
+    'lupon': 'awarenessAntiDrug',  // Skip to Anti-Drug
+    'antiDrug': 'endOfSafetySection',  // End of safety section
+    
+    // Social section (3 services)
+    'healthServices': 'awarenessWomenChildrenProtection',  // Skip to Women/Children
+    'womenChildrenProtection': 'awarenessCommunityParticipation',  // Skip to Community Participation
+    'communityParticipation': 'endOfSocialSection',  // End of social section
+    
+    // Business section (1 service)
+    'businessClearance': 'endOfBusinessSection',  // End of business section
+    
+    // Environmental section (1 service)
+    'wasteManagement': 'endOfEnvironmentalSection',  // End of environmental section
+  };
+  
+  // Return the specific skip target for this service, or fallback to section end
+  return serviceSkipTargets[serviceId] || getSkipTargetForSection(sectionId);
+}
+
+/**
+ * Get the skip target (end of section) based on section ID
+ * This is used as a fallback when service-specific skip target is not found
+ */
+export function getSkipTargetForSection(sectionId?: string): string {
+  const sectionSkipTargets: Record<string, string> = {
+    'financial': 'endOfFinancialSection',
+    'disaster': 'endOfDisasterSection',
+    'safety': 'endOfSafetySection',
+    'social': 'endOfSocialSection',
+    'business': 'endOfBusinessSection',
+    'environmental': 'endOfEnvironmentalSection',
+    'overall': 'endOfOverallSection'
+  };
+  
+  return sectionSkipTargets[sectionId || ''] || 'endOfFinancialSection';
 }
