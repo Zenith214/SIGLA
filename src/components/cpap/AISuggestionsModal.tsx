@@ -128,7 +128,13 @@ export function AISuggestionsModal({
     
     return allSuggestions.map((suggestion) => {
       // Parse timeline to get months
-      const months = parseInt(suggestion.timeline_months.split("-")[0]) || 3;
+      let months = parseInt(suggestion.timeline_months.split("-")[0]) || 3;
+      
+      // For long-term items (12+ months), ensure it's at least 13 months
+      // so it properly categorizes as "Long-Term" in the breakdown
+      if (months === 12 && suggestions.longTerm.includes(suggestion)) {
+        months = 13;
+      }
       
       const startDate = new Date(today);
       const endDate = new Date(today);

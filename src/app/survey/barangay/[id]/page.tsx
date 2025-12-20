@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Users, Calendar, Search, Eye, X, Trash2, AlertTriangle, Check, AlertCircle } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Calendar, Search, Eye, X, Trash2, AlertTriangle, Check, AlertCircle, Clock, CheckCircle, XCircle, FileText } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,7 @@ type BarangayData = {
 type SurveyResponse = {
   response_id: number
   survey_number: string
+  questionnaire_id: string | null
   respondent_name: string | null
   respondent_age: number | null
   respondent_gender: string | null
@@ -47,6 +48,11 @@ type SurveyResponse = {
   respondent_household_income: string | null
   submitted_at: string
   status: string
+  interviewer?: {
+    firstName: string
+    lastName: string
+    email: string
+  }
   survey_section: {
     section_name: string
     data: string // JSON string
@@ -119,6 +125,8 @@ function AssignedInterviewersCard({ barangayId }: { barangayId: number }) {
             <tr className="border-b border-gray-200">
               <th className="text-left py-3 px-2 font-medium text-gray-700">Name</th>
               <th className="text-left py-3 px-2 font-medium text-gray-700">Email</th>
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Spot</th>
+              <th className="text-left py-3 px-2 font-medium text-gray-700">Progress</th>
               <th className="text-left py-3 px-2 font-medium text-gray-700">Status</th>
               <th className="text-left py-3 px-2 font-medium text-gray-700">Assigned Date</th>
             </tr>
@@ -130,17 +138,26 @@ function AssignedInterviewersCard({ barangayId }: { barangayId: number }) {
                   {assignment.interviewer.firstName} {assignment.interviewer.lastName}
                 </td>
                 <td className="py-3 px-2 text-gray-600">{assignment.interviewer.email}</td>
+                <td className="py-3 px-2 text-gray-700">{(assignment as any).spot_name || 'N/A'}</td>
+                <td className="py-3 px-2 text-gray-900">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {(assignment as any).submitted_responses || 0}/{(assignment as any).total_questionnaires || 0}
+                    </span>
+                    <span className="text-xs text-gray-500">{assignment.progress}%</span>
+                  </div>
+                </td>
                 <td className="py-3 px-2">
                   <span
                     className={`px-2 py-1 text-xs rounded-full font-medium ${
                       assignment.status === "Completed"
                         ? "bg-green-100 text-green-800"
-                        : assignment.status === "In Progress"
+                        : assignment.status === "In_Progress"
                           ? "bg-blue-100 text-blue-800"
-                          : "bg-orange-100 text-orange-800"
+                          : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {assignment.status}
+                    {assignment.status === "In_Progress" ? "In Progress" : assignment.status}
                   </span>
                 </td>
                 <td className="py-3 px-2 text-gray-600">
@@ -150,6 +167,121 @@ function AssignedInterviewersCard({ barangayId }: { barangayId: number }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function QuestionnaireVisits({ questionnaireId }: { questionnaireId: string | null }) {
+  const [visits, setVisits] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (!questionnaireId) {
+      setLoading(false)
+      return
+    }
+
+    const fetchVisits = async () => {
+      try {
+        const response = await fetch(`/api/visits/${questionnaireId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch visits')
+        }
+        const data = await response.json()
+        setVisits(data.visits || [])
+      } catch (error) {
+        console.error('Error fetching visits:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchVisits()
+  }, [questionnaireId])
+
+  const getOutcomeIcon = (outcome: string) => {
+    switch (outcome) {
+      case 'Completed':
+        return <CheckCircle className="w-3 h-3 text-green-600" />
+      case 'Callback_Needed':
+        return <Clock className="w-3 h-3 text-amber-600" />
+      case 'Refused':
+        return <XCircle className="w-3 h-3 text-red-600" />
+      case 'Household_Moved':
+        return <AlertCircle className="w-3 h-3 text-gray-600" />
+      default:
+        return <FileText className="w-3 h-3 text-blue-600" />
+    }
+  }
+
+  const getOutcomeColor = (outcome: string) => {
+    switch (outcome) {
+      case 'Completed':
+        return 'bg-green-100 text-green-800'
+      case 'Callback_Needed':
+        return 'bg-amber-100 text-amber-800'
+      case 'Refused':
+        return 'bg-red-100 text-red-800'
+      case 'Household_Moved':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-blue-100 text-blue-800'
+    }
+  }
+
+  const formatOutcome = (outcome: string) => {
+    return outcome.replace(/_/g, ' ')
+  }
+
+  if (!questionnaireId) {
+    return (
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2">Visitation History</h4>
+        <p className="text-xs text-gray-500">No questionnaire ID associated with this response</p>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2">Visitation History</h4>
+        <p className="text-xs text-gray-500">Loading visits...</p>
+      </div>
+    )
+  }
+
+  if (visits.length === 0) {
+    return (
+      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2">Visitation History</h4>
+        <p className="text-xs text-gray-500">No visits recorded for this survey</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <h4 className="text-sm font-semibold text-gray-700 mb-3">Visitation History ({visits.length} visit{visits.length !== 1 ? 's' : ''})</h4>
+      <div className="space-y-2">
+        {visits.map((visit: any) => (
+          <div key={visit.visit_id} className="bg-white p-2 rounded border border-gray-200">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center space-x-2">
+                {getOutcomeIcon(visit.outcome)}
+                <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getOutcomeColor(visit.outcome)}`}>
+                  Visit #{visit.visit_number}: {formatOutcome(visit.outcome)}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {new Date(visit.visit_timestamp).toLocaleString()}
+              </span>
+            </div>
+            {visit.notes && (
+              <p className="text-xs text-gray-600 mt-1 pl-5">{visit.notes}</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -757,7 +889,21 @@ function BarangayDetailContent({ params }: { params: { id: string } }) {
                         <span className="font-medium text-gray-700">Household Income:</span>
                         <span className="ml-2 text-gray-900">{selectedResponse.respondent_household_income || 'Not specified'}</span>
                       </div>
+                      {selectedResponse.interviewer && (
+                        <div className="text-sm pt-2 border-t border-gray-200">
+                          <span className="font-medium text-gray-700">Interviewed by:</span>
+                          <span className="ml-2 text-gray-900">
+                            {selectedResponse.interviewer.firstName} {selectedResponse.interviewer.lastName}
+                          </span>
+                          <span className="ml-1 text-gray-500 text-xs">
+                            ({selectedResponse.interviewer.email})
+                          </span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Visitation History */}
+                    <QuestionnaireVisits questionnaireId={selectedResponse.questionnaire_id} />
                   </div>
 
                   {/* Response Content */}

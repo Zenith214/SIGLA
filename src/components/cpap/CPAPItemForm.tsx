@@ -5,7 +5,60 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { DollarSign, AlertTriangle, Shield, Heart, Briefcase, Leaf } from "lucide-react";
 import type { CPAPItem, CPAPItemInput } from "@/types/cpap";
+
+const SERVICE_AREAS = [
+  {
+    value: "Financial Administration",
+    label: "Financial Administration",
+    icon: DollarSign,
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+  },
+  {
+    value: "Disaster Preparedness",
+    label: "Disaster Preparedness",
+    icon: AlertTriangle,
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+  },
+  {
+    value: "Safety & Peace Order",
+    label: "Safety & Peace Order",
+    icon: Shield,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+  },
+  {
+    value: "Social Protection",
+    label: "Social Protection",
+    icon: Heart,
+    color: "text-pink-600",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-200",
+  },
+  {
+    value: "Business Friendliness",
+    label: "Business Friendliness",
+    icon: Briefcase,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+  },
+  {
+    value: "Environmental Management",
+    label: "Environmental Management",
+    icon: Leaf,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+  },
+] as const;
 
 interface CPAPItemFormProps {
   item?: CPAPItem | null;
@@ -104,19 +157,56 @@ export function CPAPItemForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="priority_area">
+        <Label className="text-base">
           Priority Area <span className="text-red-500">*</span>
         </Label>
-        <Input
-          id="priority_area"
+        <p className="text-sm text-muted-foreground mb-3">
+          Select the service area this action item addresses
+        </p>
+        <RadioGroup
           value={formData.priority_area}
-          onChange={(e) => handleChange("priority_area", e.target.value)}
-          placeholder="e.g., Health Services, Infrastructure"
+          onValueChange={(value) => handleChange("priority_area", value)}
           disabled={isReadOnly}
-          aria-invalid={!!errors.priority_area}
-        />
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          {SERVICE_AREAS.map((area) => {
+            const Icon = area.icon;
+            const isSelected = formData.priority_area === area.value;
+            
+            return (
+              <label
+                key={area.value}
+                htmlFor={`area-${area.value.toLowerCase().replace(/\s+/g, "-")}`}
+                className={`
+                  relative flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer
+                  transition-all duration-200 hover:shadow-md
+                  ${isSelected 
+                    ? `${area.borderColor} ${area.bgColor} shadow-sm` 
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                  }
+                  ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}
+                `}
+              >
+                <RadioGroupItem
+                  value={area.value}
+                  id={`area-${area.value.toLowerCase().replace(/\s+/g, "-")}`}
+                  disabled={isReadOnly}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`h-5 w-5 ${isSelected ? area.color : 'text-gray-400'}`} />
+                    <span className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                      {area.label}
+                    </span>
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </RadioGroup>
         {errors.priority_area && (
-          <p className="text-sm text-red-500 mt-1">{errors.priority_area}</p>
+          <p className="text-sm text-red-500 mt-2">{errors.priority_area}</p>
         )}
       </div>
 

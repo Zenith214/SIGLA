@@ -57,21 +57,21 @@ export function CPAPSubmitModal({
     const start = new Date(item.timeline_start);
     const end = new Date(item.timeline_end);
     const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30); // months
-    return duration <= 3;
+    return duration < 6;
   });
 
   const mediumTermItems = cpap.items.filter(item => {
     const start = new Date(item.timeline_start);
     const end = new Date(item.timeline_end);
     const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30);
-    return duration > 3 && duration <= 12;
+    return duration >= 6 && duration < 12;
   });
 
   const longTermItems = cpap.items.filter(item => {
     const start = new Date(item.timeline_start);
     const end = new Date(item.timeline_end);
     const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30);
-    return duration > 12;
+    return duration >= 12;
   });
 
   return (
@@ -145,7 +145,7 @@ export function CPAPSubmitModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-green-700" />
-                      <span className="font-medium text-green-900">Short-Term (0-3 months)</span>
+                      <span className="font-medium text-green-900">Short-Term (0-6 months)</span>
                     </div>
                     <Badge variant="outline" className="text-green-700 border-green-300">
                       {shortTermItems.length} {shortTermItems.length === 1 ? "item" : "items"}

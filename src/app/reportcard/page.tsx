@@ -1798,27 +1798,43 @@ function ReportCardContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 print:single-column print:gap-0">
           {/* Left Column - Overview (Web Only) */}
           <div className="lg:col-span-1 space-y-4 sm:space-y-6 print:hidden">
-            {/* Barangay Logo */}
-            <Card>
-              <CardContent className="p-4 sm:p-8">
-                <div className="border-2 border-gray-200 rounded-xl p-4 sm:p-8 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-24 sm:h-32">
-                  {barangayData.logo_url ? (
+            {/* Barangay Logos - Side by Side */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {/* BLGU Logo */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="border-2 border-gray-200 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-20 sm:h-24">
+                    {barangayData.logo_url ? (
+                      <img
+                        src={barangayData.logo_url}
+                        alt={`${barangayData.barangay} logo`}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<span class="text-sm sm:text-base font-bold text-gray-700">BLGU</span>';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-sm sm:text-base font-bold text-gray-700">BLGU</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* MLGRC Logo */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="border-2 border-gray-200 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-purple-50 to-gray-50 flex items-center justify-center h-20 sm:h-24">
                     <img
-                      src={barangayData.logo_url}
-                      alt={`${barangayData.barangay} logo`}
+                      src="/mlgrclogohd.png"
+                      alt="MLGRC Logo"
                       className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.parentElement!.innerHTML = '<span class="text-xl font-bold text-gray-700">BLGU LOGO</span>';
-                      }}
                     />
-                  ) : (
-                    <span className="text-xl font-bold text-gray-700">BLGU LOGO</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Overall Satisfaction */}
             <Card>

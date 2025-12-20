@@ -595,6 +595,11 @@ export async function GET(request: NextRequest) {
         sr.respondent_household_income,
         sr.submitted_at,
         sr.status,
+        JSON_BUILD_OBJECT(
+          'firstName', u."firstName",
+          'lastName', u."lastName",
+          'email', u.email
+        ) as interviewer,
         COALESCE(
           JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -606,8 +611,9 @@ export async function GET(request: NextRequest) {
         ) as survey_section
       FROM survey_response sr
       LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
+      LEFT JOIN "user" u ON sr.interviewer_id = u.id
       ${whereClause}
-      GROUP BY sr.response_id, sr.survey_number, sr.questionnaire_id, sr.respondent_name, sr.respondent_age, sr.respondent_gender, sr.respondent_educational_attainment, sr.respondent_household_income, sr.submitted_at, sr.status
+      GROUP BY sr.response_id, sr.survey_number, sr.questionnaire_id, sr.respondent_name, sr.respondent_age, sr.respondent_gender, sr.respondent_educational_attainment, sr.respondent_household_income, sr.submitted_at, sr.status, u."firstName", u."lastName", u.email
       ORDER BY sr.created_at DESC
     `;
 

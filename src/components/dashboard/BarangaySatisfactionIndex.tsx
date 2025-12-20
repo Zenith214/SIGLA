@@ -419,27 +419,39 @@ export default function BarangaySatisfactionIndex({
           <div className="grid grid-cols-5 gap-6">
             {/* Left Column - 2/5 width */}
             <div className="col-span-2 space-y-4">
-              {/* Barangay Logo */}
-              <div className="border-2 border-gray-200 rounded-xl p-6 h-40 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
-                {(() => {
-                  console.log('[BarangaySatisfactionIndex] Barangay logo_url:', barangay.logo_url);
-                  console.log('[BarangaySatisfactionIndex] Full barangay data:', barangay);
-                  return null;
-                })()}
-                {barangay.logo_url ? (
+              {/* Barangay Logos - Side by Side */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* BLGU Logo */}
+                <div className="border-2 border-gray-200 rounded-xl p-4 h-32 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
+                  {(() => {
+                    console.log('[BarangaySatisfactionIndex] Barangay logo_url:', barangay.logo_url);
+                    console.log('[BarangaySatisfactionIndex] Full barangay data:', barangay);
+                    return null;
+                  })()}
+                  {barangay.logo_url ? (
+                    <img 
+                      src={barangay.logo_url} 
+                      alt={`${barangay.name} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.parentElement!.innerHTML = '<span class="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
+                  )}
+                </div>
+
+                {/* MLGRC Logo */}
+                <div className="border-2 border-gray-200 rounded-xl p-4 h-32 flex items-center justify-center bg-gradient-to-br from-purple-50 to-gray-50 shadow-sm">
                   <img 
-                    src={barangay.logo_url} 
-                    alt={`${barangay.name} logo`}
+                    src="/mlgrclogohd.png" 
+                    alt="MLGRC Logo"
                     className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.parentElement!.innerHTML = '<span class="text-xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
-                    }}
                   />
-                ) : (
-                  <span className="text-2xl font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
-                )}
+                </div>
               </div>
 
               {/* View Score Card Button */}

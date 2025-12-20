@@ -83,11 +83,11 @@ export default function UserDropdown() {
             <span>CPAP Management</span>
           </DropdownMenuItem>
         )}
-        {/* Hide Settings for officer role */}
+        {/* Hide System Settings for officer role */}
         {user?.role?.toLowerCase() !== 'officer' && (
           <DropdownMenuItem onClick={() => handleMenuClick("settings")}>
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>System Settings</span>
           </DropdownMenuItem>
         )}
         {/* Hide Survey Dashboard for officer role */}

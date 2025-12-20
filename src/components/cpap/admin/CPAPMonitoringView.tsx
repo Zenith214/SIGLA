@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,42 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
   const [selectedCPAP, setSelectedCPAP] = useState<CPAPWithDetails | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [cpapProgress, setCpapProgress] = useState<Record<number, number>>({});
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+
+  // Load progress for all CPAPs on mount
+  const loadAllProgress = async () => {
+    if (cpaps.length === 0) return;
+    
+    setIsLoadingProgress(true);
+    const progressData: Record<number, number> = {};
+    
+    try {
+      // Fetch details for each CPAP to calculate progress
+      await Promise.all(
+        cpaps.map(async (cpap) => {
+          try {
+            const response = await fetch(`/api/cpap/${cpap.id}`);
+            if (response.ok) {
+              const data = await response.json();
+              progressData[cpap.id] = calculateCPAPProgress(data.cpap);
+            }
+          } catch (err) {
+            console.error(`Error loading progress for CPAP ${cpap.id}:`, err);
+          }
+        })
+      );
+      
+      setCpapProgress(progressData);
+    } finally {
+      setIsLoadingProgress(false);
+    }
+  };
+
+  // Load progress when component mounts or cpaps change
+  useEffect(() => {
+    loadAllProgress();
+  }, [cpaps.length]); // Re-run when number of CPAPs changes
 
   // Calculate summary metrics
   const metrics = useMemo(() => {
@@ -79,7 +115,13 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
       }
 
       const data = await response.json();
-      setSelectedCPAP(data.cpap);
+      const cpapDetails = data.cpap;
+      
+      // Calculate and store progress
+      const progress = calculateCPAPProgress(cpapDetails);
+      setCpapProgress(prev => ({ ...prev, [cpapId]: progress }));
+      
+      setSelectedCPAP(cpapDetails);
       setIsDetailModalOpen(true);
     } catch (err) {
       console.error("Error fetching CPAP details:", err);
@@ -94,15 +136,21 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
   };
 
   const calculateItemProgress = (item: any) => {
-    // Simple progress calculation based on filled fields
-    let filledFields = 0;
-    let totalFields = 3; // actual_output, accomplishment_status, remarks
-
-    if (item.actual_output && item.actual_output.trim()) filledFields++;
-    if (item.accomplishment_status && item.accomplishment_status.trim()) filledFields++;
-    if (item.remarks && item.remarks.trim()) filledFields++;
-
-    return Math.round((filledFields / totalFields) * 100);
+    // Progress calculation based on accomplishment status
+    const status = item.accomplishment_status?.toLowerCase().trim() || '';
+    
+    if (status.includes('completed') || status.includes('done') || status.includes('finished')) {
+      return 100;
+    } else if (status.includes('in progress') || status.includes('ongoing') || status.includes('in-progress')) {
+      return 50;
+    } else if (status.includes('delayed') || status.includes('behind')) {
+      return 25;
+    } else if (status.includes('not started') || status.includes('pending') || status === '') {
+      return 0;
+    }
+    
+    // Default: if status is filled but doesn't match known patterns, assume in progress
+    return 50;
   };
 
   const calculateCPAPProgress = (cpap: CPAPWithDetails) => {
@@ -225,15 +273,19 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
                         </div>
                       </div>
 
-                      {/* Progress Bar Placeholder */}
+                      {/* Progress Bar */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-600">Progress Tracking</span>
-                          <span className="font-medium text-gray-900">—</span>
+                          <span className="font-medium text-gray-900">
+                            {cpapProgress[cpap.id] !== undefined ? `${cpapProgress[cpap.id]}%` : '—'}
+                          </span>
                         </div>
-                        <Progress value={0} className="h-2" />
+                        <Progress value={cpapProgress[cpap.id] || 0} className="h-2" />
                         <p className="text-xs text-gray-500">
-                          View details to see item-by-item progress
+                          {cpapProgress[cpap.id] !== undefined 
+                            ? 'Click "View Details" to see item-by-item progress'
+                            : 'Click "View Details" to load progress data'}
                         </p>
                       </div>
                     </div>
