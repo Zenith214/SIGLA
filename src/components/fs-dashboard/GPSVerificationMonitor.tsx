@@ -30,6 +30,8 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
   const [error, setError] = useState<string | null>(null);
   const [selectedInterview, setSelectedInterview] = useState<{ id: number; questionnaireId: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "verified" | "flagged">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (cycleId) {
@@ -38,12 +40,13 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
   }, [cycleId]);
 
   useEffect(() => {
-    // Apply filter
+    // Apply filter and reset to page 1
     if (statusFilter === "all") {
       setFilteredInterviews(interviews);
     } else {
       setFilteredInterviews(interviews.filter((i) => i.gps_verification_status === statusFilter));
     }
+    setCurrentPage(1);
   }, [statusFilter, interviews]);
 
   const fetchGPSVerificationData = async () => {
@@ -108,6 +111,16 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
   const verifiedCount = interviews.filter((i) => i.gps_verification_status === "verified").length;
   const pendingCount = interviews.filter((i) => i.gps_verification_status === "pending").length;
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredInterviews.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedInterviews = filteredInterviews.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   if (loading || parentLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -165,60 +178,61 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
   }
 
   return (
-    <>
-      <div className="bg-white rounded-lg shadow-sm">
-        {/* Header with summary */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">GPS Verification</h3>
-              <p className="text-sm text-gray-600">Monitor interview location verification</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={fetchGPSVerificationData}
-                disabled={loading}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Refreshing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                  </>
-                )}
-              </button>
-              <MapPin className="h-6 w-6 text-blue-600" />
-            </div>
+    <div className="space-y-4">
+      {/* KPI Cards Section */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">GPS Verification</h3>
+            <p className="text-sm text-gray-600">Monitor interview location verification</p>
           </div>
-
-          {/* Summary cards */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-600 font-medium mb-1">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{interviews.length}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-xs text-green-600 font-medium mb-1">Verified</p>
-              <p className="text-2xl font-bold text-green-900">{verifiedCount}</p>
-            </div>
-            <div className="bg-red-50 rounded-lg p-3">
-              <p className="text-xs text-red-600 font-medium mb-1">Flagged</p>
-              <p className="text-2xl font-bold text-red-900">{flaggedCount}</p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-3">
-              <p className="text-xs text-yellow-600 font-medium mb-1">Pending</p>
-              <p className="text-2xl font-bold text-yellow-900">{pendingCount}</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchGPSVerificationData}
+              disabled={loading}
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </>
+              )}
+            </button>
+            <MapPin className="h-6 w-6 text-blue-600" />
           </div>
         </div>
 
+        {/* Summary cards */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 font-medium mb-1">Total</p>
+            <p className="text-2xl font-bold text-gray-900">{interviews.length}</p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-3">
+            <p className="text-xs text-green-600 font-medium mb-1">Verified</p>
+            <p className="text-2xl font-bold text-green-900">{verifiedCount}</p>
+          </div>
+          <div className="bg-red-50 rounded-lg p-3">
+            <p className="text-xs text-red-600 font-medium mb-1">Flagged</p>
+            <p className="text-2xl font-bold text-red-900">{flaggedCount}</p>
+          </div>
+          <div className="bg-yellow-50 rounded-lg p-3">
+            <p className="text-xs text-yellow-600 font-medium mb-1">Pending</p>
+            <p className="text-2xl font-bold text-yellow-900">{pendingCount}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Section - Separate card with min height for 5 items */}
+      <div className="bg-white rounded-lg shadow-sm">
         {/* Filter */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-2">
@@ -269,8 +283,8 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
           </div>
         </div>
 
-        {/* Interview list - removed max-height to allow natural scrolling */}
-        <div className="overflow-x-auto">
+        {/* Interview list with min height for 5 rows */}
+        <div className="overflow-x-auto min-h-[400px]">
           {filteredInterviews.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <MapPin className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -310,7 +324,7 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInterviews.map((interview) => (
+                {paginatedInterviews.map((interview) => (
                   <tr
                     key={interview.response_id}
                     className="hover:bg-gray-50 transition-colors"
@@ -351,6 +365,50 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
             </table>
           )}
         </div>
+
+        {/* Pagination */}
+        {filteredInterviews.length > 0 && (
+          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
+                <span className="font-medium">{Math.min(endIndex, filteredInterviews.length)}</span> of{" "}
+                <span className="font-medium">{filteredInterviews.length}</span> results
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                        currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Interview Detail Modal */}
@@ -362,6 +420,6 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
           questionnaireId={selectedInterview.questionnaireId}
         />
       )}
-    </>
+    </div>
   );
 }

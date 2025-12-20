@@ -151,7 +151,7 @@ export default function FieldworkMonitoring() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-4 overflow-hidden">
+    <div className="h-full flex flex-col gap-4 overflow-auto">
       {/* Header with summary and refresh */}
       <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
@@ -220,8 +220,8 @@ export default function FieldworkMonitoring() {
       </div>
 
       {/* Tabs for different views */}
-      <div className="flex-1 min-h-0">
-        <Tabs defaultValue="overview" className="h-full flex flex-col">
+      <div className="flex-1">
+        <Tabs defaultValue="overview" className="flex flex-col">
           <TabsList className="grid w-full grid-cols-4 bg-white rounded-lg shadow-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="performance">FI Performance</TabsTrigger>
@@ -261,7 +261,7 @@ export default function FieldworkMonitoring() {
           </TabsContent>
 
           {/* GPS Verification Tab */}
-          <TabsContent value="gps-verification" className="flex-1 mt-4 min-h-0">
+          <TabsContent value="gps-verification" className="mt-4">
             {activeCycle && (
               <GPSVerificationMonitor
                 cycleId={activeCycle.cycle_id}
