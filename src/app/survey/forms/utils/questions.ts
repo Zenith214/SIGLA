@@ -762,7 +762,7 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
         {
           id: "satisfactionBusinessClearance",
           type: "radio",
-          ...formatQuestionText("3. SATISFACTION:\nWere you satisfied with the overall process of getting the clearance, considering the speed of service, the fees, and the helpfulness of the staff? / Nasisiyahan ka ba sa pangkalahatang proseso ng pagkuha ng clearance, isinasaalang-alang ang bilis ng serbisyo, mga bayad, at pagiging matulungin ng kawani?"),
+          ...formatQuestionText("3. SATISFACTION:\nAre you satisfied with the overall process of getting the clearance, considering the speed of service, the fees, and the helpfulness of the staff? / Nasisiyahan ka ba sa pangkalahatang proseso ng pagkuha ng clearance, isinasaalang-alang ang bilis ng serbisyo, mga bayad, at pagiging matulungin ng kawani?"),
           options: ["Yes", "No"],
           required: true,
           dependsOn: "availmentBusinessClearance",

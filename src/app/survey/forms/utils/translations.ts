@@ -27,9 +27,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nHave you personally seen, used, or benefited from any of these new projects?"
     },
     satisfactionProjects: {
-      bisaya: "3. KATAGBAWAN:\nUnsa ka tagbaw sa kalidad ug kaayohan sa mga bag-ong proyekto sa barangay? Palihug gamita kini nga sukod:\n(5 - Hilabihan ka Tagbaw, 4 - Tagbaw, 3 - Neutral, 2 - Dili Tagbaw, 1 - Hilabihan ka Dili Tagbaw)",
-      filipino: "3. KASIYAHAN:\nGaano ka nasisiyahan sa kalidad at pakinabang ng mga bagong proyekto ng barangay? Pakigamit ang sumusunod na sukat:\n(5 - Lubos na Nasiyahan, 4 - Nasiyahan, 3 - Neutral, 2 - Hindi Nasiyahan, 1 - Lubos na Hindi Nasiyahan)",
-      english: "3. SATISFACTION:\nHow satisfied are you with the quality and usefulness of these new barangay projects? Please use this scale:\n(5 - Very Satisfied, 4 - Satisfied, 3 - Neutral, 2 - Dissatisfied, 1 - Very Dissatisfied)"
+      bisaya: "3. KATAGBAWAN:\nTagbaw ka ba sa kalidad ug kaayohan sa mga bag-ong proyekto sa barangay?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa kalidad at pakinabang ng mga bagong proyekto ng barangay?",
+      english: "3. SATISFACTION:\nAre you satisfied with the quality and usefulness of these new barangay projects?"
     },
     nfaBinaryProjects: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -68,9 +68,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "6. AVAILMENT / ATTENDANCE:\nHave you personally tried to look for this information or attended a Barangay Assembly where the budget was discussed?"
     },
     satisfactionFinancial: {
-      bisaya: "7. KATAGBAWAN:\nUnsa ka tagbaw sa katin-aw ug kadali sa pagkuha sa pinansyal nga impormasyon sa barangay?",
-      filipino: "7. KASIYAHAN:\nGaano ka nasisiyahan sa kalinawan at kadaling makuha ng impormasyong pinansyal ng barangay?",
-      english: "7. SATISFACTION:\nHow satisfied are you with the clarity and accessibility of the barangay's financial information?"
+      bisaya: "7. KATAGBAWAN:\nTagbaw ka ba sa katin-aw ug kadali sa pagkuha sa pinansyal nga impormasyon sa barangay?",
+      filipino: "7. KASIYAHAN:\nNasisiyahan ka ba sa kalinawan at kadaling makuha ng impormasyong pinansyal ng barangay?",
+      english: "7. SATISFACTION:\nAre you satisfied with the clarity and accessibility of the barangay's financial information?"
     },
     nfaBinaryFinancial: {
       bisaya: "8. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -109,9 +109,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "10. AVAILMENT / PARTICIPATION:\nHave you, a family member, or a close neighbor tried to avail of or participate in any of these programs?"
     },
     satisfactionSocialPrograms: {
-      bisaya: "11. KATAGBAWAN:\nBase sa imong kasinatian o obserbasyon, unsa ka tagbaw sa paghatag ug epekto sa mga programa sa katilingban sa barangay?",
-      filipino: "11. KASIYAHAN:\nBatay sa iyong karanasan o obserbasyon, gaano ka nasisiyahan sa paghahatid at epekto ng mga programang panlipunan ng barangay?",
-      english: "11. SATISFACTION:\nBased on your experience or observation, how satisfied are you with the delivery and impact of these social programs?"
+      bisaya: "11. KATAGBAWAN:\nBase sa imong kasinatian o obserbasyon, tagbaw ka ba sa paghatag ug epekto sa mga programa sa katilingban sa barangay?",
+      filipino: "11. KASIYAHAN:\nBatay sa iyong karanasan o obserbasyon, nasisiyahan ka ba sa paghahatid at epekto ng mga programang panlipunan ng barangay?",
+      english: "11. SATISFACTION:\nBased on your experience or observation, are you satisfied with the delivery and impact of these social programs?"
     },
     nfaBinarySocialPrograms: {
       bisaya: "12. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -191,9 +191,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nHave you personally received any disaster-related information (like a pamphlet or text), seen a hazard map for our area, or heard an early warning (e.g., from a siren, megaphone, or barangay official) from the barangay?"
     },
     satisfactionDisasterInfo: {
-      bisaya: "3. KASIYAHAN:\nUnsa ka kontento sa kasayuran, pagka-igo sa oras, ug kaepektibo sa mga pahimangno ug impormasyon bahin sa kalamidad nga gihatag sa barangay?",
-      filipino: "3. KASIYAHAN:\nGaano ka nasisiyahan sa kalinawan, pagiging napapanahon, at bisa ng mga babala at impormasyong ibinibigay ng barangay tungkol sa sakuna?",
-      english: "3. SATISFACTION:\nHow satisfied are you with the clarity, timeliness, and effectiveness of the disaster warnings and information provided by the barangay?"
+      bisaya: "3. KASIYAHAN:\nKontento ka ba sa kasayuran, pagka-igo sa oras, ug kaepektibo sa mga pahimangno ug impormasyon bahin sa kalamidad nga gihatag sa barangay?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa kalinawan, pagiging napapanahon, at bisa ng mga babala at impormasyong ibinibigay ng barangay tungkol sa sakuna?",
+      english: "3. SATISFACTION:\nAre you satisfied with the clarity, timeliness, and effectiveness of the disaster warnings and information provided by the barangay?"
     },
     nfaBinaryDisasterInfo: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -218,9 +218,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "6. AVAILMENT / EXPERIENCE:\nDo you know the location of the main designated evacuation center for your specific area or purok?"
     },
     satisfactionEvacuation: {
-      bisaya: "7. KASIYAHAN:\nBase sa imong nahibal-an o nakit-an, unsa ka kumpiyansa ug kontento sa kahandam sa mga pasilidad sa evacuation ug kakayahan sa barangay sa pagtubag sa emerhensiya (pananglitan, rescue team, kagamitan)?",
-      filipino: "7. KASIYAHAN:\nBatay sa iyong kaalaman o nakita, gaano ka katiwala at nasisiyahan sa kahandaan ng mga pasilidad ng evacuation at kakayahan ng barangay sa pagtugon sa emerhensiya (halimbawa, rescue team, kagamitan)?",
-      english: "7. SATISFACTION:\nBased on what you know or have seen, how confident and satisfied are you with the readiness of our barangay's evacuation facilities and emergency response capabilities (e.g., rescue team, equipment)?"
+      bisaya: "7. KASIYAHAN:\nBase sa imong nahibal-an o nakit-an, kumpiyansa ug kontento ka ba sa kahandam sa mga pasilidad sa evacuation ug kakayahan sa barangay sa pagtubag sa emerhensiya (pananglitan, rescue team, kagamitan)?",
+      filipino: "7. KASIYAHAN:\nBatay sa iyong kaalaman o nakita, nagtitiwala at nasisiyahan ka ba sa kahandaan ng mga pasilidad ng evacuation at kakayahan ng barangay sa pagtugon sa emerhensiya (halimbawa, rescue team, kagamitan)?",
+      english: "7. SATISFACTION:\nBased on what you know or have seen, are you confident and satisfied with the readiness of our barangay's evacuation facilities and emergency response capabilities (e.g., rescue team, equipment)?"
     },
     nfaBinaryEvacuation: {
       bisaya: "8. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -274,9 +274,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nHave you personally seen the Tanods on patrol in your area or had to interact with them for a peace and order concern?"
     },
     satisfactionTanods: {
-      bisaya: "3. KASIYAHAN:\nUnsa ka kontento sa kapakita, kadasig sa pagtubag, ug kaepektibo sa atong mga Barangay Tanod sa pagpanalipod sa komunidad?",
-      filipino: "3. KASIYAHAN:\nGaano ka nasisiyahan sa kanilang presensya, bilis ng pagtugon, at bisa ng ating mga Barangay Tanod sa pagpapanatiling ligtas ng komunidad?",
-      english: "3. SATISFACTION:\nHow satisfied are you with the visibility, responsiveness, and effectiveness of our Barangay Tanods in keeping the community safe?"
+      bisaya: "3. KASIYAHAN:\nKontento ka ba sa kapakita, kadasig sa pagtubag, ug kaepektibo sa atong mga Barangay Tanod sa pagpanalipod sa komunidad?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa kanilang presensya, bilis ng pagtugon, at bisa ng ating mga Barangay Tanod sa pagpapanatiling ligtas ng komunidad?",
+      english: "3. SATISFACTION:\nAre you satisfied with the visibility, responsiveness, and effectiveness of our Barangay Tanods in keeping the community safe?"
     },
     nfaBinaryTanods: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -301,9 +301,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "6. AVAILMENT / EXPERIENCE:\nHave you, a family member, or someone you know ever used this service to help settle a dispute?"
     },
     satisfactionLupon: {
-      bisaya: "7. KASIYAHAN:\nBase sa imong kasinatian o nadungog, unsa ka kontento sa pagkatarong ug kaepektibo sa proseso sa barangay sa pagsulbad og panagbangi?",
-      filipino: "7. KASIYAHAN:\nBatay sa iyong karanasan o iyong narinig, gaano ka nasisiyahan sa pagiging makatarungan at bisa ng proseso ng barangay sa pag-aayos ng alitan?",
-      english: "7. SATISFACTION:\nBased on your experience or what you've heard, how satisfied are you with the fairness and effectiveness of the barangay's dispute settlement process?"
+      bisaya: "7. KASIYAHAN:\nBase sa imong kasinatian o nadungog, kontento ka ba sa pagkatarong ug kaepektibo sa proseso sa barangay sa pagsulbad og panagbangi?",
+      filipino: "7. KASIYAHAN:\nBatay sa iyong karanasan o iyong narinig, nasisiyahan ka ba sa pagiging makatarungan at bisa ng proseso ng barangay sa pag-aayos ng alitan?",
+      english: "7. SATISFACTION:\nBased on your experience or what you've heard, are you satisfied with the fairness and effectiveness of the barangay's dispute settlement process?"
     },
     nfaBinaryLupon: {
       bisaya: "8. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -328,9 +328,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "10. AVAILMENT / EXPERIENCE:\nHave you personally seen or received any information (like a poster, leaflet, or talk) from the barangay's anti-drug campaign?"
     },
     satisfactionAntiDrug: {
-      bisaya: "11. KASIYAHAN:\nUnsa ka kontento sa kinatibuk-ang paningkamot sa barangay sa pag-atubang sa isyu sa ilegal nga droga sulod sa atong komunidad?",
-      filipino: "11. KASIYAHAN:\nGaano ka nasisiyahan sa pangkalahatang pagsisikap ng barangay na tugunan ang isyu ng ilegal na droga sa ating komunidad?",
-      english: "11. SATISFACTION:\nHow satisfied are you with the barangay's overall efforts to address the issue of illegal drugs within our community?"
+      bisaya: "11. KASIYAHAN:\nKontento ka ba sa kinatibuk-ang paningkamot sa barangay sa pag-atubang sa isyu sa ilegal nga droga sulod sa atong komunidad?",
+      filipino: "11. KASIYAHAN:\nNasisiyahan ka ba sa pangkalahatang pagsisikap ng barangay na tugunan ang isyu ng ilegal na droga sa ating komunidad?",
+      english: "11. SATISFACTION:\nAre you satisfied with the barangay's overall efforts to address the issue of illegal drugs within our community?"
     },
     nfaBinaryAntiDrug: {
       bisaya: "12. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -398,9 +398,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nHave you or a member of your family ever visited the Barangay Health Station or received service from a BHW?"
     },
     satisfactionHealthServices: {
-      bisaya: "3. KASIYAHAN:\nUnsa ka kontento sa kalidad, pagkaanaa, ug serbisyo sa mga kawani sa atong Barangay Health Station?",
-      filipino: "3. KASIYAHAN:\nGaano ka nasisiyahan sa kalidad, pagkakaroon, at serbisyo ng mga tauhan sa ating Barangay Health Station?",
-      english: "3. SATISFACTION:\nHow satisfied are you with the quality, availability, and staff service at our Barangay Health Station?"
+      bisaya: "3. KASIYAHAN:\nKontento ka ba sa kalidad, pagkaanaa, ug serbisyo sa mga kawani sa atong Barangay Health Station?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa kalidad, pagkakaroon, at serbisyo ng mga tauhan sa ating Barangay Health Station?",
+      english: "3. SATISFACTION:\nAre you satisfied with the quality, availability, and staff service at our Barangay Health Station?"
     },
     nfaBinaryHealthServices: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -425,9 +425,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "6. AVAILMENT / EXPERIENCE:\nDo you know where or how someone in the community could get help from these services if they needed to?"
     },
     satisfactionWomenChildrenProtection: {
-      bisaya: "7. KASIYAHAN:\nUnsa ka kumpiyansa ug kontento sa kakayahan sa barangay nga maghatag ug luwas, kumpidensyal, ug epektibong tubag aron maprotektahan ang mga kababayen-an ug kabataan?",
-      filipino: "7. KASIYAHAN:\nGaano ka katiwala at nasisiyahan sa kakayahan ng barangay na magbigay ng ligtas, kumpidensyal, at epektibong tugon upang maprotektahan ang mga kababaihan at bata?",
-      english: "7. SATISFACTION:\nHow confident and satisfied are you in the barangay's ability to provide a safe, confidential, and effective response to protect women and children?"
+      bisaya: "7. KASIYAHAN:\nKumpiyansa ug kontento ka ba sa kakayahan sa barangay nga maghatag ug luwas, kumpidensyal, ug epektibong tubag aron maprotektahan ang mga kababayen-an ug kabataan?",
+      filipino: "7. KASIYAHAN:\nNagtitiwala at nasisiyahan ka ba sa kakayahan ng barangay na magbigay ng ligtas, kumpidensyal, at epektibong tugon upang maprotektahan ang mga kababaihan at bata?",
+      english: "7. SATISFACTION:\nAre you confident and satisfied in the barangay's ability to provide a safe, confidential, and effective response to protect women and children?"
     },
     nfaBinaryWomenChildrenProtection: {
       bisaya: "8. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -452,9 +452,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "10. AVAILMENT / EXPERIENCE:\nHave you personally participated in, or seen other residents participating in, any of these community activities or services?"
     },
     satisfactionCommunityParticipation: {
-      bisaya: "11. KASIYAHAN:\nUnsa ka kontento sa mga oportunidad nga gihatag sa barangay aron makapakita ang mga residente sa kinabuhi ug kalamboan sa komunidad?",
-      filipino: "11. KASIYAHAN:\nGaano ka nasisiyahan sa mga pagkakataong ibinibigay ng barangay para makibahagi ang mga residente sa buhay at pag-unlad ng komunidad?",
-      english: "11. SATISFACTION:\nHow satisfied are you with the opportunities the barangay provides for residents to get involved in community life and development?"
+      bisaya: "11. KASIYAHAN:\nKontento ka ba sa mga oportunidad nga gihatag sa barangay aron makapakita ang mga residente sa kinabuhi ug kalamboan sa komunidad?",
+      filipino: "11. KASIYAHAN:\nNasisiyahan ka ba sa mga pagkakataong ibinibigay ng barangay para makibahagi ang mga residente sa buhay at pag-unlad ng komunidad?",
+      english: "11. SATISFACTION:\nAre you satisfied with the opportunities the barangay provides for residents to get involved in community life and development?"
     },
     nfaBinaryCommunityParticipation: {
       bisaya: "12. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -522,9 +522,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nHave you or a member of your household ever applied for a Barangay Business Clearance or a similar permit from our barangay?"
     },
     satisfactionBusinessClearance: {
-      bisaya: "3. KASIYAHAN:\nUnsa ka kontento ka sa tibuok proseso sa pagkuha sa clearance, apil na ang kadali sa serbisyo, bayronon, ug kaabtik sa mga kawani?",
-      filipino: "3. KASIYAHAN:\nGaano ka nasiyahan sa kabuuang proseso ng pagkuha ng clearance, isinasaalang-alang ang bilis ng serbisyo, mga bayarin, at pagiging matulungin ng mga kawani?",
-      english: "3. SATISFACTION:\nHow satisfied were you with the overall process of getting the clearance, considering the speed of service, the fees, and the helpfulness of the staff?"
+      bisaya: "3. KASIYAHAN:\nKontento ka ba sa tibuok proseso sa pagkuha sa clearance, apil na ang kadali sa serbisyo, bayronon, ug kaabtik sa mga kawani?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa kabuuang proseso ng pagkuha ng clearance, isinasaalang-alang ang bilis ng serbisyo, mga bayarin, at pagiging matulungin ng mga kawani?",
+      english: "3. SATISFACTION:\nAre you satisfied with the overall process of getting the clearance, considering the speed of service, the fees, and the helpfulness of the staff?"
     },
     nfaBinaryBusinessClearance: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",
@@ -564,9 +564,9 @@ export const translations: Record<string, SectionTranslations> = {
       english: "2. AVAILMENT / EXPERIENCE:\nDo you and your household actively follow the barangay's waste segregation rules and participate in the garbage collection system?"
     },
     satisfactionWasteManagement: {
-      bisaya: "3. KASIYAHAN:\nUnsa ka kontento ka sa kinatibuk-ang solid waste management sa barangay, apil na ang kasaligan sa iskedyul sa koleksyon, kaepektibo sa lagda sa pagbulag sa basura, ug kinatibuk-ang kahinlo sa komunidad?",
-      filipino: "3. KASIYAHAN:\nGaano ka nasisiyahan sa pangkalahatang solid waste management ng barangay, isinasaalang-alang ang pagiging maaasahan ng iskedyul ng koleksyon, bisa ng patakaran sa paghihiwalay ng basura, at pangkalahatang kalinisan ng komunidad?",
-      english: "3. SATISFACTION:\nHow satisfied are you with the barangay's overall solid waste management, considering the reliability of the collection schedule, the effectiveness of the segregation policy, and the general cleanliness of the community?"
+      bisaya: "3. KASIYAHAN:\nKontento ka ba sa kinatibuk-ang solid waste management sa barangay, apil na ang kasaligan sa iskedyul sa koleksyon, kaepektibo sa lagda sa pagbulag sa basura, ug kinatibuk-ang kahinlo sa komunidad?",
+      filipino: "3. KASIYAHAN:\nNasisiyahan ka ba sa pangkalahatang solid waste management ng barangay, isinasaalang-alang ang pagiging maaasahan ng iskedyul ng koleksyon, bisa ng patakaran sa paghihiwalay ng basura, at pangkalahatang kalinisan ng komunidad?",
+      english: "3. SATISFACTION:\nAre you satisfied with the barangay's overall solid waste management, considering the reliability of the collection schedule, the effectiveness of the segregation policy, and the general cleanliness of the community?"
     },
     nfaBinaryWasteManagement: {
       bisaya: "4. PANGINAHANGLAN ALANG SA AKSYON:\nBase sa imong kasinatian, sa imong hunahuna ba kinahanglan og pagpauswag kini nga serbisyo gikan sa barangay?",

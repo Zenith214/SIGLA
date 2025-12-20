@@ -807,7 +807,11 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
       <div className="flex justify-end mt-8">
         <button
           onClick={handleNext}
-          disabled={isGeneratingNumber || isLoggingVisit}
+          disabled={
+            isGeneratingNumber || 
+            isLoggingVisit || 
+            (activeTab === 'log' && hasQuestionnaireContext && (!visitType || !outcome || (outcome === "Callback_Needed" && !callbackReason)))
+          }
           className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoggingVisit ? 'Logging Visit...' : 
