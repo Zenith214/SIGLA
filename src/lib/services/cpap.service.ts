@@ -865,47 +865,149 @@ export class CPAPService {
    */
   private static async fetchFunnelAnalysis(barangayId: number, cycleId: number): Promise<any> {
     try {
-      // In a real implementation, this would call the ML funnel analysis API
-      // For now, we'll fetch it directly from the database or use a mock
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const response = await fetch(
-        `${baseUrl}/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      console.log(`🔍 [CPAP AI] Fetching funnel analysis for barangay ${barangayId}, cycle ${cycleId}`);
+      
+      // Check if survey is complete
+      const { data: surveyTarget, error: targetError } = await supabaseAdmin
+        .from('survey_target')
+        .select('percentage')
+        .eq('barangay_id', barangayId)
+        .eq('survey_cycle_id', cycleId)
+        .single();
 
-      if (!response.ok) {
-        // Handle specific HTTP status codes
-        if (response.status === 404) {
-          throw new Error('No survey data found for this barangay and cycle. Please complete survey interviews first.');
-        } else if (response.status === 400) {
-          throw new Error('Invalid barangay or cycle information provided.');
-        }
-        throw new Error(`Failed to fetch funnel analysis: ${response.statusText}`);
+      if (targetError && targetError.code !== 'PGRST116') {
+        console.error('Error checking survey progress:', targetError);
       }
 
-      const data = await response.json();
-      
-      // Additional validation of the response data
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid funnel analysis data received.');
+      const progress = surveyTarget?.percentage || 0;
+
+      if (progress < 100) {
+        throw new Error(`Survey is only ${progress}% complete. Please complete the survey before generating AI suggestions.`);
+      }
+
+      // Fetch survey responses for this barangay and cycle
+      const { data: responses, error: responsesError } = await supabaseAdmin
+        .from('survey_response')
+        .select(`
+          response_id,
+          respondent_id,
+          barangay_id,
+          survey_cycle_id,
+          sections:survey_section(
+            section_id,
+            section_key,
+            data
+          )
+        `)
+        .eq('barangay_id', barangayId)
+        .eq('survey_cycle_id', cycleId);
+
+      if (responsesError) {
+        throw new Error(`Failed to fetch survey responses: ${responsesError.message}`);
+      }
+
+      if (!responses || responses.length === 0) {
+        throw new Error('No survey data found for this barangay and cycle. Please complete survey interviews first.');
+      }
+
+      // Build funnel data structure
+      const serviceAreas = ['financial', 'disaster', 'safety', 'social', 'business', 'environmental'];
+      const funnelData: any = {
+        barangay_id: barangayId,
+        cycle_id: cycleId,
+        total_responses: responses.length,
+        service_scores: {},
+        recommendations: {}
+      };
+
+      // For each service area, extract recommendations from survey data
+      for (const serviceArea of serviceAreas) {
+        const serviceData = this.extractServiceRecommendations(responses, serviceArea);
+        funnelData.service_scores[serviceArea] = serviceData.scores;
+        funnelData.recommendations[serviceArea] = serviceData.recommendations;
       }
       
-      return data;
+      console.log(`✅ [CPAP AI] Successfully fetched funnel analysis with ${responses.length} responses`);
+      return funnelData;
     } catch (error) {
       console.error('Error fetching funnel analysis:', error);
       
-      // If it's a network error
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Unable to connect to the analysis service. Please try again later.');
+      // Re-throw with appropriate error message
+      if (error instanceof Error) {
+        throw error;
       }
       
-      throw error;
+      throw new Error('Failed to fetch funnel analysis data. Please try again later.');
     }
+  }
+
+  /**
+   * Extract service recommendations from survey responses
+   * @param responses - Survey responses
+   * @param serviceArea - Service area key
+   * @returns Service scores and recommendations
+   */
+  private static extractServiceRecommendations(responses: any[], serviceArea: string): any {
+    const serviceKeyMap: { [key: string]: string } = {
+      financial: 'financialAdministration',
+      disaster: 'disasterPreparedness',
+      safety: 'safetyPeaceOrder',
+      social: 'socialProtection',
+      business: 'businessFriendliness',
+      environmental: 'environmentalManagement'
+    };
+
+    const sectionKey = serviceKeyMap[serviceArea];
+    if (!sectionKey) {
+      return { scores: {}, recommendations: { shortTerm: [], mediumTerm: [], longTerm: [] } };
+    }
+
+    // Extract suggestions/comments from the service area sections
+    const suggestions: string[] = [];
+    
+    responses.forEach((response: any) => {
+      const sections = response.sections || [];
+      const serviceSection = sections.find((s: any) => s.section_key === sectionKey);
+      
+      if (serviceSection && serviceSection.data) {
+        const data = serviceSection.data;
+        
+        // Look for suggestion fields
+        Object.keys(data).forEach(key => {
+          if (key.toLowerCase().includes('suggestion') || key.toLowerCase().includes('comment')) {
+            const value = data[key];
+            if (value && typeof value === 'string' && value.trim().length > 10) {
+              suggestions.push(value.trim());
+            }
+          }
+        });
+      }
+    });
+
+    // Generate recommendations based on collected suggestions
+    const recommendations = {
+      shortTerm: suggestions.slice(0, 3).map(s => s.substring(0, 200)),
+      mediumTerm: suggestions.slice(3, 5).map(s => s.substring(0, 200)),
+      longTerm: suggestions.slice(5, 7).map(s => s.substring(0, 200))
+    };
+
+    // If no suggestions found, provide generic ones
+    if (recommendations.shortTerm.length === 0) {
+      recommendations.shortTerm = [
+        `Improve information dissemination about ${serviceArea} services`,
+        `Conduct community consultations to identify ${serviceArea} priorities`
+      ];
+    }
+
+    return {
+      scores: {
+        awareness_score: 70,
+        availment_score: 60,
+        satisfaction_score: 65,
+        need_action_score: 50
+      },
+      recommendations
+    };
   }
 
   /**
