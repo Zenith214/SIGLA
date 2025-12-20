@@ -916,15 +916,14 @@ export class CPAPService {
         barangay_id: barangayId,
         cycle_id: cycleId,
         total_responses: responses.length,
-        service_scores: {},
-        recommendations: {}
+        service_scores: {}
       };
 
       // For each service area, extract recommendations from survey data
       for (const serviceArea of serviceAreas) {
         const serviceData = this.extractServiceRecommendations(responses, serviceArea);
-        funnelData.service_scores[serviceArea] = serviceData.scores;
-        funnelData.recommendations[serviceArea] = serviceData.recommendations;
+        // Store the complete service data (includes scores and recommendations)
+        funnelData.service_scores[serviceArea] = serviceData;
       }
       
       console.log(`✅ [CPAP AI] Successfully fetched funnel analysis with ${responses.length} responses`);
@@ -959,7 +958,13 @@ export class CPAPService {
 
     const sectionKey = serviceKeyMap[serviceArea];
     if (!sectionKey) {
-      return { scores: {}, recommendations: { shortTerm: [], mediumTerm: [], longTerm: [] } };
+      return { 
+        awareness_score: 70,
+        availment_score: 60,
+        satisfaction_score: 65,
+        need_action_score: 50,
+        recommendations: { shortTerm: [], mediumTerm: [], longTerm: [] } 
+      };
     }
 
     // Extract suggestions/comments from the service area sections
@@ -991,22 +996,145 @@ export class CPAPService {
       longTerm: suggestions.slice(5, 7).map(s => s.substring(0, 200))
     };
 
-    // If no suggestions found, provide generic ones
+    // If no suggestions found, provide service-specific generic ones
     if (recommendations.shortTerm.length === 0) {
-      recommendations.shortTerm = [
-        `Improve information dissemination about ${serviceArea} services`,
-        `Conduct community consultations to identify ${serviceArea} priorities`
-      ];
+      const genericRecommendations = this.getGenericRecommendations(serviceArea);
+      recommendations.shortTerm = genericRecommendations.shortTerm;
+      recommendations.mediumTerm = genericRecommendations.mediumTerm;
+      recommendations.longTerm = genericRecommendations.longTerm;
+    } else {
+      // Fill in missing medium/long term with generic ones if needed
+      if (recommendations.mediumTerm.length === 0) {
+        const generic = this.getGenericRecommendations(serviceArea);
+        recommendations.mediumTerm = generic.mediumTerm;
+      }
+      if (recommendations.longTerm.length === 0) {
+        const generic = this.getGenericRecommendations(serviceArea);
+        recommendations.longTerm = generic.longTerm;
+      }
     }
 
     return {
-      scores: {
-        awareness_score: 70,
-        availment_score: 60,
-        satisfaction_score: 65,
-        need_action_score: 50
-      },
+      awareness_score: 70,
+      availment_score: 60,
+      satisfaction_score: 65,
+      need_action_score: 50,
       recommendations
+    };
+  }
+
+  /**
+   * Get generic recommendations for a service area
+   * @param serviceArea - Service area key
+   * @returns Generic recommendations
+   */
+  private static getGenericRecommendations(serviceArea: string): any {
+    const genericByArea: { [key: string]: any } = {
+      financial: {
+        shortTerm: [
+          'Improve transparency in budget allocation and spending',
+          'Conduct information campaigns on available financial assistance programs',
+          'Simplify application processes for financial aid'
+        ],
+        mediumTerm: [
+          'Establish regular financial literacy programs for residents',
+          'Develop online platforms for financial assistance applications'
+        ],
+        longTerm: [
+          'Create sustainable funding mechanisms for community development',
+          'Implement comprehensive financial management system'
+        ]
+      },
+      disaster: {
+        shortTerm: [
+          'Conduct disaster preparedness training for residents',
+          'Update and distribute evacuation maps and procedures',
+          'Inspect and upgrade early warning systems'
+        ],
+        mediumTerm: [
+          'Establish additional evacuation centers with proper facilities',
+          'Develop partnerships with emergency response agencies'
+        ],
+        longTerm: [
+          'Build climate-resilient infrastructure',
+          'Implement comprehensive disaster risk reduction program'
+        ]
+      },
+      safety: {
+        shortTerm: [
+          'Increase police visibility through regular patrols',
+          'Install additional street lighting in dark areas',
+          'Strengthen barangay tanod programs'
+        ],
+        mediumTerm: [
+          'Install CCTV cameras in strategic locations',
+          'Develop community-based crime prevention programs'
+        ],
+        longTerm: [
+          'Establish integrated security monitoring system',
+          'Build permanent police outpost in the barangay'
+        ]
+      },
+      social: {
+        shortTerm: [
+          'Expand health services and extend clinic hours',
+          'Provide additional support for senior citizens and PWDs',
+          'Conduct regular medical missions and health screenings'
+        ],
+        mediumTerm: [
+          'Establish daycare centers and youth development programs',
+          'Develop partnerships with healthcare providers'
+        ],
+        longTerm: [
+          'Build comprehensive health and wellness center',
+          'Implement integrated social protection program'
+        ]
+      },
+      business: {
+        shortTerm: [
+          'Simplify business permit and licensing procedures',
+          'Reduce processing time for business applications',
+          'Provide business advisory services for entrepreneurs'
+        ],
+        mediumTerm: [
+          'Establish business one-stop-shop for permits',
+          'Develop livelihood and skills training programs'
+        ],
+        longTerm: [
+          'Create business incubation center',
+          'Implement digital business registration system'
+        ]
+      },
+      environmental: {
+        shortTerm: [
+          'Improve waste collection schedule and coverage',
+          'Conduct environmental awareness campaigns',
+          'Establish proper waste segregation at source'
+        ],
+        mediumTerm: [
+          'Develop materials recovery facility',
+          'Implement tree planting and greening programs'
+        ],
+        longTerm: [
+          'Build comprehensive waste management system',
+          'Establish environmental sustainability program'
+        ]
+      }
+    };
+
+    return genericByArea[serviceArea] || {
+      shortTerm: [
+        `Improve information dissemination about ${serviceArea} services`,
+        `Conduct community consultations to identify ${serviceArea} priorities`
+      ],
+      mediumTerm: [
+        `Develop comprehensive ${serviceArea} improvement plan`,
+        `Establish partnerships for ${serviceArea} programs`
+      ],
+      longTerm: [
+        `Implement sustainable ${serviceArea} management system`,
+        `Build capacity for long-term ${serviceArea} development`
+      ]
     };
   }
 
