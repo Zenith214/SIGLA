@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch all interviews with GPS verification data for the cycle
     // Get GPS coordinates from the most recent visit for each questionnaire
+    // Exclude interviews where location is (0,0) which indicates missing GPS data
     const query = `
       SELECT 
         sr.response_id,
@@ -51,12 +52,11 @@ export async function GET(request: NextRequest) {
         WHERE visits.questionnaire_id = sr.questionnaire_id
           AND location_lat IS NOT NULL
           AND location_lng IS NOT NULL
+          AND NOT (location_lat = 0 AND location_lng = 0)
         ORDER BY visit_timestamp DESC
         LIMIT 1
       ) v ON true
       WHERE sr.barangay_id IS NOT NULL
-        AND v.location_lat IS NOT NULL
-        AND v.location_lng IS NOT NULL
       ORDER BY sr.created_at DESC
       LIMIT 100
     `;
@@ -70,8 +70,12 @@ export async function GET(request: NextRequest) {
       let gps_distance_meters = null;
       let gps_verification_status: "pending" | "verified" | "flagged" = "pending";
       
-      // Calculate distance if spot location is available
-      if (row.starting_point && row.location_lat && row.location_lng) {
+      // Check if we have valid GPS coordinates (not 0,0 which indicates missing data)
+      const hasValidActualLocation = row.location_lat && row.location_lng && 
+                                     (row.location_lat !== 0 || row.location_lng !== 0);
+      
+      // Calculate distance if spot location is available AND we have valid actual location
+      if (row.starting_point && hasValidActualLocation) {
         try {
           const spotCoords = typeof row.starting_point === 'string' 
             ? JSON.parse(row.starting_point) 
@@ -102,6 +106,7 @@ export async function GET(request: NextRequest) {
             console.log(`GPS Calculation for ${row.survey_number}:`, {
               spotCoords: { lat: spotLat, lng: spotLng },
               actualCoords: { lat: actualLat, lng: actualLng },
+              φ1, φ2, Δφ, Δλ, a, c,
               distance: gps_distance_meters
             });
             
@@ -115,6 +120,10 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error("Error calculating GPS distance:", error);
         }
+      } else if (!hasValidActualLocation) {
+        // No valid GPS data captured - flag for review
+        gps_verification_status = "flagged";
+        console.log(`No valid GPS data for ${row.survey_number} - location: ${row.location_lat}, ${row.location_lng}`);
       }
       
       return {
