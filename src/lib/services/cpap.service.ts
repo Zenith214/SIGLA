@@ -889,7 +889,7 @@ export class CPAPService {
       // First, get the response IDs
       const { data: responseIds, error: responseError } = await supabaseAdmin
         .from('survey_response')
-        .select('response_id, respondent_id, barangay_id, survey_cycle_id')
+        .select('response_id, barangay_id, survey_cycle_id')
         .eq('barangay_id', barangayId)
         .eq('survey_cycle_id', cycleId);
 
