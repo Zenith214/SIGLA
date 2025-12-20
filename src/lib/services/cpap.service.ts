@@ -886,28 +886,50 @@ export class CPAPService {
       }
 
       // Fetch survey responses for this barangay and cycle
-      const { data: responses, error: responsesError } = await supabaseAdmin
+      // First, get the response IDs
+      const { data: responseIds, error: responseError } = await supabaseAdmin
         .from('survey_response')
-        .select(`
-          response_id,
-          respondent_id,
-          barangay_id,
-          survey_cycle_id,
-          sections:survey_section(
-            section_id,
-            section_key,
-            data
-          )
-        `)
+        .select('response_id, respondent_id, barangay_id, survey_cycle_id')
         .eq('barangay_id', barangayId)
         .eq('survey_cycle_id', cycleId);
 
-      if (responsesError) {
-        throw new Error(`Failed to fetch survey responses: ${responsesError.message}`);
+      if (responseError) {
+        console.error('❌ [CPAP AI] Error fetching responses:', responseError);
+        throw new Error(`Failed to fetch survey responses: ${responseError.message}`);
       }
 
-      if (!responses || responses.length === 0) {
+      console.log(`📊 [CPAP AI] Fetched ${responseIds?.length || 0} response IDs`);
+
+      if (!responseIds || responseIds.length === 0) {
         throw new Error('No survey data found for this barangay and cycle. Please complete survey interviews first.');
+      }
+
+      // Now fetch sections for these responses
+      const { data: sections, error: sectionsError } = await supabaseAdmin
+        .from('survey_section')
+        .select('section_id, response_id, section_key, data')
+        .in('response_id', responseIds.map(r => r.response_id));
+
+      if (sectionsError) {
+        console.error('❌ [CPAP AI] Error fetching sections:', sectionsError);
+        throw new Error(`Failed to fetch survey sections: ${sectionsError.message}`);
+      }
+
+      console.log(`📊 [CPAP AI] Fetched ${sections?.length || 0} sections`);
+
+      // Combine responses with their sections
+      const responses = responseIds.map(response => ({
+        ...response,
+        sections: sections?.filter(s => s.response_id === response.response_id) || []
+      }));
+
+      // Log sample response structure for debugging
+      if (responses.length > 0) {
+        console.log(`📊 [CPAP AI] Sample response structure:`, {
+          response_id: responses[0].response_id,
+          sections_count: responses[0].sections?.length || 0,
+          has_sections: !!responses[0].sections
+        });
       }
 
       // Build funnel data structure
@@ -927,6 +949,8 @@ export class CPAPService {
       }
       
       console.log(`✅ [CPAP AI] Successfully fetched funnel analysis with ${responses.length} responses`);
+      console.log(`📊 [CPAP AI] Service areas processed:`, Object.keys(funnelData.service_scores));
+      
       return funnelData;
     } catch (error) {
       console.error('Error fetching funnel analysis:', error);
@@ -958,6 +982,7 @@ export class CPAPService {
 
     const sectionKey = serviceKeyMap[serviceArea];
     if (!sectionKey) {
+      console.log(`⚠️ [CPAP AI] Unknown service area: ${serviceArea}`);
       return { 
         awareness_score: 70,
         availment_score: 60,
@@ -989,6 +1014,8 @@ export class CPAPService {
       }
     });
 
+    console.log(`📝 [CPAP AI] ${serviceArea}: Found ${suggestions.length} suggestions from survey data`);
+
     // Generate recommendations based on collected suggestions
     const recommendations = {
       shortTerm: suggestions.slice(0, 3).map(s => s.substring(0, 200)),
@@ -998,6 +1025,7 @@ export class CPAPService {
 
     // If no suggestions found, provide service-specific generic ones
     if (recommendations.shortTerm.length === 0) {
+      console.log(`💡 [CPAP AI] ${serviceArea}: Using generic recommendations`);
       const genericRecommendations = this.getGenericRecommendations(serviceArea);
       recommendations.shortTerm = genericRecommendations.shortTerm;
       recommendations.mediumTerm = genericRecommendations.mediumTerm;
