@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Search, Filter, ClipboardList } from "lucide-react";
+import { Eye, Search, Filter, ClipboardList, Trash2, CheckCircle2 } from "lucide-react";
 import { CPAPReviewModal } from "./CPAPReviewModal";
 import type { CPAPListItem, CPAPStatus, CPAPWithDetails } from "@/types/cpap";
 
@@ -39,6 +39,8 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
   const [selectedCPAP, setSelectedCPAP] = useState<CPAPWithDetails | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [markingDoneId, setMarkingDoneId] = useState<number | null>(null);
 
   // Extract unique cycles and barangays for filters
   const cycles = useMemo(() => {
@@ -183,6 +185,60 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
     } else {
       setSortBy(column);
       setSortOrder("asc");
+    }
+  };
+
+  const handleDeleteCPAP = async (cpapId: number, barangayName: string) => {
+    if (!confirm(`Are you sure you want to delete the CPAP for ${barangayName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(cpapId);
+      
+      const response = await fetch(`/api/cpap/${cpapId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete CPAP');
+      }
+
+      // Refresh the list
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting CPAP:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete CPAP');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleMarkAsDone = async (cpapId: number, barangayName: string) => {
+    if (!confirm(`Mark the CPAP for ${barangayName} as completed?`)) {
+      return;
+    }
+
+    try {
+      setMarkingDoneId(cpapId);
+      
+      const response = await fetch(`/api/cpap/${cpapId}/mark-done`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to mark CPAP as done');
+      }
+
+      // Refresh the list
+      onUpdate();
+    } catch (error) {
+      console.error('Error marking CPAP as done:', error);
+      alert(error instanceof Error ? error.message : 'Failed to mark CPAP as done');
+    } finally {
+      setMarkingDoneId(null);
     }
   };
 
@@ -336,15 +392,39 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
                     {formatDate(cpap.approved_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewCPAP(cpap.id)}
-                      disabled={isLoadingDetails}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewCPAP(cpap.id)}
+                        disabled={isLoadingDetails}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {cpap.status === "Approved" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsDone(cpap.id, cpap.barangay_name)}
+                          disabled={markingDoneId === cpap.id}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          {markingDoneId === cpap.id ? "Marking..." : "Mark Done"}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteCPAP(cpap.id, cpap.barangay_name)}
+                        disabled={deletingId === cpap.id}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        {deletingId === cpap.id ? "Deleting..." : "Delete"}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

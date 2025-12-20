@@ -288,3 +288,125 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * DELETE /api/cpap/[id]
+ * Deletes a CPAP and all its items
+ * - ADMIN: Can delete any CPAP
+ * - OFFICER: Can only delete their own CPAPs in Draft status
+ * - FS/INTERVIEWER: 403 Forbidden
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Verify authentication
+  const authResult = verifyAuth(request);
+  if (!authResult.success || !authResult.user) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Unauthorized',
+        message: authResult.error || 'Authentication required'
+      },
+      { status: 401 }
+    );
+  }
+
+  const { user } = authResult;
+  const normalizedRole = user.role.toLowerCase();
+
+  // Check if user role has CPAP access
+  if (normalizedRole === 'fs' || normalizedRole === 'interviewer' || normalizedRole === 'viewer') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Forbidden',
+        message: 'You do not have permission to delete CPAPs'
+      },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { id } = await params;
+    const cpapId = parseInt(id);
+
+    // Validate ID is a valid number
+    if (isNaN(cpapId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Bad Request',
+          message: 'Invalid CPAP ID'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Get CPAP to check permissions
+    const cpap = await CPAPService.getCPAPById(cpapId);
+
+    // Officers can only delete their own Draft CPAPs
+    if (normalizedRole === 'officer') {
+      const canAccess = await CPAPPermissionService.canAccessCPAP(
+        user.id,
+        user.role,
+        cpapId
+      );
+
+      if (!canAccess) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Forbidden',
+            message: 'You do not have permission to delete this CPAP'
+          },
+          { status: 403 }
+        );
+      }
+
+      if (cpap.status !== 'Draft') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Forbidden',
+            message: 'Only Draft CPAPs can be deleted'
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Delete CPAP
+    await CPAPService.deleteCPAP(cpapId);
+
+    return NextResponse.json({
+      success: true,
+      message: 'CPAP deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in DELETE /api/cpap/[id]:', error);
+
+    // Handle specific error cases
+    if (error instanceof Error && error.message.includes('not found')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Not Found',
+          message: 'CPAP not found'
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Internal Server Error',
+        message: error instanceof Error ? error.message : 'Failed to delete CPAP'
+      },
+      { status: 500 }
+    );
+  }
+}

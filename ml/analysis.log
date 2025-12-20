@@ -7010,3 +7010,55 @@ service_name=eq.safety "HTTP/2 200 OK"
 2025-12-07 18:42:59,655 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 201 Created"
 2025-12-07 18:42:59,893 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_recommendation "HTTP/2 201 Created"
 2025-12-07 18:42:59,896 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 10
+2025-12-20 18:37:00,593 - analyze_barangay - INFO - Analyzing barangay ID: 24, Cycle ID: 17
+2025-12-20 18:37:02,738 - sigla_ml.feature_engineering - INFO - NFA for business: 46/89 = 51.68539325842697%
+2025-12-20 18:37:02,832 - sigla_ml.feature_engineering - INFO - NFA for disaster: 39/77 = 50.649350649350644%
+2025-12-20 18:37:02,903 - sigla_ml.feature_engineering - INFO - NFA for environmental: 38/79 = 48.10126582278481%
+2025-12-20 18:37:02,968 - sigla_ml.feature_engineering - INFO - NFA for financial: 69/116 = 59.48275862068966%
+2025-12-20 18:37:03,053 - sigla_ml.feature_engineering - WARNING - No nfaBinary questions found for respondent_demographics
+2025-12-20 18:37:03,053 - sigla_ml.feature_engineering - WARNING - Sample questions: ['birthdate', 'created_at', 'genderIdentity', 'age', 'educationalAttainment']
+2025-12-20 18:37:03,136 - sigla_ml.feature_engineering - INFO - NFA for safety: 70/110 = 63.63636363636363%
+2025-12-20 18:37:03,216 - sigla_ml.feature_engineering - INFO - NFA for social: 58/105 = 55.23809523809524%
+2025-12-20 18:37:04,728 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.business "HTTP/2 200 OK"
+2025-12-20 18:37:04,861 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.78 "HTTP/2 200 OK"
+2025-12-20 18:37:04,991 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.disaster "HTTP/2 200 OK"
+2025-12-20 18:37:05,111 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.79 "HTTP/2 200 OK"
+2025-12-20 18:37:05,230 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.environmental "HTTP/2 200 OK"
+2025-12-20 18:37:05,359 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.80 "HTTP/2 200 OK"
+2025-12-20 18:37:05,486 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.financial "HTTP/2 200 OK"
+2025-12-20 18:37:05,600 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.81 "HTTP/2 200 OK"
+2025-12-20 18:37:05,720 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.respondent_demographics "HTTP/2 200 OK"
+2025-12-20 18:37:05,883 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.82 "HTTP/2 200 OK"
+2025-12-20 18:37:06,001 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.safety "HTTP/2 200 OK"
+2025-12-20 18:37:06,120 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.83 "HTTP/2 200 OK"
+2025-12-20 18:37:06,247 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.social "HTTP/2 200 OK"
+2025-12-20 18:37:06,365 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.84 "HTTP/2 200 OK"
+2025-12-20 18:37:06,819 - analyze_barangay - INFO - Analyzing barangay ID: 24, Cycle ID: 17
+2025-12-20 18:37:07,594 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 201 Created"
+2025-12-20 18:37:07,727 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_recommendation "HTTP/2 201 Created"
+2025-12-20 18:37:07,732 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 24
+2025-12-20 18:37:09,420 - sigla_ml.feature_engineering - INFO - NFA for business: 46/89 = 51.68539325842697%
+2025-12-20 18:37:09,486 - sigla_ml.feature_engineering - INFO - NFA for disaster: 39/77 = 50.649350649350644%
+2025-12-20 18:37:09,550 - sigla_ml.feature_engineering - INFO - NFA for environmental: 38/79 = 48.10126582278481%
+2025-12-20 18:37:09,619 - sigla_ml.feature_engineering - INFO - NFA for financial: 69/116 = 59.48275862068966%
+2025-12-20 18:37:09,687 - sigla_ml.feature_engineering - WARNING - No nfaBinary questions found for respondent_demographics
+2025-12-20 18:37:09,688 - sigla_ml.feature_engineering - WARNING - Sample questions: ['educationalAttainment', 'genderIdentity', 'created_at', 'householdIncome', 'sex']
+2025-12-20 18:37:09,755 - sigla_ml.feature_engineering - INFO - NFA for safety: 70/110 = 63.63636363636363%
+2025-12-20 18:37:09,823 - sigla_ml.feature_engineering - INFO - NFA for social: 58/105 = 55.23809523809524%
+2025-12-20 18:37:11,366 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.business "HTTP/2 200 OK"
+2025-12-20 18:37:12,048 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.78 "HTTP/2 200 OK"
+2025-12-20 18:37:12,215 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.disaster "HTTP/2 200 OK"
+2025-12-20 18:37:12,403 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.79 "HTTP/2 200 OK"
+2025-12-20 18:37:12,624 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.environmental "HTTP/2 200 OK"
+2025-12-20 18:37:12,790 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.80 "HTTP/2 200 OK"
+2025-12-20 18:37:13,001 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.financial "HTTP/2 200 OK"
+2025-12-20 18:37:13,233 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.81 "HTTP/2 200 OK"
+2025-12-20 18:37:13,560 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.respondent_demographics "HTTP/2 200 OK"
+2025-12-20 18:37:13,729 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.82 "HTTP/2 200 OK"
+2025-12-20 18:37:13,931 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.safety "HTTP/2 200 OK"
+2025-12-20 18:37:14,564 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.83 "HTTP/2 200 OK"
+2025-12-20 18:37:17,176 - httpx - INFO - HTTP Request: GET https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?select=classification_id&barangay_id=eq.24&service_name=eq.social "HTTP/2 200 OK"
+2025-12-20 18:37:17,349 - httpx - INFO - HTTP Request: PATCH https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/action_grid_classification?classification_id=eq.84 "HTTP/2 200 OK"
+2025-12-20 18:37:18,177 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_insight "HTTP/2 201 Created"
+2025-12-20 18:37:18,470 - httpx - INFO - HTTP Request: POST https://wzmlfzlmmwclerbwqfha.supabase.co/rest/v1/ai_recommendation "HTTP/2 201 Created"
+2025-12-20 18:37:18,476 - analyze_barangay - INFO - Analysis completed successfully for barangay ID: 24

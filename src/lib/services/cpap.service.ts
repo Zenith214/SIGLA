@@ -550,6 +550,90 @@ export class CPAPService {
   }
 
   /**
+   * Delete a CPAP and all its items
+   * @param cpapId - The CPAP ID to delete
+   * @returns Promise<void>
+   */
+  static async deleteCPAP(cpapId: number): Promise<void> {
+    try {
+      // Verify CPAP exists
+      const { data: cpap, error: fetchError } = await supabaseAdmin
+        .from('cpaps')
+        .select('id')
+        .eq('id', cpapId)
+        .single();
+
+      if (fetchError || !cpap) {
+        throw new Error('CPAP not found');
+      }
+
+      // Delete CPAP items first (cascade should handle this, but being explicit)
+      const { error: deleteItemsError } = await supabaseAdmin
+        .from('cpap_items')
+        .delete()
+        .eq('cpap_id', cpapId);
+
+      if (deleteItemsError) {
+        throw deleteItemsError;
+      }
+
+      // Delete CPAP
+      const { error: deleteCPAPError } = await supabaseAdmin
+        .from('cpaps')
+        .delete()
+        .eq('id', cpapId);
+
+      if (deleteCPAPError) {
+        throw deleteCPAPError;
+      }
+    } catch (error) {
+      console.error('Error in deleteCPAP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark CPAP as done (completed)
+   * Updates status to a completed state
+   * @param cpapId - The CPAP ID
+   * @returns Promise<void>
+   */
+  static async markAsDone(cpapId: number): Promise<void> {
+    try {
+      // Verify CPAP exists and is in Approved status
+      const { data: cpap, error: fetchError } = await supabaseAdmin
+        .from('cpaps')
+        .select('id, status')
+        .eq('id', cpapId)
+        .single();
+
+      if (fetchError || !cpap) {
+        throw new Error('CPAP not found');
+      }
+
+      if (cpap.status !== 'Approved') {
+        throw new Error(`Cannot mark CPAP as done. Current status: ${cpap.status}`);
+      }
+
+      // Update status to Done (we'll need to add this status to the enum)
+      const { error: updateError } = await supabaseAdmin
+        .from('cpaps')
+        .update({
+          accomplishment_status: 'Completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cpapId);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } catch (error) {
+      console.error('Error in markAsDone:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update progress on approved CPAP items
    * Only updates progress-related fields (actual_output, accomplishment_status, remarks)
    * @param cpapId - The CPAP ID
