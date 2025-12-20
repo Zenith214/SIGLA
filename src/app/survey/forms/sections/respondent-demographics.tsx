@@ -47,8 +47,14 @@ export function RespondentDemographics({ data, onUpdate, onNext, onBack }: Respo
     }
 
     try {
-      // Update survey data first
-      onUpdate("respondentDemographics", demographics)
+      // Prepare demographics data with gender field for API compatibility
+      const demographicsForSubmission = {
+        ...demographics,
+        gender: demographics.genderIdentity || demographics.sex || null // Use genderIdentity, fallback to sex
+      }
+      
+      // Update survey data with the prepared demographics
+      onUpdate("respondentDemographics", demographicsForSubmission)
 
       // NOTE: Visit logging for first visit is now deferred until survey submission
       // This ensures we only log visits when meaningful progress (survey responses) is made

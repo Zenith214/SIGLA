@@ -269,8 +269,8 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
           </div>
         </div>
 
-        {/* Interview list */}
-        <div className="overflow-auto max-h-[500px]">
+        {/* Interview list - removed max-height to allow natural scrolling */}
+        <div className="overflow-x-auto">
           {filteredInterviews.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <MapPin className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -297,9 +297,6 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Barangay / Spot
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                    Distance
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Status
@@ -330,19 +327,6 @@ export default function GPSVerificationMonitor({ cycleId, loading: parentLoading
                         <p className="text-gray-900">{interview.barangay_name}</p>
                         <p className="text-xs text-gray-500">{interview.spot_name}</p>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {interview.gps_distance_meters !== null ? (
-                        <span
-                          className={`font-medium ${
-                            interview.gps_distance_meters > 200 ? "text-red-600" : "text-green-600"
-                          }`}
-                        >
-                          {formatDistance(interview.gps_distance_meters)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">N/A</span>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">{getStatusBadge(interview.gps_verification_status)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">
