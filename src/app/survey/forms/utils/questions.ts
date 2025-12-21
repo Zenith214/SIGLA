@@ -846,7 +846,7 @@ function getOriginalQuestionsForSection(sectionId: string): Question[] {
         {
           id: "overallSatisfaction",
           type: "radio",
-          ...formatQuestionText("PART X: PANGKALAHATANG EBALWASYON (OVERALL EVALUATION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, nasisiyahan ka ba? / Overall, thinking about all the services provided by the barangay in the past 12 months, are you satisfied?"),
+          ...formatQuestionText("PART X: PANGKALAHATANG KATAGBAWAN (OVERALL SATISFACTION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, nasisiyahan ka ba? / Overall, thinking about all the services provided by the barangay in the past 12 months, are you satisfied?"),
           options: ["Yes", "No"],
           required: true,
         },

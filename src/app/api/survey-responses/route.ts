@@ -366,7 +366,7 @@ export async function POST(request: NextRequest) {
             social: 'Social Protection',
             business: 'Business Friendliness',
             environmental: 'Environmental Management',
-            overall: 'Overall Evaluation'
+            overall: 'Overall Satisfaction'
           };
 
           const sectionName = sectionNames[sectionKey] || sectionKey;

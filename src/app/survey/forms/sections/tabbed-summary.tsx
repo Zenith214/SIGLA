@@ -13,7 +13,7 @@ interface TabbedSummaryProps {
 }
 
 export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummaryProps) {
-  // Get all sections for the survey (6 service sections + overall evaluation)
+  // Get all sections for the survey (6 service sections + overall satisfaction)
   const getAssignedTabs = () => {
     const tabs = [
       { id: "demographics", name: "Demographics", dataKey: "respondentDemographics" as keyof SurveyData },
@@ -45,7 +45,7 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
     // Add overall evaluation section
     tabs.push({
       id: "overall",
-      name: "Overall Evaluation",
+      name: "Overall Satisfaction",
       dataKey: "overallEvaluation" as keyof SurveyData
     });
 
@@ -231,7 +231,7 @@ export function TabbedSummary({ data, sections, onBack, onSubmit }: TabbedSummar
         {data.surveyNumber && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Survey #{data.surveyNumber}</strong> - Demographics + {data.assignedSections?.length || 6} Service Sections + Overall Evaluation
+              <strong>Survey #{data.surveyNumber}</strong> - Demographics + {data.assignedSections?.length || 6} Service Sections + Overall Satisfaction
             </p>
           </div>
         )}

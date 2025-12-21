@@ -450,13 +450,13 @@ export const questionLabels: Record<string, QuestionMetadata> = {
   // OVERALL SECTION
   'overall_overallSatisfaction': {
     label: 'Overall Satisfaction',
-    section: 'Overall Evaluation',
+    section: 'Overall Satisfaction',
     type: 'satisfaction',
     description: 'Overall satisfaction with barangay services'
   },
   'overall_overallNeedForAction': {
     label: 'Overall Need for Action',
-    section: 'Overall Evaluation',
+    section: 'Overall Satisfaction',
     type: 'nfa',
     description: 'Does the barangay need overall improvement?'
   }

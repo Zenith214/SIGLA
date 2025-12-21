@@ -595,9 +595,9 @@ export const translations: Record<string, SectionTranslations> = {
   },
   overall: {
     overallSatisfaction: {
-      bisaya: "BAHIN X: KINATIBUK-ANG EBALWASYON (OVERALL EVALUATION)\nM1: Kinatibuk-ang Katagbawan\nSa kinatibuk-an, kung hunahunaon ang tanan nga serbisyo nga gihatag sa barangay sa miaging 12 ka bulan, tagbaw ka ba?",
-      filipino: "PART X: PANGKALAHATANG EBALWASYON (OVERALL EVALUATION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, nasisiyahan ka ba?",
-      english: "PART X: OVERALL EVALUATION\nM1: Overall Satisfaction\nOverall, thinking about all the services provided by the barangay in the past 12 months, are you satisfied?"
+      bisaya: "BAHIN X: KINATIBUK-ANG KATAGBAWAN (OVERALL SATISFACTION)\nM1: Kinatibuk-ang Katagbawan\nSa kinatibuk-an, kung hunahunaon ang tanan nga serbisyo nga gihatag sa barangay sa miaging 12 ka bulan, tagbaw ka ba?",
+      filipino: "PART X: PANGKALAHATANG KATAGBAWAN (OVERALL SATISFACTION)\nM1: Overall Satisfaction\nSa pangkalahatan, kung iisipin ang lahat ng serbisyong ibinigay ng barangay sa nakalipas na 12 buwan, nasisiyahan ka ba?",
+      english: "PART X: OVERALL SATISFACTION\nM1: Overall Satisfaction\nOverall, thinking about all the services provided by the barangay in the past 12 months, are you satisfied?"
     },
     overallNeedForAction: {
       bisaya: "M2: Kinatibuk-ang Panginahanglan alang sa Aksyon\nSa imong kinatibuk-ang panglantaw, sa kinatibuk-an, kinahanglan ba nga mohimo og aksyon ang barangay aron mapauswag ang iyang mga serbisyo?",

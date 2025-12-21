@@ -474,7 +474,7 @@ export function SurveyInitialization({ data, onUpdate, onNext, preselectedBarang
                   <p><strong>Step 1:</strong> Select respondent using Kish Grid</p>
                   <p><strong>Step 2:</strong> Collect respondent demographics</p>
                   <p><strong>Step 3:</strong> Complete 6 randomized service sections</p>
-                  <p><strong>Step 4:</strong> Overall evaluation questions</p>
+                  <p><strong>Step 4:</strong> Overall satisfaction questions</p>
                   <p><strong>Step 5:</strong> Review and submit</p>
                 </div>
               </div>

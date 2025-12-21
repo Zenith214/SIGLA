@@ -296,6 +296,11 @@ export default function BarangayListView() {
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-1">Overall Satisfaction</h4>
                   <p>Shows the barangay's overall performance score. Green (58% or higher) indicates good performance, while red (below 58%) suggests areas needing improvement.</p>
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                    <p className="font-semibold text-blue-900 mb-1">How is 58% calculated?</p>
+                    <p className="text-blue-800">Cut-off = 50% + (0.98 / √n)</p>
+                    <p className="text-blue-700 mt-1">For n=150: Cut-off = 50% + 8% = <span className="font-semibold">58%</span></p>
+                  </div>
                 </div>
 
                 {/* Action Grid */}

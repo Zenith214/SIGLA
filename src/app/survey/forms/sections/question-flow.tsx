@@ -544,7 +544,7 @@ function getSectionTitle(sectionId: string): string {
     social: "Social Protection and Security",
     business: "Business Friendliness and Competitiveness",
     environmental: "Environmental Management",
-    overall: "Overall Evaluation",
+    overall: "Overall Satisfaction",
   }
   return titleMap[sectionId] || "Survey Section";
 }

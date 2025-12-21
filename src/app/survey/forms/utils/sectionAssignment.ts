@@ -112,7 +112,7 @@ export function isValidSectionId(sectionId: string): boolean {
  * @returns true if section is assigned or is a required section
  */
 export function isSectionAccessible(sectionId: string, assignedSections: string[]): boolean {
-  // Required sections are always accessible (including overall evaluation)
+  // Required sections are always accessible (including overall satisfaction)
   const requiredSections = ['initialization', 'respondent-selection', 'respondent-demographics', 'overall', 'summary'];
   if (requiredSections.includes(sectionId)) {
     return true;
@@ -370,11 +370,11 @@ export function getNextSectionSafe(currentSection: string, assignedSections: str
     if (currentIndex < assignedSections.length - 1) {
       return assignedSections[currentIndex + 1];
     }
-    // After last service section, go to overall evaluation
+    // After last service section, go to overall satisfaction
     return 'overall';
   }
 
-  // After overall evaluation, go to summary
+  // After overall satisfaction, go to summary
   if (currentSection === 'overall') {
     return 'summary';
   }
@@ -412,7 +412,7 @@ export function getPreviousSectionSafe(currentSection: string, assignedSections:
     return 'respondent-demographics';
   }
   if (currentSection === 'summary') {
-    // Go back to overall evaluation
+    // Go back to overall satisfaction
     return 'overall';
   }
 

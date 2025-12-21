@@ -761,7 +761,7 @@ function BarangayDetailModal({ barangay, cycleId, cycleName, onClose }: Barangay
 
           {/* Action Grid */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Action Priority Matrix</h3>
+            <h3 className="text-lg font-semibold mb-3">Action Grid</h3>
             <div className="grid grid-cols-2 gap-4">
               {/* Exceeded Expectations */}
               <div className="bg-green-100 border-2 border-green-300 rounded-lg p-4">

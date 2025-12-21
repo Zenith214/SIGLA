@@ -2199,8 +2199,8 @@ function ReportCardContent() {
             <Card className="print:section print:page-break-before">
               <CardHeader className="pb-3 sm:pb-6">
                 <CardTitle className="text-base sm:text-lg">
-                  <h2 className="hidden print:show">Action Priority Matrix</h2>
-                  <span className="print:hidden">Action Priority Matrix</span>
+                  <h2 className="hidden print:show">Action Grid</h2>
+                  <span className="print:hidden">Action Grid</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -2215,7 +2215,7 @@ function ReportCardContent() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-amber-900 mb-2">Action Priority Analysis Pending</h4>
                         <p className="text-sm text-amber-700 mb-3">
-                          The action priority matrix will be generated once survey data collection reaches 100% completion.
+                          The action grid will be generated once survey data collection reaches 100% completion.
                         </p>
                         {funnelData.progress !== undefined && (
                           <div className="text-sm text-amber-600">

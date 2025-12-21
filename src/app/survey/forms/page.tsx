@@ -170,7 +170,7 @@ function SurveyAppContent() {
     { id: "initialization", name: "Survey Initialization", status: "in-progress" },
     { id: "respondent-selection", name: "Respondent Selection", status: "pending" },
     { id: "respondent-demographics", name: "Respondent Demographics", status: "pending" },
-    { id: "overall", name: "Overall Evaluation", status: "pending" },
+    { id: "overall", name: "Overall Satisfaction", status: "pending" },
     { id: "summary", name: "Summary & Review", status: "pending" },
   ])
 
@@ -404,7 +404,7 @@ function SurveyAppContent() {
         }));
       }
 
-      // Build sections array with all 6 service sections + overall evaluation
+      // Build sections array with all 6 service sections + overall satisfaction
       setSections(prevSections => {
         const existingSectionIds = prevSections.map(s => s.id);
         const expectedSectionIds = ["initialization", "respondent-selection", "respondent-demographics", ...assignedSectionIds, "overall", "summary"];
@@ -419,7 +419,7 @@ function SurveyAppContent() {
               ...section,
               status: currentSection === section.id ? "in-progress" as const : "pending" as const
             })),
-            { id: "overall", name: "Overall Evaluation", status: currentSection === "overall" ? "in-progress" : "pending" },
+            { id: "overall", name: "Overall Satisfaction", status: currentSection === "overall" ? "in-progress" : "pending" },
             { id: "summary", name: "Summary & Review", status: currentSection === "summary" ? "in-progress" : "pending" },
           ];
           console.log(`📋 Sections (6 service sections + overall):`, newSections.map(s => `${s.id}: ${s.status}`));
@@ -776,7 +776,7 @@ function SurveyAppContent() {
           />
         )
       case "overall":
-        // Overall evaluation section - always shown after all 6 service sections
+        // Overall satisfaction section - always shown after all 6 service sections
         return (
           <QuestionFlow
             sectionId="overall"
