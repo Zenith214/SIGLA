@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CPAPList } from "@/components/cpap/admin/CPAPList";
+import { CPAPNotificationMenu } from "@/components/cpap/CPAPNotificationMenu";
 import type { CPAPListItem } from "@/types/cpap";
 
 export default function AdminCPAPPage() {
@@ -22,19 +23,8 @@ export default function AdminCPAPPage() {
   useEffect(() => {
     if (user && user.role?.toLowerCase() !== "admin") {
       router.push("/forbidden?reason=insufficient_permissions&attempted_path=/admin/cpap");
-    } else if (user?.role?.toLowerCase() === "admin") {
-      // Mark CPAP notifications as read when visiting this page
-      markNotificationsAsRead();
     }
   }, [user, router]);
-
-  const markNotificationsAsRead = async () => {
-    try {
-      await fetch('/api/cpap/notifications', { method: 'POST' });
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-    }
-  };
 
   useEffect(() => {
     if (user?.role?.toLowerCase() === "admin") {
@@ -114,23 +104,26 @@ export default function AdminCPAPPage() {
         {/* Header */}
         <div className="bg-slate-800 border-b border-slate-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push("/dashboard")}
-                className="text-white hover:bg-slate-700"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  CPAP Management
-                </h1>
-                <p className="text-sm text-slate-300 mt-1">
-                  Review and monitor Citizen Priority Action Plans
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/dashboard")}
+                  className="text-white hover:bg-slate-700"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">
+                    CPAP Management
+                  </h1>
+                  <p className="text-sm text-slate-300 mt-1">
+                    Review and monitor Citizen Priority Action Plans
+                  </p>
+                </div>
               </div>
+              <CPAPNotificationMenu />
             </div>
           </div>
         </div>

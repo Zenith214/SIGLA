@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
@@ -14,10 +14,12 @@ import { CPAPSpreadsheet } from "@/components/cpap/CPAPSpreadsheet";
 import { CPAPSpreadsheetReadOnly } from "@/components/cpap/CPAPSpreadsheetReadOnly";
 import { CPAPSubmitModal } from "@/components/cpap/CPAPSubmitModal";
 import { CPAPCommentsSidebar } from "@/components/cpap/CPAPCommentsSidebar";
+import { CPAPNotificationMenu } from "@/components/cpap/CPAPNotificationMenu";
 import type { CPAP, CPAPStatus, CPAPItem, CPAPItemInput } from "@/types/cpap";
 
 export default function CPAPPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { activeCycle } = useActiveCycle();
   const { toast } = useToast();
@@ -34,18 +36,8 @@ export default function CPAPPage() {
   useEffect(() => {
     if (user) {
       fetchUserBarangay();
-      // Mark CPAP notifications as read when visiting this page
-      markNotificationsAsRead();
     }
   }, [user]);
-
-  const markNotificationsAsRead = async () => {
-    try {
-      await fetch('/api/cpap/notifications', { method: 'POST' });
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-    }
-  };
 
   useEffect(() => {
     if (userBarangayId && activeCycle) {
@@ -380,9 +372,12 @@ export default function CPAPPage() {
                 </div>
               </div>
               {cpap && (
-                <Badge variant={getStatusBadgeVariant(cpap.status)}>
-                  {getStatusLabel(cpap.status)}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <CPAPNotificationMenu />
+                  <Badge variant={getStatusBadgeVariant(cpap.status)}>
+                    {getStatusLabel(cpap.status)}
+                  </Badge>
+                </div>
               )}
             </div>
           </div>
@@ -582,6 +577,7 @@ export default function CPAPPage() {
             cpapId={cpap.id}
             currentUserId={typeof user.id === 'string' ? parseInt(user.id) : user.id}
             currentUserRole={user.role || "officer"}
+            initialOpen={searchParams.get('openComments') === 'true'}
           />
         )}
       </div>

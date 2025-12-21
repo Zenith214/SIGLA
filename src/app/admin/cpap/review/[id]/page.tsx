@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import type { CPAPWithDetails, CPAPStatus } from "@/types/cpap";
 export default function CPAPReviewPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -580,6 +581,7 @@ export default function CPAPReviewPage() {
             cpapId={cpap.id}
             currentUserId={typeof user.id === 'string' ? parseInt(user.id) : user.id}
             currentUserRole={user.role || "admin"}
+            initialOpen={searchParams.get('openComments') === 'true'}
           />
         )}
       </div>

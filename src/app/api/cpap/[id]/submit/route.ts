@@ -3,6 +3,7 @@ import { verifyAuth } from '@/lib/auth-middleware';
 import { CPAPService } from '@/lib/services/cpap.service';
 import { CPAPPermissionService } from '@/lib/services/cpap-permission.service';
 import { CPAPValidationService } from '@/lib/services/cpap-validation.service';
+import { CPAPNotificationSimpleService } from '@/lib/services/cpap-notification-simple.service';
 
 /**
  * POST /api/cpap/[id]/submit
@@ -120,6 +121,14 @@ export async function POST(
 
     // Submit CPAP
     await CPAPService.submitCPAP(cpapId);
+
+    // Notify admins about the submission
+    try {
+      await CPAPNotificationSimpleService.notifyCPAPSubmitted(cpapId, user.id);
+    } catch (notifError) {
+      console.error('Error sending submission notification:', notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       success: true,

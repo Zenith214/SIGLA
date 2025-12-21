@@ -11,10 +11,11 @@ interface CPAPCommentsSidebarProps {
   cpapId: number;
   currentUserId: number;
   currentUserRole: string;
+  initialOpen?: boolean;
 }
 
-export function CPAPCommentsSidebar({ cpapId, currentUserId, currentUserRole }: CPAPCommentsSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function CPAPCommentsSidebar({ cpapId, currentUserId, currentUserRole, initialOpen = false }: CPAPCommentsSidebarProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [comments, setComments] = useState<CPAPComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +33,29 @@ export function CPAPCommentsSidebar({ cpapId, currentUserId, currentUserRole }: 
   useEffect(() => {
     if (isOpen) {
       fetchComments();
+    } else {
+      // Fetch unread comment count when closed
+      fetchUnreadCommentCount();
     }
   }, [isOpen, cpapId]);
+
+  const fetchUnreadCommentCount = async () => {
+    try {
+      const response = await fetch('/api/cpap/notifications/list');
+      if (response.ok) {
+        const data = await response.json();
+        // Count unread comment notifications for this CPAP
+        const unreadComments = data.notifications?.filter(
+          (n: any) => n.cpap_id === cpapId && 
+                     n.notification_type === 'comment_added' && 
+                     !n.is_read
+        ).length || 0;
+        setUnreadCount(unreadComments);
+      }
+    } catch (error) {
+      console.error('Error fetching unread comment count:', error);
+    }
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom when new comments arrive
@@ -67,6 +89,25 @@ export function CPAPCommentsSidebar({ cpapId, currentUserId, currentUserRole }: 
       console.log('[Comments] Fetched comments:', data.comments?.length || 0);
       setComments(data.comments || []);
       setUnreadCount(0); // Reset unread count when opening
+      
+      // Mark comment notifications as read for this CPAP
+      try {
+        const notifResponse = await fetch('/api/cpap/notifications/list');
+        if (notifResponse.ok) {
+          const notifData = await notifResponse.json();
+          const commentNotifications = notifData.notifications?.filter(
+            (n: any) => n.cpap_id === cpapId && 
+                       n.notification_type === 'comment_added' && 
+                       !n.is_read
+          );
+          // Mark each as read
+          for (const notif of commentNotifications || []) {
+            await fetch(`/api/cpap/notifications/${notif.id}/read`, { method: 'POST' });
+          }
+        }
+      } catch (error) {
+        console.error('Error marking comment notifications as read:', error);
+      }
     } catch (error) {
       console.error("Error fetching comments:", error);
       setError(error instanceof Error ? error.message : "Failed to load comments. Please try again.");
