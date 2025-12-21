@@ -131,7 +131,6 @@ export function AISuggestionsModal({
       let months = parseInt(suggestion.timeline_months.split("-")[0]) || 3;
       
       // For long-term items (12+ months), ensure it's at least 13 months
-      // so it properly categorizes as "Long-Term" in the breakdown
       if (months === 12 && suggestions.longTerm.includes(suggestion)) {
         months = 13;
       }
@@ -140,13 +139,23 @@ export function AISuggestionsModal({
       const endDate = new Date(today);
       endDate.setMonth(endDate.getMonth() + months);
 
+      // Generate more comprehensive data for spreadsheet columns
       return {
         priority_area: suggestion.priority_area,
         target_output: suggestion.target_output,
         success_indicator: suggestion.success_indicator,
-        responsible_person: "To be assigned",
+        responsible_person: "To be assigned", // User should fill this
         timeline_start: startDate.toISOString().split("T")[0],
         timeline_end: endDate.toISOString().split("T")[0],
+        // Additional fields for spreadsheet (will be mapped in component)
+        observation: `Based on survey data: ${suggestion.source}`,
+        plan_of_action: suggestion.target_output, // Use target output as initial plan
+        activity: "To be determined", // User should specify activities
+        actual_output: "", // To be filled during implementation
+        accomplishment_status: "", // To be filled during implementation
+        actual_date: "", // To be filled when completed
+        financial_requirements: "To be estimated", // User should provide budget
+        committed_to_be_committed: "To be determined", // User should specify
       };
     });
   };

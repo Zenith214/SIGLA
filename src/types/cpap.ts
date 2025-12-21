@@ -36,6 +36,13 @@ export interface CPAPItem {
   actual_output: string | null;
   accomplishment_status: string | null;
   remarks: string | null;
+  // New spreadsheet fields
+  observation: string | null;
+  plan_of_action: string | null;
+  activity: string | null;
+  financial_requirements: string | null;
+  committed_to_be_committed: string | null;
+  actual_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,6 +56,15 @@ export interface CPAPItemInput {
   responsible_person: string;
   timeline_start: string;
   timeline_end: string;
+  // Additional fields for spreadsheet (optional, not saved to DB yet)
+  observation?: string;
+  plan_of_action?: string;
+  activity?: string;
+  actual_output?: string;
+  accomplishment_status?: string;
+  actual_date?: string;
+  financial_requirements?: string;
+  committed_to_be_committed?: string;
 }
 
 export interface ProgressUpdate {

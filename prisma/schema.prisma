@@ -631,19 +631,26 @@ model CPAP {
 }
 
 model CPAPItem {
-  id                    Int      @id @default(autoincrement())
-  cpap_id               Int
-  priority_area         String   @db.VarChar(255)
-  target_output         String   @db.Text
-  success_indicator     String   @db.Text
-  responsible_person    String   @db.VarChar(255)
-  timeline_start        DateTime @db.Date
-  timeline_end          DateTime @db.Date
-  actual_output         String?  @db.Text
-  accomplishment_status String?  @db.VarChar(50)
-  remarks               String?  @db.Text
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  id                       Int       @id @default(autoincrement())
+  cpap_id                  Int
+  priority_area            String    @db.VarChar(255)
+  target_output            String    @db.Text
+  success_indicator        String    @db.Text
+  responsible_person       String    @db.VarChar(255)
+  timeline_start           DateTime  @db.Date
+  timeline_end             DateTime  @db.Date
+  actual_output            String?   @db.Text
+  accomplishment_status    String?   @db.VarChar(50)
+  remarks                  String?   @db.Text
+  // New spreadsheet columns
+  observation              String?   @db.Text
+  plan_of_action           String?   @db.Text
+  activity                 String?   @db.Text
+  financial_requirements   String?   @db.VarChar(255)
+  committed_to_be_committed String?  @db.Text
+  actual_date              DateTime? @db.Date
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
 
   // Relations
   cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)

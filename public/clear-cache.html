@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear PULSE Cache</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #b91c1c;
+    }
+    button.success {
+      background: #16a34a;
+    }
+    button.success:hover {
+      background: #15803d;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    #status.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+      display: block;
+    }
+    #status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+      display: block;
+    }
+    .info {
+      background: #dbeafe;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Clear PULSE Cache</h1>
+    
+    <div class="info">
+      <strong>What this does:</strong>
+      <ul>
+        <li>Clears all cached API responses (including CPAP data)</li>
+        <li>Clears all cached pages and assets</li>
+        <li>Unregisters the service worker</li>
+        <li>Forces a fresh reload of all data</li>
+      </ul>
+    </div>
+
+    <button onclick="clearAllCache()">🗑️ Clear All Cache</button>
+    <button onclick="clearCPAPOnly()" class="success">🎯 Clear CPAP Cache Only</button>
+    <button onclick="goBack()">← Back to App</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = type;
+    }
+
+    async function clearAllCache() {
+      try {
+        showStatus('Clearing all caches...', 'success');
+        
+        // Clear all caches
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        
+        // Unregister service worker
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        
+        showStatus('✅ All caches cleared! Reloading in 2 seconds...', 'success');
+        
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      } catch (error) {
+        showStatus('❌ Error: ' + error.message, 'error');
+      }
+    }
+
+    async function clearCPAPOnly() {
+      try {
+        showStatus('Clearing CPAP cache...', 'success');
+        
+        // Open the main cache
+        const cache = await caches.open('pulse-fi-pwa-v5');
+        
+        // Get all cached requests
+        const requests = await cache.keys();
+        
+        // Delete only CPAP-related requests
+        let deletedCount = 0;
+        for (const request of requests) {
+          if (request.url.includes('/api/cpap')) {
+            await cache.delete(request);
+            deletedCount++;
+          }
+        }
+        
+        showStatus(`✅ Cleared ${deletedCount} CPAP cache entries! Reloading in 2 seconds...`, 'success');
+        
+        setTimeout(() => {
+          window.location.href = '/cpap';
+        }, 2000);
+      } catch (error) {
+        showStatus('❌ Error: ' + error.message, 'error');
+      }
+    }
+
+    function goBack() {
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

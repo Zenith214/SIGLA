@@ -249,6 +249,13 @@ export class CPAPService {
               responsible_person: item.responsible_person,
               timeline_start: item.timeline_start,
               timeline_end: item.timeline_end,
+              // New spreadsheet fields
+              observation: item.observation || null,
+              plan_of_action: item.plan_of_action || null,
+              activity: item.activity || null,
+              financial_requirements: item.financial_requirements || null,
+              committed_to_be_committed: item.committed_to_be_committed || null,
+              actual_date: item.actual_date || null,
               updated_at: new Date().toISOString()
             })
             .eq('id', item.id)
@@ -269,6 +276,13 @@ export class CPAPService {
               responsible_person: item.responsible_person,
               timeline_start: item.timeline_start,
               timeline_end: item.timeline_end,
+              // New spreadsheet fields
+              observation: item.observation || null,
+              plan_of_action: item.plan_of_action || null,
+              activity: item.activity || null,
+              financial_requirements: item.financial_requirements || null,
+              committed_to_be_committed: item.committed_to_be_committed || null,
+              actual_date: item.actual_date || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -369,7 +383,13 @@ export class CPAPService {
             name,
             year
           ),
-          items:cpap_items (*)
+          items:cpap_items (
+            id, cpap_id, priority_area, target_output, success_indicator,
+            responsible_person, timeline_start, timeline_end, actual_output,
+            accomplishment_status, remarks, observation, plan_of_action,
+            activity, financial_requirements, committed_to_be_committed,
+            actual_date, created_at, updated_at
+          )
         `)
         .eq('id', cpapId)
         .single();
@@ -1232,6 +1252,13 @@ export class CPAPService {
         actual_output: item.actual_output,
         accomplishment_status: item.accomplishment_status,
         remarks: item.remarks,
+        // New spreadsheet fields
+        observation: item.observation,
+        plan_of_action: item.plan_of_action,
+        activity: item.activity,
+        financial_requirements: item.financial_requirements,
+        committed_to_be_committed: item.committed_to_be_committed,
+        actual_date: item.actual_date,
         created_at: item.created_at,
         updated_at: item.updated_at
       }))
