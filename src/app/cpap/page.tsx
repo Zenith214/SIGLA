@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -17,7 +17,7 @@ import { CPAPCommentsSidebar } from "@/components/cpap/CPAPCommentsSidebar";
 import { CPAPNotificationMenu } from "@/components/cpap/CPAPNotificationMenu";
 import type { CPAP, CPAPStatus, CPAPItem, CPAPItemInput } from "@/types/cpap";
 
-export default function CPAPPage() {
+function CPAPPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -582,5 +582,17 @@ export default function CPAPPage() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function CPAPPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#dbeafe' }}>
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    }>
+      <CPAPPageContent />
+    </Suspense>
   );
 }
