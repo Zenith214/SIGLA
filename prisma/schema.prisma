@@ -30,11 +30,14 @@ model User {
   barangayDesignation Int?
 
   // Relations
-  assignments         Assignment[]
-  survey_responses    SurveyResponse[]
-  created_awards      CycleAward[]
-  assigned_spots      Spot[]
-  designated_barangay Barangay?        @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
+  assignments              Assignment[]
+  survey_responses         SurveyResponse[]
+  created_awards           CycleAward[]
+  assigned_spots           Spot[]
+  cpap_comments            CPAPComment[]
+  cpap_notifications       CPAPNotification[]       @relation("UserNotifications")
+  created_notifications    CPAPNotification[]       @relation("CreatedNotifications")
+  designated_barangay      Barangay?                @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
 
   @@index([barangayDesignation])
   @@map("user")
@@ -608,20 +611,22 @@ enum VisitOutcome {
 // ============================================================================
 
 model CPAP {
-  id             Int        @id @default(autoincrement())
+  id             Int                @id @default(autoincrement())
   barangay_id    Int
   cycle_id       Int
-  status         CPAPStatus @default(Draft)
-  created_at     DateTime   @default(now())
-  updated_at     DateTime   @updatedAt
+  status         CPAPStatus         @default(Draft)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
   submitted_at   DateTime?
   approved_at    DateTime?
-  admin_comments String?    @db.Text
+  admin_comments String?            @db.Text
 
   // Relations
-  barangay Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  cycle    SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  items    CPAPItem[]
+  barangay      Barangay           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  cycle         SurveyCycle        @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  items         CPAPItem[]
+  comments      CPAPComment[]
+  notifications CPAPNotification[]
 
   @@unique([barangay_id, cycle_id])
   @@index([status])
@@ -648,7 +653,8 @@ model CPAPItem {
   activity                 String?   @db.Text
   financial_requirements   String?   @db.VarChar(255)
   committed_to_be_committed String?  @db.Text
-  actual_date              DateTime? @db.Date
+  actual_date              String?   @db.Text
+  progress                 String?   @db.VarChar(50) // Ongoing, Delayed, Completed
   created_at               DateTime  @default(now())
   updated_at               DateTime  @updatedAt
 
@@ -657,6 +663,46 @@ model CPAPItem {
 
   @@index([cpap_id])
   @@map("cpap_items")
+}
+
+model CPAPComment {
+  id           Int      @id @default(autoincrement())
+  cpap_id      Int
+  user_id      Int
+  comment_text String   @db.Text
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([cpap_id])
+  @@index([user_id])
+  @@index([created_at])
+  @@map("cpap_comments")
+}
+
+model CPAPNotification {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  cpap_id           Int
+  notification_type String   @db.VarChar(50)
+  message           String   @db.Text
+  is_read           Boolean  @default(false)
+  created_at        DateTime @default(now())
+  created_by        Int?
+
+  // Relations
+  user       User  @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade)
+  cpap       CPAP  @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
+  creator    User? @relation("CreatedNotifications", fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([cpap_id])
+  @@index([is_read])
+  @@index([created_at])
+  @@map("cpap_notifications")
 }
 
 enum CPAPStatus {

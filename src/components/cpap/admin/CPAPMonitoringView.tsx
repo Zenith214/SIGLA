@@ -35,11 +35,20 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
     const progressData: Record<number, number> = {};
     
     try {
+      // Cache-busting timestamp
+      const timestamp = Date.now();
+      
       // Fetch details for each CPAP to calculate progress
       await Promise.all(
         cpaps.map(async (cpap) => {
           try {
-            const response = await fetch(`/api/cpap/${cpap.id}`);
+            const response = await fetch(`/api/cpap/${cpap.id}?_t=${timestamp}`, {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+              }
+            });
             if (response.ok) {
               const data = await response.json();
               progressData[cpap.id] = calculateCPAPProgress(data.cpap);
@@ -108,7 +117,16 @@ export function CPAPMonitoringView({ cpaps, onUpdate }: CPAPMonitoringViewProps)
     try {
       setIsLoadingDetails(true);
       
-      const response = await fetch(`/api/cpap/${cpapId}`);
+      // Cache-busting: Add timestamp to force fresh data
+      const timestamp = Date.now();
+      
+      const response = await fetch(`/api/cpap/${cpapId}?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         throw new Error("Failed to fetch CPAP details");

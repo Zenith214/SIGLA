@@ -29,6 +29,7 @@ interface SpreadsheetRow {
   responsiblePerson: string;
   committedToBeCommitted: string;
   meansOfVerification: string;
+  progress: string; // Ongoing, Delayed, Completed
   isAISuggestion?: boolean;
 }
 
@@ -66,7 +67,8 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
           financialRequirements: item.financial_requirements || "",
           responsiblePerson: item.responsible_person || "",
           committedToBeCommitted: item.committed_to_be_committed || "",
-          meansOfVerification: item.success_indicator || ""
+          meansOfVerification: item.success_indicator || "",
+          progress: item.progress || ""
         }));
         setRows(mappedRows);
       } else {
@@ -96,6 +98,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
           responsiblePerson: item.responsible_person || "",
           committedToBeCommitted: item.committed_to_be_committed || "",
           meansOfVerification: item.success_indicator || "",
+          progress: item.progress || "",
           isAISuggestion: true
         };
       });
@@ -118,7 +121,8 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
       financialRequirements: "",
       responsiblePerson: "",
       committedToBeCommitted: "",
-      meansOfVerification: ""
+      meansOfVerification: "",
+      progress: ""
     };
     setRows([...rows, newRow]);
   };
@@ -169,16 +173,38 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
     setSelectedRows(new Set());
   };
 
-  const updateCell = (rowIndex: number, field: keyof SpreadsheetRow, value: string) => {
+  const updateCell = (rowId: number | undefined, field: keyof SpreadsheetRow, value: string) => {
+    console.log(`📝 [UPDATE] Row ID ${rowId}, Field: ${field}, Value:`, value);
     const newRows = [...rows];
+    const rowIndex = newRows.findIndex(r => r.id === rowId);
+    if (rowIndex === -1) {
+      console.error(`❌ [UPDATE] Could not find row with ID ${rowId}`);
+      return;
+    }
     newRows[rowIndex] = { ...newRows[rowIndex], [field]: value };
+    console.log(`📝 [UPDATE] Updated row:`, newRows[rowIndex]);
     setRows(newRows);
   };
 
   const handleSave = () => {
+    console.log("🔍 [SAVE] Starting save process...");
+    console.log("🔍 [SAVE] Current rows state:", rows);
+    console.log("🔍 [SAVE] Total rows:", rows.length);
+    
     // Convert spreadsheet rows to CPAP items format
     const items = rows
-      .filter(row => row.output && row.output.trim()) // Only save rows with output (required field)
+      .filter(row => {
+        // Only save rows with output (required field)
+        const hasOutput = row.output && row.output.trim();
+        if (!hasOutput) {
+          console.log("⚠️ Skipping row without output:", {
+            serviceArea: row.serviceArea,
+            observation: row.observation?.substring(0, 50),
+            hasOtherData: !!(row.observation || row.planOfAction || row.activity)
+          });
+        }
+        return hasOutput;
+      })
       .map(row => {
         // Parse implementation schedule safely
         const [startDate, endDate] = row.implementationSchedule.split(" - ");
@@ -201,7 +227,8 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
           activity: row.activity,
           financial_requirements: row.financialRequirements,
           committed_to_be_committed: row.committedToBeCommitted,
-          actual_date: row.actualDate || null
+          actual_date: row.actualDate?.trim() || null,
+          progress: row.progress || null
         };
         
         console.log("💾 Saving item:", {
@@ -209,15 +236,26 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
           observation: item.observation,
           plan_of_action: item.plan_of_action,
           activity: item.activity,
+          actual_output: item.actual_output,
           hasObservation: !!item.observation,
           hasPlanOfAction: !!item.plan_of_action,
-          hasActivity: !!item.activity
+          hasActivity: !!item.activity,
+          hasActualOutput: !!item.actual_output
         });
         
         return item;
       });
     
     console.log("💾 Total items to save:", items.length);
+    console.log("💾 Total rows in spreadsheet:", rows.length);
+    console.log("💾 All items being saved:", JSON.stringify(items, null, 2));
+    
+    if (items.length === 0 && rows.length > 0) {
+      console.warn("⚠️ No items to save! All rows are missing the Output field.");
+      alert("⚠️ Cannot save: The 'Output' column is required for all rows.\n\nPlease fill in the Output field for each row before saving.");
+      return;
+    }
+    
     console.log("💾 First item full:", items[0]);
     
     // Allow saving even if empty (to delete all items)
@@ -275,7 +313,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                 Activity
               </th>
               <th className="border border-slate-600 px-2 py-3 text-left font-semibold min-w-[120px] text-white">
-                Output
+                Output <span className="text-red-400">*</span>
               </th>
               <th className="border border-slate-600 px-2 py-3 text-left font-semibold min-w-[120px] text-white">
                 Actual Output
@@ -301,6 +339,9 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
               <th className="border border-slate-600 px-2 py-3 text-left font-semibold min-w-[150px] text-white">
                 Means of Verification
               </th>
+              <th className="border border-slate-600 px-2 py-3 text-left font-semibold min-w-[120px] text-white">
+                Progress
+              </th>
               <th className="border border-slate-600 px-2 py-3 text-center font-semibold w-[80px] text-white">
                 Actions
               </th>
@@ -312,7 +353,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                 {/* Service Area Header Row */}
                 <tr key={`header-${area}`} className="bg-blue-100 border-b border-slate-300">
                   <td className="border border-slate-300"></td>
-                  <td colSpan={13} className="border border-slate-300 px-3 py-2 font-bold text-slate-800">
+                  <td colSpan={14} className="border border-slate-300 px-3 py-2 font-bold text-slate-800">
                     {area}
                   </td>
                 </tr>
@@ -336,7 +377,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.observation}
-                            onChange={(e) => updateCell(globalIndex, "observation", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "observation", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter observations..."
                           />
@@ -344,7 +385,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.planOfAction}
-                            onChange={(e) => updateCell(globalIndex, "planOfAction", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "planOfAction", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter plan..."
                           />
@@ -352,7 +393,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.activity}
-                            onChange={(e) => updateCell(globalIndex, "activity", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "activity", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter activity..."
                           />
@@ -360,7 +401,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.output}
-                            onChange={(e) => updateCell(globalIndex, "output", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "output", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter output..."
                           />
@@ -368,7 +409,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.actualOutput}
-                            onChange={(e) => updateCell(globalIndex, "actualOutput", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "actualOutput", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter actual output..."
                           />
@@ -376,7 +417,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.statusOfAccomplishment}
-                            onChange={(e) => updateCell(globalIndex, "statusOfAccomplishment", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "statusOfAccomplishment", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter status..."
                           />
@@ -385,7 +426,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                           <Input
                             type="text"
                             value={row.implementationSchedule}
-                            onChange={(e) => updateCell(globalIndex, "implementationSchedule", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "implementationSchedule", e.target.value)}
                             className="text-xs border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Jan - Dec 2024"
                           />
@@ -394,16 +435,16 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                           <Input
                             type="text"
                             value={row.actualDate}
-                            onChange={(e) => updateCell(globalIndex, "actualDate", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "actualDate", e.target.value)}
                             className="text-xs border-0 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Enter date..."
+                            placeholder="e.g., 2025-12-21 or Within the year"
                           />
                         </td>
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Input
                             type="text"
                             value={row.financialRequirements}
-                            onChange={(e) => updateCell(globalIndex, "financialRequirements", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "financialRequirements", e.target.value)}
                             className="text-xs border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter amount..."
                           />
@@ -412,7 +453,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                           <Input
                             type="text"
                             value={row.responsiblePerson}
-                            onChange={(e) => updateCell(globalIndex, "responsiblePerson", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "responsiblePerson", e.target.value)}
                             className="text-xs border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter name/office..."
                           />
@@ -421,7 +462,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                           <Input
                             type="text"
                             value={row.committedToBeCommitted}
-                            onChange={(e) => updateCell(globalIndex, "committedToBeCommitted", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "committedToBeCommitted", e.target.value)}
                             className="text-xs border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter details..."
                           />
@@ -429,10 +470,22 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                         <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Textarea
                             value={row.meansOfVerification}
-                            onChange={(e) => updateCell(globalIndex, "meansOfVerification", e.target.value)}
+                            onChange={(e) => updateCell(row.id, "meansOfVerification", e.target.value)}
                             className="min-h-[60px] text-xs resize-none border-0 focus:ring-1 focus:ring-blue-500"
                             placeholder="Enter verification..."
                           />
+                        </td>
+                        <td className={`border border-slate-300 p-1 ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
+                          <select
+                            value={row.progress}
+                            onChange={(e) => updateCell(row.id, "progress", e.target.value)}
+                            className="w-full text-xs border-0 focus:ring-1 focus:ring-blue-500 bg-transparent h-[60px]"
+                          >
+                            <option value="">Select...</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Delayed">Delayed</option>
+                            <option value="Completed">Completed</option>
+                          </select>
                         </td>
                         <td className={`border border-slate-300 p-1 text-center ${isAISuggestion ? 'bg-purple-50' : 'bg-white'}`}>
                           <Button
@@ -450,7 +503,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                 ) : (
                   <tr>
                     <td className="border border-slate-300"></td>
-                    <td colSpan={13} className="border border-slate-300 px-3 py-4 text-center text-gray-500 bg-gray-50">
+                    <td colSpan={14} className="border border-slate-300 px-3 py-4 text-center text-gray-500 bg-gray-50">
                       <Button
                         variant="outline"
                         size="sm"
@@ -468,7 +521,7 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
                 {areaRows.length > 0 && (
                   <tr>
                     <td className="border border-slate-300"></td>
-                    <td colSpan={13} className="border border-slate-300 px-3 py-2 bg-slate-50">
+                    <td colSpan={14} className="border border-slate-300 px-3 py-2 bg-slate-50">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -488,14 +541,19 @@ export function CPAPSpreadsheet({ cpap, onSave, isSaving, aiSuggestions = [] }: 
       </div>
 
       {/* Save Button at Bottom */}
-      <div className="border-t border-slate-300 bg-slate-50 px-6 py-4 flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          {isSaving ? "Saving..." : "Save All Changes"}
-        </Button>
+      <div className="border-t border-slate-300 bg-slate-50 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            <span className="text-red-600 font-semibold">*</span> The <strong>Output</strong> column is required for all rows
+          </p>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isSaving ? "Saving..." : "Save All Changes"}
+          </Button>
+        </div>
       </div>
     </div>
   );

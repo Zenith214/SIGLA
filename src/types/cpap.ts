@@ -2,6 +2,21 @@
 
 export type CPAPStatus = 'Draft' | 'Submitted' | 'Approved' | 'Revision_Requested';
 
+export interface CPAPComment {
+  id: number;
+  cpap_id: number;
+  user_id: number;
+  comment_text: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+}
+
 export interface CPAP {
   id: number;
   barangay_id: number;
@@ -22,6 +37,7 @@ export interface CPAP {
     year: number;
   };
   items: CPAPItem[];
+  comments?: CPAPComment[];
 }
 
 export interface CPAPItem {
@@ -43,6 +59,7 @@ export interface CPAPItem {
   financial_requirements: string | null;
   committed_to_be_committed: string | null;
   actual_date: string | null;
+  progress: string | null; // Ongoing, Delayed, Completed
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +82,8 @@ export interface CPAPItemInput {
   actual_date?: string;
   financial_requirements?: string;
   committed_to_be_committed?: string;
+  remarks?: string;
+  progress?: string; // Ongoing, Delayed, Completed
 }
 
 export interface ProgressUpdate {

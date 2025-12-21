@@ -1,8 +1,8 @@
 // Service Worker for PULSE Field Interviewer PWA
 // Implements offline-first caching strategy for field data collection
 
-const CACHE_NAME = 'pulse-fi-pwa-v5';
-const RUNTIME_CACHE = 'pulse-fi-runtime-v5';
+const CACHE_NAME = 'pulse-fi-pwa-v6';
+const RUNTIME_CACHE = 'pulse-fi-runtime-v6';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install - focused on field interviewer needs
@@ -62,6 +62,27 @@ self.addEventListener('fetch', (event) => {
   
   // API calls - Network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
+    // CPAP API endpoints - NEVER cache to ensure fresh data after saves
+    if (url.pathname.startsWith('/api/cpap')) {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            console.log('[SW] CPAP API - Network only (no cache):', url.pathname);
+            return response;
+          })
+          .catch((error) => {
+            console.log('[SW] CPAP API - Network failed:', url.pathname);
+            // Return error response for failed CPAP API calls
+            return new Response(JSON.stringify({ error: 'Offline', offline: true }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+      );
+      return;
+    }
+    
+    // Other API calls - Network-first with cache fallback
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return fetch(request)

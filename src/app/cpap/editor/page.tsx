@@ -83,9 +83,20 @@ export default function CPAPEditorPage() {
       setIsLoading(true);
       setError(null);
 
-      // Try to get existing CPAP
+      // Cache-busting: Add timestamp to force fresh data
+      const timestamp = Date.now();
+      console.log("🔄 [FETCH] Fetching CPAP with cache-busting timestamp:", timestamp);
+
+      // Try to get existing CPAP with cache-busting
       const listResponse = await fetch(
-        `/api/cpap?barangay_id=${userBarangayId}&cycle_id=${activeCycle.cycle_id}`
+        `/api/cpap?barangay_id=${userBarangayId}&cycle_id=${activeCycle.cycle_id}&_t=${timestamp}`,
+        {
+          cache: 'no-store', // Disable Next.js cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
       );
 
       if (!listResponse.ok) {
@@ -96,13 +107,29 @@ export default function CPAPEditorPage() {
 
       if (listData.cpaps && listData.cpaps.length > 0) {
         const cpapId = listData.cpaps[0].id;
-        const detailResponse = await fetch(`/api/cpap/${cpapId}`);
+        console.log("🔄 [FETCH] Fetching CPAP details for ID:", cpapId);
+        
+        const detailResponse = await fetch(`/api/cpap/${cpapId}?_t=${timestamp}`, {
+          cache: 'no-store', // Disable Next.js cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
         
         if (!detailResponse.ok) {
           throw new Error("Failed to fetch CPAP details");
         }
 
         const detailData = await detailResponse.json();
+        console.log("✅ [FETCH] CPAP data loaded:", {
+          id: detailData.cpap.id,
+          itemCount: detailData.cpap.items?.length || 0,
+          firstItemSample: detailData.cpap.items?.[0] ? {
+            observation: detailData.cpap.items[0].observation?.substring(0, 50),
+            actualOutput: detailData.cpap.items[0].actual_output?.substring(0, 50)
+          } : null
+        });
         setCpap(detailData.cpap);
       } else {
         // Create new CPAP
@@ -120,7 +147,13 @@ export default function CPAPEditorPage() {
         }
 
         const createData = await createResponse.json();
-        const detailResponse = await fetch(`/api/cpap/${createData.cpap.id}`);
+        const detailResponse = await fetch(`/api/cpap/${createData.cpap.id}?_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
         const detailData = await detailResponse.json();
         setCpap(detailData.cpap);
       }
@@ -170,9 +203,14 @@ export default function CPAPEditorPage() {
 
       toast({
         title: "Success",
-        description: "CPAP saved successfully",
+        description: "CPAP saved successfully. Redirecting to overview...",
         type: "success",
       });
+
+      // Redirect to overview page after successful save
+      setTimeout(() => {
+        router.push("/cpap");
+      }, 1000);
     } catch (err) {
       console.error("Error saving CPAP:", err);
       toast({
@@ -352,7 +390,6 @@ export default function CPAPEditorPage() {
                 onSave={handleSave}
                 isSaving={isSaving}
                 aiSuggestions={aiGeneratedItems}
-                onClearAISuggestions={handleDiscardAI}
               />
             </div>
           ) : null}

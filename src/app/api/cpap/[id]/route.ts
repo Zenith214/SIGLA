@@ -4,6 +4,8 @@ import { CPAPService } from '@/lib/services/cpap.service';
 import { CPAPPermissionService } from '@/lib/services/cpap-permission.service';
 import { CPAPValidationService } from '@/lib/services/cpap-validation.service';
 import { CPAPItemInput, ProgressUpdate } from '@/types/cpap';
+import { CPAPNotificationSimpleService } from '@/lib/services/cpap-notification-simple.service';
+import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * GET /api/cpap/[id]
@@ -245,6 +247,22 @@ export async function PUT(
       items as CPAPItemInput[],
       deleted_item_ids
     );
+
+    // Check if CPAP is approved and notify admins of update
+    try {
+      const { data: cpapData } = await supabaseAdmin
+        .from('cpaps')
+        .select('status')
+        .eq('id', cpapId)
+        .single();
+
+      if (cpapData?.status === 'Approved') {
+        await CPAPNotificationSimpleService.notifyCPAPUpdated(cpapId, user.id);
+      }
+    } catch (notifError) {
+      console.error('Error sending update notification:', notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       success: true,

@@ -172,7 +172,10 @@ export class CPAPPermissionService {
       }
 
       // Check if status allows editing
-      if (cpap.status !== 'Draft' && cpap.status !== 'Revision_Requested') {
+      // Officers can edit Draft, Revision_Requested, and Approved CPAPs
+      // - Draft/Revision_Requested: Full editing before submission
+      // - Approved: Progress tracking (updating actual output, status, progress, etc.)
+      if (cpap.status !== 'Draft' && cpap.status !== 'Revision_Requested' && cpap.status !== 'Approved') {
         return false;
       }
 

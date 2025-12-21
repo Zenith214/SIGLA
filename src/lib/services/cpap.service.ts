@@ -14,6 +14,7 @@ import {
   AISuggestionsMetadata
 } from '@/types/cpap';
 import { CPAPNotificationService } from './cpap-notification.service';
+import { CPAPNotificationSimpleService } from './cpap-notification-simple.service';
 
 /**
  * CPAP Service
@@ -219,7 +220,7 @@ export class CPAPService {
         throw new Error('CPAP not found');
       }
 
-      if (cpap.status !== 'Draft' && cpap.status !== 'Revision_Requested') {
+      if (cpap.status !== 'Draft' && cpap.status !== 'Revision_Requested' && cpap.status !== 'Approved') {
         throw new Error(`Cannot edit CPAP in ${cpap.status} status`);
       }
 
@@ -249,6 +250,9 @@ export class CPAPService {
               responsible_person: item.responsible_person,
               timeline_start: item.timeline_start,
               timeline_end: item.timeline_end,
+              actual_output: item.actual_output || null,
+              accomplishment_status: item.accomplishment_status || null,
+              remarks: item.remarks || null,
               // New spreadsheet fields
               observation: item.observation || null,
               plan_of_action: item.plan_of_action || null,
@@ -256,6 +260,7 @@ export class CPAPService {
               financial_requirements: item.financial_requirements || null,
               committed_to_be_committed: item.committed_to_be_committed || null,
               actual_date: item.actual_date || null,
+              progress: item.progress || null,
               updated_at: new Date().toISOString()
             })
             .eq('id', item.id)
@@ -276,6 +281,9 @@ export class CPAPService {
               responsible_person: item.responsible_person,
               timeline_start: item.timeline_start,
               timeline_end: item.timeline_end,
+              actual_output: item.actual_output || null,
+              accomplishment_status: item.accomplishment_status || null,
+              remarks: item.remarks || null,
               // New spreadsheet fields
               observation: item.observation || null,
               plan_of_action: item.plan_of_action || null,
@@ -283,6 +291,7 @@ export class CPAPService {
               financial_requirements: item.financial_requirements || null,
               committed_to_be_committed: item.committed_to_be_committed || null,
               actual_date: item.actual_date || null,
+              progress: item.progress || null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -388,7 +397,7 @@ export class CPAPService {
             responsible_person, timeline_start, timeline_end, actual_output,
             accomplishment_status, remarks, observation, plan_of_action,
             activity, financial_requirements, committed_to_be_committed,
-            actual_date, created_at, updated_at
+            actual_date, progress, created_at, updated_at
           )
         `)
         .eq('id', cpapId)
@@ -1259,6 +1268,7 @@ export class CPAPService {
         financial_requirements: item.financial_requirements,
         committed_to_be_committed: item.committed_to_be_committed,
         actual_date: item.actual_date,
+        progress: item.progress,
         created_at: item.created_at,
         updated_at: item.updated_at
       }))

@@ -10,10 +10,11 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import { CPAPSpreadsheet } from "@/components/cpap/CPAPSpreadsheet";
 import { CPAPSpreadsheetReadOnly } from "@/components/cpap/CPAPSpreadsheetReadOnly";
 import { CPAPSubmitModal } from "@/components/cpap/CPAPSubmitModal";
-import { ProgressTracker } from "@/components/cpap/ProgressTracker";
-import type { CPAP, CPAPStatus, CPAPItem, CPAPItemInput, ProgressUpdate } from "@/types/cpap";
+import { CPAPCommentsSidebar } from "@/components/cpap/CPAPCommentsSidebar";
+import type { CPAP, CPAPStatus, CPAPItem, CPAPItemInput } from "@/types/cpap";
 
 export default function CPAPPage() {
   const router = useRouter();
@@ -33,8 +34,18 @@ export default function CPAPPage() {
   useEffect(() => {
     if (user) {
       fetchUserBarangay();
+      // Mark CPAP notifications as read when visiting this page
+      markNotificationsAsRead();
     }
   }, [user]);
+
+  const markNotificationsAsRead = async () => {
+    try {
+      await fetch('/api/cpap/notifications', { method: 'POST' });
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
 
   useEffect(() => {
     if (userBarangayId && activeCycle) {
@@ -85,9 +96,20 @@ export default function CPAPPage() {
       setIsLoading(true);
       setError(null);
 
-      // First, try to get existing CPAP
+      // Cache-busting: Add timestamp to force fresh data
+      const timestamp = Date.now();
+      console.log("🔄 [OVERVIEW] Fetching CPAP with cache-busting timestamp:", timestamp);
+
+      // First, try to get existing CPAP with cache-busting
       const listResponse = await fetch(
-        `/api/cpap?barangay_id=${userBarangayId}&cycle_id=${activeCycle.cycle_id}`
+        `/api/cpap?barangay_id=${userBarangayId}&cycle_id=${activeCycle.cycle_id}&_t=${timestamp}`,
+        {
+          cache: 'no-store', // Disable Next.js cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
       );
 
       if (!listResponse.ok) {
@@ -99,13 +121,29 @@ export default function CPAPPage() {
       if (listData.cpaps && listData.cpaps.length > 0) {
         // CPAP exists, fetch full details
         const cpapId = listData.cpaps[0].id;
-        const detailResponse = await fetch(`/api/cpap/${cpapId}`);
+        console.log("🔄 [OVERVIEW] Fetching CPAP details for ID:", cpapId);
+        
+        const detailResponse = await fetch(`/api/cpap/${cpapId}?_t=${timestamp}`, {
+          cache: 'no-store', // Disable Next.js cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
         
         if (!detailResponse.ok) {
           throw new Error("Failed to fetch CPAP details");
         }
 
         const detailData = await detailResponse.json();
+        console.log("✅ [OVERVIEW] CPAP data loaded:", {
+          id: detailData.cpap.id,
+          itemCount: detailData.cpap.items?.length || 0,
+          firstItemSample: detailData.cpap.items?.[0] ? {
+            observation: detailData.cpap.items[0].observation?.substring(0, 50),
+            actualOutput: detailData.cpap.items[0].actual_output?.substring(0, 50)
+          } : null
+        });
         setCpap(detailData.cpap);
       } else {
         // No CPAP exists - set cpap to null to show "Create a Plan" button
@@ -253,16 +291,31 @@ export default function CPAPPage() {
     }
   };
 
-  const handleSaveProgress = async (updates: ProgressUpdate[]) => {
+  const handleSave = async (items: any[]) => {
     if (!cpap) return;
 
     try {
       setIsSaving(true);
 
-      const response = await fetch(`/api/cpap/${cpap.id}/progress`, {
+      // Calculate which items were deleted
+      const existingItemIds = (cpap.items || []).map(item => item.id).filter(id => id !== undefined);
+      const newItemIds = items.map(item => item.id).filter(id => id !== undefined);
+      const deleted_item_ids = existingItemIds.filter(id => !newItemIds.includes(id));
+
+      console.log("Saving CPAP progress:", {
+        totalItems: items.length,
+        existingIds: existingItemIds,
+        newIds: newItemIds,
+        deletedIds: deleted_item_ids
+      });
+
+      const response = await fetch(`/api/cpap/${cpap.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: updates }),
+        body: JSON.stringify({
+          items,
+          deleted_item_ids,
+        }),
       });
 
       if (!response.ok) {
@@ -485,13 +538,16 @@ export default function CPAPPage() {
                 <div className="bg-white rounded-lg shadow">
                   <div className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Implementation Progress
+                      Implementation Progress - Update Action Items
                     </h3>
-                    <ProgressTracker
-                      items={cpap.items}
-                      onSaveProgress={handleSaveProgress}
+                    <p className="text-sm text-gray-600 mb-4">
+                      Update the "Actual Output", "Status of Accomplishment", and "Actual Date" fields to track your progress.
+                    </p>
+                    {/* Use editable spreadsheet for approved CPAPs */}
+                    <CPAPSpreadsheet
+                      cpap={cpap}
+                      onSave={handleSave}
                       isSaving={isSaving}
-                      lastUpdated={cpap.updated_at}
                     />
                   </div>
                 </div>
@@ -517,6 +573,15 @@ export default function CPAPPage() {
             onClose={() => setShowSubmitModal(false)}
             onSubmit={handleSubmit}
             isResubmission={cpap.status === "Revision_Requested"}
+          />
+        )}
+
+        {/* Comments Sidebar */}
+        {cpap && user && (
+          <CPAPCommentsSidebar
+            cpapId={cpap.id}
+            currentUserId={typeof user.id === 'string' ? parseInt(user.id) : user.id}
+            currentUserRole={user.role || "officer"}
           />
         )}
       </div>

@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CPAPList } from "@/components/cpap/admin/CPAPList";
-import { CPAPMonitoringView } from "@/components/cpap/admin/CPAPMonitoringView";
 import type { CPAPListItem } from "@/types/cpap";
 
 export default function AdminCPAPPage() {
@@ -17,7 +15,6 @@ export default function AdminCPAPPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"review" | "monitoring">("review");
   const [cpaps, setCpaps] = useState<CPAPListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +22,19 @@ export default function AdminCPAPPage() {
   useEffect(() => {
     if (user && user.role?.toLowerCase() !== "admin") {
       router.push("/forbidden?reason=insufficient_permissions&attempted_path=/admin/cpap");
+    } else if (user?.role?.toLowerCase() === "admin") {
+      // Mark CPAP notifications as read when visiting this page
+      markNotificationsAsRead();
     }
   }, [user, router]);
+
+  const markNotificationsAsRead = async () => {
+    try {
+      await fetch('/api/cpap/notifications', { method: 'POST' });
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
 
   useEffect(() => {
     if (user?.role?.toLowerCase() === "admin") {
@@ -39,7 +47,17 @@ export default function AdminCPAPPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch("/api/cpap");
+      // Cache-busting: Add timestamp to force fresh data
+      const timestamp = Date.now();
+      console.log("🔄 [ADMIN LIST] Fetching CPAPs with cache-busting timestamp:", timestamp);
+
+      const response = await fetch(`/api/cpap?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         // Try to get error details from response
@@ -135,26 +153,10 @@ export default function AdminCPAPPage() {
               </Button>
             </div>
           ) : (
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "review" | "monitoring")}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="review">Review</TabsTrigger>
-                <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="review" className="mt-0">
-                <CPAPList 
-                  cpaps={cpaps} 
-                  onUpdate={handleCPAPUpdate}
-                />
-              </TabsContent>
-
-              <TabsContent value="monitoring" className="mt-0">
-                <CPAPMonitoringView 
-                  cpaps={cpaps.filter(c => c.status === "Approved")}
-                  onUpdate={handleCPAPUpdate}
-                />
-              </TabsContent>
-            </Tabs>
+            <CPAPList 
+              cpaps={cpaps} 
+              onUpdate={handleCPAPUpdate}
+            />
           )}
         </div>
       </div>

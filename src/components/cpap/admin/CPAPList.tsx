@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Eye, Search, Filter, ClipboardList, Trash2, CheckCircle2 } from "lucide-react";
-import { CPAPReviewModal } from "./CPAPReviewModal";
-import type { CPAPListItem, CPAPStatus, CPAPWithDetails } from "@/types/cpap";
+import type { CPAPListItem, CPAPStatus } from "@/types/cpap";
 
 interface CPAPListProps {
   cpaps: CPAPListItem[];
@@ -29,6 +29,7 @@ interface CPAPListProps {
 }
 
 export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CPAPStatus | "all">("all");
   const [cycleFilter, setCycleFilter] = useState<string>("all");
@@ -36,9 +37,6 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
   const [sortBy, setSortBy] = useState<"date" | "barangay" | "status">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
-  const [selectedCPAP, setSelectedCPAP] = useState<CPAPWithDetails | null>(null);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [markingDoneId, setMarkingDoneId] = useState<number | null>(null);
 
@@ -149,34 +147,8 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
     });
   };
 
-  const handleViewCPAP = async (cpapId: number) => {
-    try {
-      setIsLoadingDetails(true);
-      
-      const response = await fetch(`/api/cpap/${cpapId}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch CPAP details");
-      }
-
-      const data = await response.json();
-      setSelectedCPAP(data.cpap);
-      setIsReviewModalOpen(true);
-    } catch (err) {
-      console.error("Error fetching CPAP details:", err);
-    } finally {
-      setIsLoadingDetails(false);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsReviewModalOpen(false);
-    setSelectedCPAP(null);
-  };
-
-  const handleModalUpdate = () => {
-    handleCloseModal();
-    onUpdate();
+  const handleViewCPAP = (cpapId: number) => {
+    router.push(`/admin/cpap/review/${cpapId}`);
   };
 
   const toggleSort = (column: "date" | "barangay" | "status") => {
@@ -397,7 +369,6 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => handleViewCPAP(cpap.id)}
-                        disabled={isLoadingDetails}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View
@@ -432,16 +403,6 @@ export function CPAPList({ cpaps, onUpdate }: CPAPListProps) {
           </TableBody>
         </Table>
       </div>
-
-      {/* Review Modal */}
-      {selectedCPAP && (
-        <CPAPReviewModal
-          cpap={selectedCPAP}
-          open={isReviewModalOpen}
-          onClose={handleCloseModal}
-          onUpdate={handleModalUpdate}
-        />
-      )}
     </div>
   );
 }

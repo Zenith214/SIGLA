@@ -12,6 +12,7 @@ import { Settings, BarChart3, LogOut, ClipboardList, CheckSquare, User } from "l
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { CPAPNotificationBadge } from "@/components/cpap/CPAPNotificationBadge";
 
 export default function UserDropdown() {
   const router = useRouter();
@@ -73,14 +74,20 @@ export default function UserDropdown() {
         {user?.role?.toLowerCase() === 'officer' && (
           <DropdownMenuItem onClick={() => handleMenuClick("cpap")}>
             <ClipboardList className="mr-2 h-4 w-4" />
-            <span>CPAP Submission</span>
+            <span className="flex items-center gap-2">
+              CPAP Submission
+              <CPAPNotificationBadge />
+            </span>
           </DropdownMenuItem>
         )}
         {/* Show CPAP Management for Admin role only */}
         {user?.role?.toLowerCase() === 'admin' && (
           <DropdownMenuItem onClick={() => handleMenuClick("cpap-management")}>
             <CheckSquare className="mr-2 h-4 w-4" />
-            <span>CPAP Management</span>
+            <span className="flex items-center gap-2">
+              CPAP Management
+              <CPAPNotificationBadge />
+            </span>
           </DropdownMenuItem>
         )}
         {/* Hide System Settings for officer role */}
