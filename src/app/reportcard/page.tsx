@@ -2702,9 +2702,9 @@ function ReportCardContent() {
                     )}
                   </div>
 
-                  {/* Resident Voice */}
+                  {/* Public Perception */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Resident Voice</h3>
+                    <h3 className="text-lg font-semibold mb-3">Public Perception</h3>
                     {selectedServiceArea.funnel?.quotes && Object.keys(selectedServiceArea.funnel.quotes).length > 0 ? (
                       <div className="space-y-3">
                         {selectedServiceArea.funnel.quotes.awareness && (
