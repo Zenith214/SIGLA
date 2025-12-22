@@ -163,17 +163,17 @@ class FeatureEngineer:
                 except (ValueError, TypeError):
                     continue
         
-        # Total is ALL availed respondents, not just those who answered satisfaction questions
+        # CRITICAL: Denominator is ALL availed respondents (not just those who answered satisfaction questions)
+        # This ensures satisfaction percentage reflects the proportion of ALL service users who were satisfied
         total_availed = len(availed_ids)
         
         if not respondent_satisfaction:
             return {'count': 0, 'total': total_availed, 'percentage': 0 if total_availed > 0 else None}
         
-        # Count satisfied respondents
+        # Count satisfied respondents (those who answered "Yes" or rating >= 4)
         satisfied_count = sum(1 for is_satisfied in respondent_satisfaction.values() if is_satisfied)
         
         # Calculate percentage: (satisfied_count / total_availed) * 100
-        # IMPORTANT: Denominator is ALL who availed, not just those who answered satisfaction questions
         percentage = (satisfied_count / total_availed) * 100 if total_availed > 0 else 0
         
         return {

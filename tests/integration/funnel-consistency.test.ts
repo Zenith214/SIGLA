@@ -141,13 +141,14 @@ function compareFunnelMetrics(
   }
   
   // Compare satisfaction
-  // Note: Count may differ significantly due to different satisfaction calculation methods
-  // Python counts respondents with rating >= 4, TypeScript calculates from average percentage
-  // We allow up to 50% difference in count as they use fundamentally different approaches
+  // Both Python and TypeScript use identical calculation methods:
+  // - Count respondents with rating >= 4 (or "Yes" for binary)
+  // - Divide by total availed respondents
+  // We allow up to 5% difference to account for rounding and edge cases
   const countDiff = Math.abs(actual.satisfaction.count - expected.satisfaction.count);
   const maxCount = Math.max(actual.satisfaction.count, expected.satisfaction.count);
-  if (maxCount > 0 && countDiff / maxCount > 0.5) {
-    errors.push(`${source} satisfaction count mismatch: ${actual.satisfaction.count} !== ${expected.satisfaction.count}`);
+  if (maxCount > 0 && countDiff / maxCount > 0.05) {
+    errors.push(`${source} satisfaction count mismatch: ${actual.satisfaction.count} !== ${expected.satisfaction.count} (difference: ${(countDiff / maxCount * 100).toFixed(1)}%)`);
   }
   if (actual.satisfaction.total !== expected.satisfaction.total) {
     errors.push(`${source} satisfaction total mismatch: ${actual.satisfaction.total} !== ${expected.satisfaction.total}`);
@@ -193,8 +194,14 @@ describe('Python-TypeScript Funnel Calculation Consistency', () => {
           expect(tsResult.awareness.total).toBe(pyResult.awareness.total);
           expect(tsResult.availment.count).toBe(pyResult.availment.count);
           expect(tsResult.availment.total).toBe(pyResult.availment.total);
-          // Satisfaction count may differ due to different calculation methods
-          expect(Math.abs(tsResult.satisfaction.count - pyResult.satisfaction.count)).toBeLessThanOrEqual(5);
+          // Satisfaction count should match closely (within 5% tolerance for rounding)
+          const satisfactionCountDiff = Math.abs(tsResult.satisfaction.count - pyResult.satisfaction.count);
+          const maxSatisfactionCount = Math.max(tsResult.satisfaction.count, pyResult.satisfaction.count);
+          if (maxSatisfactionCount > 0) {
+            expect(satisfactionCountDiff / maxSatisfactionCount).toBeLessThanOrEqual(0.05);
+          } else {
+            expect(tsResult.satisfaction.count).toBe(pyResult.satisfaction.count);
+          }
           expect(tsResult.satisfaction.total).toBe(pyResult.satisfaction.total);
           
           // Verify percentages match within tolerance (0.1%)

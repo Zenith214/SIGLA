@@ -91,6 +91,34 @@ graph TD
 - **Calculation**: `Satisfaction % = (Satisfied respondents / Availed respondents) × 100`
 - **Output**: Satisfaction metrics from actual service users
 
+### Overall Satisfaction vs Service Satisfaction
+
+**IMPORTANT DISTINCTION**: The system has TWO different types of satisfaction metrics:
+
+#### Service-Specific Satisfaction (Cascading Funnel)
+- **Question**: "How satisfied are you with [specific service]?"
+- **Calculation**: `Satisfaction % = (Satisfied / Availed) × 100`
+- **Denominator**: Only respondents who availed/used that specific service
+- **Meaning**: "Of those who used this service, how many were satisfied?"
+
+#### Overall Satisfaction (M1 Question)
+- **Question**: "Overall, are you satisfied with barangay services?"
+- **Calculation**: `Overall Satisfaction % = (Satisfied / Total Sample Size) × 100`
+- **Denominator**: ALL survey respondents
+- **Meaning**: "Of all residents, how many are satisfied with barangay services overall?"
+
+**Why They're Different**:
+- Service satisfaction uses cascading funnel logic (only counts service users)
+- Overall satisfaction does NOT use cascading funnel (counts all residents)
+- These metrics answer fundamentally different questions
+- **NEVER average service satisfaction scores to calculate overall satisfaction** - they use different denominators!
+
+**Example**:
+- Service A: 90% satisfaction (90% of users satisfied)
+- Service B: 80% satisfaction (80% of users satisfied)
+- Overall (M1): 70% satisfaction (70% of ALL residents satisfied)
+- The 70% is correct - averaging 90% and 80% would be mathematically incorrect!
+
 ### Respondent Filtering Logic
 
 The system maintains sets of respondent IDs at each stage to ensure proper filtering:

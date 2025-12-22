@@ -144,6 +144,38 @@ Overall Satisfaction % = (Number who answered "Satisfied" to M1 / Total Sample S
 - 15 people didn't answer
 - Overall Satisfaction = (105 / 150) × 100 = **70%**
 
+---
+
+## CRITICAL: Overall vs Service Satisfaction
+
+**Overall Satisfaction** and **Service-Specific Satisfaction** are DIFFERENT metrics:
+
+| Metric | Denominator | What it Measures |
+|--------|-------------|------------------|
+| **Service Satisfaction** | Availed respondents | "Of those who used the service, how many were satisfied?" |
+| **Overall Satisfaction** | Total sample size | "Of all residents, how many are satisfied with barangay services overall?" |
+
+**Why They're Different**:
+- Service satisfaction uses cascading funnel logic (satisfied / availed)
+- Overall satisfaction does NOT use cascading funnel (satisfied / total_sample)
+- The M1 question asks about satisfaction with ALL services, not a specific service
+- Not everyone uses every service, so denominators differ
+
+**NEVER Average Service Satisfaction to Get Overall Satisfaction**:
+- Service A: 90% satisfaction (90% of users satisfied)
+- Service B: 80% satisfaction (80% of users satisfied)
+- Average: 85%
+- But this is WRONG for overall satisfaction!
+- Overall satisfaction must come from the M1 question directly
+
+**Example**:
+- Total sample: 150 respondents
+- Service A: 50 aware, 40 availed, 35 satisfied → 35/40 = 87.5% service satisfaction
+- Service B: 60 aware, 50 availed, 40 satisfied → 40/50 = 80% service satisfaction
+- M1 Overall: 105 said "Yes" → 105/150 = 70% overall satisfaction
+
+The 70% overall satisfaction is CORRECT. Averaging 87.5% and 80% to get 83.75% would be WRONG!
+
 ### Overall Need for Action Calculation (M2 question):
 
 ```

@@ -294,13 +294,10 @@ async function transformMLToFunnelFormat(mlResults: any, barangayId: number, cyc
       console.error('Error fetching overall section data:', error);
     }
     
-    // Fall back to averaging service scores if overall section not available
-    if (!funnelData.overall_satisfaction && satisfactionScores.length > 0) {
-      funnelData.overall_satisfaction = Math.round(
-        satisfactionScores.reduce((sum, score) => sum + score, 0) / satisfactionScores.length
-      );
-      console.log(`📊 [ML FUNNEL] Calculated overall satisfaction from ${satisfactionScores.length} services: ${funnelData.overall_satisfaction}%`);
-    }
+    // NOTE: We do NOT fall back to averaging service scores if overall section is not available
+    // because service satisfaction uses (satisfied / availed) while overall satisfaction uses
+    // (satisfied / total_sample_size). These are fundamentally different metrics and cannot be averaged.
+    // If overall section data is missing, overall_satisfaction will remain 0 or from ML results.
   }
 
   // Transform action grid from ML format
