@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public API routes
-  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies')) {
+  if (pathname.startsWith('/api/login') || pathname.startsWith('/api/register') || pathname.startsWith('/api/logout') || pathname.startsWith('/api/debug-cookies') || pathname.startsWith('/api/health')) {
     return NextResponse.next();
   }
 
