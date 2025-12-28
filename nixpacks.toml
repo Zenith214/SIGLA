@@ -13,11 +13,13 @@ cmds = [
 cmds = [
   "pnpm prisma generate",
   "cp next.config.railway.ts next.config.ts",
-  "pnpm build"
+  "pnpm build",
+  "cp -r public .next/standalone/",
+  "cp -r .next/static .next/standalone/.next/"
 ]
 
 [start]
-cmd = "pnpm start"
+cmd = "PORT=${PORT:-8080} node .next/standalone/server.js"
 
 [variables]
 NODE_ENV = "production"
