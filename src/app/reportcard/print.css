@@ -1,12 +1,93 @@
 /* Professional Print Layout for Report Card */
 @media print {
+  /* Hide the main report card content (everything except comprehensive print view) */
+  body > div > div:not(.comprehensive-print-view) {
+    display: none !important;
+  }
+  
+  /* Ensure comprehensive print view is visible and positioned correctly */
+  .comprehensive-print-view {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    visibility: visible !important;
+  }
+  
+  /* Reduce spacing in print */
+  .comprehensive-print-view > div {
+    margin-bottom: 4pt !important;
+  }
+  
+  .comprehensive-print-view h2 {
+    margin-bottom: 4pt !important;
+    margin-top: 4pt !important;
+  }
+  
+  .comprehensive-print-view .mb-4,
+  .comprehensive-print-view .mb-6,
+  .comprehensive-print-view .mb-8 {
+    margin-bottom: 4pt !important;
+  }
+  
+  /* Remove all background colors in print - use white backgrounds with borders */
+  .comprehensive-print-view * {
+    background-color: white !important;
+  }
+  
+  /* Keep borders visible for structure */
+  .comprehensive-print-view .border-blue-400,
+  .comprehensive-print-view .border-blue-500 {
+    border-color: #2563eb !important;
+  }
+  
+  .comprehensive-print-view .border-green-400,
+  .comprehensive-print-view .border-green-500 {
+    border-color: #16a34a !important;
+  }
+  
+  .comprehensive-print-view .border-purple-400,
+  .comprehensive-print-view .border-purple-500 {
+    border-color: #9333ea !important;
+  }
+  
+  .comprehensive-print-view .border-red-400,
+  .comprehensive-print-view .border-red-500 {
+    border-color: #dc2626 !important;
+  }
+  
+  .comprehensive-print-view .border-yellow-400 {
+    border-color: #facc15 !important;
+  }
+  
+  .comprehensive-print-view .border-orange-400 {
+    border-color: #f97316 !important;
+  }
+  
+  /* Fix spacing - remove excessive margins */
+  .comprehensive-print-view > div:first-child {
+    margin-bottom: 4pt !important;
+  }
+  
+  .comprehensive-print-view > div:nth-child(2) {
+    margin-bottom: 4pt !important;
+  }
+  
+  .comprehensive-print-view > div:nth-child(3) {
+    margin-top: 4pt !important;
+  }
+  
+  /* Hide empty divs that might be taking up space */
+  .comprehensive-print-view > div:empty {
+    display: none !important;
+  }
+
   /* Hide elements that shouldn't appear in print */
   .print-hidden {
     display: none !important;
   }
 
   /* Hide navigation and buttons for print */
-  header, nav, button, .fixed, .absolute {
+  header, nav, button, .fixed, .sticky {
     display: none !important;
   }
 

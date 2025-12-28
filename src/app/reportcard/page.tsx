@@ -12,11 +12,13 @@ import { CycleDisplay } from '@/components/survey-cycle';
 import { useActiveCycle } from '@/hooks/useSurveyCycle';
 import { getCurrentUser, User } from '@/lib/auth';
 import { reportCardCache } from '@/utils/reportCardCache';
+import { ComprehensivePrintView } from '@/components/reportcard/ComprehensivePrintView';
 import './print.css';
+import React from 'react';
 
-function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; cycleId: number }) {
-  const [summary, setSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+function ExecutiveSummarySection({ barangayId, cycleId, cachedSummary }: { barangayId: string; cycleId: number; cachedSummary?: any }) {
+  const [summary, setSummary] = useState<any>(cachedSummary || null);
+  const [loading, setLoading] = useState(!cachedSummary);
   const [generating, setGenerating] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'bisaya' | 'filipino' | 'english'>('bisaya');
   const [translating, setTranslating] = useState(false);
@@ -26,11 +28,22 @@ function ExecutiveSummarySection({ barangayId, cycleId }: { barangayId: string; 
     english: null
   });
 
+  const hasFetchedRef = React.useRef(false);
+
+  // Use cached summary if provided
   useEffect(() => {
-    if (barangayId && cycleId) {
+    if (cachedSummary) {
+      console.log('📄 [EXEC SUMMARY] Using cached summary from funnel data');
+      setSummary(cachedSummary);
+      setLoading(false);
+      hasFetchedRef.current = true;
+    } else if (barangayId && cycleId && !hasFetchedRef.current) {
+      // Only fetch once if we don't have cached data
+      console.log('📄 [EXEC SUMMARY] No cached summary, fetching from API');
+      hasFetchedRef.current = true;
       fetchExecutiveSummary();
     }
-  }, [barangayId, cycleId]);
+  }, [barangayId, cycleId, cachedSummary]);
 
   useEffect(() => {
     // When summary is loaded, cache it as Bisaya content
@@ -754,8 +767,16 @@ function ReportCardContent() {
 
     console.log(`📈 [TREND UI] All processed trends:`, processedTrends);
     
-    // Set funnel and trends data first
-    setFunnelData(processedFunnel);
+    // Store the FULL API response with processed data merged in
+    // This preserves executive_summary, action_grid, and other top-level properties
+    // while also adding the processed service scores
+    const fullFunnelData = {
+      ...funnelData, // Keep all original properties (executive_summary, action_grid, etc.)
+      service_scores: processedFunnel, // Replace service_scores with processed version
+      _processed: true // Flag to indicate this has been processed
+    };
+    
+    setFunnelData(fullFunnelData);
     setTrendsData(processedTrends);
     
     // Fetch conditional reasons for each service area (if barangayId and cycleId are provided)
@@ -764,7 +785,8 @@ function ReportCardContent() {
       console.log(`🔍 [CONDITIONAL REASONS] Starting fetch for barangay ${barangayId}, cycle ${cycleId}`);
       await fetchConditionalReasons(barangayId, cycleId, processedFunnel);
       // Update state again with conditional reasons
-      setFunnelData({...processedFunnel});
+      fullFunnelData.service_scores = processedFunnel;
+      setFunnelData({...fullFunnelData});
       console.log(`✅ [CONDITIONAL REASONS] State updated with conditional reasons`);
     }
 
@@ -2068,6 +2090,7 @@ function ReportCardContent() {
                 <ExecutiveSummarySection
                   barangayId={barangayData.barangayId}
                   cycleId={barangayData.cycleId || activeCycle?.cycle_id || 0}
+                  cachedSummary={funnelData?.executive_summary}
                 />
               </CardContent>
             </Card>
@@ -2772,6 +2795,78 @@ function ReportCardContent() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Comprehensive Print View - Hidden on screen, shown when printing */}
+      <ComprehensivePrintView
+        barangayName={barangayData.barangay}
+        cycleName={activeCycle?.name || 'Survey Cycle'}
+        executiveSummary={funnelData?.executive_summary || null}
+        serviceAreas={[
+          {
+            key: 'financial',
+            label: 'Financial Administration',
+            score: barangayData.financial || 0,
+            need: barangayData.financial_need || 0,
+            quadrant: funnelData?.action_grid?.financial?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.financial,
+            conditionalReasons: funnelData?.service_scores?.financial?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.financial?.recommendations
+          },
+          {
+            key: 'disaster',
+            label: 'Disaster Preparedness',
+            score: barangayData.disaster || 0,
+            need: barangayData.disaster_need || 0,
+            quadrant: funnelData?.action_grid?.disaster?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.disaster,
+            conditionalReasons: funnelData?.service_scores?.disaster?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.disaster?.recommendations
+          },
+          {
+            key: 'safety',
+            label: 'Safety & Peace Order',
+            score: barangayData.safety || 0,
+            need: barangayData.safety_need || 0,
+            quadrant: funnelData?.action_grid?.safety?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.safety,
+            conditionalReasons: funnelData?.service_scores?.safety?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.safety?.recommendations
+          },
+          {
+            key: 'social',
+            label: 'Social Protection',
+            score: barangayData.social || 0,
+            need: barangayData.social_need || 0,
+            quadrant: funnelData?.action_grid?.social?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.social,
+            conditionalReasons: funnelData?.service_scores?.social?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.social?.recommendations
+          },
+          {
+            key: 'business',
+            label: 'Business Friendliness',
+            score: barangayData.business || 0,
+            need: barangayData.business_need || 0,
+            quadrant: funnelData?.action_grid?.business?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.business,
+            conditionalReasons: funnelData?.service_scores?.business?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.business?.recommendations
+          },
+          {
+            key: 'environmental',
+            label: 'Environmental Management',
+            score: barangayData.environmental || 0,
+            need: barangayData.environmental_need || 0,
+            quadrant: funnelData?.action_grid?.environmental?.quadrant || 'N/A',
+            funnel: funnelData?.service_scores?.environmental,
+            conditionalReasons: funnelData?.service_scores?.environmental?.conditionalReasons,
+            recommendations: funnelData?.service_scores?.environmental?.recommendations
+          }
+        ]}
+        communityVoice={communityVoiceData}
+        actionGrid={funnelData?.action_grid}
+        overallSatisfaction={barangayData.satisfaction || 0}
+      />
     </div>
   );
 }
