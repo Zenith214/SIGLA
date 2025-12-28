@@ -1,0 +1,16 @@
+# Nixpacks configuration for ML service deployment
+[phases.setup]
+nixPkgs = ["python311", "postgresql"]
+aptPkgs = ["gcc", "g++", "make", "libpq-dev", "python3-dev"]
+
+[phases.install]
+cmds = [
+  "pip install --upgrade pip setuptools wheel",
+  "pip install -r requirements.txt"
+]
+
+[start]
+cmd = "uvicorn app:app --host 0.0.0.0 --port $PORT"
+
+[variables]
+PYTHONUNBUFFERED = "1"
