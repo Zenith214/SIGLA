@@ -1,0 +1,36 @@
+# Ignore Python ML service (deploy separately if needed)
+ml/
+
+# Ignore Python virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Ignore test files
+tests/
+test-results/
+playwright-report/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Ignore documentation
+docs/
+*.md
+!README.md
+
+# Ignore database files
+database/
+*.sql
+
+# Ignore development files
+.vscode/
+.kiro/
+.git/
+scripts/examples/
+*.ps1
+
+# Ignore logs
+*.log
