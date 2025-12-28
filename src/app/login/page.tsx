@@ -227,13 +227,13 @@ function PulseLoginContent() {
               <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
               
               {/* Logo */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center logo-container">
                 <Image 
                   src="/logo4k.png" 
                   alt="PULSE Logo" 
                   width={800}
                   height={800}
-                  className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                  className="w-[512px] h-auto drop-shadow-2xl opacity-90 animate-spin-horizontal"
                   priority
                 />
               </div>
@@ -249,8 +249,19 @@ function PulseLoginContent() {
             50% { transform: translate(-20px, 20px) scale(0.9); }
             75% { transform: translate(50px, 50px) scale(1.05); }
           }
+          @keyframes spin-horizontal {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+          }
           .animate-blob {
             animation: blob 20s infinite;
+          }
+          .animate-spin-horizontal {
+            animation: spin-horizontal 8s linear infinite !important;
+            transform-style: preserve-3d !important;
+          }
+          .logo-container {
+            perspective: 1000px;
           }
           .animation-delay-2000 {
             animation-delay: 2s;
@@ -344,13 +355,13 @@ function PulseLoginContent() {
             <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-6000"></div>
             
             {/* Logo */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center logo-container">
               <Image 
                 src="/logo4k.png" 
                 alt="PULSE Logo" 
                 width={800}
                 height={800}
-                className="w-[512px] h-auto drop-shadow-2xl opacity-90"
+                className="w-[512px] h-auto drop-shadow-2xl opacity-90 animate-spin-horizontal"
                 priority
               />
             </div>
@@ -366,8 +377,19 @@ function PulseLoginContent() {
           50% { transform: translate(-20px, 20px) scale(0.9); }
           75% { transform: translate(50px, 50px) scale(1.05); }
         }
+        @keyframes spin-horizontal {
+          0% { transform: rotateY(0deg); }
+          100% { transform: rotateY(360deg); }
+        }
         .animate-blob {
           animation: blob 20s infinite;
+        }
+        .animate-spin-horizontal {
+          animation: spin-horizontal 8s linear infinite !important;
+          transform-style: preserve-3d !important;
+        }
+        .logo-container {
+          perspective: 1000px;
         }
         .animation-delay-2000 {
           animation-delay: 2s;
