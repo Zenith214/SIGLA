@@ -929,7 +929,7 @@ function ReportCardContent() {
   };
 
   const handleServiceAreaClick = (category: any) => {
-    const funnelInfo = funnelData[category.key] || {};
+    const funnelInfo = funnelData.service_scores?.[category.key] || {};
     const trendInfo = trendsData[category.key] || {};
 
     console.log('Service Area Clicked:', category.key);
