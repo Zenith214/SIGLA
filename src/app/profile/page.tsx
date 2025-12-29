@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Lock, Camera, ArrowLeft, Save, Eye, EyeOff, Trash2 } from "lucide-react";
+import { User, Lock, Camera, ArrowLeft, Save, Eye, EyeOff, Trash2, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
@@ -38,6 +38,26 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Password validation state
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+  });
+
+  // Validate password in real-time
+  useEffect(() => {
+    setPasswordValidation({
+      minLength: newPassword.length >= 8,
+      hasUppercase: /[A-Z]/.test(newPassword),
+      hasLowercase: /[a-z]/.test(newPassword),
+      hasNumber: /[0-9]/.test(newPassword),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword),
+    });
+  }, [newPassword]);
 
   useEffect(() => {
     if (user) {
@@ -313,10 +333,51 @@ export default function ProfilePage() {
       return;
     }
 
+    // Enhanced password validation
     if (newPassword.length < 8) {
       toast({
         title: "Error",
         description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for uppercase letter
+    if (!/[A-Z]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one uppercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for lowercase letter
+    if (!/[a-z]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one lowercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for number
+    if (!/[0-9]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for special character
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one special character (!@#$%^&* etc.)",
         variant: "destructive",
       });
       return;
@@ -358,6 +419,7 @@ export default function ProfilePage() {
     } finally {
       setIsChangingPassword(false);
     }
+
   };
 
   return (
@@ -630,9 +692,31 @@ export default function ProfilePage() {
                         )}
                       </button>
                     </div>
-                    <p className="text-sm text-gray-500">
-                      Password must be at least 8 characters long
-                    </p>
+                    <div className="text-xs space-y-1 mt-2">
+                      <p className="font-medium text-gray-700">Password must contain:</p>
+                      <ul className="space-y-1">
+                        <li className={`flex items-center gap-2 ${passwordValidation.minLength ? 'text-green-600' : 'text-red-600'}`}>
+                          {passwordValidation.minLength ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          <span>At least 8 characters</span>
+                        </li>
+                        <li className={`flex items-center gap-2 ${passwordValidation.hasUppercase ? 'text-green-600' : 'text-red-600'}`}>
+                          {passwordValidation.hasUppercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          <span>At least one uppercase letter (A-Z)</span>
+                        </li>
+                        <li className={`flex items-center gap-2 ${passwordValidation.hasLowercase ? 'text-green-600' : 'text-red-600'}`}>
+                          {passwordValidation.hasLowercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          <span>At least one lowercase letter (a-z)</span>
+                        </li>
+                        <li className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-red-600'}`}>
+                          {passwordValidation.hasNumber ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          <span>At least one number (0-9)</span>
+                        </li>
+                        <li className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-red-600'}`}>
+                          {passwordValidation.hasSpecialChar ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                          <span>At least one special character (!@#$%^&* etc.)</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

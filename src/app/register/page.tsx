@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Check, X } from "lucide-react"
 
 export default function PulseRegister() {
   const [showPassword, setShowPassword] = useState(false)
@@ -39,6 +39,15 @@ export default function PulseRegister() {
   const [apiError, setApiError] = useState("")
   const [pageLoading, setPageLoading] = useState(true)
   const router = useRouter()
+  
+  // Password validation state
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+  });
 
   // Add page loading effect
   useEffect(() => {
@@ -47,6 +56,17 @@ export default function PulseRegister() {
     }, 800);
     return () => clearTimeout(timer);
   }, []);
+  
+  // Validate password in real-time
+  useEffect(() => {
+    setPasswordValidation({
+      minLength: formData.password.length >= 8,
+      hasUppercase: /[A-Z]/.test(formData.password),
+      hasLowercase: /[a-z]/.test(formData.password),
+      hasNumber: /[0-9]/.test(formData.password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password),
+    });
+  }, [formData.password]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -77,8 +97,22 @@ export default function PulseRegister() {
     if (!formData.lastName) newErrors.lastName = "Last name is required"
     if (!formData.email) newErrors.email = "Email address is required"
     else if (!validateEmail(formData.email)) newErrors.email = "Please enter a valid email address"
-    if (!formData.password) newErrors.password = "Password is required"
-    else if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters"
+    
+    // Enhanced password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required"
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters"
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one uppercase letter"
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one lowercase letter"
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one number"
+    } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one special character (!@#$%^&* etc.)"
+    }
+    
     if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm your password"
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match"
     if (!formData.phone) newErrors.phone = "Phone number is required"
@@ -338,6 +372,33 @@ export default function PulseRegister() {
                           <AlertCircle className="h-4 w-4" />
                           {errors.password}
                         </p>
+                      )}
+                      {!errors.password && formData.password && (
+                        <div className="text-xs space-y-1 mt-2">
+                          <p className="font-medium text-gray-700">Password must contain:</p>
+                          <ul className="space-y-1">
+                            <li className={`flex items-center gap-2 ${passwordValidation.minLength ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.minLength ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least 8 characters</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasUppercase ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasUppercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one uppercase letter (A-Z)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasLowercase ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasLowercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one lowercase letter (a-z)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasNumber ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one number (0-9)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasSpecialChar ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one special character (!@#$%^&* etc.)</span>
+                            </li>
+                          </ul>
+                        </div>
                       )}
                     </div>
                     {/* Confirm Password Field */}
