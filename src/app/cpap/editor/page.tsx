@@ -264,7 +264,7 @@ export default function CPAPEditorPage() {
                   </h1>
                   <div className="flex items-center gap-4 mt-1">
                     <p className="text-sm text-slate-300">
-                      <span className="font-medium">Barangay of:</span> {userBarangayName}
+                      <span className="font-medium">{userBarangayName}</span>
                     </p>
                     <p className="text-sm text-slate-300">
                       <span className="font-medium">{activeCycle?.name || "Survey Cycle"}:</span> {activeCycle?.year}
