@@ -554,6 +554,50 @@ function ReportCardContent() {
         }
       }
 
+      // Check cache for executive summary (skip if force refresh)
+      const cachedExecutiveSummary = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'executive-summary') : null;
+      if (cachedExecutiveSummary && !forceRefresh) {
+        console.log('✅ [REPORT CARD] Using cached executive summary');
+        // Add executive summary to funnel data for print view
+        setFunnelData((prev: any) => ({
+          ...prev,
+          executive_summary: cachedExecutiveSummary
+        }));
+      } else {
+        // Fetch executive summary
+        const execSummaryResponse = await fetch('/api/ai/executive-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            barangayId: parseInt(barangayId),
+            cycleId: cycleId,
+            forceRefresh: forceRefresh
+          })
+        });
+        if (execSummaryResponse.ok) {
+          const execSummaryData = await execSummaryResponse.json();
+          if (execSummaryData.success && execSummaryData.data) {
+            // Cache the executive summary
+            reportCardCache.set(barangayId, cycleId, 'executive-summary', execSummaryData.data);
+            // Add executive summary to funnel data for print view
+            setFunnelData((prev: any) => ({
+              ...prev,
+              executive_summary: execSummaryData.data
+            }));
+          } else if (execSummaryData.surveyIncomplete) {
+            // Store incomplete status
+            setFunnelData((prev: any) => ({
+              ...prev,
+              executive_summary: { 
+                surveyIncomplete: true, 
+                progress: execSummaryData.progress, 
+                message: execSummaryData.message 
+              }
+            }));
+          }
+        }
+      }
+
       // Check cache for community voice data (skip if force refresh)
       const cachedCommunityVoice = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'community-voice') : null;
       if (cachedCommunityVoice && !forceRefresh) {
