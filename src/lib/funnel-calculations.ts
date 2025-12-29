@@ -70,9 +70,16 @@ export interface SurveySection {
 /**
  * Calculate Margin of Error (MoE) using the CSIS formula
  * Formula: MoE = 0.98 / sqrt(n)
+ * 
+ * @param sampleSize - Total number of respondents
+ * @returns Margin of Error as a decimal (e.g., 0.08 for 8%)
  */
 export function calculateMarginOfError(sampleSize: number): number {
-  if (sampleSize <= 0) return 0;
+  if (sampleSize <= 0) {
+    // Return very high MoE to indicate insufficient data
+    // This results in a 100% cut-off, meaning nothing qualifies as "High"
+    return 0.5;
+  }
   return 0.98 / Math.sqrt(sampleSize);
 }
 
@@ -566,23 +573,25 @@ export function calculateServiceFunnelMetrics(
   const needForActionMetrics = calculateNeedForActionMetrics(responses, serviceArea);
   
   // Calculate CSIS metrics with MoE and Action Grid classification
-  const satisfactionTotal = satisfactionMetrics.total;
-  const needForActionTotal = needForActionMetrics.total;
+  // IMPORTANT: Use total respondents for MoE calculation (CSIS methodology)
+  // Both satisfaction and need for action should use the SAME sample size
+  // totalRespondents already declared at line 514
   
   let actionGrid: ActionGridClassification | undefined;
   
-  if (satisfactionTotal > 0 && needForActionTotal > 0) {
-    const satisfactionMoE = calculateMarginOfError(satisfactionTotal);
-    const needForActionMoE = calculateMarginOfError(needForActionTotal);
+  if (totalRespondents > 0 && satisfactionMetrics.percentage !== null && needForActionMetrics.percentage !== null) {
+    // Calculate MoE using total respondents (not availed count)
+    const moe = calculateMarginOfError(totalRespondents);
     
-    const satisfactionScore = satisfactionMetrics.percentage ? satisfactionMetrics.percentage / 100 : 0;
-    const needForActionScore = needForActionMetrics.percentage ? needForActionMetrics.percentage / 100 : 0;
+    const satisfactionScore = satisfactionMetrics.percentage / 100;
+    const needForActionScore = needForActionMetrics.percentage / 100;
     
+    // Use the same MoE for both metrics (CSIS requirement)
     actionGrid = determineActionGridQuadrant(
       satisfactionScore,
-      satisfactionMoE,
+      moe,  // Same MoE for both
       needForActionScore,
-      needForActionMoE
+      moe   // Same MoE for both
     );
   }
   

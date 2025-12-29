@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from '@/lib/auth-middleware';
 import { Pool } from 'pg';
 import { getSurveyCycleById } from '@/utils/surveyCycleHelpers';
+import { calculateMarginOfError, calculateDynamicCutoff, classifyScore } from '@/lib/funnel-calculations';
 
 // Initialize PostgreSQL connection pool
 const databaseUrl = process.env.DATABASE_URL;
@@ -104,8 +105,8 @@ export async function GET(
     // Process survey data to calculate funnel scores
     const serviceScores = calculateServiceScores(surveyData);
 
-    // Calculate Action Grid classifications
-    const actionGrid = calculateActionGrid(serviceScores);
+    // Calculate Action Grid classifications using total unique respondents
+    const actionGrid = calculateActionGrid(serviceScores, uniqueRespondents);
 
     // Calculate overall satisfaction
     const validScores = Object.values(serviceScores).filter((score: any) =>
@@ -301,30 +302,53 @@ function calculateSectionScores(responses: any[]): any {
   };
 }
 
-function calculateActionGrid(serviceScores: { [key: string]: any }): { [key: string]: any } {
+function calculateActionGrid(serviceScores: { [key: string]: any }, totalRespondents: number): { [key: string]: any } {
   const actionGrid: { [key: string]: any } = {};
 
   Object.entries(serviceScores).forEach(([service, scores]) => {
     const satisfaction = scores.satisfaction_score || 0;
     const needAction = scores.need_action_score || 0;
 
-    // Determine quadrant based on satisfaction and need for action
+    // Calculate dynamic cut-off using CSIS methodology
+    // IMPORTANT: Use total unique respondents, not section response count
+    const moe = calculateMarginOfError(totalRespondents);
+    const cutoff = calculateDynamicCutoff(moe);
+    
+    // Convert percentages to decimals for comparison
+    const satisfactionDecimal = satisfaction / 100;
+    const needActionDecimal = needAction / 100;
+    
+    // Classify using dynamic cut-off (same MoE for both metrics)
+    const satisfactionRating = classifyScore(satisfactionDecimal, moe);
+    const needActionRating = classifyScore(needActionDecimal, moe);
+
+    // Determine quadrant based on CSIS methodology
     let quadrant = 'INSUFFICIENT_DATA';
-    if (satisfaction >= 70 && needAction <= 30) {
-      quadrant = 'MAINTAIN';  // High satisfaction, low need for action
-    } else if (satisfaction >= 70 && needAction > 30) {
-      quadrant = 'OPPORTUNITIES';  // High satisfaction, high need for action
-    } else if (satisfaction < 70 && needAction <= 30) {
-      quadrant = 'MONITOR';  // Low satisfaction, low need for action
-    } else if (satisfaction < 70 && needAction > 30) {
-      quadrant = 'FIX_NOW';  // Low satisfaction, high need for action
+    if (totalRespondents > 0) {
+      if (satisfactionRating === 'Low' && needActionRating === 'High') {
+        quadrant = 'FIX_NOW';  // Opportunities for Improvement (Highest Priority)
+      } else if (satisfactionRating === 'High' && needActionRating === 'High') {
+        quadrant = 'OPPORTUNITIES';  // Continued Emphasis (High Importance)
+      } else if (satisfactionRating === 'High' && needActionRating === 'Low') {
+        quadrant = 'MAINTAIN';  // Exceeded Expectations (Key Strength)
+      } else {
+        quadrant = 'MONITOR';  // Secondary Priority (Lowest Priority)
+      }
     }
 
     actionGrid[service] = {
       quadrant: quadrant,
       satisfaction_score: satisfaction,
       need_action_score: needAction,
-      confidence: scores.sample_size >= 3 ? 'high' : scores.sample_size >= 2 ? 'medium' : 'low'
+      confidence: totalRespondents >= 30 ? 'high' : totalRespondents >= 10 ? 'medium' : 'low',
+      // Include CSIS metadata for transparency
+      csis_metadata: {
+        sample_size: totalRespondents,
+        margin_of_error: Math.round(moe * 1000) / 10, // Convert to percentage
+        dynamic_cutoff: Math.round(cutoff * 1000) / 10, // Convert to percentage
+        satisfaction_rating: satisfactionRating,
+        need_action_rating: needActionRating
+      }
     };
   });
 

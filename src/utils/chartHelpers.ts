@@ -335,22 +335,36 @@ export const getResponsiveChartSize = (
 
 /**
  * Calculate action grid quadrant based on satisfaction and need-action scores
+ * Uses dynamic cut-off based on sample size (CSIS methodology)
+ * 
+ * @param satisfaction - Satisfaction score (0-100)
+ * @param needAction - Need for action score (0-100)
+ * @param sampleSize - Sample size for calculating margin of error (optional, defaults to 150)
  */
 export const calculateQuadrant = (
   satisfaction: number,
-  needAction: number
+  needAction: number,
+  sampleSize: number = 150
 ): 'maintain' | 'fix_now' | 'monitor' | 'low_priority' => {
-  const satisfactionThreshold = 60;
-  const needActionThreshold = 50;
+  // Calculate dynamic cut-off using CSIS methodology
+  // MoE = 0.98 / sqrt(n)
+  const moe = sampleSize > 0 ? 0.98 / Math.sqrt(sampleSize) : 0.08;
+  // Cut-off = 50% + MoE
+  const cutoffDecimal = 0.50 + moe;
+  const cutoffPercentage = cutoffDecimal * 100;
   
-  if (satisfaction >= satisfactionThreshold && needAction >= needActionThreshold) {
-    return 'maintain'; // High satisfaction, high need
-  } else if (satisfaction < satisfactionThreshold && needAction >= needActionThreshold) {
-    return 'fix_now'; // Low satisfaction, high need
-  } else if (satisfaction >= satisfactionThreshold && needAction < needActionThreshold) {
-    return 'monitor'; // High satisfaction, low need
+  // Classify scores as High or Low based on dynamic cut-off
+  const satisfactionHigh = satisfaction >= cutoffPercentage;
+  const needActionHigh = needAction >= cutoffPercentage;
+  
+  if (satisfactionHigh && needActionHigh) {
+    return 'maintain'; // High satisfaction, high need (Continued Emphasis)
+  } else if (!satisfactionHigh && needActionHigh) {
+    return 'fix_now'; // Low satisfaction, high need (Opportunities for Improvement)
+  } else if (satisfactionHigh && !needActionHigh) {
+    return 'monitor'; // High satisfaction, low need (Exceeded Expectations)
   } else {
-    return 'low_priority'; // Low satisfaction, low need
+    return 'low_priority'; // Low satisfaction, low need (Secondary Priority)
   }
 };
 

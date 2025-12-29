@@ -13,6 +13,7 @@ import { useActiveCycle } from '@/hooks/useSurveyCycle';
 import { getCurrentUser, User } from '@/lib/auth';
 import { reportCardCache } from '@/utils/reportCardCache';
 import { ComprehensivePrintView } from '@/components/reportcard/ComprehensivePrintView';
+import { GovernanceIntegritySnapshot } from '@/components/reportcard/GovernanceIntegritySnapshot';
 import './print.css';
 import React from 'react';
 
@@ -510,131 +511,126 @@ function ReportCardContent() {
     try {
       console.log(`📊 [REPORT CARD] Fetching analytics for barangay ${barangayId}, cycle ${cycleId}, forceRefresh: ${forceRefresh}`);
 
-      // Check cache for funnel data (skip if force refresh)
+      // Check all caches first
       const cachedFunnelData = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'funnel') : null;
+      const cachedExecutiveSummary = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'executive-summary') : null;
+      const cachedCommunityVoice = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'community-voice') : null;
+      const cachedAnalytics = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'analytics') : null;
+
+      // If all data is cached, use it immediately and return early
+      if (cachedFunnelData && cachedExecutiveSummary && cachedCommunityVoice && cachedAnalytics && !forceRefresh) {
+        console.log('✅ [REPORT CARD] All data found in cache - loading instantly!');
+        await processFunnelData(cachedFunnelData, barangayId, cycleId);
+        setFunnelData((prev: any) => ({ ...prev, executive_summary: cachedExecutiveSummary }));
+        setCommunityVoiceData(cachedCommunityVoice);
+        setAnalyticsData(cachedAnalytics);
+        setLoading(false);
+        return;
+      }
+
+      // Prepare parallel fetch promises for missing data
+      const fetchPromises: Promise<any>[] = [];
+
+      // Funnel data fetch
       if (cachedFunnelData && !forceRefresh) {
         console.log('✅ [REPORT CARD] Using cached funnel data');
-        console.log('📦 [REPORT CARD] Cached action_grid:', (cachedFunnelData as any).action_grid);
         await processFunnelData(cachedFunnelData, barangayId, cycleId);
       } else {
-        if (forceRefresh) {
-          console.log('🔄 [REPORT CARD] Force refresh - bypassing cache...');
-        } else {
-          console.log('🔄 [REPORT CARD] No cache found, fetching from API...');
-        }
-        // Get ML-enhanced funnel analysis directly from the ML API
-        // Add refresh parameter if force refresh is requested
         const apiUrl = forceRefresh
           ? `/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}&refresh=true`
           : `/api/ml/funnel-analysis?barangayId=${barangayId}&cycleId=${cycleId}`;
-
-        console.log(`🔄 [REPORT CARD] Fetching from: ${apiUrl}`);
-        const funnelResponse = await fetch(apiUrl);
-        if (funnelResponse.ok) {
-          const funnelData = await funnelResponse.json();
-          
-          // Check if survey is incomplete
-          if (funnelData.surveyIncomplete) {
-            console.log(`⏳ [REPORT CARD] Survey incomplete - Progress: ${funnelData.progress}%`);
-            // Store incomplete status in funnel data
-            setFunnelData({ surveyIncomplete: true, progress: funnelData.progress, message: funnelData.message });
-          } else {
-            console.log('✅ [REPORT CARD] ML funnel analysis data:', funnelData);
-            console.log('📊 [REPORT CARD] Service scores:', funnelData.service_scores);
-            console.log('📊 [REPORT CARD] Action grid with trends:', funnelData.action_grid);
-
-            // Cache the funnel data
-            reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
-
-            // Process ML-enhanced funnel data
-            await processFunnelData(funnelData, barangayId, cycleId);
-          }
-        } else {
-          console.error('❌ [REPORT CARD] Failed to fetch ML funnel analysis:', await funnelResponse.text());
-        }
+        
+        fetchPromises.push(
+          fetch(apiUrl)
+            .then(async (response) => {
+              if (response.ok) {
+                const funnelData = await response.json();
+                if (funnelData.surveyIncomplete) {
+                  setFunnelData({ surveyIncomplete: true, progress: funnelData.progress, message: funnelData.message });
+                } else {
+                  reportCardCache.set(barangayId, cycleId, 'funnel', funnelData);
+                  await processFunnelData(funnelData, barangayId, cycleId);
+                }
+              }
+            })
+            .catch(err => console.error('❌ [REPORT CARD] Funnel fetch error:', err))
+        );
       }
 
-      // Check cache for executive summary (skip if force refresh)
-      const cachedExecutiveSummary = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'executive-summary') : null;
+      // Executive summary fetch
       if (cachedExecutiveSummary && !forceRefresh) {
         console.log('✅ [REPORT CARD] Using cached executive summary');
-        // Add executive summary to funnel data for print view
-        setFunnelData((prev: any) => ({
-          ...prev,
-          executive_summary: cachedExecutiveSummary
-        }));
+        setFunnelData((prev: any) => ({ ...prev, executive_summary: cachedExecutiveSummary }));
       } else {
-        // Fetch executive summary
-        const execSummaryResponse = await fetch('/api/ai/executive-summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            barangayId: parseInt(barangayId),
-            cycleId: cycleId,
-            forceRefresh: forceRefresh
+        fetchPromises.push(
+          fetch('/api/ai/executive-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barangayId: parseInt(barangayId), cycleId, forceRefresh })
           })
-        });
-        if (execSummaryResponse.ok) {
-          const execSummaryData = await execSummaryResponse.json();
-          if (execSummaryData.success && execSummaryData.data) {
-            // Cache the executive summary
-            reportCardCache.set(barangayId, cycleId, 'executive-summary', execSummaryData.data);
-            // Add executive summary to funnel data for print view
-            setFunnelData((prev: any) => ({
-              ...prev,
-              executive_summary: execSummaryData.data
-            }));
-          } else if (execSummaryData.surveyIncomplete) {
-            // Store incomplete status
-            setFunnelData((prev: any) => ({
-              ...prev,
-              executive_summary: { 
-                surveyIncomplete: true, 
-                progress: execSummaryData.progress, 
-                message: execSummaryData.message 
+            .then(async (response) => {
+              if (response.ok) {
+                const execSummaryData = await response.json();
+                if (execSummaryData.success && execSummaryData.data) {
+                  reportCardCache.set(barangayId, cycleId, 'executive-summary', execSummaryData.data);
+                  setFunnelData((prev: any) => ({ ...prev, executive_summary: execSummaryData.data }));
+                } else if (execSummaryData.surveyIncomplete) {
+                  setFunnelData((prev: any) => ({
+                    ...prev,
+                    executive_summary: { surveyIncomplete: true, progress: execSummaryData.progress, message: execSummaryData.message }
+                  }));
+                }
               }
-            }));
-          }
-        }
+            })
+            .catch(err => console.error('❌ [REPORT CARD] Executive summary fetch error:', err))
+        );
       }
 
-      // Check cache for community voice data (skip if force refresh)
-      const cachedCommunityVoice = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'community-voice') : null;
+      // Community voice fetch
       if (cachedCommunityVoice && !forceRefresh) {
         console.log('✅ [REPORT CARD] Using cached community voice data');
         setCommunityVoiceData(cachedCommunityVoice);
       } else {
-        // Get community voice analysis
-        const communityVoiceResponse = await fetch(`/api/community-voice?barangayId=${barangayId}`);
-        if (communityVoiceResponse.ok) {
-          const cvData = await communityVoiceResponse.json();
-          console.log('Community voice data:', cvData);
-          if (cvData.success && cvData.data) {
-            // Cache the community voice data
-            reportCardCache.set(barangayId, cycleId, 'community-voice', cvData.data);
-            setCommunityVoiceData(cvData.data);
-          }
-        }
+        fetchPromises.push(
+          fetch(`/api/community-voice?barangayId=${barangayId}`)
+            .then(async (response) => {
+              if (response.ok) {
+                const cvData = await response.json();
+                if (cvData.success && cvData.data) {
+                  reportCardCache.set(barangayId, cycleId, 'community-voice', cvData.data);
+                  setCommunityVoiceData(cvData.data);
+                }
+              }
+            })
+            .catch(err => console.error('❌ [REPORT CARD] Community voice fetch error:', err))
+        );
       }
 
-      // Check cache for survey analytics (skip if force refresh)
-      const cachedAnalytics = !forceRefresh ? reportCardCache.get(barangayId, cycleId, 'analytics') : null;
+      // Analytics fetch
       if (cachedAnalytics && !forceRefresh) {
         console.log('✅ [REPORT CARD] Using cached analytics data');
         setAnalyticsData(cachedAnalytics);
       } else {
-        // Get detailed survey analytics
-        const response = await fetch(`/api/survey-analytics?format=detailed&barangayId=${barangayId}`);
-        if (response.ok) {
-          const data = await response.json();
-
-          // Cache the analytics data
-          reportCardCache.set(barangayId, cycleId, 'analytics', data.detailed);
-          setAnalyticsData(data.detailed);
-
-          console.log('Survey analytics loaded, funnel data already processed from API');
-        }
+        fetchPromises.push(
+          fetch(`/api/survey-analytics?format=detailed&barangayId=${barangayId}`)
+            .then(async (response) => {
+              if (response.ok) {
+                const data = await response.json();
+                reportCardCache.set(barangayId, cycleId, 'analytics', data.detailed);
+                setAnalyticsData(data.detailed);
+              }
+            })
+            .catch(err => console.error('❌ [REPORT CARD] Analytics fetch error:', err))
+        );
       }
+
+      // Wait for all parallel fetches to complete
+      if (fetchPromises.length > 0) {
+        console.log(`🚀 [REPORT CARD] Fetching ${fetchPromises.length} data sources in parallel...`);
+        await Promise.all(fetchPromises);
+        console.log('✅ [REPORT CARD] All parallel fetches complete');
+      }
+
     } catch (error) {
       console.error('Failed to fetch detailed analytics:', error);
     } finally {
@@ -2261,6 +2257,15 @@ function ReportCardContent() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Governance Integrity Snapshot - Admin Only */}
+            {currentUser?.role === 'admin' && barangayData?.barangayId && (barangayData.cycleId || activeCycle?.cycle_id) && (
+              <GovernanceIntegritySnapshot
+                barangayId={barangayData.barangayId}
+                cycleId={barangayData.cycleId || activeCycle?.cycle_id || 0}
+                barangayName={barangayData.barangay}
+              />
+            )}
 
             {/* Action Grid */}
             <Card className="print:section print:page-break-before">

@@ -401,25 +401,50 @@ class SiglaMLAPI:
                 satisfaction = scores.get('satisfaction_score', 0)
                 need_action = scores.get('need_action_score', 0)
             else:
-                # Fallback to legacy calculation if CSIS data not available
+                # Calculate using CSIS dynamic cut-off methodology
                 satisfaction = scores.get('satisfaction_score', 0)
                 need_action = scores.get('need_action_score', 0)
+                sample_size = scores.get('sample_size', 0)
                 
-                # Use fixed thresholds as fallback (not CSIS compliant)
-                if satisfaction >= 70 and need_action <= 30:
-                    quadrant = 'Exceeded Expectations'
-                    priority = 'Key Strength'
-                elif satisfaction >= 70 and need_action > 30:
-                    quadrant = 'Continued Emphasis'
-                    priority = 'High Importance'
-                elif satisfaction < 70 and need_action <= 30:
-                    quadrant = 'Secondary Priority'
-                    priority = 'Lowest Priority'
+                # Calculate Margin of Error: MoE = 0.98 / sqrt(n)
+                if sample_size > 0:
+                    moe = 0.98 / (sample_size ** 0.5)
                 else:
+                    moe = 0.08  # Default for 150 respondents
+                
+                # Calculate Dynamic Cut-off: Cut-off = 0.50 + MoE
+                cutoff = 0.50 + moe
+                cutoff_percentage = cutoff * 100
+                
+                # Convert scores to decimals for comparison
+                satisfaction_decimal = satisfaction / 100
+                need_action_decimal = need_action / 100
+                
+                # Classify scores as High or Low
+                satisfaction_high = satisfaction_decimal >= cutoff
+                need_action_high = need_action_decimal >= cutoff
+                
+                # Determine quadrant based on CSIS methodology
+                if not satisfaction_high and need_action_high:
                     quadrant = 'Opportunities for Improvement'
                     priority = 'Highest Priority'
+                elif satisfaction_high and need_action_high:
+                    quadrant = 'Continued Emphasis'
+                    priority = 'High Importance'
+                elif satisfaction_high and not need_action_high:
+                    quadrant = 'Exceeded Expectations'
+                    priority = 'Key Strength'
+                else:
+                    quadrant = 'Secondary Priority'
+                    priority = 'Lowest Priority'
                 
-                details = {}
+                details = {
+                    'sample_size': sample_size,
+                    'margin_of_error': round(moe * 100, 1),
+                    'dynamic_cutoff': round(cutoff_percentage, 1),
+                    'satisfaction_rating': 'High' if satisfaction_high else 'Low',
+                    'need_action_rating': 'High' if need_action_high else 'Low'
+                }
             
             action_grid[service] = {
                 'quadrant': quadrant,

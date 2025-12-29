@@ -114,35 +114,52 @@ export function getTrendColor(trend: 'improving' | 'declining' | 'stable'): stri
 
 /**
  * Get action grid quadrant color with WCAG AA compliance
+ * Uses dynamic cut-off based on sample size (CSIS methodology)
+ * 
+ * @param satisfaction - Satisfaction score (0-100)
+ * @param needAction - Need for action score (0-100)
+ * @param sampleSize - Sample size for calculating margin of error (optional, defaults to 150)
  */
 export function getActionGridColor(
   satisfaction: number,
-  needAction: number
+  needAction: number,
+  sampleSize: number = 150
 ): {
   color: string;
   label: string;
   pattern?: string;
 } {
-  if (satisfaction >= 70 && needAction < 50) {
+  // Calculate dynamic cut-off using CSIS methodology
+  // MoE = 0.98 / sqrt(n)
+  const moe = sampleSize > 0 ? 0.98 / Math.sqrt(sampleSize) : 0.08;
+  // Cut-off = 50% + MoE
+  const cutoffDecimal = 0.50 + moe;
+  const cutoffPercentage = cutoffDecimal * 100;
+  
+  // Classify scores as High or Low based on dynamic cut-off
+  const satisfactionHigh = satisfaction >= cutoffPercentage;
+  const needActionHigh = needAction >= cutoffPercentage;
+  
+  if (satisfactionHigh && !needActionHigh) {
     return {
-      color: '#059669', // Green - Maintain
+      color: '#059669', // Green - Exceeded Expectations
       label: 'Maintain',
     };
   }
-  if (satisfaction < 70 && needAction >= 50) {
+  if (!satisfactionHigh && needActionHigh) {
     return {
-      color: '#dc2626', // Red - Fix Now
+      color: '#dc2626', // Red - Opportunities for Improvement
       label: 'Fix Now',
     };
   }
-  if (satisfaction < 70 && needAction < 50) {
+  if (satisfactionHigh && needActionHigh) {
     return {
-      color: '#d97706', // Orange - Monitor
+      color: '#d97706', // Orange - Continued Emphasis
       label: 'Monitor',
     };
   }
   return {
-    color: '#6b7280', // Gray - Low Priority
+    color: '#6b7280', // Gray - Secondary Priority
     label: 'Low Priority',
   };
 }

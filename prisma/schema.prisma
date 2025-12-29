@@ -557,6 +557,7 @@ enum SurveyResponseGender {
   Male
   Female
   Other
+  LGBTQI
 }
 
 enum SurveyResponseStatus {
