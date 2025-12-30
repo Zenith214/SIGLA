@@ -7,10 +7,11 @@ import { useActiveCycle } from "@/hooks/useSurveyCycle";
 
 interface BarangayDetailsCardProps {
   selectedBarangay?: ApiBarangayData | null;
+  isLocked?: boolean;
   selectedCycleId: number | null;
 }
 
-export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId }: BarangayDetailsCardProps) {
+export default function BarangayDetailsCard({ selectedBarangay, isLocked = false, selectedCycleId }: BarangayDetailsCardProps) {
   const { activeCycle } = useActiveCycle();
   const [surveyProgress, setSurveyProgress] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -60,10 +61,17 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
   }, [selectedBarangay?.id, selectedCycleId, activeCycle?.cycle_id]);
 
   return (
-    <Card className="w-full h-full flex flex-col mb-4">
+    <Card className={`w-full h-full flex flex-col mb-4 transition-all duration-200 ${
+      selectedBarangay && !isLocked ? 'ring-2 ring-blue-300 shadow-lg' : ''
+    }`}>
       <CardHeader className="flex-shrink-0 pb-2">
-        <CardTitle className="text-lg font-semibold">
-          {selectedBarangay ? `${selectedBarangay.name} Details` : "Barangay Details"}
+        <CardTitle className="text-lg font-semibold flex items-center justify-between">
+          <span>{selectedBarangay ? `${selectedBarangay.name} Details` : "Barangay Details"}</span>
+          {selectedBarangay && !isLocked && (
+            <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              Hover Preview
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-start pt-3">
@@ -121,25 +129,40 @@ export default function BarangayDetailsCard({ selectedBarangay, selectedCycleId 
               )}
             </div>
 
-            {/* View Details Button */}
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  // Dispatch custom event to open the modal in InteractiveSVGMap
-                  window.dispatchEvent(new CustomEvent('openBarangayDetailsModal'));
-                }}
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                View Details
-              </button>
-            </div>
+            {/* View Details Button - Only show when locked */}
+            {isLocked && (
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    // Dispatch custom event to open the modal in InteractiveSVGMap
+                    window.dispatchEvent(new CustomEvent('openBarangayDetailsModal'));
+                  }}
+                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  View Details
+                </button>
+              </div>
+            )}
+            
+            {/* Hover instruction - Only show when not locked */}
+            {!isLocked && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700 text-center">
+                  Click on the map to lock this barangay and view full details
+                </p>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-gray-500">
-            <p className="text-sm">Click on a barangay in the map to view details</p>
+          <div className="text-gray-500 text-center py-8">
+            <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <p className="text-sm font-medium">Hover over a barangay</p>
+            <p className="text-xs mt-1">Move your mouse over the map to preview barangay details</p>
           </div>
         )}
       </CardContent>

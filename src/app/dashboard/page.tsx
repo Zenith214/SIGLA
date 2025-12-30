@@ -12,7 +12,7 @@ export default function Dashboard() {
 
   return (
     <ErrorBoundary>
-      <ProtectedRoute>
+      <ProtectedRoute allowedRoles={['admin', 'developer', 'fs', 'officer', 'viewer']}>
         <DashboardLayout activeView={activeView} onViewChange={setActiveView}>
           {activeView === "map" ? <MapView /> : <AnalyticsView />}
         </DashboardLayout>

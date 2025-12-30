@@ -8,12 +8,14 @@ import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { HistoricalCycleSelector } from "@/components/survey-cycle";
 
 interface MapCardProps {
-  onBarangaySelect?: (barangay: ApiBarangayData) => void;
+  onBarangayHover?: (barangay: ApiBarangayData | null) => void;
+  onBarangayLock?: (barangay: ApiBarangayData) => void;
+  lockedBarangay?: ApiBarangayData | null;
   selectedCycleId: number | null;
   onCycleChange: (cycleId: number | null) => void;
 }
 
-export default function MapCard({ onBarangaySelect, selectedCycleId, onCycleChange }: MapCardProps) {
+export default function MapCard({ onBarangayHover, onBarangayLock, lockedBarangay, selectedCycleId, onCycleChange }: MapCardProps) {
   const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   return (
@@ -46,7 +48,9 @@ export default function MapCard({ onBarangaySelect, selectedCycleId, onCycleChan
         {/* Interactive SVG map container */}
         <div className="w-full h-full bg-white rounded-lg border overflow-hidden">
           <InteractiveSVGMap 
-            onBarangaySelect={onBarangaySelect} 
+            onBarangayHover={onBarangayHover}
+            onBarangayLock={onBarangayLock}
+            lockedBarangay={lockedBarangay}
             selectedCycleId={selectedCycleId}
           />
         </div>

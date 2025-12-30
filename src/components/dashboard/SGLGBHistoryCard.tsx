@@ -8,9 +8,10 @@ import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 interface SGLGBHistoryCardProps {
   selectedBarangay?: ApiBarangayData | null;
+  isLocked?: boolean;
 }
 
-export default function SGLGBHistoryCard({ selectedBarangay }: SGLGBHistoryCardProps) {
+export default function SGLGBHistoryCard({ selectedBarangay, isLocked = false }: SGLGBHistoryCardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -38,10 +39,17 @@ export default function SGLGBHistoryCard({ selectedBarangay }: SGLGBHistoryCardP
   }
 
   return (
-    <Card className="w-full h-full flex flex-col mb-4">
+    <Card className={`w-full h-full flex flex-col mb-4 transition-all duration-200 ${
+      selectedBarangay && !isLocked ? 'ring-2 ring-blue-300 shadow-lg' : ''
+    }`}>
       <CardHeader className="flex-shrink-0 pb-2">
-        <CardTitle className="text-lg font-semibold">
-          SGLGB History
+        <CardTitle className="text-lg font-semibold flex items-center justify-between">
+          <span>SGLGB History</span>
+          {selectedBarangay && !isLocked && (
+            <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              Hover Preview
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-start pt-3">
@@ -109,8 +117,12 @@ export default function SGLGBHistoryCard({ selectedBarangay }: SGLGBHistoryCardP
             )}
           </div>
         ) : (
-          <div className="text-gray-500">
-            <p className="text-sm">Click on a barangay in the map to view SGLGB history</p>
+          <div className="text-gray-500 text-center py-8">
+            <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium">Hover over a barangay</p>
+            <p className="text-xs mt-1">Move your mouse over the map to preview SGLGB history</p>
           </div>
         )}
       </CardContent>

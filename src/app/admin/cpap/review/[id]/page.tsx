@@ -253,7 +253,7 @@ export default function CPAPReviewPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'developer']}>
       <div className="min-h-screen" style={{ backgroundColor: '#dbeafe' }}>
         {/* Header */}
         <div className="bg-slate-800 border-b border-slate-700">

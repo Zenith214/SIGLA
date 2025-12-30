@@ -8,13 +8,15 @@ import BarangaySatisfactionIndex from "./BarangaySatisfactionIndex";
 import barangayPaths from "@/data/barangayPaths";
 
 interface InteractiveSVGMapProps {
-  onBarangaySelect?: (barangay: ApiBarangayData) => void;
+  onBarangayHover?: (barangay: ApiBarangayData | null) => void;
+  onBarangayLock?: (barangay: ApiBarangayData) => void;
+  lockedBarangay?: ApiBarangayData | null;
   selectedCycleId?: number | null;
 }
 
-export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }: InteractiveSVGMapProps) {
+export default function InteractiveSVGMap({ onBarangayHover, onBarangayLock, lockedBarangay, selectedCycleId }: InteractiveSVGMapProps) {
   const [hoveredBarangay, setHoveredBarangay] = useState<string | null>(null);
-  const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null);
+  const [lockedBarangayName, setLockedBarangayName] = useState<string | null>(null);
   const [calloutPosition, setCalloutPosition] = useState<{ x: number; y: number } | null>(null);
   const [showLargeModal, setShowLargeModal] = useState(false);
   const [barangays, setBarangays] = useState<{ [key: string]: ApiBarangayData }>({});
@@ -178,7 +180,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
   // Listen for custom event to open modal from BarangayDetailsCard
   useEffect(() => {
     const handleOpenModal = () => {
-      if (selectedBarangay) {
+      if (lockedBarangayName) {
         setShowLargeModal(true);
       }
     };
@@ -187,17 +189,28 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
     return () => {
       window.removeEventListener('openBarangayDetailsModal', handleOpenModal);
     };
-  }, [selectedBarangay]);
+  }, [lockedBarangayName]);
 
   const handlePathHover = (pathId: string) => {
     const barangayName = barangayMapping[pathId as keyof typeof barangayMapping];
     if (barangayName) {
       setHoveredBarangay(barangayName);
+      
+      // Notify parent component about hover with full barangay data
+      const barangay = barangays[barangayName];
+      if (barangay && onBarangayHover) {
+        onBarangayHover(barangay);
+      }
     }
   };
 
   const handlePathLeave = () => {
     setHoveredBarangay(null);
+    
+    // Clear hover preview in parent (unless something is locked)
+    if (onBarangayHover && !lockedBarangayName) {
+      onBarangayHover(null);
+    }
   };
 
   const handlePathClick = async (pathId: string, event: React.MouseEvent) => {
@@ -295,8 +308,9 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       console.log('⚠️ Barangay ID is 0, skipping history fetch');
     }
 
-    setSelectedBarangay(barangayName);
-    onBarangaySelect?.(barangay);
+    // Lock the barangay selection
+    setLockedBarangayName(barangayName);
+    onBarangayLock?.(barangay);
 
     // Get the SVG element directly for accurate positioning
     const svgRect = mapRef.current?.getBoundingClientRect();
@@ -318,13 +332,14 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
     }
   };
 
-  const handleViewDetails = () => {
-    setShowLargeModal(true);
-  };
-
   const handleCloseCallout = () => {
-    setSelectedBarangay(null);
+    setLockedBarangayName(null);
     setCalloutPosition(null);
+    
+    // Clear locked state in parent
+    if (onBarangayHover) {
+      onBarangayHover(null);
+    }
   };
 
   const handleCloseLargeModal = () => {
@@ -345,7 +360,7 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       return "#e5e7eb"; // Default gray for loading
     }
 
-    if (selectedBarangay === barangayName) return "#f59e0b"; // Amber highlight for selected
+    if (lockedBarangayName === barangayName) return "#f59e0b"; // Amber highlight for locked
     if (hoveredBarangay === barangayName) return "#fbbf24"; // Lighter amber for hover
 
     // If no barangay data exists
@@ -425,11 +440,11 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
       </svg>
 
       {/* Callout Modal - Only show if large modal is not open */}
-      {calloutPosition && selectedBarangay && !showLargeModal && (
+      {calloutPosition && lockedBarangayName && !showLargeModal && (
         <SmallCalloutModal
-          barangay={barangays[selectedBarangay] || {
+          barangay={barangays[lockedBarangayName] || {
             id: 0,
-            name: selectedBarangay,
+            name: lockedBarangayName,
             population: 0,
             households: 0,
             area: 0,
@@ -448,17 +463,17 @@ export default function InteractiveSVGMap({ onBarangaySelect, selectedCycleId }:
           }}
           position={calloutPosition}
           onClose={handleCloseCallout}
-          onViewDetails={handleViewDetails}
+          onViewDetails={() => setShowLargeModal(true)}
         />
       )}
 
       {/* Large Modal */}
-      {showLargeModal && selectedBarangay && (
+      {showLargeModal && lockedBarangayName && (
         <BarangaySatisfactionIndex
-          key={`${selectedBarangay}-${selectedCycleId || 'active'}`}
-          barangay={barangays[selectedBarangay] || {
+          key={`${lockedBarangayName}-${selectedCycleId || 'active'}`}
+          barangay={barangays[lockedBarangayName] || {
             id: 0,
-            name: selectedBarangay,
+            name: lockedBarangayName,
             population: 0,
             households: 0,
             area: 0,

@@ -9,16 +9,24 @@ import FloatingHelpButton from "./FloatingHelpButton";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 
 export default function MapView() {
-  const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
+  const [hoveredBarangay, setHoveredBarangay] = useState<ApiBarangayData | null>(null);
+  const [lockedBarangay, setLockedBarangay] = useState<ApiBarangayData | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
 
-  const handleBarangaySelect = (barangay: ApiBarangayData) => {
-    setSelectedBarangay(barangay);
+  const handleBarangayHover = (barangay: ApiBarangayData | null) => {
+    setHoveredBarangay(barangay);
+  };
+
+  const handleBarangayLock = (barangay: ApiBarangayData) => {
+    setLockedBarangay(barangay);
   };
 
   const handleCycleChange = (cycleId: number | null) => {
     setSelectedCycleId(cycleId);
   };
+
+  // Show locked barangay if available, otherwise show hovered barangay
+  const displayedBarangay = lockedBarangay || hoveredBarangay;
 
   return (
     <div className="h-full relative">
@@ -27,7 +35,9 @@ export default function MapView() {
         {/* Left side - Main map card */}
         <div className="flex-1 min-w-0">
           <MapCard 
-            onBarangaySelect={handleBarangaySelect}
+            onBarangayHover={handleBarangayHover}
+            onBarangayLock={handleBarangayLock}
+            lockedBarangay={lockedBarangay}
             selectedCycleId={selectedCycleId}
             onCycleChange={handleCycleChange}
           />
@@ -36,10 +46,14 @@ export default function MapView() {
         {/* Right side - Stacked cards */}
         <div className="w-96 flex flex-col gap-4 overflow-y-auto">
           <BarangayDetailsCard 
-            selectedBarangay={selectedBarangay}
+            selectedBarangay={displayedBarangay}
+            isLocked={!!lockedBarangay}
             selectedCycleId={selectedCycleId}
           />
-          <SGLGBHistoryCard selectedBarangay={selectedBarangay} />
+          <SGLGBHistoryCard 
+            selectedBarangay={displayedBarangay}
+            isLocked={!!lockedBarangay}
+          />
         </div>
       </div>
 

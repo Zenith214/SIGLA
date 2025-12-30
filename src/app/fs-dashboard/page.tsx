@@ -38,7 +38,7 @@ export default function FSDashboard() {
   }, []);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'developer', 'fs']}>
       <FSDashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
         <Suspense fallback={<LoadingSpinner />}>
           {activeTab === "overview" && <SupervisorOverview />}
