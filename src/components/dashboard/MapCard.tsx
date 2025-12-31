@@ -13,9 +13,19 @@ interface MapCardProps {
   lockedBarangay?: ApiBarangayData | null;
   selectedCycleId: number | null;
   onCycleChange: (cycleId: number | null) => void;
+  officerBarangayId?: number;
+  onAutoSelectComplete?: () => void;
 }
 
-export default function MapCard({ onBarangayHover, onBarangayLock, lockedBarangay, selectedCycleId, onCycleChange }: MapCardProps) {
+export default function MapCard({ 
+  onBarangayHover, 
+  onBarangayLock, 
+  lockedBarangay, 
+  selectedCycleId, 
+  onCycleChange,
+  officerBarangayId,
+  onAutoSelectComplete
+}: MapCardProps) {
   const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   return (
@@ -52,6 +62,8 @@ export default function MapCard({ onBarangayHover, onBarangayLock, lockedBaranga
             onBarangayLock={onBarangayLock}
             lockedBarangay={lockedBarangay}
             selectedCycleId={selectedCycleId}
+            officerBarangayId={officerBarangayId}
+            onAutoSelectComplete={onAutoSelectComplete}
           />
         </div>
       </CardContent>

@@ -12,9 +12,18 @@ interface InteractiveSVGMapProps {
   onBarangayLock?: (barangay: ApiBarangayData) => void;
   lockedBarangay?: ApiBarangayData | null;
   selectedCycleId?: number | null;
+  officerBarangayId?: number;
+  onAutoSelectComplete?: () => void;
 }
 
-export default function InteractiveSVGMap({ onBarangayHover, onBarangayLock, lockedBarangay, selectedCycleId }: InteractiveSVGMapProps) {
+export default function InteractiveSVGMap({ 
+  onBarangayHover, 
+  onBarangayLock, 
+  lockedBarangay, 
+  selectedCycleId,
+  officerBarangayId,
+  onAutoSelectComplete
+}: InteractiveSVGMapProps) {
   const [hoveredBarangay, setHoveredBarangay] = useState<string | null>(null);
   const [lockedBarangayName, setLockedBarangayName] = useState<string | null>(null);
   const [calloutPosition, setCalloutPosition] = useState<{ x: number; y: number } | null>(null);
@@ -176,6 +185,51 @@ export default function InteractiveSVGMap({ onBarangayHover, onBarangayLock, loc
 
     fetchBarangayData();
   }, [selectedCycleId, activeCycle, hasActiveCycle]);
+
+  // Auto-select officer's designated barangay
+  useEffect(() => {
+    if (!officerBarangayId || !barangays || Object.keys(barangays).length === 0 || isLoading) {
+      return;
+    }
+
+    // Find the barangay that matches the officer's designation
+    const designatedBarangay = Object.values(barangays).find(
+      (b) => b.id === officerBarangayId
+    );
+
+    if (designatedBarangay && onBarangayLock) {
+      console.log('🎯 Auto-selecting officer designated barangay:', designatedBarangay.name);
+      
+      // Fetch historical data for the designated barangay
+      if (designatedBarangay.id > 0) {
+        fetch(`/api/barangays/${designatedBarangay.id}/history`)
+          .then(res => res.json())
+          .then(historyData => {
+            if (historyData.success && historyData.data.length > 0) {
+              const barangayWithHistory = {
+                ...designatedBarangay,
+                history: historyData.data
+              };
+              onBarangayLock(barangayWithHistory);
+            } else {
+              onBarangayLock(designatedBarangay);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching history for auto-select:', error);
+            onBarangayLock(designatedBarangay);
+          });
+      } else {
+        onBarangayLock(designatedBarangay);
+      }
+
+      // Set the locked barangay name for visual feedback
+      setLockedBarangayName(designatedBarangay.name);
+      
+      // Notify parent that auto-select is complete
+      onAutoSelectComplete?.();
+    }
+  }, [officerBarangayId, barangays, isLoading, onBarangayLock, onAutoSelectComplete]);
 
   // Listen for custom event to open modal from BarangayDetailsCard
   useEffect(() => {

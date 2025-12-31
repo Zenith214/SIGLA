@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MapCard from "./MapCard";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
 import BarangayListView from "./BarangayListView";
 import FloatingHelpButton from "./FloatingHelpButton";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function MapView() {
+  const { user } = useAuth();
   const [hoveredBarangay, setHoveredBarangay] = useState<ApiBarangayData | null>(null);
   const [lockedBarangay, setLockedBarangay] = useState<ApiBarangayData | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+  const [autoSelectTriggered, setAutoSelectTriggered] = useState(false);
 
   const handleBarangayHover = (barangay: ApiBarangayData | null) => {
     setHoveredBarangay(barangay);
@@ -40,6 +43,8 @@ export default function MapView() {
             lockedBarangay={lockedBarangay}
             selectedCycleId={selectedCycleId}
             onCycleChange={handleCycleChange}
+            officerBarangayId={user?.role?.toLowerCase() === 'officer' ? user.barangayDesignation : undefined}
+            onAutoSelectComplete={() => setAutoSelectTriggered(true)}
           />
         </div>
         

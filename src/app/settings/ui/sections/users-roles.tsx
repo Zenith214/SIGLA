@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, Plus, Edit, Trash2, Shield, AlertTriangle, Search, ChevronDown, ChevronUp } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Shield, AlertTriangle, Search, ChevronDown, ChevronUp, User, Mail, Phone, Briefcase, Building2, Calendar, MapPin } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -34,6 +34,7 @@ export function UsersRoles() {
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
+  const [viewingUser, setViewingUser] = useState<any | null>(null)
   const { toast } = useToast()
 
   // Filter users based on search term
@@ -411,7 +412,12 @@ export function UsersRoles() {
                   </TableRow>
                 ) : filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
+                    <TableCell 
+                      className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                      onClick={() => setViewingUser(user)}
+                    >
+                      {user.firstName} {user.lastName}
+                    </TableCell>
                     <TableCell className="text-gray-600">{user.email}</TableCell>
                     <TableCell>
                       <Badge
@@ -613,6 +619,313 @@ export function UsersRoles() {
         </Dialog>
       )}
 
+      {/* View Profile Modal */}
+      {viewingUser && (
+        <Dialog open={!!viewingUser} onOpenChange={open => { if (!open) setViewingUser(null); }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>User Profile</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              {/* Profile Header */}
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {viewingUser.firstName?.[0]}{viewingUser.lastName?.[0]}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {viewingUser.firstName} {viewingUser.lastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">{viewingUser.email}</p>
+                </div>
+              </div>
+
+              {/* Profile Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Role</label>
+                  <div className="mt-1">
+                    <Badge
+                      variant="outline"
+                      className={`text-sm ${
+                        viewingUser.role === "admin"
+                          ? "border-red-200 text-red-700 bg-red-50"
+                          : viewingUser.role === "fs"
+                            ? "border-purple-200 text-purple-700 bg-purple-50"
+                            : viewingUser.role === "interviewer"
+                              ? "border-blue-200 text-blue-700 bg-blue-50"
+                              : viewingUser.role === "viewer"
+                                ? "border-green-200 text-green-700 bg-green-50"
+                                : "border-gray-200 text-gray-700 bg-gray-50"
+                      }`}
+                    >
+                      {viewingUser.role === "fs" ? "Supervisor" : viewingUser.role?.charAt(0).toUpperCase() + viewingUser.role?.slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <div className="mt-1">
+                    <Badge 
+                      variant={viewingUser.status === "active" ? "default" : "secondary"}
+                      className="text-sm"
+                    >
+                      {viewingUser.status || "active"}
+                    </Badge>
+                  </div>
+                </div>
+
+                {viewingUser.role?.toLowerCase() === 'officer' && viewingUser.barangayDesignation && (
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-500">Barangay Designation</label>
+                    <p className="mt-1 text-gray-900 font-medium">
+                      {barangays.find(b => (b.id || b.barangay_id) === viewingUser.barangayDesignation)?.name || 
+                       barangays.find(b => (b.id || b.barangay_id) === viewingUser.barangayDesignation)?.barangay_name || 
+                       'Not assigned'}
+                    </p>
+                  </div>
+                )}
+
+                {viewingUser.organization && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Organization</label>
+                    <p className="mt-1 text-gray-900">{viewingUser.organization}</p>
+                  </div>
+                )}
+
+                {viewingUser.jobTitle && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Job Title</label>
+                    <p className="mt-1 text-gray-900">{viewingUser.jobTitle}</p>
+                  </div>
+                )}
+
+                {viewingUser.phone && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Phone</label>
+                    <p className="mt-1 text-gray-900">{viewingUser.phone}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Last Login</label>
+                  <p className="mt-1 text-gray-900">
+                    {viewingUser.lastLogin 
+                      ? new Date(viewingUser.lastLogin).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Never'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Account Created</label>
+                  <p className="mt-1 text-gray-900">
+                    {viewingUser.createdAt 
+                      ? new Date(viewingUser.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setViewingUser(null)}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  setViewingUser(null);
+                  handleEditClick(viewingUser);
+                }}>
+                  Edit Profile
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+
+      {/* View Profile Modal */}
+      {viewingUser && (
+        <Dialog open={!!viewingUser} onOpenChange={open => { if (!open) setViewingUser(null); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">User Profile</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 mt-4">
+              {/* Profile Header */}
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="relative">
+                  {viewingUser.profilePicture ? (
+                    <img 
+                      src={viewingUser.profilePicture} 
+                      alt={`${viewingUser.firstName} ${viewingUser.lastName}`}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                      {viewingUser.firstName?.[0]}{viewingUser.lastName?.[0]}
+                    </div>
+                  )}
+                  {/* Barangay Logo Badge for Officers */}
+                  {viewingUser.role?.toLowerCase() === 'officer' && viewingUser.barangayDesignation && (
+                    (() => {
+                      const barangay = barangays.find(b => (b.id || b.barangay_id) === viewingUser.barangayDesignation);
+                      const logoUrl = barangay?.logo_url;
+                      return logoUrl ? (
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center overflow-hidden">
+                          <img 
+                            src={logoUrl} 
+                            alt="Barangay Logo"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : null;
+                    })()
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {viewingUser.firstName} {viewingUser.lastName}
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className={`mt-1 ${
+                      viewingUser.role === "admin"
+                        ? "border-red-200 text-red-700 bg-red-50"
+                        : viewingUser.role === "fs"
+                          ? "border-purple-200 text-purple-700 bg-purple-50"
+                          : viewingUser.role === "interviewer"
+                            ? "border-blue-200 text-blue-700 bg-blue-50"
+                            : viewingUser.role === "viewer"
+                              ? "border-green-200 text-green-700 bg-green-50"
+                              : "border-gray-200 text-gray-700 bg-gray-50"
+                    }`}
+                  >
+                    {viewingUser.role === "fs" ? "Field Supervisor" : viewingUser.role?.charAt(0).toUpperCase() + viewingUser.role?.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Contact Information</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="text-gray-900">{viewingUser.email}</p>
+                    </div>
+                  </div>
+                  {viewingUser.phone && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Phone</p>
+                        <p className="text-gray-900">{viewingUser.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Professional Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Professional Information</h4>
+                <div className="space-y-3">
+                  {viewingUser.jobTitle && (
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Job Title</p>
+                        <p className="text-gray-900">{viewingUser.jobTitle}</p>
+                      </div>
+                    </div>
+                  )}
+                  {viewingUser.organization && (
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Organization</p>
+                        <p className="text-gray-900">{viewingUser.organization}</p>
+                      </div>
+                    </div>
+                  )}
+                  {viewingUser.role?.toLowerCase() === 'officer' && viewingUser.barangayDesignation && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Barangay Designation</p>
+                        <p className="text-gray-900">
+                          {barangays.find(b => (b.id || b.barangay_id) === viewingUser.barangayDesignation)?.name || 
+                           barangays.find(b => (b.id || b.barangay_id) === viewingUser.barangayDesignation)?.barangay_name || 
+                           'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Account Information</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500">Status</p>
+                      <Badge variant={viewingUser.status === "active" ? "default" : "secondary"}>
+                        {viewingUser.status || "active"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {viewingUser.createdAt && (
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Member Since</p>
+                        <p className="text-gray-900">{new Date(viewingUser.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                  )}
+                  {viewingUser.lastLogin && (
+                    <div className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Last Login</p>
+                        <p className="text-gray-900">{new Date(viewingUser.lastLogin).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+              <Button variant="outline" onClick={() => setViewingUser(null)}>Close</Button>
+              <Button onClick={() => {
+                setViewingUser(null);
+                handleEditClick(viewingUser);
+              }}>
+                Edit Profile
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
     </div>
   )

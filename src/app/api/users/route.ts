@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
     
-    let query = 'SELECT id, email, "firstName", "lastName", role, status, "lastLogin", "createdAt", organization, "jobTitle", phone, "barangayDesignation" FROM "user"';
+    let query = 'SELECT id, email, "firstName", "lastName", role, status, "lastLogin", "createdAt", organization, "jobTitle", phone, "barangayDesignation", "profilePicture" FROM "user"';
     let queryParams: any[] = [];
     
     if (role) {
