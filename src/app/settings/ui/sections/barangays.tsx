@@ -624,10 +624,6 @@ export function Barangays() {
                 <Input name="population" type="number" value={editForm.population ?? ""} onChange={handleEditChange} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Officer</label>
-                <Input name="captain" value={editForm.captain ?? ""} onChange={handleEditChange} />
-              </div>
-              <div>
                 <label className="block text-sm font-medium mb-1">Barangay Logo</label>
                 <div className="space-y-3">
                   {editForm.logo_url && (

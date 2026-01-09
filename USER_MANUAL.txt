@@ -1,0 +1,1314 @@
+# PULSE System - Complete User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**System:** Public Understanding and Local Service Evaluation
+
+---
+
+## 📖 Table of Contents
+
+1. [Introduction](#introduction)
+2. [Getting Started](#getting-started)
+3. [User Roles](#user-roles)
+4. [Dashboard Navigation](#dashboard-navigation)
+5. [Admin Guide](#admin-guide)
+6. [Field Supervisor Guide](#field-supervisor-guide)
+7. [Interviewer Guide](#interviewer-guide)
+8. [Officer Guide](#officer-guide)
+9. [Viewer Guide](#viewer-guide)
+10. [CPAP System Guide](#cpap-system-guide)
+11. [Analytics & Reporting](#analytics-reporting)
+12. [Troubleshooting](#troubleshooting)
+13. [FAQs](#faqs)
+
+---
+
+## 🎯 Introduction
+
+### What is PULSE?
+
+PULSE (Public Understanding and Local Service Evaluation) is a comprehensive digital platform designed to help Municipal Local Governance Resource Centers (MLGRC) systematically:
+
+- Collect citizen feedback on local government services
+- Evaluate service delivery effectiveness
+- Improve barangay-level governance performance
+- Create data-driven action plans (CPAP)
+- Track implementation progress
+
+### Key Benefits
+
+- **Evidence-Based Decision Making**: Use real survey data to prioritize actions
+- **Transparent Governance**: Track progress and accountability
+- **Community Engagement**: Involve citizens in governance improvement
+- **Efficient Monitoring**: Real-time dashboards and progress tracking
+- **AI-Powered Insights**: Get intelligent recommendations based on data
+- **Interactive Visualizations**: Hover and click to explore barangay data
+- **Role-Based Access**: Customized experience for each user type
+
+
+---
+
+## 🚀 Getting Started
+
+### System Requirements
+
+- **Web Browser**: Chrome, Firefox, Safari, or Edge (latest versions)
+- **Internet Connection**: Required for online features
+- **Offline Support**: Available for survey data collection
+- **Mobile Devices**: Responsive design works on tablets and phones
+
+### Accessing the System
+
+1. **Open your web browser**
+2. **Navigate to**: `https://your-pulse-domain.com`
+3. **Login** with your credentials
+4. **Dashboard** loads automatically based on your role
+
+### First-Time Login
+
+1. Enter your **username** and **password**
+2. You may be prompted to **change your password**
+3. Review the **welcome guide** (if shown)
+4. Familiarize yourself with the **navigation menu**
+
+---
+
+## 👥 User Roles
+
+### Role Overview
+
+| Role | Primary Function | Access Level |
+|------|-----------------|--------------|
+| **Admin** | System setup, cycle management, overall monitoring | Full system access |
+| **Field Supervisor (FS)** | Survey coordination, interviewer management | Assigned barangays |
+| **Interviewer** | Data collection, survey submission | Assigned spots |
+| **Officer** | CPAP creation, action planning, implementation | Own barangay |
+| **Viewer** | View-only access to dashboards and analytics | Read-only access |
+| **Developer** | System development and testing | Full system access |
+
+### Permission Matrix
+
+| Feature | Admin | FS | Interviewer | Officer | Viewer | Developer |
+|---------|-------|----|-----------|---------|---------|-----------| 
+| Create Survey Cycles | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Assign Supervisors | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Create Spots | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Assign Interviewers | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Conduct Surveys | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Create CPAP | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Review CPAP | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| View Dashboard | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
+| View Analytics | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ |
+
+
+---
+
+## 🗺️ Dashboard Navigation
+
+### NEW: Interactive Map Features
+
+The dashboard now includes powerful interactive features for exploring barangay data:
+
+#### Hover Preview (All Users)
+
+**What it does**: Hover your mouse over any barangay on the map to instantly preview its details without clicking.
+
+**How to use**:
+1. Move your mouse over any barangay territory on the map
+2. The **Barangay Details Card** and **SGLGB History Card** update automatically
+3. A **blue ring** appears around the hovered barangay
+4. A **"Hover Preview"** badge shows in the details card
+5. Move to another barangay to see different data
+
+**Benefits**:
+- Quick exploration without committing to a selection
+- Compare multiple barangays rapidly
+- No need to click and close modals repeatedly
+
+#### Click to Lock (All Users)
+
+**What it does**: Click on a barangay to "lock" your selection and access full details.
+
+**How to use**:
+1. Click on any barangay territory
+2. The selection becomes **locked** (blue ring disappears)
+3. A **pin marker** appears on the map
+4. The **"View Details" button** appears in the details card
+5. Click "View Details" to open the full modal with comprehensive information
+
+**To unlock**: Click on a different barangay or click the selected one again
+
+#### View Toggle (Officers, Admins, Viewers)
+
+**What it does**: Switch between Map View and List View based on your preference.
+
+**Default Views by Role**:
+- **Officers**: Start with List View (mobile-style, easier to find your barangay)
+- **Admins & Viewers**: Start with Map View (traditional dashboard)
+- **FS & Developers**: Map View only (no toggle)
+
+**How to use**:
+1. Look for the toggle buttons in the **Barangay Details Card header** (upper right)
+2. Click **"Map"** to see the interactive map with side panels
+3. Click **"List"** to see a scrollable list of all barangays
+4. Your choice persists during your session
+
+**List View Features**:
+- Search barangays by name
+- See all barangays at once
+- Click any barangay to view satisfaction index
+- Mobile-optimized interface
+- Quick access to report cards
+
+**Map View Features**:
+- Visual geographic representation
+- Hover to preview
+- Click to lock and explore
+- Side panels with details and history
+- Color-coded by satisfaction level
+
+
+#### Officer Auto-Select Feature
+
+**What it does**: If you're an officer with a designated barangay, the system automatically selects and locks your barangay when you open the dashboard.
+
+**How it works**:
+1. You log in as an officer
+2. Dashboard loads
+3. Your designated barangay is automatically selected and locked
+4. Historical data for your barangay is fetched
+5. You can immediately see your barangay's details
+
+**Benefits**:
+- No need to search for your barangay
+- Instant access to your data
+- Saves time on every login
+- Reduces confusion for officers managing specific areas
+
+**Note**: You can still explore other barangays by clicking on them or using the search feature.
+
+### Main Navigation
+
+The main header has two tabs:
+
+1. **Overview**: Shows the dashboard (map or list view depending on your role)
+2. **Analytics**: Shows detailed analytics and reports
+
+**Note**: The tab was renamed from "Map" to "Overview" to better reflect that it can show either map or list view.
+
+### Dashboard Color Coding
+
+Barangays on the map are color-coded by satisfaction level:
+
+- 🟢 **Green**: High satisfaction (80-100)
+- 🟡 **Yellow**: Moderate satisfaction (60-79)
+- 🟠 **Orange**: Low satisfaction (40-59)
+- 🔴 **Red**: Very low satisfaction (0-39)
+
+### Mobile Experience
+
+On mobile devices (< 768px width):
+- All users see **List View** automatically
+- No toggle buttons (optimized for mobile)
+- Tap barangays to view details
+- Swipe to scroll through the list
+
+
+---
+
+## 🔧 Admin Guide
+
+### Overview
+
+As an Admin, you are responsible for setting up survey cycles, managing barangays, assigning supervisors, and monitoring the entire system.
+
+### 1. Creating a Survey Cycle
+
+**Purpose**: Define a new data collection period
+
+**Steps**:
+1. Navigate to **Settings** → **Survey Cycles**
+2. Click **"Create New Cycle"**
+3. Fill in the details:
+   - **Cycle Name**: e.g., "2025 Q1 Survey"
+   - **Start Date**: When data collection begins
+   - **End Date**: When data collection ends
+   - **Status**: Set to "Active" to enable
+4. Click **"Save Cycle"**
+
+**Best Practices**:
+- Use clear, descriptive names (include year and quarter)
+- Set realistic timelines (typically 2-3 months)
+- Only one cycle should be "Active" at a time
+
+### 2. Awarding Barangays to Cycle
+
+**Purpose**: Select which barangays participate in this cycle
+
+**Steps**:
+1. Go to **Settings** → **Barangay Awards**
+2. Select the **Survey Cycle**
+3. Check the barangays to include
+4. Set any barangay-specific parameters
+5. Click **"Save Awards"**
+
+**Tips**:
+- You can award all barangays or select specific ones
+- Previously awarded barangays can be re-awarded to new cycles
+- Awards determine which barangays can access CPAP later
+
+### 3. Setting Survey Targets
+
+**Purpose**: Define how many responses are needed per barangay
+
+**Steps**:
+1. Navigate to **Settings** → **Survey Targets**
+2. Select a **Barangay**
+3. Enter the **Target Number of Respondents** (n)
+4. Enter the **Population Size**
+5. System automatically calculates **Margin of Error (MOE)**
+6. Click **"Save Target"**
+
+**Understanding MOE**:
+- Lower MOE = More accurate results (requires more respondents)
+- Typical MOE: 5-10%
+- Formula considers population size and confidence level
+
+**Example**:
+- Population: 5,000
+- Target: 357 respondents
+- MOE: ±5% at 95% confidence
+
+
+### 4. Assigning Field Supervisors
+
+**Purpose**: Designate who manages data collection for each barangay
+
+**Steps**:
+1. Go to **Settings** → **Supervisor Assignments**
+2. Select a **Barangay**
+3. Choose a **Field Supervisor** from the dropdown
+4. Click **"Assign"**
+5. System sends notification to the FS
+
+**Important**:
+- One FS can manage multiple barangays
+- FS must have "Field Supervisor" role in the system
+- FS gains access to create spots and assign interviewers
+
+### 5. User Management
+
+**Purpose**: Create and manage user accounts
+
+**Steps**:
+1. Navigate to **Settings** → **Users & Roles**
+2. Click **"Add New User"**
+3. Fill in user details:
+   - First Name, Last Name
+   - Email
+   - Role (Admin, FS, Interviewer, Officer, Viewer, Developer)
+   - Assigned Barangay (if applicable)
+4. Click **"Create User"**
+5. System generates temporary password
+6. Share credentials with the user
+
+**NEW: View User Profiles**
+
+You can now view detailed user profiles by clicking on their names in the Users & Roles table:
+
+**How to use**:
+1. Go to **Settings** → **Users & Roles**
+2. Click on any **user's name** (blue, underlined text)
+3. A modal opens showing:
+   - **Profile Picture** (or initials if no picture)
+   - **Contact Information**: Email, phone
+   - **Professional Information**: Role, barangay designation
+   - **Account Information**: Username, account status, last login
+4. For officers with barangay designation, the barangay logo appears as a badge on their profile picture
+
+**Benefits**:
+- Quick access to user details
+- Verify user information
+- Check barangay assignments
+- View account status
+
+
+### 6. Monitoring System Progress
+
+**Purpose**: Track data collection and CPAP progress across all barangays
+
+**Dashboard Features**:
+- **Survey Progress**: See completion rates per barangay
+- **CPAP Status**: Monitor action plan submissions and approvals
+- **Interviewer Performance**: Track individual productivity
+- **Data Quality**: Review flagged or anomalous responses
+
+**Using the Interactive Map**:
+1. Click **"Dashboard"** in the main menu
+2. **Hover** over barangays to preview their data
+3. **Click** to lock a barangay and view full details
+4. Use the **cycle selector** to view historical data
+5. Use filters to view specific:
+   - Survey cycles
+   - Barangays
+   - Date ranges
+
+**Using List View** (if you prefer):
+1. Click the **"List"** button in the Barangay Details Card header
+2. See all barangays in a scrollable list
+3. Search by name
+4. Click any barangay to view details
+5. Switch back to **"Map"** view anytime
+
+### 7. Role-Based Access Control
+
+**NEW: Dashboard Access Restrictions**
+
+The system now enforces role-based access to different areas:
+
+**Dashboard Access** (Map/List View):
+- ✅ Admin, Developer, FS, Officer, Viewer
+- ❌ Interviewer (they use the survey interface instead)
+
+**FS Dashboard Access**:
+- ✅ Admin, Developer, FS
+- ❌ Officer, Viewer, Interviewer
+
+**Admin CPAP Pages**:
+- ✅ Admin, Developer
+- ❌ All other roles
+
+**Why this matters**:
+- Prevents unauthorized access
+- Reduces confusion for users
+- Ensures users see only relevant features
+- Improves system security
+
+
+---
+
+## 📋 Field Supervisor Guide
+
+### Overview
+
+As a Field Supervisor, you coordinate data collection activities, create survey spots, and assign interviewers.
+
+### 1. Viewing Assigned Barangays
+
+**Steps**:
+1. Login to the system
+2. Dashboard shows your **assigned barangays**
+3. Click on a barangay to see:
+   - Survey targets
+   - Current progress
+   - Assigned interviewers
+   - Spot locations
+
+### 2. Creating Survey Spots
+
+**Purpose**: Define specific locations where surveys will be conducted
+
+**Steps**:
+1. Navigate to **Spots** → **Create New Spot**
+2. Select the **Barangay**
+3. Fill in spot details:
+   - **Spot Name**: e.g., "Purok 1", "Market Area"
+   - **Location Description**: Detailed address or landmark
+   - **Target Respondents**: How many surveys for this spot
+   - **Coordinates** (optional): GPS location
+4. Click **"Save Spot"**
+
+**Best Practices**:
+- Create spots that cover different areas of the barangay
+- Distribute targets evenly across spots
+- Use clear, recognizable location names
+- Consider accessibility and safety
+
+**Example Spot Setup**:
+```
+Barangay: San Jose
+Total Target: 100 respondents
+
+Spot 1: Purok 1 (25 respondents)
+Spot 2: Market Area (25 respondents)
+Spot 3: School Zone (25 respondents)
+Spot 4: Barangay Hall (25 respondents)
+```
+
+### 3. Assigning Interviewers
+
+**Purpose**: Designate who will conduct surveys at each spot
+
+**Steps**:
+1. Go to **Spots** → Select a spot
+2. Click **"Assign Interviewer"**
+3. Choose an **Interviewer** from the list
+4. Set their **quota** (how many surveys they should complete)
+5. Click **"Assign"**
+6. System notifies the interviewer
+
+**Tips**:
+- One interviewer can be assigned to multiple spots
+- Set realistic quotas (typically 10-20 surveys per day)
+- Monitor interviewer progress regularly
+- Reassign if someone is unavailable
+
+
+### 4. Monitoring Progress
+
+**Dashboard View**:
+- **Overall Progress**: Percentage of target achieved
+- **Spot-Level Progress**: Completion per location
+- **Interviewer Performance**: Individual productivity
+- **Daily Trends**: Submissions over time
+
+**Using the Interactive Map**:
+1. **Hover** over barangays to quickly check progress
+2. **Click** to lock and view detailed statistics
+3. Use the **cycle selector** to compare across periods
+4. Switch to **List View** for a different perspective
+
+**Actions You Can Take**:
+- Reassign interviewers if needed
+- Adjust spot targets
+- Flag problematic responses
+- Communicate with interviewers
+
+### 5. Data Quality Checks
+
+**Review Submitted Surveys**:
+1. Navigate to **Responses** → **Review**
+2. Filter by spot or interviewer
+3. Check for:
+   - Incomplete responses
+   - Suspicious patterns
+   - Outliers or anomalies
+4. Approve or flag for review
+
+---
+
+## 📱 Interviewer Guide
+
+### Overview
+
+As an Interviewer, you conduct surveys with community members and submit responses to the system.
+
+**Important**: Interviewers do NOT have access to the main dashboard. You will use the survey interface directly.
+
+### 1. Viewing Your Assignments
+
+**Steps**:
+1. Login to the system
+2. You'll see your **assigned spots** interface
+3. Click on a spot to see:
+   - Location details
+   - Your quota
+   - Progress so far
+   - Remaining surveys needed
+
+
+### 2. Conducting a Survey
+
+**Preparation**:
+- Review the survey questions beforehand
+- Bring a mobile device or tablet
+- Have a backup power source
+- Know the spot location
+
+**Steps**:
+1. Navigate to **Surveys** → **Start New Survey**
+2. Select your **Spot**
+3. **Respondent Selection** (Kish Grid):
+   - Count household members
+   - System selects respondent randomly
+   - Interview the selected person only
+4. **Collect Basic Information**:
+   - Name (optional)
+   - Age
+   - Gender
+   - Contact information
+5. **Ask Survey Questions**:
+   - Read questions clearly
+   - Record responses accurately
+   - Use the rating scales provided
+6. **Geotagging** (if enabled):
+   - Allow location access
+   - System captures GPS coordinates
+7. **Review Responses**:
+   - Check for completeness
+   - Verify accuracy
+8. **Submit** or **Save as Draft**
+
+### 3. Survey Best Practices
+
+**Do's**:
+- ✅ Introduce yourself and explain the purpose
+- ✅ Ensure privacy during the interview
+- ✅ Read questions exactly as written
+- ✅ Be patient and respectful
+- ✅ Record responses immediately
+- ✅ Thank the respondent
+
+**Don'ts**:
+- ❌ Don't rush the respondent
+- ❌ Don't suggest answers
+- ❌ Don't skip questions
+- ❌ Don't interview the same person twice
+- ❌ Don't fabricate responses
+
+### 4. Offline Mode
+
+**When Internet is Unavailable**:
+1. System automatically switches to **offline mode**
+2. Continue conducting surveys normally
+3. Responses are **saved locally** on your device
+4. When internet returns:
+   - System automatically syncs
+   - Saved responses are uploaded
+   - You receive confirmation
+
+**Important**:
+- Don't clear browser data while offline
+- Keep device charged
+- Sync as soon as possible
+
+
+---
+
+## 🏛️ Officer Guide
+
+### Overview
+
+As an Officer (formerly called Barangay Official), you view survey results for your barangay and create Citizen Priority Action Plans (CPAP) based on community feedback.
+
+### 1. Accessing Your Dashboard
+
+**NEW: Auto-Select Feature**
+
+When you log in, the system automatically:
+1. Selects your designated barangay
+2. Locks the selection
+3. Fetches historical data for your barangay
+4. Displays your barangay's details immediately
+
+**No need to search** - your barangay is ready to view!
+
+**Dashboard Shows**:
+- Your barangay's survey progress
+- Satisfaction scores
+- CPAP status
+- Recent notifications
+
+**Default View**: Officers start with **List View** by default (easier to navigate on any device)
+
+**Switching Views**:
+1. If you want to see the map, click the **"Map"** button in the Barangay Details Card header
+2. To return to list view, click the **"List"** button
+3. Your preference is remembered during your session
+
+### 2. Viewing Survey Results
+
+**When Available**:
+- After survey target is met
+- Report card is automatically generated
+- You receive a notification
+
+**Steps**:
+1. Navigate to **Dashboard** → **Report Card**
+2. Review:
+   - **Overall Satisfaction Index**
+   - **Service Area Ratings** (6 categories)
+   - **Top Issues** identified by citizens
+   - **Demographics** breakdown
+   - **Comparison** with other barangays (optional)
+
+**Service Areas**:
+1. Financial Administration
+2. Disaster Preparedness
+3. Social Protection
+4. Safety and Peace
+5. Business-Friendly
+6. Environmental Management
+
+
+### 3. Understanding Your Report Card
+
+**Satisfaction Index**:
+- Scale: 0-100
+- 80-100: Excellent
+- 60-79: Good
+- 40-59: Fair
+- Below 40: Needs Improvement
+
+**Service Area Scores**:
+- Each service area has its own rating
+- Identifies strengths and weaknesses
+- Helps prioritize action items
+
+**Priority Issues**:
+- Top concerns raised by citizens
+- Frequency of mentions
+- Severity ratings
+- Suggested focus areas
+
+### 4. Starting Your CPAP
+
+**Eligibility**:
+- Survey target must be met
+- Report card must be generated
+- You must be assigned as officer for the barangay
+
+**Steps**:
+1. Navigate to **CPAP** → **CPAP Submission**
+2. If no CPAP exists, click **"Create a Plan"**
+3. System redirects to **Spreadsheet Editor**
+4. Begin creating action items
+
+---
+
+## 👁️ Viewer Guide
+
+### Overview
+
+As a Viewer, you have read-only access to dashboards and analytics. You can explore data but cannot make changes or create content.
+
+### What You Can Do
+
+✅ **View Dashboard**:
+- Access the main dashboard
+- See all barangays and their data
+- Use hover preview to explore
+- Click to lock and view details
+
+✅ **Switch Views**:
+- Toggle between Map View and List View
+- Default: Map View (traditional dashboard)
+- Use the toggle in the Barangay Details Card header
+
+✅ **View Analytics**:
+- Access analytics and reports
+- See trends and comparisons
+- Export data (if permitted)
+
+✅ **View Historical Data**:
+- Use cycle selector to view past periods
+- Compare performance over time
+
+### What You Cannot Do
+
+❌ Create or edit CPAPs
+❌ Manage users or settings
+❌ Conduct surveys
+❌ Assign supervisors or interviewers
+❌ Approve or review CPAPs
+
+### Using the Dashboard as a Viewer
+
+**Map View** (Default):
+1. **Hover** over barangays to preview data
+2. **Click** to lock and explore in detail
+3. Use the **cycle selector** for historical data
+4. View satisfaction scores and progress
+
+**List View** (Optional):
+1. Click the **"List"** button in the header
+2. Scroll through all barangays
+3. Search by name
+4. Click to view satisfaction index
+5. Switch back to Map anytime
+
+
+---
+
+## 📊 CPAP System Guide
+
+### What is CPAP?
+
+**Citizen Priority Action Plan (CPAP)** is a structured document that:
+- Addresses issues identified in survey results
+- Defines specific actions to improve services
+- Sets timelines and responsibilities
+- Tracks implementation progress
+
+### CPAP Spreadsheet Interface
+
+**13 Columns**:
+1. **Results/Observations** - Survey findings or community needs
+2. **Plan of Action** - Proposed solution
+3. **Activity** - Specific activity to perform
+4. **Output** - Expected deliverable (REQUIRED)
+5. **Actual Output** - What was actually delivered
+6. **Status of Accomplishment** - Current status
+7. **Implementation Schedule** - Timeline
+8. **Actual Date** - When completed
+9. **Financial Requirements** - Budget needed
+10. **Responsible Person/Office** - Who is accountable
+11. **Committed/To be Committed** - Budget allocation status
+12. **Means of Verification** - How to verify completion
+13. **Actions** - Delete row button
+
+**6 Service Areas**:
+1. Financial Administration
+2. Disaster Preparedness
+3. Social Protection
+4. Safety and Peace
+5. Business-Friendly
+6. Environmental Management
+
+### Creating Action Items
+
+**Step-by-Step**:
+
+1. **Select Service Area** - Choose the area that needs improvement
+2. **Click "Add row for [Service Area]"** - Opens a new row
+3. **Fill in the Columns** - Enter all required information
+4. **Add More Rows** - Click "Add another row" for more items
+5. **Save Your Work** - Click "Save Plan" or "Save All Changes"
+
+**Example Action Item**:
+```
+Results/Observations: "Low satisfaction with health services - 
+citizens report long wait times at health center"
+
+Plan of Action: "Improve health center efficiency and 
+reduce patient wait times"
+
+Activity: "Implement appointment scheduling system 
+and hire additional staff"
+
+Output: "Functional appointment system and 2 new 
+health workers hired"
+
+Status: "In Progress"
+
+Implementation Schedule: "January - June 2025"
+
+Financial Requirements: "₱150,000.00"
+
+Responsible Person: "Barangay Health Officer"
+
+Means of Verification: "Appointment logs, employment 
+contracts, patient satisfaction survey"
+```
+
+
+### Using AI Suggestions
+
+**What is it?**
+- AI analyzes your survey results
+- Generates recommended action items
+- Saves time in creating your CPAP
+
+**How to Use**:
+
+1. **Click "Get AI Suggestions"** - Button appears above the spreadsheet
+2. **Review the Modal** - AI generates suggestions based on your data
+3. **AI Suggestions Appear** - Rows with purple background are AI-generated
+4. **⚠️ Important Warnings**:
+   - AI suggestions may contain inaccuracies
+   - Review and edit each suggestion carefully
+   - Verify all information before saving
+   - Add or remove rows as needed
+5. **Edit AI Suggestions** - Click any cell to modify
+6. **Clear All AI Suggestions** - Click "Clear All Suggestions" to remove all
+
+**Best Practice**: Use AI suggestions as a starting point, then customize based on local context.
+
+### CPAP Status Flow
+
+```
+NOT STARTED → IN PROGRESS → SUBMITTED → APPROVED
+                                ↓
+                        REVISION REQUESTED
+                                ↓
+                           SUBMITTED
+```
+
+### Submitting Your CPAP
+
+**Before Submitting**:
+- [ ] All required fields filled (especially Output)
+- [ ] At least 1 action item created
+- [ ] Budget estimates are reasonable
+- [ ] Timelines are realistic
+- [ ] Responsible persons are confirmed
+- [ ] Reviewed for accuracy
+
+**Steps**:
+1. Click **"Submit for Review"** button
+2. Confirm submission in the dialog
+3. Status changes to **"SUBMITTED"**
+4. CPAP is locked (no more edits)
+5. Admin/Reviewer is notified
+
+### Using the Comments System
+
+**Purpose**: Communicate with admin/reviewer about your CPAP
+
+**Sending a Comment**:
+1. Look for **"Comments"** button (right side)
+2. Click to open the sidebar
+3. Type your message
+4. Press **Enter** or click **Send**
+
+**Use Cases**:
+- Explain delays or challenges
+- Ask questions about requirements
+- Provide updates on progress
+- Respond to admin feedback
+
+### Notifications
+
+**What Triggers Notifications**:
+- Admin approves your CPAP
+- Admin requests revisions
+- Admin comments on your CPAP
+- System reminders
+
+**Viewing Notifications**:
+- Red badge appears next to your profile icon
+- Badge shows count (1-9 or "9+")
+- Visit CPAP page to mark as read
+- Updates every 30 seconds
+
+
+---
+
+## 📈 Analytics & Reporting
+
+### Dashboard Overview
+
+**Key Metrics**:
+- Total surveys collected
+- Completion rate per barangay
+- Average satisfaction scores
+- Top performing barangays
+- Areas needing improvement
+
+### Interactive Map
+
+**NEW Features**:
+- **Hover to Preview**: Move mouse over barangays to see instant previews
+- **Click to Lock**: Click to select and explore in detail
+- **Color-Coded**: Visual representation of satisfaction levels
+- **Award Indicators**: SGLGB awardees are highlighted
+- **Cycle-Aware**: View data from different survey cycles
+
+**Color Coding**:
+- 🟢 Green: High satisfaction (80-100)
+- 🟡 Yellow: Moderate satisfaction (60-79)
+- 🟠 Orange: Low satisfaction (40-59)
+- 🔴 Red: Very low satisfaction (0-39)
+
+### Service Area Analysis
+
+**Deep Dive Features**:
+1. Navigate to **Analytics** → **Service Area Deep Dive**
+2. Select a service area
+3. View:
+   - Average ratings across barangays
+   - Top issues in this area
+   - Trends over time
+   - Comparison charts
+
+### Demographics Analytics
+
+**Insights Available**:
+- Satisfaction by age group
+- Satisfaction by gender
+- Geographic patterns
+- Population-based trends
+
+### Exporting Data
+
+**CSV Export**:
+1. Navigate to desired report
+2. Click **"Export to CSV"**
+3. File downloads automatically
+4. Open in Excel or Google Sheets
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+#### Issue: Can't Login
+
+**Solutions**:
+1. Check username and password (case-sensitive)
+2. Clear browser cache and cookies
+3. Try a different browser
+4. Contact admin to reset password
+5. Verify account is active
+
+#### Issue: Can't See Dashboard
+
+**Symptoms**: Dashboard menu item missing or shows error
+
+**Solutions**:
+1. Verify you have the correct role (Admin, FS, Officer, Viewer, or Developer)
+2. Interviewers do NOT have dashboard access (this is normal)
+3. Clear browser cache
+4. Contact admin if you should have access
+
+
+#### Issue: Hover Preview Not Working
+
+**Symptoms**: Hovering over barangays doesn't update the side panels
+
+**Solutions**:
+1. Ensure you're using a mouse (not touch screen)
+2. Hover directly over the barangay territory
+3. Wait a moment for the data to load
+4. Refresh the page
+5. Try a different browser
+
+#### Issue: View Toggle Not Showing
+
+**Symptoms**: Can't find Map/List toggle buttons
+
+**Solutions**:
+1. Check your role - only Officers, Admins, and Viewers have the toggle
+2. Look in the **Barangay Details Card header** (upper right)
+3. Toggle only appears in Map View (not in List View)
+4. On mobile, toggle is not available (List View only)
+
+#### Issue: Auto-Select Not Working for Officers
+
+**Symptoms**: Officer's barangay is not automatically selected
+
+**Solutions**:
+1. Verify you have a barangay designation in your profile
+2. Check that the barangay exists in the system
+3. Refresh the page
+4. Contact admin to verify your barangay assignment
+
+#### Issue: Can't See CPAP Page
+
+**Symptoms**: CPAP menu item missing or page shows error
+
+**Solutions**:
+1. Verify you have "Officer" or "Admin" role
+2. Check that you're assigned to a barangay
+3. Confirm survey target has been met
+4. Ensure active survey cycle exists
+5. Contact admin if issue persists
+
+#### Issue: Changes Not Saving
+
+**Symptoms**: Click save but data doesn't persist
+
+**Solutions**:
+1. Check internet connection
+2. Look for error messages at top of page
+3. Verify all required fields are filled
+4. Try refreshing the page
+5. Clear browser cache
+
+#### Issue: AI Suggestions Not Working
+
+**Symptoms**: Button doesn't respond or no suggestions appear
+
+**Solutions**:
+1. Ensure survey data exists for your barangay
+2. Check that report card has been generated
+3. Refresh the page and try again
+4. Clear browser cache
+5. Contact admin if ML service is down
+
+### Browser Compatibility
+
+**Recommended Browsers**:
+- ✅ Google Chrome (latest)
+- ✅ Mozilla Firefox (latest)
+- ✅ Microsoft Edge (latest)
+- ✅ Safari (latest)
+
+**Not Recommended**:
+- ❌ Internet Explorer (any version)
+- ❌ Outdated browser versions
+
+### Performance Tips
+
+**For Best Experience**:
+1. Use a modern browser (updated within last 6 months)
+2. Clear cache regularly
+3. Close unnecessary tabs
+4. Ensure stable internet connection
+5. Use desktop/laptop for CPAP creation (mobile for surveys)
+
+
+---
+
+## ❓ FAQs
+
+### General Questions
+
+**Q: What is PULSE?**
+A: PULSE (Public Understanding and Local Service Evaluation) is a digital platform for collecting citizen feedback, evaluating service delivery, and creating data-driven action plans to improve local governance.
+
+**Q: Who can use the system?**
+A: Admins, Field Supervisors, Interviewers, Officers, Viewers, and Developers. Each role has specific permissions and access levels.
+
+**Q: What's the difference between Officer and Viewer roles?**
+A: Officers can create and manage CPAPs for their barangay. Viewers have read-only access to dashboards and analytics but cannot create or edit content.
+
+**Q: Can I use it on my phone?**
+A: Yes! The system is responsive. Surveys work great on mobile. CPAP creation is better on desktop/laptop. Dashboard works on both but is optimized for desktop.
+
+### Dashboard Questions
+
+**Q: What is hover preview?**
+A: Hover your mouse over any barangay on the map to instantly see its details without clicking. The side panels update automatically.
+
+**Q: How do I lock a barangay selection?**
+A: Click on the barangay territory. A pin marker appears and the selection is locked. Click "View Details" for the full modal.
+
+**Q: Can I switch between Map and List views?**
+A: Yes, if you're an Officer, Admin, or Viewer. Look for the toggle buttons in the Barangay Details Card header (upper right).
+
+**Q: Why do I start with List View?**
+A: Officers default to List View for easier navigation. Admins and Viewers default to Map View. You can switch anytime using the toggle.
+
+**Q: Why is my barangay automatically selected?**
+A: If you're an Officer with a designated barangay, the system auto-selects it for your convenience. You can still explore other barangays.
+
+**Q: Can I view historical data?**
+A: Yes, use the cycle selector dropdown to view data from previous survey cycles.
+
+### Survey Questions
+
+**Q: How many surveys do we need to collect?**
+A: The target is set by the admin based on population size and desired margin of error. Typically 300-400 per barangay.
+
+**Q: What if we can't reach the target?**
+A: Contact your Field Supervisor or Admin. They may adjust the target or extend the deadline.
+
+**Q: Can I edit a submitted survey?**
+A: No, once submitted, surveys are locked. Review carefully before submitting.
+
+**Q: What happens to offline surveys?**
+A: They're saved on your device and automatically sync when internet is available.
+
+
+### CPAP Questions
+
+**Q: When can I start creating my CPAP?**
+A: After your barangay's survey target is met and the report card is generated. You'll receive a notification.
+
+**Q: How many action items should I include?**
+A: Recommended 3-5 items per service area that needs improvement. Focus on priority issues from survey results.
+
+**Q: Can I edit my CPAP after submission?**
+A: No, it's locked after submission. If admin requests revisions, it will be unlocked for editing.
+
+**Q: What if I need more time?**
+A: Save your work as a draft. You can continue anytime. Just don't submit until ready.
+
+**Q: Are AI suggestions mandatory?**
+A: No, they're optional. You can create your CPAP entirely manually or use AI as a starting point.
+
+**Q: How accurate are AI suggestions?**
+A: AI provides recommendations based on your survey data, but you must review and verify all information. Edit as needed.
+
+**Q: Can I delete AI suggestions?**
+A: Yes, click the trash icon on any row or use "Clear All Suggestions" to remove all AI-generated rows.
+
+**Q: What happens after my CPAP is approved?**
+A: You can start implementation and track progress by updating the status and actual output columns.
+
+### User Profile Questions
+
+**Q: How do I view someone's profile?**
+A: Admins can click on any user's name in the Users & Roles table to view their profile details.
+
+**Q: What information is shown in user profiles?**
+A: Contact info, professional info (role, barangay), account info (username, status, last login), and profile picture.
+
+**Q: Why do some profiles show a barangay logo?**
+A: Officers with barangay designations have their barangay logo displayed as a badge on their profile picture.
+
+### Technical Questions
+
+**Q: Do I need to install anything?**
+A: No, it's a web application. Just use your browser.
+
+**Q: What if I lose internet connection?**
+A: Interviewers can continue surveys in offline mode. CPAP editing requires internet.
+
+**Q: Is my data secure?**
+A: Yes, the system uses encryption and secure authentication. Only authorized users can access data.
+
+**Q: Can I export my data?**
+A: Yes, admins and authorized users can export reports to CSV or PDF.
+
+**Q: How often is data backed up?**
+A: Automatically backed up daily. Contact admin for specific backup policies.
+
+
+---
+
+## 📚 Additional Resources
+
+### Documentation Files
+
+Located in the `docs/` folder:
+
+**Recent Features**:
+- `VIEW_TOGGLE_FEATURE.md` - Map/List view toggle documentation
+- `HOVER_PREVIEW_FEATURE.md` - Hover preview functionality
+- `OFFICER_AUTO_SELECT_FEATURE.md` - Auto-select feature for officers
+- `VIEW_PROFILE_FEATURE.md` - User profile viewing
+- `ROLE_RESTRICTIONS_APPLIED.md` - Role-based access control
+
+**For Users**:
+- `CPAP_OFFICER_USER_GUIDE.md` - Detailed CPAP guide for officers
+- `CPAP_AI_SUGGESTIONS_GUIDE.md` - AI suggestions feature guide
+- `CPAP_ADMIN_USER_GUIDE.md` - CPAP guide for admins
+- `QUICK_REFERENCE.md` - Quick reference card
+
+**For Developers**:
+- `CPAP_SPREADSHEET_IMPLEMENTATION.md` - Technical details
+- `CPAP_INTERFACE_REFERENCE.md` - Interface structure
+- `ENTIRE SYSTEM WORKFLOW.md` - Complete system flow
+
+**Feature Documentation**:
+- `CPAP_COMMENTS_SYSTEM.md` - Comments feature
+- `CPAP_NOTIFICATIONS_IMPLEMENTATION.md` - Notifications system
+- `CPAP_AI_SUGGESTIONS_FEATURE.md` - AI features
+
+### Quick Reference Card
+
+See `QUICK_REFERENCE.md` for:
+- Navigation map
+- Keyboard shortcuts
+- Common actions
+- Status indicators
+- File locations
+
+---
+
+## �  Glossary
+
+**CPAP**: Citizen Priority Action Plan - A structured document outlining actions to address community needs
+
+**MOE**: Margin of Error - Statistical measure of survey accuracy
+
+**SGLGB**: Seal of Good Local Governance for Barangays - Award for high-performing barangays
+
+**Survey Cycle**: A defined period for data collection and analysis
+
+**Spot**: A specific location within a barangay where surveys are conducted
+
+**Kish Grid**: Statistical method for randomly selecting survey respondents
+
+**Field Supervisor (FS)**: Person who coordinates data collection activities
+
+**Officer**: Barangay official responsible for creating and managing CPAP (formerly called "Barangay Official")
+
+**Viewer**: User with read-only access to dashboards and analytics
+
+**Service Area**: Category of government services (6 total: Financial, Disaster, Social, Safety, Business, Environmental)
+
+**Report Card**: Summary of survey results showing satisfaction scores and priority issues
+
+**Action Item**: Specific activity in a CPAP with defined outputs, timelines, and responsibilities
+
+**Hover Preview**: Feature that shows barangay details when you hover your mouse over the map
+
+**Lock Selection**: Clicking a barangay to keep it selected for detailed viewing
+
+**View Toggle**: Buttons that let you switch between Map View and List View
+
+**Auto-Select**: Feature that automatically selects an officer's designated barangay on login
+
+---
+
+## 📄 Document Information
+
+**Document Title**: PULSE System - Complete User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**Prepared By**: PULSE Development Team
+
+**For**: Municipal Local Governance Resource Centers (MLGRC) and Partner LGUs
+
+**Status**: Official Release
+
+**Major Changes in Version 2.0**:
+- Added interactive map features (hover preview, click to lock)
+- Added view toggle for Officers, Admins, and Viewers
+- Added officer auto-select feature
+- Added user profile viewing feature
+- Updated role-based access control
+- Renamed "Barangay Official" to "Officer"
+- Added Viewer role documentation
+- Updated dashboard navigation guide
+
+
+---
+
+## 🎓 Training Checklist
+
+Use this checklist to track your training progress:
+
+### Admin Training
+- [ ] Create survey cycles
+- [ ] Award barangays
+- [ ] Set survey targets
+- [ ] Assign supervisors
+- [ ] Manage users and view profiles
+- [ ] Monitor progress using interactive map
+- [ ] Use hover preview and click to lock
+- [ ] Switch between Map and List views
+- [ ] Review CPAPs
+- [ ] Generate reports
+
+### Field Supervisor Training
+- [ ] View assignments
+- [ ] Create spots
+- [ ] Assign interviewers
+- [ ] Monitor data collection
+- [ ] Use interactive dashboard features
+- [ ] Review responses
+
+### Interviewer Training
+- [ ] View assignments
+- [ ] Conduct surveys
+- [ ] Use Kish Grid
+- [ ] Submit responses
+- [ ] Use offline mode
+
+### Officer Training
+- [ ] Understand auto-select feature
+- [ ] View survey results for your barangay
+- [ ] Switch between Map and List views
+- [ ] Create CPAP
+- [ ] Use spreadsheet interface
+- [ ] Use AI suggestions
+- [ ] Submit for review
+- [ ] Use comments
+- [ ] Track implementation
+
+### Viewer Training
+- [ ] Navigate the dashboard
+- [ ] Use hover preview feature
+- [ ] Click to lock barangay selections
+- [ ] Switch between Map and List views
+- [ ] View historical data using cycle selector
+- [ ] Access analytics and reports
+- [ ] Understand read-only limitations
+
+---
+
+**End of User Manual**
+
+For the latest version of this manual, check the root directory or `docs/` folder in the system repository.
+
+**Built with ❤️ for better local governance in the Philippines**
+

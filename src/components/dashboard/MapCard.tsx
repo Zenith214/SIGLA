@@ -15,6 +15,9 @@ interface MapCardProps {
   onCycleChange: (cycleId: number | null) => void;
   officerBarangayId?: number;
   onAutoSelectComplete?: () => void;
+  isOfficer?: boolean;
+  viewMode?: 'map' | 'list';
+  onViewModeChange?: (mode: 'map' | 'list') => void;
 }
 
 export default function MapCard({ 
@@ -24,14 +27,17 @@ export default function MapCard({
   selectedCycleId, 
   onCycleChange,
   officerBarangayId,
-  onAutoSelectComplete
+  onAutoSelectComplete,
+  isOfficer,
+  viewMode,
+  onViewModeChange
 }: MapCardProps) {
   const { activeCycle, hasActiveCycle } = useActiveCycle();
 
   return (
     <Card className="w-full h-full flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 flex-shrink-0">
-        <div className="flex flex-col space-y-1">
+        <div className="flex flex-col space-y-1 flex-1">
           <CardTitle className="text-xl font-semibold">
             Satisfaction Index Overview
             {hasActiveCycle && (
@@ -47,7 +53,7 @@ export default function MapCard({
             )}
           </p>
         </div>
-        <div className="min-w-[250px]">
+        <div className="min-w-[250px] ml-4">
           <HistoricalCycleSelector
             onCycleChange={onCycleChange}
             placeholder="Current cycle data"

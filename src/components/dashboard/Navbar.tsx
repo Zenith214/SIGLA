@@ -48,7 +48,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
   };
 
   return (
-    <nav className="bg-slate-800 px-4 sm:px-6 py-3 sm:py-4">
+    <nav className="bg-slate-800 px-4 sm:px-6 py-3 sm:py-4" data-tour="navigation-menu">
       <div className="flex items-center justify-between">
         {/* Left side - Logo */}
         <div className="flex items-center">
@@ -73,7 +73,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
           <div className="hidden lg:block text-gray-400">|</div>
           
           {/* Active Survey Cycle Display - Hidden on mobile */}
-          <div className="hidden md:block min-w-[200px]">
+          <div className="hidden md:block min-w-[200px]" data-tour="cycle-selector">
             <CycleDisplay className="text-white" />
           </div>
           
@@ -93,7 +93,7 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
                 activeView === "map" ? "text-slate-800" : "text-white"
               }`}
             >
-              Map
+              Overview
             </button>
             <button
               onClick={() => onViewChange("analytics")}
@@ -106,7 +106,9 @@ export default function Navbar({ activeView, onViewChange }: NavbarProps) {
           </div>
           
           {/* User Menu */}
-          <UserDropdown />
+          <div data-tour="user-menu">
+            <UserDropdown />
+          </div>
         </div>
       </div>
     </nav>

@@ -2,16 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
+import { Map, List } from "lucide-react";
 
 interface BarangayDetailsCardProps {
   selectedBarangay?: ApiBarangayData | null;
   isLocked?: boolean;
   selectedCycleId: number | null;
+  canToggleView?: boolean;
+  viewMode?: 'map' | 'list';
+  onViewModeChange?: (mode: 'map' | 'list') => void;
 }
 
-export default function BarangayDetailsCard({ selectedBarangay, isLocked = false, selectedCycleId }: BarangayDetailsCardProps) {
+export default function BarangayDetailsCard({ selectedBarangay, isLocked = false, selectedCycleId, canToggleView = false, viewMode, onViewModeChange }: BarangayDetailsCardProps) {
   const { activeCycle } = useActiveCycle();
   const [surveyProgress, setSurveyProgress] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -67,11 +72,36 @@ export default function BarangayDetailsCard({ selectedBarangay, isLocked = false
       <CardHeader className="flex-shrink-0 pb-2">
         <CardTitle className="text-lg font-semibold flex items-center justify-between">
           <span>{selectedBarangay ? `${selectedBarangay.name} Details` : "Barangay Details"}</span>
-          {selectedBarangay && !isLocked && (
-            <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">
-              Hover Preview
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedBarangay && !isLocked && (
+              <span className="text-xs font-normal text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                Hover Preview
+              </span>
+            )}
+            {/* View Toggle for users with toggle permission */}
+            {canToggleView && viewMode && onViewModeChange && (
+              <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => onViewModeChange('map')}
+                  className="h-7 px-2"
+                >
+                  <Map className="h-3.5 w-3.5 mr-1" />
+                  Map
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => onViewModeChange('list')}
+                  className="h-7 px-2"
+                >
+                  <List className="h-3.5 w-3.5 mr-1" />
+                  List
+                </Button>
+              </div>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-start pt-3">

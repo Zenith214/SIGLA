@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useActiveCycle } from "@/hooks/useSurveyCycle";
-import { Search, ChevronRight, Award, MapPin } from "lucide-react";
+import { Search, ChevronRight, Award, MapPin, Map, List } from "lucide-react";
 import BarangayDetailsCard from "./BarangayDetailsCard";
 import SGLGBHistoryCard from "./SGLGBHistoryCard";
 import { Progress } from '@/components/ui/progress';
@@ -36,7 +37,7 @@ const getStatusColor = (status: string | null) => {
   }
 };
 
-export default function BarangayListView() {
+export default function BarangayListView({ viewMode, onViewModeChange }: { viewMode?: 'map' | 'list', onViewModeChange?: (mode: 'map' | 'list') => void }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBarangay, setSelectedBarangay] = useState<ApiBarangayData | null>(null);
   const [barangays, setBarangays] = useState<ApiBarangayData[]>([]);
@@ -326,14 +327,39 @@ export default function BarangayListView() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4">
-        <CardTitle className="text-xl font-semibold mb-3">
-          Satisfaction Index Overview
-          {hasActiveCycle && (
-            <span className="text-sm font-normal text-blue-600 block mt-1">
-              {activeCycle?.name} ({activeCycle?.year})
-            </span>
+        <div className="flex items-start justify-between mb-3">
+          <CardTitle className="text-xl font-semibold">
+            Satisfaction Index Overview
+            {hasActiveCycle && (
+              <span className="text-sm font-normal text-blue-600 block mt-1">
+                {activeCycle?.name} ({activeCycle?.year})
+              </span>
+            )}
+          </CardTitle>
+          {/* View Toggle for Officers */}
+          {viewMode && onViewModeChange && (
+            <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
+              <Button
+                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onViewModeChange('map')}
+                className="h-8 px-3"
+              >
+                <Map className="h-4 w-4 mr-1" />
+                Map
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onViewModeChange('list')}
+                className="h-8 px-3"
+              >
+                <List className="h-4 w-4 mr-1" />
+                List
+              </Button>
+            </div>
           )}
-        </CardTitle>
+        </div>
         <p className="text-sm text-gray-600 mb-4">
           Browse and search through all barangays to view their satisfaction index status and details.
           {hasActiveCycle && (

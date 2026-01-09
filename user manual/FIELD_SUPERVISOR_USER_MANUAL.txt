@@ -1,0 +1,630 @@
+# PULSE System - Field Supervisor User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**Role:** Field Supervisor (FS)
+
+---
+
+## 📖 Table of Contents
+
+1. [Welcome Field Supervisor](#welcome-field-supervisor)
+2. [Your Responsibilities](#your-responsibilities)
+3. [Getting Started](#getting-started)
+4. [Dashboard Overview](#dashboard-overview)
+5. [Managing Survey Spots](#managing-survey-spots)
+6. [Assigning Interviewers](#assigning-interviewers)
+7. [Monitoring Progress](#monitoring-progress)
+8. [Data Quality Control](#data-quality-control)
+9. [Communication](#communication)
+10. [Troubleshooting](#troubleshooting)
+
+---
+
+## 👋 Welcome Field Supervisor
+
+As a Field Supervisor, you are the coordinator between the system administrators and the field interviewers. You manage data collection activities, create survey spots, assign interviewers, and ensure quality data is collected from your assigned barangays.
+
+### What You Can Do
+
+✅ View your assigned barangays
+✅ Create and manage survey spots
+✅ Assign interviewers to spots
+✅ Monitor data collection progress
+✅ Review submitted surveys
+✅ Track interviewer performance
+✅ Access FS Dashboard
+✅ Use interactive map features (hover preview, click to lock)
+✅ Switch between Map and List views
+✅ Generate progress reports
+
+---
+
+## 🎯 Your Responsibilities
+
+### Primary Tasks
+
+1. **Spot Management**
+   - Create survey spots in assigned barangays
+   - Define spot locations and targets
+   - Ensure geographic coverage
+
+2. **Interviewer Coordination**
+   - Assign interviewers to spots
+   - Set quotas for each interviewer
+   - Monitor their progress
+   - Provide support and guidance
+
+3. **Quality Control**
+   - Review submitted surveys
+   - Check for completeness and accuracy
+   - Flag suspicious responses
+   - Ensure data quality standards
+
+4. **Progress Monitoring**
+   - Track survey completion rates
+   - Identify bottlenecks
+   - Report issues to admin
+   - Ensure targets are met on time
+
+5. **Communication**
+   - Coordinate with interviewers
+   - Report to administrators
+   - Resolve field issues
+   - Provide feedback
+
+---
+
+## 🚀 Getting Started
+
+### First Login
+
+1. Navigate to the PULSE system URL
+2. Enter your credentials
+3. You'll see the **FS Dashboard** with your assigned barangays
+4. Familiarize yourself with the navigation menu
+
+### Navigation Menu
+
+- **Dashboard**: Main overview (limited to your role)
+- **FS Dashboard**: Your dedicated workspace
+- **Spots**: Manage survey locations
+- **Responses**: Review submitted surveys
+- **Analytics**: View reports for your barangays
+- **Profile**: Your account settings
+
+### Understanding Your Assignment
+
+**View Assigned Barangays**:
+1. Login to the system
+2. Dashboard shows your **assigned barangays**
+3. Click on a barangay to see:
+   - Survey target
+   - Current progress
+   - Assigned interviewers
+   - Spot locations
+   - Completion rate
+
+**Important**: You can only see and manage barangays assigned to you by the admin.
+
+---
+
+## 🗺️ Dashboard Overview
+
+### FS Dashboard
+
+Your dedicated dashboard shows:
+- List of assigned barangays
+- Progress for each barangay
+- Overall completion rate
+- Interviewer performance
+- Recent submissions
+- Alerts and notifications
+
+### Interactive Map Features
+
+**Hover Preview**:
+1. Move your mouse over any barangay on the map
+2. See instant preview of:
+   - Survey progress
+   - Completion percentage
+   - Number of spots
+   - Assigned interviewers
+3. Blue ring appears around hovered barangay
+
+**Click to Lock**:
+1. Click on a barangay to lock the selection
+2. Pin marker appears
+3. View detailed information
+4. Access management options
+
+**View Toggle**:
+- **Default**: Map View (geographic visualization)
+- **Alternative**: List View (tabular format)
+- Toggle buttons in Barangay Details Card header (upper right)
+- Switch based on your preference
+
+**When to use List View**:
+- Quick scanning of all barangays
+- Searching by name
+- Comparing numbers side-by-side
+- Mobile-friendly interface
+
+**When to use Map View**:
+- Geographic planning
+- Visual progress tracking
+- Spatial analysis
+- Hover preview exploration
+
+### Color Coding
+
+Barangays are color-coded by completion rate:
+- 🟢 **Green**: 80-100% complete
+- 🟡 **Yellow**: 60-79% complete
+- 🟠 **Orange**: 40-59% complete
+- 🔴 **Red**: 0-39% complete
+
+
+---
+
+## 📍 Managing Survey Spots
+
+### What is a Survey Spot?
+
+A **spot** is a specific location within a barangay where surveys will be conducted. Creating spots helps:
+- Organize data collection geographically
+- Distribute workload among interviewers
+- Ensure complete barangay coverage
+- Track progress by location
+
+### Creating a Survey Spot
+
+**Steps**:
+1. Navigate to **Spots** → **Create New Spot**
+2. Select the **Barangay** (from your assigned list)
+3. Fill in spot details:
+   - **Spot Name**: e.g., "Purok 1", "Market Area", "School Zone"
+   - **Location Description**: Detailed address or landmark
+   - **Target Respondents**: How many surveys for this spot
+   - **GPS Coordinates** (optional): Latitude and longitude
+   - **Notes** (optional): Special instructions or considerations
+4. Click **"Save Spot"**
+
+**Example Spot Setup**:
+```
+Barangay: San Jose (Total Target: 100 respondents)
+
+Spot 1: Purok 1
+Location: Near Barangay Hall, Main Road
+Target: 25 respondents
+Notes: Best time: Morning (8-11 AM)
+
+Spot 2: Market Area
+Location: Public Market, Stall Section
+Target: 25 respondents
+Notes: Best time: Afternoon (2-5 PM)
+
+Spot 3: School Zone
+Location: Elementary School vicinity
+Target: 25 respondents
+Notes: Best time: After school (3-6 PM)
+
+Spot 4: Residential Area
+Location: Purok 5, Near Chapel
+Target: 25 respondents
+Notes: Best time: Evening (5-7 PM)
+```
+
+### Best Practices for Spot Creation
+
+**Geographic Coverage**:
+- Cover all major areas of the barangay
+- Include urban and rural sections
+- Consider population density
+- Ensure accessibility
+
+**Target Distribution**:
+- Distribute targets evenly across spots
+- Adjust based on population concentration
+- Consider interviewer capacity
+- Account for difficult-to-reach areas
+
+**Location Selection**:
+- Choose high-traffic areas
+- Ensure safety for interviewers
+- Consider time of day
+- Check accessibility
+
+**Naming Convention**:
+- Use clear, recognizable names
+- Include landmarks or purok numbers
+- Be consistent across barangays
+- Avoid ambiguous names
+
+### Managing Existing Spots
+
+**View All Spots**:
+1. Go to **Spots** → **View Spots**
+2. Filter by barangay
+3. See list with:
+   - Spot name
+   - Location
+   - Target
+   - Progress
+   - Assigned interviewer
+
+**Edit a Spot**:
+1. Find the spot in the list
+2. Click **"Edit"**
+3. Modify details
+4. Click **"Save Changes"**
+
+**Delete a Spot** (use carefully):
+1. Click **"Delete"** next to the spot
+2. Confirm deletion
+3. Note: This removes the spot and may affect assignments
+
+**When to Edit Spots**:
+- Target needs adjustment
+- Location description needs clarification
+- Interviewer feedback suggests changes
+- Progress is significantly off-track
+
+---
+
+## 👥 Assigning Interviewers
+
+### Assigning Interviewers to Spots
+
+**Purpose**: Designate who will conduct surveys at each spot
+
+**Steps**:
+1. Go to **Spots** → Select a spot
+2. Click **"Assign Interviewer"**
+3. Choose an **Interviewer** from the dropdown list
+4. Set their **quota** (how many surveys they should complete)
+5. Add **instructions** (optional)
+6. Click **"Assign"**
+7. System sends notification to the interviewer
+
+**Assignment Options**:
+- One interviewer per spot (recommended)
+- Multiple interviewers per spot (for large targets)
+- One interviewer across multiple spots (if needed)
+
+### Setting Quotas
+
+**Quota Guidelines**:
+- **Daily capacity**: 10-20 surveys per interviewer per day
+- **Weekly target**: 50-100 surveys per week
+- **Consider**: Travel time, spot accessibility, respondent availability
+
+**Example Quota Setting**:
+```
+Spot: Market Area (Target: 50 respondents)
+Interviewer: Juan Dela Cruz
+Quota: 50 surveys
+Timeline: 5 days (10 surveys per day)
+```
+
+### Best Practices for Assignments
+
+**Interviewer Selection**:
+- Match interviewer skills with spot requirements
+- Consider geographic proximity
+- Account for language/dialect
+- Balance workload across team
+
+**Workload Balance**:
+- Don't overload one interviewer
+- Distribute difficult spots fairly
+- Consider interviewer experience
+- Monitor progress and adjust
+
+**Communication**:
+- Provide clear instructions
+- Share spot details and maps
+- Set expectations for timeline
+- Establish check-in schedule
+
+### Managing Assignments
+
+**View Assignments**:
+1. Go to **Spots** → **Assignments**
+2. See table showing:
+   - Interviewer name
+   - Assigned spots
+   - Quotas
+   - Progress
+   - Status
+
+**Reassign Interviewer**:
+1. Find the assignment
+2. Click **"Reassign"**
+3. Select new interviewer
+4. Confirm change
+5. Both interviewers are notified
+
+**When to Reassign**:
+- Interviewer is unavailable or sick
+- Progress is too slow
+- Quality issues arise
+- Workload rebalancing needed
+
+---
+
+## 📊 Monitoring Progress
+
+### Dashboard Monitoring
+
+**Real-Time Metrics**:
+- Total surveys collected
+- Completion rate per barangay
+- Completion rate per spot
+- Interviewer productivity
+- Daily submission trends
+
+**Using Interactive Features**:
+1. **Hover** over barangays to see quick stats
+2. **Click** to lock and view detailed breakdown
+3. Use **color coding** to identify problem areas
+4. Switch to **List View** for tabular comparison
+
+### Spot-Level Progress
+
+**View Progress by Spot**:
+1. Navigate to **Spots** → **Progress**
+2. See each spot with:
+   - Target vs. Actual
+   - Completion percentage
+   - Assigned interviewer
+   - Last submission date
+   - Status indicator
+
+**Progress Indicators**:
+- 🟢 **On Track**: Meeting or exceeding targets
+- 🟡 **Needs Attention**: Slightly behind schedule
+- 🔴 **Critical**: Significantly behind, action needed
+
+### Interviewer Performance
+
+**Track Individual Performance**:
+1. Go to **FS Dashboard** → **Interviewer Performance**
+2. View metrics for each interviewer:
+   - Total surveys submitted
+   - Daily average
+   - Completion rate
+   - Quality score
+   - Last activity
+
+**Performance Indicators**:
+- **High Performer**: Consistently meets/exceeds quota
+- **Average**: Meets quota with occasional delays
+- **Needs Support**: Frequently behind, may need help
+
+**Actions You Can Take**:
+- Recognize high performers
+- Provide support to struggling interviewers
+- Adjust quotas if needed
+- Reassign spots for better balance
+
+### Daily Monitoring Routine
+
+**Morning Check** (Start of Day):
+1. Review yesterday's submissions
+2. Check interviewer progress
+3. Identify any issues or delays
+4. Send reminders if needed
+
+**Midday Check**:
+1. Monitor real-time submissions
+2. Respond to interviewer questions
+3. Address any technical issues
+
+**Evening Review** (End of Day):
+1. Review day's total submissions
+2. Update progress reports
+3. Plan for next day
+4. Communicate with team
+
+
+---
+
+## ✅ Data Quality Control
+
+### Reviewing Submitted Surveys
+
+**Access Reviews**:
+1. Navigate to **Responses** → **Review**
+2. Filter by:
+   - Barangay
+   - Spot
+   - Interviewer
+   - Date range
+
+**What to Check**:
+- ✅ All required fields completed
+- ✅ Responses are logical and consistent
+- ✅ GPS coordinates are within barangay (if enabled)
+- ✅ No suspicious patterns (all same answers)
+- ✅ Respondent demographics are reasonable
+
+**Quality Issues to Flag**:
+- ❌ Incomplete surveys
+- ❌ Duplicate submissions
+- ❌ Suspicious patterns (all 5s or all 1s)
+- ❌ GPS coordinates outside barangay
+- ❌ Unrealistic demographics
+- ❌ Very fast completion times
+
+### Flagging Responses
+
+**How to Flag**:
+1. Find the response in review list
+2. Click **"Flag for Review"**
+3. Select reason:
+   - Incomplete
+   - Suspicious pattern
+   - GPS issue
+   - Other (specify)
+4. Add notes
+5. Click **"Submit Flag"**
+
+**What Happens Next**:
+- Admin is notified
+- Response is marked for review
+- Interviewer may be contacted
+- Response may be excluded from analysis
+
+### Providing Feedback to Interviewers
+
+**When to Provide Feedback**:
+- Quality issues detected
+- Consistent errors
+- Excellent performance
+- Process improvements needed
+
+**How to Communicate**:
+- In-person meetings
+- Phone calls
+- System messages
+- Group briefings
+
+**Feedback Examples**:
+```
+Positive: "Great work on completing your quota ahead 
+of schedule! Your surveys are thorough and accurate."
+
+Constructive: "I noticed several surveys with incomplete 
+Section 3. Please ensure all sections are completed 
+before submission."
+
+Corrective: "GPS coordinates show you're outside the 
+assigned spot. Please conduct surveys only in your 
+designated area."
+```
+
+---
+
+## 💬 Communication
+
+### With Interviewers
+
+**Regular Check-ins**:
+- Daily progress updates
+- Weekly team meetings
+- Issue resolution
+- Training refreshers
+
+**Communication Channels**:
+- Phone/SMS
+- System notifications
+- In-person meetings
+- Group chats (if available)
+
+### With Administrators
+
+**Reporting**:
+- Weekly progress reports
+- Issue escalation
+- Resource requests
+- Success stories
+
+**What to Report**:
+- Progress updates
+- Challenges and bottlenecks
+- Interviewer performance
+- Data quality concerns
+- Resource needs
+
+---
+
+## 🔧 Troubleshooting
+
+### Common FS Issues
+
+**Issue: Can't Create Spots**
+- Verify barangay is assigned to you
+- Check if survey cycle is active
+- Ensure all required fields are filled
+- Contact admin if issue persists
+
+**Issue: Interviewer Not in Dropdown**
+- Verify they have Interviewer role
+- Check if account is active
+- Refresh the page
+- Contact admin to verify user
+
+**Issue: Progress Not Updating**
+- Refresh the page
+- Check if submissions are pending sync
+- Verify interviewer is submitting correctly
+- Wait a few minutes and check again
+
+**Issue: Can't Access FS Dashboard**
+- Verify you have Field Supervisor role
+- Check if you're assigned to any barangays
+- Clear browser cache
+- Contact admin
+
+---
+
+## 📚 Best Practices
+
+### Effective Spot Management
+
+1. **Plan Ahead**: Create all spots before assigning interviewers
+2. **Be Specific**: Use clear location descriptions
+3. **Balance Targets**: Distribute evenly across spots
+4. **Stay Flexible**: Adjust as needed based on progress
+
+### Successful Interviewer Management
+
+1. **Clear Communication**: Set expectations from the start
+2. **Regular Monitoring**: Check progress daily
+3. **Timely Support**: Address issues quickly
+4. **Recognition**: Acknowledge good work
+5. **Fair Distribution**: Balance workload across team
+
+### Quality Assurance
+
+1. **Daily Reviews**: Check submissions regularly
+2. **Spot Checks**: Randomly verify survey quality
+3. **Feedback Loop**: Provide timely feedback
+4. **Documentation**: Keep records of issues and resolutions
+
+---
+
+## 📞 Quick Reference
+
+### Common Tasks
+
+| Task | Navigation | Time |
+|------|-----------|------|
+| Create Spot | Spots → Create New Spot | 3 min |
+| Assign Interviewer | Spots → Assign | 2 min |
+| Check Progress | FS Dashboard | 2 min |
+| Review Surveys | Responses → Review | 10 min |
+| Flag Response | Responses → Flag | 1 min |
+
+---
+
+## 📄 Document Information
+
+**Manual Title**: PULSE System - Field Supervisor User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**For**: Field Supervisors
+
+**Related Documents**:
+- Complete User Manual (root directory)
+- Interviewer User Manual (user manual folder)
+
+---
+
+**End of Field Supervisor User Manual**
+
+**Built with ❤️ for better local governance in the Philippines**

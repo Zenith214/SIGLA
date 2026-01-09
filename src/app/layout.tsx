@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import FirstTimeLoginWrapper from "@/components/auth/FirstTimeLoginWrapper";
 import { SurveyCycleProvider } from "@/contexts/SurveyCycleContext";
 import { ToastProviderWrapper } from "@/components/providers/ToastProviderWrapper";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import "./globals.css";
+import "../styles/intro-custom.css";
+import "intro.js/introjs.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,7 +68,9 @@ export default function RootLayout({
               <ServiceWorkerRegistration />
               <PWAUpdatePrompt />
               <OfflineIndicator />
-              {children}
+              <FirstTimeLoginWrapper>
+                {children}
+              </FirstTimeLoginWrapper>
             </SurveyCycleProvider>
           </AuthProvider>
         </ToastProviderWrapper>

@@ -1,0 +1,833 @@
+# PULSE System - Admin User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**Role:** System Administrator
+
+---
+
+## 📖 Table of Contents
+
+1. [Welcome Admin](#welcome-admin)
+2. [Your Responsibilities](#your-responsibilities)
+3. [Getting Started](#getting-started)
+4. [Dashboard Navigation](#dashboard-navigation)
+5. [Survey Cycle Management](#survey-cycle-management)
+6. [Barangay Management](#barangay-management)
+7. [User Management](#user-management)
+8. [Supervisor Assignments](#supervisor-assignments)
+9. [Monitoring & Analytics](#monitoring-analytics)
+10. [CPAP Review & Approval](#cpap-review-approval)
+11. [System Settings](#system-settings)
+12. [Troubleshooting](#troubleshooting)
+
+---
+
+## 👋 Welcome Admin
+
+As a System Administrator, you are the backbone of the PULSE system. You have full access to all features and are responsible for setting up survey cycles, managing users, monitoring progress, and ensuring the system runs smoothly.
+
+### What You Can Do
+
+✅ Create and manage survey cycles
+✅ Award barangays to cycles
+✅ Set survey targets
+✅ Create and manage user accounts
+✅ Assign field supervisors to barangays
+✅ Monitor all data collection activities
+✅ Review and approve CPAPs
+✅ Access all analytics and reports
+✅ Configure system settings
+✅ View user profiles
+✅ Switch between Map and List views
+✅ Use hover preview and interactive map features
+
+---
+
+## 🎯 Your Responsibilities
+
+### Primary Tasks
+
+1. **System Setup**
+   - Create survey cycles
+   - Award barangays
+   - Set survey targets
+   - Configure system parameters
+
+2. **User Management**
+   - Create user accounts
+   - Assign roles and permissions
+   - Manage barangay designations
+   - View user profiles
+
+3. **Coordination**
+   - Assign field supervisors
+   - Monitor data collection
+   - Track progress across barangays
+   - Ensure quality control
+
+4. **CPAP Oversight**
+   - Review submitted CPAPs
+   - Provide feedback
+   - Approve or request revisions
+   - Monitor implementation
+
+5. **Reporting**
+   - Generate system reports
+   - Analyze trends
+   - Present findings to stakeholders
+   - Export data as needed
+
+---
+
+## 🚀 Getting Started
+
+### First Login
+
+1. Navigate to the PULSE system URL
+2. Enter your admin credentials
+3. You'll see the **Dashboard** with full system overview
+4. Familiarize yourself with the navigation menu
+
+### Navigation Menu
+
+- **Dashboard**: Main overview with interactive map
+- **Analytics**: Detailed reports and analysis
+- **Settings**: System configuration
+  - Survey Cycles
+  - Barangay Awards
+  - Survey Targets
+  - Users & Roles
+  - Supervisor Assignments
+- **Admin**: Administrative functions
+  - CPAP Management
+  - System Logs
+- **Profile**: Your account settings
+
+---
+
+## 🗺️ Dashboard Navigation
+
+### Interactive Map Features
+
+Your dashboard includes powerful tools for exploring barangay data:
+
+#### Hover Preview
+
+**How to use**:
+1. Move your mouse over any barangay on the map
+2. The **Barangay Details Card** updates instantly
+3. The **SGLGB History Card** shows historical data
+4. A **blue ring** appears around the hovered barangay
+5. A **"Hover Preview"** badge shows in the details card
+
+**Benefits**:
+- Quickly scan multiple barangays
+- Compare data without clicking
+- Efficient exploration
+
+#### Click to Lock
+
+**How to use**:
+1. Click on any barangay territory
+2. The selection becomes **locked**
+3. A **pin marker** appears
+4. Click **"View Details"** for the full modal
+5. Access comprehensive barangay information
+
+**To unlock**: Click a different barangay or click the selected one again
+
+#### View Toggle
+
+**Default**: You start with **Map View** (traditional dashboard)
+
+**How to switch**:
+1. Look for toggle buttons in the **Barangay Details Card header** (upper right)
+2. Click **"Map"** for map view with side panels
+3. Click **"List"** for scrollable list of all barangays
+
+**When to use List View**:
+- Quick browsing of all barangays
+- Searching by name
+- Mobile-like interface
+- Rapid comparison
+
+**When to use Map View**:
+- Geographic visualization
+- Spatial analysis
+- Hover preview exploration
+- Traditional dashboard experience
+
+### Color Coding
+
+Barangays are color-coded by satisfaction level:
+- 🟢 **Green**: High satisfaction (80-100)
+- 🟡 **Yellow**: Moderate satisfaction (60-79)
+- 🟠 **Orange**: Low satisfaction (40-59)
+- 🔴 **Red**: Very low satisfaction (0-39)
+
+### Cycle Selector
+
+Use the dropdown to view data from different survey cycles:
+1. Click the **cycle selector** dropdown
+2. Choose a cycle to view historical data
+3. All dashboard data updates accordingly
+
+
+---
+
+## 📅 Survey Cycle Management
+
+### Creating a Survey Cycle
+
+**Purpose**: Define a new data collection period
+
+**Steps**:
+1. Navigate to **Settings** → **Survey Cycles**
+2. Click **"Create New Cycle"**
+3. Fill in the form:
+   - **Cycle Name**: e.g., "2025 Q1 Citizen Satisfaction Survey"
+   - **Year**: 2025
+   - **Start Date**: When data collection begins
+   - **End Date**: When data collection ends
+   - **Status**: Set to "Active" to enable
+   - **Description** (optional): Additional details
+4. Click **"Save Cycle"**
+
+**Best Practices**:
+- Use clear, descriptive names
+- Include year and quarter/period
+- Set realistic timelines (typically 2-3 months for data collection)
+- Only one cycle should be "Active" at a time
+- Plan cycles in advance
+
+**Example Naming Convention**:
+```
+2025 Q1 Citizen Satisfaction Survey
+2025 First Semester PULSE Survey
+2025 Annual Governance Assessment
+```
+
+### Managing Existing Cycles
+
+**View All Cycles**:
+1. Go to **Settings** → **Survey Cycles**
+2. See list of all cycles with status
+
+**Edit a Cycle**:
+1. Click **"Edit"** next to the cycle
+2. Modify details as needed
+3. Click **"Save Changes"**
+
+**Activate/Deactivate**:
+1. Find the cycle in the list
+2. Toggle the **Status** switch
+3. Confirm the change
+
+**Important**: Deactivating a cycle doesn't delete data, it just prevents new submissions.
+
+---
+
+## 🏘️ Barangay Management
+
+### Awarding Barangays to Cycle
+
+**Purpose**: Select which barangays participate in a survey cycle
+
+**Steps**:
+1. Go to **Settings** → **Barangay Awards**
+2. Select the **Survey Cycle** from dropdown
+3. You'll see a list of all barangays
+4. Check the boxes for barangays to include
+5. Click **"Save Awards"**
+
+**Options**:
+- **Award All**: Check all barangays at once
+- **Award Selected**: Choose specific barangays
+- **Remove Awards**: Uncheck to remove from cycle
+
+**Why Award Barangays?**:
+- Determines which barangays can participate
+- Controls CPAP eligibility
+- Manages phased rollouts
+- Focuses on priority areas
+
+### Setting Survey Targets
+
+**Purpose**: Define how many survey responses are needed per barangay
+
+**Steps**:
+1. Navigate to **Settings** → **Survey Targets**
+2. Select a **Barangay** from dropdown
+3. Enter the **Target Number of Respondents** (n)
+4. Enter the **Population Size**
+5. System automatically calculates **Margin of Error (MOE)**
+6. Review the MOE
+7. Adjust target if needed
+8. Click **"Save Target"**
+
+**Understanding Margin of Error**:
+- **MOE**: Statistical measure of survey accuracy
+- **Lower MOE** = More accurate results (requires more respondents)
+- **Higher MOE** = Less accurate (fewer respondents needed)
+- **Typical MOE**: 5-10% at 95% confidence level
+
+**Sample Size Guidelines**:
+
+| Population | Target (5% MOE) | Target (10% MOE) |
+|-----------|----------------|------------------|
+| 1,000 | 278 | 88 |
+| 2,500 | 333 | 93 |
+| 5,000 | 357 | 94 |
+| 10,000 | 370 | 95 |
+| 50,000+ | 381 | 96 |
+
+**Best Practices**:
+- Aim for 5% MOE for reliable results
+- Consider budget and time constraints
+- Account for non-response rates (add 10-20% buffer)
+- Be consistent across similar-sized barangays
+
+---
+
+## 👥 User Management
+
+### Creating User Accounts
+
+**Steps**:
+1. Navigate to **Settings** → **Users & Roles**
+2. Click **"Add New User"**
+3. Fill in the form:
+   - **First Name**: User's first name
+   - **Last Name**: User's last name
+   - **Email**: Valid email address
+   - **Username**: Unique username for login
+   - **Role**: Select from dropdown
+   - **Barangay Designation** (if applicable): For Officers and FS
+   - **Phone Number** (optional)
+4. Click **"Create User"**
+5. System generates a temporary password
+6. Copy the password and share securely with the user
+
+**Available Roles**:
+
+1. **Admin**: Full system access
+2. **Field Supervisor (FS)**: Manages data collection for assigned barangays
+3. **Interviewer**: Conducts surveys in assigned spots
+4. **Officer**: Creates and manages CPAP for their barangay
+5. **Viewer**: Read-only access to dashboards and analytics
+
+**Role Assignment Guidelines**:
+- **Admin**: System administrators, MLGRC staff
+- **FS**: Coordinators managing multiple barangays
+- **Interviewer**: Field workers conducting surveys
+- **Officer**: Barangay captains, council members
+- **Viewer**: LGU officials, stakeholders, researchers
+
+### Viewing User Profiles
+
+**NEW FEATURE**: Click on any user's name to view their complete profile
+
+**How to use**:
+1. Go to **Settings** → **Users & Roles**
+2. Find the user in the table
+3. Click on their **name** (blue, underlined text)
+4. A modal opens showing:
+   - **Profile Picture** (or initials if no picture)
+   - **Contact Information**: Email, phone number
+   - **Professional Information**: Role, barangay designation
+   - **Account Information**: Username, status, last login date
+
+**Special Features**:
+- Officers with barangay designation show the barangay logo as a badge on their profile picture
+- Profile pictures are displayed if uploaded, otherwise initials appear in a gradient circle
+- Last login helps track user activity
+
+**Use Cases**:
+- Verify user information before making changes
+- Check barangay assignments
+- Confirm account status
+- Review contact details
+
+### Managing Existing Users
+
+**Edit User**:
+1. Find the user in the list
+2. Click **"Edit"**
+3. Modify details
+4. Click **"Save Changes"**
+
+**Reset Password**:
+1. Click **"Reset Password"** next to the user
+2. System generates new temporary password
+3. Share with the user securely
+
+**Deactivate User**:
+1. Click **"Deactivate"** next to the user
+2. Confirm the action
+3. User can no longer log in (data is preserved)
+
+**Reactivate User**:
+1. Filter to show inactive users
+2. Click **"Reactivate"**
+3. User can log in again
+
+
+---
+
+## 📍 Supervisor Assignments
+
+### Assigning Field Supervisors to Barangays
+
+**Purpose**: Designate who manages data collection for each barangay
+
+**Steps**:
+1. Go to **Settings** → **Supervisor Assignments**
+2. Select a **Barangay** from dropdown
+3. Choose a **Field Supervisor** from the list
+4. Click **"Assign"**
+5. System sends notification to the FS
+6. FS gains access to create spots and assign interviewers
+
+**Important Notes**:
+- One FS can manage multiple barangays
+- User must have "Field Supervisor" role
+- FS can only see their assigned barangays
+- Reassignment is possible anytime
+
+**Best Practices**:
+- Assign FS based on geographic proximity
+- Consider workload balance (don't overload one FS)
+- Match FS expertise with barangay needs
+- Communicate assignments clearly
+
+### Viewing Assignments
+
+**See All Assignments**:
+1. Go to **Settings** → **Supervisor Assignments**
+2. View table showing:
+   - Barangay name
+   - Assigned supervisor
+   - Assignment date
+   - Status
+
+**Filter Options**:
+- By barangay
+- By supervisor
+- By assignment status
+
+### Reassigning Supervisors
+
+**When to Reassign**:
+- FS is unavailable or leaves
+- Workload rebalancing needed
+- Performance issues
+- Geographic reorganization
+
+**Steps**:
+1. Find the barangay in assignments list
+2. Click **"Reassign"**
+3. Select new supervisor
+4. Click **"Confirm"**
+5. Both old and new FS are notified
+
+---
+
+## 📊 Monitoring & Analytics
+
+### Dashboard Overview
+
+**Key Metrics Displayed**:
+- Total surveys collected
+- Completion rate per barangay
+- Average satisfaction scores
+- Top performing barangays
+- Areas needing improvement
+- CPAP submission status
+
+### Using the Interactive Map
+
+**Quick Monitoring**:
+1. **Hover** over barangays to see instant stats:
+   - Survey progress
+   - Satisfaction score
+   - CPAP status
+2. **Click** to lock and view detailed information
+3. Use **color coding** to identify problem areas
+4. Switch to **List View** for tabular data
+
+**Filtering Data**:
+- Select different survey cycles
+- Filter by satisfaction level
+- Sort by completion rate
+- Search by barangay name
+
+### Analytics Section
+
+**Access**:
+1. Click **"Analytics"** in main navigation
+2. Choose from available reports:
+   - Service Area Analysis
+   - Barangay Comparison
+   - Demographics Breakdown
+   - Trend Analysis
+
+**Service Area Deep Dive**:
+1. Select a service area (Financial, Disaster, Social, Safety, Business, Environmental)
+2. View:
+   - Average ratings across barangays
+   - Top issues in this area
+   - Trends over time
+   - Comparison charts
+
+**Exporting Data**:
+1. Navigate to desired report
+2. Click **"Export to CSV"** or **"Export to PDF"**
+3. File downloads automatically
+4. Open in Excel, Google Sheets, or PDF reader
+
+### Progress Tracking
+
+**Monitor Data Collection**:
+- View real-time submission counts
+- Track interviewer productivity
+- Identify lagging barangays
+- Check data quality metrics
+
+**CPAP Monitoring**:
+- See which barangays have submitted CPAPs
+- Track approval status
+- Monitor implementation progress
+- Review completion percentages
+
+---
+
+## 📋 CPAP Review & Approval
+
+### Accessing CPAP Management
+
+**Steps**:
+1. Navigate to **Admin** → **CPAP Management**
+2. Dashboard shows all CPAPs with:
+   - Barangay name
+   - Submission date
+   - Current status
+   - Action buttons
+
+**Filter Options**:
+- By status (Submitted, Approved, Revision Requested)
+- By barangay
+- By date range
+- By survey cycle
+
+### Reviewing a CPAP
+
+**Steps**:
+1. Click on a CPAP to open **Review Page**
+2. Review the spreadsheet with all action items
+3. Check each item for:
+   - **Relevance**: Does it address survey findings?
+   - **Clarity**: Are objectives and outputs clear?
+   - **Feasibility**: Can it realistically be accomplished?
+   - **Budget**: Are financial requirements justified?
+   - **Timeline**: Is the schedule achievable?
+   - **Accountability**: Are responsibilities clearly assigned?
+
+**Evaluation Criteria**:
+
+✅ **Good Action Item**:
+- Directly addresses survey feedback
+- Clear, measurable output
+- Realistic timeline
+- Justified budget
+- Specific responsible person
+- Verifiable means of verification
+
+❌ **Needs Revision**:
+- Vague or unclear objectives
+- Unrealistic timeline or budget
+- No clear responsible person
+- Doesn't address survey findings
+- Missing required fields
+
+### Providing Feedback
+
+**Using Comments**:
+1. Open **Comments** sidebar (right side)
+2. Type your feedback
+3. Be specific and constructive
+4. Press **Enter** to send
+
+**Example Feedback**:
+```
+"Item 3: Please provide more details on the budget 
+breakdown. The ₱150,000 seems high for this activity. 
+Can you itemize the costs?"
+
+"Item 5: The timeline is too ambitious. Consider 
+extending to 6 months instead of 3 months to allow 
+for proper implementation."
+
+"Overall: Good plan! The action items are well-aligned 
+with your survey results. Just need clarification on 
+Items 3 and 5 before approval."
+```
+
+**Best Practices**:
+- Be specific about what needs to change
+- Provide constructive suggestions
+- Acknowledge good work
+- Set clear expectations
+- Be timely in your responses
+
+### Making a Decision
+
+**Option 1: Approve**
+1. Click **"Approve CPAP"** button
+2. Add approval comments (optional but recommended)
+3. Confirm approval
+4. Status changes to **"APPROVED"**
+5. Barangay is notified
+6. Officer can now track implementation
+
+**Option 2: Request Revisions**
+1. Click **"Request Revisions"** button
+2. Add detailed feedback (REQUIRED)
+3. Specify exactly what needs to change
+4. Confirm request
+5. Status changes to **"REVISION_REQUESTED"**
+6. CPAP is unlocked for editing
+7. Barangay is notified with your feedback
+
+**Option 3: Reject** (rare, use sparingly)
+1. Click **"Reject CPAP"** button
+2. Provide clear rejection reasons
+3. Confirm rejection
+4. Status changes to **"REJECTED"**
+5. Barangay must start over
+
+**When to Use Each Option**:
+- **Approve**: CPAP meets all criteria, ready for implementation
+- **Request Revisions**: Good foundation but needs specific improvements
+- **Reject**: Fundamental issues, doesn't address survey findings, or completely off-track
+
+### Monitoring Implementation
+
+**After Approval**:
+1. Track progress updates from barangays
+2. Review actual outputs vs. planned outputs
+3. Monitor completion percentages
+4. Check status updates
+5. Provide support as needed
+
+**Progress Dashboard**:
+- Shows all approved CPAPs
+- Displays completion percentage per barangay
+- Highlights delayed items
+- Tracks overall implementation rate
+
+**Receiving Updates**:
+- Barangays update their CPAP status
+- You receive notifications
+- Comments alert you to issues
+- Regular reports show progress
+
+
+---
+
+## ⚙️ System Settings
+
+### General Configuration
+
+**Access**:
+1. Navigate to **Settings**
+2. Choose the configuration area
+
+**Available Settings**:
+- Survey Cycles
+- Barangay Awards
+- Survey Targets
+- Users & Roles
+- Supervisor Assignments
+- System Parameters
+
+### Data Management
+
+**Backup & Export**:
+- System automatically backs up data daily
+- Export reports as needed
+- Download raw data for analysis
+- Archive old cycles
+
+**Data Quality**:
+- Review flagged responses
+- Check for anomalies
+- Validate GPS coordinates
+- Monitor submission patterns
+
+### System Maintenance
+
+**Regular Tasks**:
+- Review system logs
+- Check for errors
+- Monitor performance
+- Update user accounts
+- Archive completed cycles
+
+**Best Practices**:
+- Perform weekly system checks
+- Review monthly reports
+- Update documentation
+- Train new users
+- Maintain communication channels
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Admin Issues
+
+#### Issue: Can't Create Survey Cycle
+
+**Solutions**:
+1. Check if you have admin permissions
+2. Ensure all required fields are filled
+3. Verify dates are in correct format
+4. Check for duplicate cycle names
+5. Clear browser cache and try again
+
+#### Issue: User Can't Access Dashboard
+
+**Solutions**:
+1. Verify user has correct role (not Interviewer)
+2. Check if account is active
+3. Confirm barangay assignment (for Officers)
+4. Reset user password
+5. Check role permissions
+
+#### Issue: Barangay Not Showing in Awards
+
+**Solutions**:
+1. Verify barangay exists in system
+2. Check if already awarded to another active cycle
+3. Refresh the page
+4. Clear browser cache
+5. Contact technical support
+
+#### Issue: CPAP Not Appearing for Review
+
+**Solutions**:
+1. Verify CPAP status is "Submitted"
+2. Check if you're viewing correct cycle
+3. Refresh the page
+4. Clear filters
+5. Check system notifications
+
+#### Issue: Hover Preview Not Working
+
+**Solutions**:
+1. Ensure you're using a mouse (not touchscreen)
+2. Hover directly over barangay territory
+3. Wait a moment for data to load
+4. Refresh the page
+5. Try a different browser
+
+#### Issue: View Toggle Not Showing
+
+**Solutions**:
+1. Verify you're on the dashboard page
+2. Look in Barangay Details Card header (upper right)
+3. Ensure you have Admin role
+4. Refresh the page
+5. Check browser compatibility
+
+---
+
+## 📚 Best Practices
+
+### Workflow Recommendations
+
+**Monthly Cycle**:
+1. **Week 1**: Plan and create survey cycle
+2. **Week 2**: Award barangays, set targets, assign supervisors
+3. **Week 3-8**: Monitor data collection
+4. **Week 9-10**: Review CPAPs
+5. **Week 11-12**: Monitor implementation
+
+**Communication**:
+- Send regular updates to stakeholders
+- Respond to user questions promptly
+- Provide clear feedback on CPAPs
+- Celebrate successes and milestones
+
+**Quality Assurance**:
+- Spot-check survey responses
+- Review interviewer performance
+- Validate data accuracy
+- Monitor system health
+
+### Tips for Success
+
+1. **Be Proactive**: Don't wait for problems, monitor regularly
+2. **Communicate Clearly**: Set expectations, provide feedback
+3. **Stay Organized**: Use filters, exports, and reports
+4. **Train Users**: Ensure everyone knows their role
+5. **Document Everything**: Keep records of decisions and changes
+6. **Use Interactive Features**: Leverage hover preview and view toggle for efficiency
+7. **Review Profiles**: Check user profiles before making assignments
+8. **Monitor Trends**: Use analytics to identify patterns
+
+---
+
+## 📞 Quick Reference
+
+### Common Tasks
+
+| Task | Navigation | Time |
+|------|-----------|------|
+| Create Survey Cycle | Settings → Survey Cycles | 5 min |
+| Award Barangays | Settings → Barangay Awards | 10 min |
+| Create User | Settings → Users & Roles | 3 min |
+| View User Profile | Settings → Users & Roles → Click Name | 1 min |
+| Assign Supervisor | Settings → Supervisor Assignments | 2 min |
+| Review CPAP | Admin → CPAP Management | 15-30 min |
+| Export Data | Analytics → Export | 2 min |
+| Check Progress | Dashboard → Hover/Click Barangays | 5 min |
+
+### Keyboard Shortcuts
+
+- **Ctrl + S**: Save (in forms)
+- **Esc**: Close modal
+- **Tab**: Navigate form fields
+- **Enter**: Submit form
+
+### Important Links
+
+- Main Dashboard: `/dashboard`
+- Analytics: `/analytics`
+- Settings: `/settings`
+- CPAP Management: `/admin/cpap`
+- User Management: `/settings/users`
+
+---
+
+## 📄 Document Information
+
+**Manual Title**: PULSE System - Admin User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**For**: System Administrators
+
+**Related Documents**:
+- Complete User Manual (root directory)
+- CPAP Admin User Guide (docs folder)
+- System Documentation (docs folder)
+
+---
+
+**End of Admin User Manual**
+
+**Built with ❤️ for better local governance in the Philippines**

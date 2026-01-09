@@ -1,0 +1,525 @@
+# PULSE System - Interviewer User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**Role:** Interviewer
+
+---
+
+## 📖 Table of Contents
+
+1. [Welcome Interviewer](#welcome-interviewer)
+2. [Your Responsibilities](#your-responsibilities)
+3. [Getting Started](#getting-started)
+4. [Conducting Surveys](#conducting-surveys)
+5. [Using the Kish Grid](#using-the-kish-grid)
+6. [Offline Mode](#offline-mode)
+7. [Managing Drafts](#managing-drafts)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+
+---
+
+## 👋 Welcome Interviewer
+
+As an Interviewer, you are the frontline data collector for the PULSE system. You conduct face-to-face surveys with community members, ensuring accurate and complete data collection that will help improve local governance.
+
+### What You Can Do
+
+✅ View your assigned spots
+✅ Conduct surveys with respondents
+✅ Use Kish Grid for respondent selection
+✅ Submit completed surveys
+✅ Save drafts for incomplete surveys
+✅ Work offline when internet is unavailable
+✅ View your progress and quotas
+
+**Important**: Your role is focused on data collection. You will NOT see the dashboard that other roles access.
+
+---
+
+## 🎯 Your Responsibilities
+
+### Primary Tasks
+
+1. **Survey Conduct**
+   - Interview selected respondents
+   - Ask questions clearly and accurately
+   - Record responses immediately
+   - Ensure complete submissions
+
+2. **Respondent Selection**
+   - Use Kish Grid method correctly
+   - Interview only the selected person
+   - Follow random selection rules
+   - No substitutions allowed
+
+3. **Data Quality**
+   - Complete all required fields
+   - Verify responses before submitting
+   - Ensure GPS accuracy (if enabled)
+   - Maintain respondent privacy
+
+4. **Quota Management**
+   - Meet assigned quotas
+   - Work within designated spots
+   - Submit surveys on time
+   - Report issues promptly
+
+5. **Professional Conduct**
+   - Be respectful and courteous
+   - Maintain confidentiality
+   - Follow ethical guidelines
+   - Represent the system professionally
+
+---
+
+## 🚀 Getting Started
+
+### First Login
+
+1. Navigate to the PULSE system URL
+2. Enter your credentials
+3. You'll see your **Survey Interface** (not the dashboard)
+4. View your assigned spots and quotas
+
+### Your Interface
+
+**Main Sections**:
+- **My Assignments**: List of assigned spots
+- **Start Survey**: Begin a new survey
+- **Drafts**: Resume incomplete surveys
+- **My Progress**: View your completion status
+- **Profile**: Your account settings
+
+### Understanding Your Assignment
+
+**View Your Spots**:
+1. Login to the system
+2. See list of **assigned spots**
+3. Each spot shows:
+   - Spot name and location
+   - Your quota
+   - Progress so far
+   - Remaining surveys needed
+   - Deadline (if set)
+
+**Example Assignment**:
+```
+Spot: Market Area, San Jose
+Location: Public Market, Stall Section
+Quota: 25 surveys
+Completed: 10
+Remaining: 15
+Deadline: January 15, 2026
+```
+
+---
+
+## 📱 Conducting Surveys
+
+### Preparation
+
+**Before Going to the Field**:
+- ✅ Charge your device fully
+- ✅ Bring backup power bank
+- ✅ Review survey questions
+- ✅ Know your spot location
+- ✅ Bring identification
+- ✅ Have contact info for supervisor
+- ✅ Test internet connection
+
+**What to Bring**:
+- Mobile device or tablet
+- Power bank
+- ID card
+- Pen and paper (backup)
+- Spot location map
+- Supervisor contact info
+
+### Starting a Survey
+
+**Steps**:
+1. Navigate to **Start Survey**
+2. Select your **Spot** from dropdown
+3. System shows survey form
+4. Begin with respondent selection
+
+### Survey Sections
+
+**Section 1: Respondent Selection (Kish Grid)**
+- Count household members
+- System selects respondent randomly
+- Interview ONLY the selected person
+
+**Section 2: Basic Information**
+- Name (optional)
+- Age
+- Gender
+- Contact information
+- Address
+
+**Section 3: Service Area Questions**
+- Financial Administration
+- Disaster Preparedness
+- Social Protection
+- Safety and Peace
+- Business-Friendly
+- Environmental Management
+
+**Section 4: Demographics**
+- Household size
+- Income level
+- Education
+- Employment
+
+**Section 5: Additional Feedback**
+- Open-ended comments
+- Suggestions
+- Concerns
+
+**Section 6: Geolocation** (if enabled)
+- Allow location access
+- System captures GPS coordinates
+- Verify accuracy
+
+### Recording Responses
+
+**Rating Scales**:
+- **1-5 Scale**: 1 = Very Dissatisfied, 5 = Very Satisfied
+- **Yes/No**: Clear binary choices
+- **Multiple Choice**: Select one option
+- **Text Fields**: Write clearly and completely
+
+**Tips for Accuracy**:
+- Read questions exactly as written
+- Don't suggest answers
+- Record immediately
+- Clarify if respondent is unsure
+- Use "Not Applicable" when appropriate
+
+### Completing the Survey
+
+**Before Submitting**:
+1. Review all sections for completeness
+2. Check that all required fields are filled
+3. Verify GPS coordinates (if enabled)
+4. Confirm respondent information
+5. Thank the respondent
+
+**Submit Options**:
+- **Submit**: Complete and send immediately
+- **Save as Draft**: Save for later completion
+
+
+---
+
+## 🎲 Using the Kish Grid
+
+### What is the Kish Grid?
+
+The **Kish Grid** is a statistical method for randomly selecting one person from a household to interview. This ensures unbiased, representative data.
+
+### How It Works
+
+**Step 1: Count Household Members**
+- Count all people living in the household
+- Include all ages (adults and children)
+- Don't count visitors or temporary guests
+
+**Step 2: System Selects Respondent**
+- Enter the number of household members
+- System uses Kish Grid algorithm
+- System tells you which person to interview
+- Example: "Interview the 3rd oldest person"
+
+**Step 3: Interview Selected Person**
+- Interview ONLY the selected person
+- No substitutions allowed
+- If person is unavailable, note it and move to next household
+- Don't interview someone else from the same household
+
+### Important Rules
+
+✅ **DO**:
+- Count accurately
+- Follow the selection exactly
+- Interview only the selected person
+- Return later if person is unavailable
+
+❌ **DON'T**:
+- Substitute with another household member
+- Interview whoever is convenient
+- Skip the Kish Grid process
+- Interview multiple people from same household
+
+### Example Scenarios
+
+**Scenario 1**:
+```
+Household: 5 members
+System selects: 2nd oldest person
+Action: Interview the 2nd oldest person in the household
+```
+
+**Scenario 2**:
+```
+Household: 3 members
+System selects: Youngest person
+Selected person: Not home
+Action: Thank them and move to next household
+```
+
+---
+
+## 📴 Offline Mode
+
+### What is Offline Mode?
+
+When internet is unavailable, the system automatically switches to **offline mode**, allowing you to continue conducting surveys. Responses are saved locally and sync when internet returns.
+
+### How It Works
+
+**Automatic Activation**:
+1. System detects no internet connection
+2. Switches to offline mode automatically
+3. You see an "Offline" indicator
+4. Continue conducting surveys normally
+
+**Data Storage**:
+- Surveys are saved on your device
+- Stored securely in browser
+- No data is lost
+- Syncs automatically when online
+
+**Syncing**:
+1. When internet returns, system detects it
+2. Saved surveys upload automatically
+3. You see sync progress
+4. Confirmation when complete
+
+### Best Practices for Offline Mode
+
+**Before Going Offline**:
+- ✅ Ensure device is fully charged
+- ✅ Test offline mode beforehand
+- ✅ Know how many surveys you'll conduct
+- ✅ Have backup plan for technical issues
+
+**While Offline**:
+- ✅ Continue surveys as normal
+- ✅ Monitor device battery
+- ✅ Don't clear browser data
+- ✅ Keep device secure
+
+**After Returning Online**:
+- ✅ Connect to internet
+- ✅ Wait for sync to complete
+- ✅ Verify all surveys uploaded
+- ✅ Check for confirmation messages
+
+### Important Warnings
+
+⚠️ **DON'T**:
+- Clear browser cache while offline
+- Close browser before syncing
+- Use multiple devices for same spot
+- Uninstall app before syncing
+
+---
+
+## 📝 Managing Drafts
+
+### Saving Drafts
+
+**When to Save as Draft**:
+- Respondent needs to pause
+- You need to take a break
+- Survey is interrupted
+- Need to verify information
+
+**How to Save**:
+1. Click **"Save as Draft"** button
+2. Draft is saved on your device
+3. You can close the survey
+4. Resume anytime
+
+### Resuming Drafts
+
+**Steps**:
+1. Go to **Drafts** section
+2. See list of saved drafts with:
+   - Respondent name (if entered)
+   - Date saved
+   - Completion percentage
+   - Spot name
+3. Click on a draft to resume
+4. Continue from where you left off
+5. Complete and submit
+
+### Managing Multiple Drafts
+
+**Best Practices**:
+- Don't accumulate too many drafts
+- Complete drafts within 24 hours
+- Delete drafts you won't complete
+- Keep drafts organized
+
+**Deleting Drafts**:
+1. Go to **Drafts** section
+2. Find the draft
+3. Click **"Delete"**
+4. Confirm deletion
+
+---
+
+## ✅ Best Practices
+
+### Interview Techniques
+
+**DO's**:
+- ✅ Introduce yourself and explain the purpose
+- ✅ Ensure privacy during the interview
+- ✅ Read questions exactly as written
+- ✅ Be patient and respectful
+- ✅ Record responses immediately
+- ✅ Thank the respondent
+- ✅ Maintain confidentiality
+
+**DON'Ts**:
+- ❌ Don't rush the respondent
+- ❌ Don't suggest answers
+- ❌ Don't skip questions
+- ❌ Don't interview the same person twice
+- ❌ Don't fabricate responses
+- ❌ Don't share respondent information
+
+### Time Management
+
+**Daily Planning**:
+- Set realistic daily goals
+- Plan your route efficiently
+- Account for travel time
+- Take breaks as needed
+- Track your progress
+
+**Typical Timeline**:
+- Survey duration: 15-20 minutes
+- Daily capacity: 10-20 surveys
+- Weekly target: 50-100 surveys
+
+### Quality Assurance
+
+**Self-Check**:
+- Review each survey before submitting
+- Ensure all required fields are complete
+- Verify GPS coordinates
+- Check for logical consistency
+- Confirm respondent information
+
+### Safety Tips
+
+**Personal Safety**:
+- Work during daylight hours
+- Inform supervisor of your location
+- Work in pairs if possible
+- Trust your instincts
+- Have emergency contacts ready
+
+**Respondent Safety**:
+- Respect their privacy
+- Don't pressure them to participate
+- Allow them to skip questions
+- Protect their information
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Issue: Can't Submit Survey**
+- Check internet connection
+- Verify all required fields are filled
+- Try saving as draft first
+- Contact supervisor if issue persists
+
+**Issue: GPS Not Working**
+- Enable location services on device
+- Allow browser to access location
+- Go outside for better signal
+- Try refreshing the page
+
+**Issue: Offline Mode Not Working**
+- Use supported browser (Chrome, Firefox)
+- Allow storage permissions
+- Don't clear browser data
+- Test before going to field
+
+**Issue: Draft Not Saving**
+- Check device storage space
+- Ensure browser allows local storage
+- Try different browser
+- Contact supervisor
+
+**Issue: Can't See My Assignments**
+- Verify you're logged in
+- Check if you have Interviewer role
+- Confirm supervisor assigned you
+- Contact supervisor
+
+---
+
+## 📞 Quick Reference
+
+### Survey Checklist
+
+Before Each Survey:
+- [ ] Device charged
+- [ ] Internet working (or offline mode ready)
+- [ ] Know spot location
+- [ ] Have ID and materials
+- [ ] Review questions
+
+During Survey:
+- [ ] Use Kish Grid correctly
+- [ ] Read questions as written
+- [ ] Record responses immediately
+- [ ] Complete all required fields
+- [ ] Verify GPS (if enabled)
+
+After Survey:
+- [ ] Review for completeness
+- [ ] Thank respondent
+- [ ] Submit or save draft
+- [ ] Update progress
+
+### Important Reminders
+
+1. **Always use Kish Grid** - No exceptions
+2. **One person per household** - Don't interview multiple
+3. **Complete all sections** - Don't skip questions
+4. **Sync when online** - Don't clear browser data
+5. **Maintain confidentiality** - Protect respondent privacy
+
+---
+
+## 📄 Document Information
+
+**Manual Title**: PULSE System - Interviewer User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**For**: Field Interviewers
+
+**Related Documents**:
+- Complete User Manual (root directory)
+- Field Supervisor User Manual (user manual folder)
+
+---
+
+**End of Interviewer User Manual**
+
+**Built with ❤️ for better local governance in the Philippines**

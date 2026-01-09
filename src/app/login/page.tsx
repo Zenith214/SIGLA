@@ -233,7 +233,7 @@ function PulseLoginContent() {
                   alt="PULSE Logo" 
                   width={800}
                   height={800}
-                  className="w-[512px] h-auto drop-shadow-2xl opacity-90 animate-spin-horizontal"
+                  className="w-[512px] h-auto drop-shadow-2xl opacity-90"
                   priority
                 />
               </div>
@@ -361,7 +361,7 @@ function PulseLoginContent() {
                 alt="PULSE Logo" 
                 width={800}
                 height={800}
-                className="w-[512px] h-auto drop-shadow-2xl opacity-90 animate-spin-horizontal"
+                className="w-[512px] h-auto drop-shadow-2xl opacity-90"
                 priority
               />
             </div>

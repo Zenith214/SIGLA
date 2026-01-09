@@ -1,0 +1,131 @@
+> *You can view a shareable published version of this Demo [here](https://rendermark.app/d/cmiyt4tcz000104i8bw0msugr)*
+
+# Welcome to RenderMark
+
+**Markdown** was created by [John Gruber](https://daringfireball.net/) in 2004, with significant contributions from Aaron Swartz. The goal was simple: create a plain text formatting syntax that's easy to read and write, and can be converted to HTML.
+
+![Markdown](https://upload.wikimedia.org/wikipedia/commons/5/57/Markdown-mark-purple.svg)
+
+## Why Markdown?
+
+Markdown has become the *de facto* standard for writing on the web. Here's why it's so popular:
+
+- **Readable** — The syntax is designed to look good as plain text
+- **Portable** — Works everywhere, from GitHub to Slack to your notes app
+- **Future-proof** — Plain text files will always be readable
+
+## Text Formatting
+
+You can make text **bold** or *italic* or even ***both***. You can also ~~strikethrough~~ text.
+
+A full markdown reference can be found [here](https://rendermark.app/markdown-cheatsheet).
+
+## Links and Images
+
+Links look like this: [Visit RenderMark](https://rendermark.app)
+
+Images use similar syntax with an exclamation mark in front.
+
+![Example GIF](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG94M3BnZmc0d3VnZjU3OHBwbHFrbGFlNGI0bWR1ejloNmxudTZhbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o6MbkWQI5OazCn8cM/giphy.gif)
+
+## Code
+
+Inline code uses backticks: `const greeting = "Hello!"`
+
+Code blocks use triple backticks with syntax highlighting:
+
+```javascript
+function welcome() {
+  console.log("Welcome to RenderMark!");
+  return true;
+}
+```
+
+```python
+def greet(name):
+    print(f"Hello, {name}!")
+
+greet("World")
+```
+
+## Lists
+
+Ordered lists:
+1. First item
+2. Second item
+3. Third item
+
+Unordered lists:
+- Apples
+- Oranges
+  - Valencia
+  - Navel
+- Bananas
+
+Task lists:
+- [x] Write documentation
+- [x] Add code examples
+- [ ] Ship it!
+
+## Tables
+
+| Feature | Syntax | Example |
+|---------|--------|---------|
+| Bold | `**text**` | **bold** |
+| Italic | `*text*` | *italic* |
+| Code | backticks | `code` |
+| Link | `[text](url)` | [link](/) |
+
+Tables can be aligned:
+
+| Left | Center | Right |
+|:-----|:------:|------:|
+| L1   | C1     | R1    |
+| L2   | C2     | R2    |
+
+## Blockquotes
+
+> "Markdown is intended to be as easy-to-read and easy-to-write as is feasible."
+>
+> — John Gruber
+
+## Collapsible Sections
+
+<details>
+<summary>Click to expand</summary>
+
+This content is hidden until you click the summary.
+
+- Hidden item 1
+- Hidden item 2
+- Hidden item 3
+
+</details>
+
+## Footnotes
+
+Here's a sentence with a footnote[^1].
+
+[^1]: This is the footnote content.
+
+## HTML in Markdown
+
+Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy, <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste.
+
+<p align="center">
+  <a href="https://github.com"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"></a>
+  <a href="https://react.dev"><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"></a>
+</p>
+
+---
+
+## Getting Started
+
+This is your demo document! Feel free to:
+
+1. **Edit** this content or start fresh
+2. **Publish** to share with anyone via a unique link
+3. **Export** to PDF, HTML, or Word format
+
+Happy writing!

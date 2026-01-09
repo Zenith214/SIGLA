@@ -33,7 +33,7 @@ export default function DashboardLayout({
       )}
       
       {/* Main content area - takes remaining height */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0" data-tour="dashboard-content">
         {/* Content area with padding that fits within remaining viewport */}
         <div className="flex-1 p-4 overflow-hidden">
           <div className="h-full w-full">

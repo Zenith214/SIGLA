@@ -1,0 +1,304 @@
+/* Custom styles for Intro.js onboarding tour */
+
+/* Prevent body shift and scrollbar issues */
+body.introjs-fixParent {
+  overflow: hidden !important;
+}
+
+html.introjs-fixParent {
+  overflow: hidden !important;
+}
+
+/* Prevent layout shift */
+.introjs-showElement {
+  position: relative !important;
+}
+
+/* But keep fixed positioned elements fixed */
+.introjs-showElement[style*="position: fixed"],
+button[data-tour="help-button"].introjs-showElement {
+  position: fixed !important;
+}
+
+/* Preserve fixed positioning for help button */
+[data-tour="help-button"] {
+  position: fixed !important;
+}
+
+/* Ensure help button stays in place during tour */
+.introjs-fixedTooltip + [data-tour="help-button"],
+.introjs-showElement[data-tour="help-button"] {
+  position: fixed !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+}
+
+@media (min-width: 768px) {
+  .introjs-fixedTooltip + [data-tour="help-button"],
+  .introjs-showElement[data-tour="help-button"] {
+    bottom: 1.5rem !important;
+    right: 1.5rem !important;
+  }
+}
+
+/* Tooltip/Popover - Let intro.js handle positioning */
+.introjs-tooltip {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-width: 400px;
+  min-width: 300px;
+  padding: 24px;
+  border: 2px solid rgba(37, 99, 235, 0.2);
+  z-index: 99999999 !important;
+}
+
+/* Center floating tooltips (no element) */
+.introjs-floating {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+}
+
+/* Ensure tooltip reference layer is on top */
+.introjs-tooltipReferenceLayer {
+  z-index: 99999999 !important;
+}
+
+/* Ensure helper layer doesn't block tooltip */
+.introjs-helperLayer {
+  z-index: 99999998 !important;
+  pointer-events: none !important;
+}
+
+/* Allow clicks through the highlighted area */
+.introjs-helperLayer * {
+  pointer-events: none !important;
+}
+
+/* But enable clicks on the tooltip */
+.introjs-tooltip,
+.introjs-tooltip * {
+  pointer-events: auto !important;
+}
+
+/* Ensure tooltip doesn't overflow viewport */
+.introjs-tooltip {
+  max-width: min(400px, calc(100vw - 40px)) !important;
+}
+
+/* Prevent horizontal scrolling */
+.introjs-fixParent {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+/* Title */
+.introjs-tooltip-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+  z-index: 99999999 !important;
+}
+
+/* Description */
+.introjs-tooltiptext {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+  margin-bottom: 20px;
+  z-index: 99999999 !important;
+}
+
+/* Progress bar */
+.introjs-progress {
+  background: #e2e8f0;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  z-index: 99999999 !important;
+}
+
+.introjs-progressbar {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Buttons */
+.introjs-button {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 20px;
+  font-size: 14px;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+  z-index: 99999999 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+.introjs-nextbutton {
+  background: #2563eb !important;
+  color: white !important;
+  text-shadow: none !important;
+  z-index: 99999999 !important;
+}
+
+.introjs-nextbutton:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.introjs-prevbutton {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  text-shadow: none !important;
+  z-index: 99999999 !important;
+}
+
+.introjs-prevbutton:hover {
+  background: #e2e8f0 !important;
+}
+
+.introjs-skipbutton {
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+  z-index: 99999999 !important;
+}
+
+.introjs-skipbutton:hover {
+  color: #64748b !important;
+}
+
+.introjs-donebutton {
+  background: #10b981 !important;
+  color: white !important;
+  text-shadow: none !important;
+  z-index: 99999999 !important;
+}
+
+.introjs-donebutton:hover {
+  background: #059669 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Overlay */
+.introjs-overlay {
+  background: rgba(0, 0, 0, 0.8) !important;
+  z-index: 99999998 !important;
+}
+
+/* Highlighted element */
+.introjs-helperLayer {
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.8), 
+              0 0 0 4px rgba(37, 99, 235, 0.5),
+              0 0 20px rgba(37, 99, 235, 0.3);
+  z-index: 99999998 !important;
+}
+
+/* Arrow */
+.introjs-arrow {
+  border-color: white;
+  z-index: 99999999 !important;
+}
+
+.introjs-arrow.top {
+  border-top-color: white;
+}
+
+.introjs-arrow.bottom {
+  border-bottom-color: white;
+}
+
+.introjs-arrow.left {
+  border-left-color: white;
+}
+
+.introjs-arrow.right {
+  border-right-color: white;
+}
+
+/* Disable pointer events on overlay */
+.introjs-fixedTooltip {
+  position: fixed !important;
+  z-index: 99999999 !important;
+}
+
+/* Button container */
+.introjs-tooltipbuttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  z-index: 99999999 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Force buttons to be on top and clickable */
+.introjs-button {
+  z-index: 99999999 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure tooltip content doesn't block buttons */
+.introjs-tooltiptext {
+  pointer-events: none !important;
+}
+
+/* But allow text selection */
+.introjs-tooltiptext * {
+  pointer-events: auto !important;
+}
+
+/* Make sure tooltip is above everything */
+.introjs-tooltip {
+  isolation: isolate !important;
+}
+
+/* Create a new stacking context for tooltip */
+.introjs-tooltipReferenceLayer {
+  isolation: isolate !important;
+}
+
+/* Ensure disableInteraction layer doesn't block tooltip */
+.introjs-disableInteraction {
+  pointer-events: none !important;
+}
+
+/* But keep the highlighted element interactive if needed */
+.introjs-showElement.introjs-relativePosition {
+  pointer-events: auto !important;
+}
+
+/* Hide bullets */
+.introjs-bullets {
+  display: none;
+}
+
+/* Ensure tooltip reference layer doesn't block clicks */
+.introjs-tooltipReferenceLayer {
+  z-index: 99999999 !important;
+}
+
+/* Make sure all interactive elements are clickable */
+.introjs-tooltip * {
+  pointer-events: auto !important;
+}

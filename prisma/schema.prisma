@@ -28,6 +28,7 @@ model User {
   status              String?   @default("Active") @db.VarChar(16)
   lastLogin           DateTime?
   barangayDesignation Int?
+  firstLogin          Boolean   @default(true)
 
   // Relations
   assignments              Assignment[]

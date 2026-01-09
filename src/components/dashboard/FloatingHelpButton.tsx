@@ -21,6 +21,7 @@ export default function FloatingHelpButton() {
         onClick={() => setIsHelpOpen(true)}
         className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
         size="sm"
+        data-tour="help-button"
       >
         <svg
           width="20"

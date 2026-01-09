@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE User Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .nav {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-bottom: 3px solid #667eea;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: white;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.8em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .section h4 {
+            color: #555;
+            font-size: 1.3em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .section p {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+            color: #555;
+        }
+
+        .about-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            margin-bottom: 30px;
+        }
+
+        .about-box p {
+            margin-bottom: 10px;
+        }
+
+        .about-box strong {
+            color: #667eea;
+        }
+
+        .role-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-left: 5px solid #764ba2;
+            transition: all 0.3s ease;
+        }
+
+        .role-card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transform: translateX(5px);
+        }
+
+        .role-header {
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        .role-header h3 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instruction-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #764ba2;
+            transition: all 0.3s ease;
+            page-break-inside: avoid;
+        }
+
+        .instruction-card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transform: translateX(5px);
+        }
+
+        .instruction-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+
+        .instruction-image:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .image-caption {
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
+        .capabilities {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .capabilities h4 {
+            color: #667eea;
+            margin-top: 0;
+        }
+
+        .capabilities ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .capabilities ul li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .capabilities ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .steps {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .steps h4 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+
+        .steps ol {
+            padding-left: 20px;
+        }
+
+        .steps ol li {
+            padding: 8px 0;
+            color: #555;
+        }
+
+        .quick-ref {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 40px;
+        }
+
+        .quick-ref h2 {
+            color: white;
+            border-bottom: 3px solid white;
+        }
+
+        .quick-ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .quick-ref-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .quick-ref-item strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .footer p {
+            color: #cbd5e0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+            }
+
+            .section h2 {
+                font-size: 1.8em;
+            }
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .note {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .note strong {
+            color: #0c5460;
+        }
+
+        /* Print Styles for A4 Paper */
+        @media print {
+            @page {
+                size: A4;
+                margin: 2cm 1.5cm;
+                /* Remove default browser headers and footers */
+                margin-top: 1.5cm;
+                margin-bottom: 1.5cm;
+            }
+
+            /* Hide browser's default header/footer */
+            @page {
+                margin-header: 0;
+                margin-footer: 0;
+            }
+
+            body {
+                background: white;
+                padding: 0;
+                font-size: 10pt;
+                line-height: 1.4;
+            }
+
+            .container {
+                max-width: 100%;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 30px 20px;
+                page-break-after: avoid;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .nav {
+                display: none; /* Hide navigation in print */
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .section {
+                page-break-inside: avoid;
+                margin-bottom: 30px;
+            }
+
+            .section h2 {
+                font-size: 1.5em;
+                page-break-after: avoid;
+                margin-top: 20px;
+            }
+
+            .section h3 {
+                font-size: 1.2em;
+                page-break-after: avoid;
+            }
+
+            .section h4 {
+                font-size: 1em;
+                page-break-after: avoid;
+            }
+
+            .role-card {
+                page-break-inside: avoid;
+                border: 1px solid #ddd;
+                margin-bottom: 20px;
+                padding: 15px;
+            }
+
+            .role-header {
+                page-break-after: avoid;
+                margin-top: 20px;
+                margin-bottom: 15px;
+            }
+
+            .instruction-card {
+                page-break-inside: avoid;
+                border: 1px solid #ddd;
+                margin-bottom: 15px;
+                padding: 15px;
+                background: #f8f9fa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .instruction-image {
+                max-width: 500px;
+                height: auto;
+                page-break-inside: avoid;
+                margin: 8px 0;
+                border: 1px solid #ddd;
+                display: block;
+            }
+
+            .role-badge {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .capabilities,
+            .steps {
+                page-break-inside: avoid;
+                margin: 10px 0;
+                padding: 10px;
+            }
+
+            .capabilities {
+                background: #f8f9fa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .steps {
+                background: white !important;
+                border: 1px solid #e0e0e0;
+            }
+
+            .steps ol {
+                margin-left: 15px;
+            }
+
+            .about-box {
+                background: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-left: 3px solid #667eea;
+                page-break-inside: avoid;
+            }
+
+            .note {
+                background: #e8f4f8 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-left: 3px solid #0c5460;
+                page-break-inside: avoid;
+            }
+
+            .quick-ref {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-before: always;
+            }
+
+            .quick-ref h2 {
+                color: white !important;
+            }
+
+            .quick-ref-item {
+                background: rgba(255, 255, 255, 0.2) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .footer {
+                background: #2d3748 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-before: avoid;
+            }
+
+            .footer p {
+                color: #cbd5e0 !important;
+            }
+
+            /* Ensure colors print correctly */
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Avoid breaking inside important elements */
+            .capabilities ul,
+            .steps ol {
+                page-break-inside: avoid;
+            }
+
+            /* Add page numbers */
+            @page {
+                @bottom-right {
+                    content: "Page " counter(page) " of " counter(pages);
+                }
+            }
+        }
+
+        /* Print button - hide when printing */
+        .print-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .print-instructions {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            z-index: 999;
+        }
+
+        @media print {
+            .print-button {
+                display: none !important;
+            }
+
+            .print-instructions {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Print Button -->
+    <button onclick="window.print()" class="print-button" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 25px; border-radius: 50px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        Print Guide
+    </button>
+
+    <!-- Print Instructions (Hidden, only visible on screen) -->
+    <div class="print-instructions" style="position: fixed; bottom: 100px; right: 30px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 300px; font-size: 12px; border-left: 4px solid #667eea;">
+        <p style="margin: 0 0 8px 0; font-weight: 600; color: #667eea;">📌 Print Tip:</p>
+        <p style="margin: 0; color: #555; line-height: 1.4;">To remove headers/footers (title, URL, date), uncheck "Headers and footers" in your browser's print settings.</p>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 PULSE User Guide</h1>
+            <p>Public Understanding and Local Service Evaluation</p>
+        </div>
+
+        <nav class="nav">
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#admin">Admin</a>
+                <a href="#supervisor">Field Supervisor</a>
+                <a href="#interviewer">Interviewer</a>
+                <a href="#officer">Officer</a>
+                <a href="#viewer">Viewer</a>
+                <a href="#quick-ref">Quick Reference</a>
+            </div>
+        </nav>
+
+        <div class="content">
+            <section id="about" class="section">
+                <h2>About PULSE</h2>
+                <div class="about-box">
+                    <p>PULSE (Public Understanding and Local Service Evaluation) is a digital platform for collecting citizen feedback on local government services in the Philippines. The system helps Municipal Local Governance Resource Centers (MLGRC) evaluate barangay performance, create data-driven action plans, and track governance improvements through surveys and analytics.</p>
+                    <p><strong>Key Features:</strong> Interactive dashboards, ML-powered analytics, survey management, CPAP (Citizen Priority Action Plan) creation, and role-based access control.</p>
+                </div>
+            </section>
+
+
+            <section id="roles" class="section">
+                <h2>User Roles & Capabilities</h2>
+
+                <!-- ADMIN ROLE -->
+                <div id="admin" class="role-header">
+                    <h3><span class="role-badge">1</span> ADMIN</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>Manage survey cycles (create, activate, view historical data)</li>
+                            <li>Manage barangays (edit information, demographics, logos)</li>
+                            <li>Create and manage user accounts with role assignments</li>
+                            <li>Assign Field Supervisors to barangays</li>
+                            <li>Set survey targets per barangay</li>
+                            <li>Review and approve CPAPs submitted by Officers</li>
+                            <li>Track SGLGB awardee status</li>
+                            <li>Export data and backups</li>
+                            <li>View all dashboards and analytics</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Create a Survey Cycle:</h4>
+                        <ol>
+                            <li>Go to Settings → Survey Cycles
+                                <img src="album/create a survey cycle - 1.png" alt="Navigate to Survey Cycles" class="instruction-image">
+                            </li>
+                            <li>Fill in the "Active Survey Cycle" form:
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Cycle Name (e.g., "PULSE Survey 2025")</li>
+                                    <li>Survey Year (select from dropdown)</li>
+                                    <li>Start Date</li>
+                                    <li>End Date</li>
+                                </ul>
+                                <img src="album/create a survey cycle - 2.png" alt="Fill in the survey cycle form" class="instruction-image">
+                            </li>
+                            <li>Click "Create New Survey Cycle" button</li>
+                            <li>The cycle is created and automatically set as active</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Edit Barangay Information:</h4>
+                        <ol>
+                            <li>Go to Settings → Barangays
+                                <img src="album/Edit Barangay Information - 1.png" alt="Navigate to Barangays" class="instruction-image">
+                            </li>
+                            <li>Find the barangay in the list</li>
+                            <li>Click the "Edit" button
+                                <img src="album/Edit Barangay Information - 3.png" alt="Click Edit button" class="instruction-image">
+                            </li>
+                            <li>Update information: population, households, captain, description</li>
+                            <li>Upload or update logo (optional)</li>
+                            <li>Click "Save"
+                                <img src="album/Edit Barangay Information - 6.png" alt="Save changes" class="instruction-image">
+                            </li>
+                        </ol>
+                        <p style="margin-top: 10px; font-size: 0.9em; color: #666;"><em>Note: Barangays are pre-loaded in the system. You can only edit their information, not add new ones.</em></p>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Create a User:</h4>
+                        <ol>
+                            <li>Go to Settings → Users & Roles
+                                <img src="album/create a user - 1.png" alt="Navigate to Users & Roles" class="instruction-image">
+                            </li>
+                            <li>Click "Add User" button (opens a modal)
+                                <img src="album/create a user - 2.png" alt="Click Add User button" class="instruction-image">
+                            </li>
+                            <li>Fill in the form:
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>First Name</li>
+                                    <li>Last Name</li>
+                                    <li>Email</li>
+                                    <li>Password</li>
+                                    <li>Role (select from dropdown: Admin, FS/Supervisor, Interviewer, Officer, Viewer)</li>
+                                    <li>Barangay Designation (only appears if role is Officer)
+                                        <img src="album/create a user - 4.png" alt="Fill in user form" class="instruction-image">
+                                    </li>
+                                    <li>Status (Active/Inactive)</li>
+                                </ul>
+                            </li>
+                            <li>Click "Save"
+                                <img src="album/create a user - 5.png" alt="Save new user" class="instruction-image">
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Assign Field Supervisor:</h4>
+                        <ol>
+                            <li>Go to Settings → Supervisor Assignments
+                                <img src="album/assign field supervisor - 1.png" alt="Navigate to Supervisor Assignments" class="instruction-image">
+                            </li>
+                            <li>Click "Assign Supervisor" button (opens a modal)
+                                <img src="album/assign field supervisor - 2.png" alt="Click Assign Supervisor button" class="instruction-image">
+                            </li>
+                            <li>Select Field Supervisor from dropdown</li>
+                            <li>Select one or more Barangays (checkboxes)
+                                <img src="album/assign field supervisor - 4.png" alt="Select supervisor and barangays" class="instruction-image">
+                            </li>
+                            <li>Survey Cycle is automatically set to active cycle</li>
+                            <li>Click "Assign Supervisor"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Set Survey Targets:</h4>
+                        <ol>
+                            <li>Go to Settings → Survey Targets
+                                <img src="album/set survey targets - 1.png" alt="Navigate to Survey Targets" class="instruction-image">
+                            </li>
+                            <li>Click "Add Target" button (opens a modal) or "Bulk Create Targets" for all barangays</li>
+                            <li>Select barangay from dropdown</li>
+                            <li>Enter target number of respondents
+                                <img src="album/set survey targets - 4 .png" alt="Fill in target form" class="instruction-image">
+                            </li>
+                            <li>Survey cycle is automatically set to active cycle</li>
+                            <li>Click "Save"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Review CPAP:</h4>
+                        <ol>
+                            <li>Go to Admin → CPAP Review
+                                <img src="album/review cpap - 1.png" alt="Navigate to CPAP Review" class="instruction-image">
+                            </li>
+                            <li>Filter by status (Submitted)
+                                <img src="album/review cpap - 2.png" alt="Filter CPAPs" class="instruction-image">
+                            </li>
+                            <li>Click on a CPAP to review
+                                <img src="album/review cpap - 3.png" alt="Select CPAP to review" class="instruction-image">
+                            </li>
+                            <li>Check action items for clarity and feasibility</li>
+                            <li>Add comments if needed
+                                <img src="album/review cpap - 5.png" alt="Review action items" class="instruction-image">
+                            </li>
+                            <li>Click "Approve CPAP" or "Request Revision"
+                                <img src="album/reviewreview cpap - 6.png" alt="Approve or request revision" class="instruction-image">
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- FIELD SUPERVISOR ROLE -->
+                <div id="supervisor" class="role-header">
+                    <h3><span class="role-badge">2</span> FIELD SUPERVISOR (FS)</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>View dashboard for your assigned barangays only</li>
+                            <li>Create survey spots (collection locations)</li>
+                            <li>Assign interviewers to spots with quotas</li>
+                            <li>Monitor survey progress and interviewer performance</li>
+                            <li>View analytics for your barangays</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Create a Spot:</h4>
+                        <ol>
+                            <li>Navigate to your FS Dashboard or Spot Allocation section</li>
+                            <li>Click "Create Spot" button (opens a modal)</li>
+                            <li>Fill in the form:
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Spot Name (e.g., "Purok 1 - Main Road")</li>
+                                    <li>Select Barangay from your assigned barangays</li>
+                                    <li>GPS coordinates (optional - can click map to set)</li>
+                                    <li>Random Start Number (1-999 for systematic sampling)</li>
+                                    <li>Number of questionnaires is fixed at 5 per spot</li>
+                                </ul>
+                            </li>
+                            <li>Click "Create Spot"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Assign Interviewer to Spot:</h4>
+                        <ol>
+                            <li>Go to Spots section</li>
+                            <li>Find your spot</li>
+                            <li>Click "Assign Interviewer"</li>
+                            <li>Select interviewer from dropdown</li>
+                            <li>Set quota (number of surveys)</li>
+                            <li>Click "Save"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Monitor Progress:</h4>
+                        <ol>
+                            <li>Access your FS Dashboard</li>
+                            <li>View completion percentage per barangay</li>
+                            <li>Check spot-level progress</li>
+                            <li>Track individual interviewer productivity</li>
+                            <li>Identify spots falling behind schedule</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- INTERVIEWER ROLE -->
+                <div id="interviewer" class="role-header">
+                    <h3><span class="role-badge">3</span> INTERVIEWER</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>View your assigned spots</li>
+                            <li>Conduct face-to-face surveys with citizens</li>
+                            <li>Use Kish Grid method for respondent selection</li>
+                            <li>Geotag survey locations</li>
+                            <li>Submit surveys online or offline</li>
+                            <li>Track your quota completion</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Start a Survey:</h4>
+                        <ol>
+                            <li>Log in and go to Survey page</li>
+                            <li>Click "My Spots" tab</li>
+                            <li>Select your assigned spot</li>
+                            <li>Click "Start New Survey"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Use Kish Grid (Respondent Selection):</h4>
+                        <ol>
+                            <li>Ask: "How many people aged 18+ live here?"</li>
+                            <li>Enter the number</li>
+                            <li>List all eligible members by age (oldest to youngest)</li>
+                            <li>System automatically selects one person</li>
+                            <li>Interview only that person (no substitutions)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="note">
+                        <strong>Survey Sections:</strong> Complete all 6 service areas - Financial Administration, Disaster Preparedness, Social Protection, Safety and Peace, Business-Friendly, and Environmental Management.
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Geotag Location:</h4>
+                        <ol>
+                            <li>When prompted, click "Get Current Location"</li>
+                            <li>Allow browser to access your location</li>
+                            <li>Wait for GPS accuracy under 20 meters</li>
+                            <li>Verify coordinates are correct</li>
+                            <li>If GPS unavailable, manually enter coordinates</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Submit Survey:</h4>
+                        <ol>
+                            <li>Review all answers for completeness</li>
+                            <li>Add remarks if needed</li>
+                            <li>Click "Submit" (or "Save as Draft" to continue later)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Work Offline:</h4>
+                        <ol>
+                            <li>Surveys automatically save locally when offline</li>
+                            <li>Continue surveying normally</li>
+                            <li>When connection returns, surveys auto-sync</li>
+                            <li>Check for sync notification before closing browser</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- OFFICER ROLE -->
+                <div id="officer" class="role-header">
+                    <h3><span class="role-badge">4</span> OFFICER</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>View survey results for your designated barangay</li>
+                            <li>View satisfaction index and service area scores</li>
+                            <li>Access detailed report card with AI-generated insights</li>
+                            <li>Create Citizen Priority Action Plans (CPAP)</li>
+                            <li>Use AI suggestions for action items</li>
+                            <li>Submit CPAP for admin review</li>
+                            <li>Track implementation progress</li>
+                            <li>Respond to admin feedback</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>View Your Dashboard:</h4>
+                        <ol>
+                            <li>Log in (dashboard loads automatically)</li>
+                            <li>Your barangay is highlighted on the map</li>
+                            <li>View satisfaction index and service area scores</li>
+                            <li>Click "View Report Card" for detailed analysis</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Create a CPAP:</h4>
+                        <ol>
+                            <li>Go to CPAP page</li>
+                            <li>System creates CPAP automatically if none exists</li>
+                            <li>Click "Add Item" to manually add action items</li>
+                            <li>Or click "Get AI Suggestions" for ML-powered recommendations</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Add Action Item Manually:</h4>
+                        <ol>
+                            <li>Click "Add Item"</li>
+                            <li>Select service area</li>
+                            <li>Fill in required fields (Results/Observations, Plan of Action, Activity, <span class="highlight">Output (required)</span>, Implementation Schedule, Financial Requirements, Responsible Person/Office, Means of Verification)</li>
+                            <li>Click "Save"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Use AI Suggestions:</h4>
+                        <ol>
+                            <li>Click "Get AI Suggestions"</li>
+                            <li>Review suggestions organized by timeframe (short/medium/long-term)</li>
+                            <li>Click "Add to CPAP" on relevant suggestions</li>
+                            <li>Edit as needed</li>
+                            <li>Click "Save"</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Submit CPAP for Review:</h4>
+                        <ol>
+                            <li>Ensure all action items have required "Output" field filled</li>
+                            <li>Click "Submit for Review"</li>
+                            <li>Confirm submission</li>
+                            <li>Status changes to "Submitted"</li>
+                            <li>Wait for admin review</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Track Implementation (After Approval):</h4>
+                        <ol>
+                            <li>Update "Actual Output" field with what was achieved</li>
+                            <li>Update "Status of Accomplishment" (Ongoing/Delayed/Completed)</li>
+                            <li>Enter "Actual Date" when completed</li>
+                            <li>Update regularly (monthly recommended)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- VIEWER ROLE -->
+                <div id="viewer" class="role-header">
+                    <h3><span class="role-badge">5</span> VIEWER</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>View interactive dashboard (map and list views)</li>
+                            <li>View all barangay data and satisfaction scores</li>
+                            <li>Access analytics and reports</li>
+                            <li>View report cards</li>
+                            <li>Export data to CSV</li>
+                            <li><strong>Cannot edit, create, or submit anything</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Navigate Dashboard:</h4>
+                        <ol>
+                            <li>Log in (dashboard loads automatically)</li>
+                            <li>Hover over barangays on map for quick preview</li>
+                            <li>Click barangay to lock selection and view details</li>
+                            <li>Switch between Map View and List View</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>View Analytics:</h4>
+                        <ol>
+                            <li>Click Analytics tab</li>
+                            <li>Explore Dashboard Summary (KPIs, leaderboards, trends)</li>
+                            <li>View Service Area Deep Dive (detailed performance)</li>
+                            <li>Check Demographics Analytics (age, gender, occupation)</li>
+                            <li>Review Award Leaderboard (SGLGB awardees)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="instruction-card">
+                    <div class="steps">
+                        <h4>Export Data:</h4>
+                        <ol>
+                            <li>Navigate to desired report or analytics</li>
+                            <li>Click "Export to CSV"</li>
+                            <li>File downloads automatically</li>
+                            <li>Open in Excel or other spreadsheet software</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- DEVELOPER ROLE -->
+                <div class="role-header">
+                    <h3><span class="role-badge">6</span> DEVELOPER</h3>
+                    
+                    <div class="capabilities">
+                        <h4>What You Can Do:</h4>
+                        <ul>
+                            <li>Same as Admin (full system access for testing and development)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="quick-ref" class="quick-ref">
+                <h2>Quick Reference</h2>
+                <div class="quick-ref-grid">
+                    <div class="quick-ref-item">
+                        <strong>Login</strong>
+                        Use your assigned email and password
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>First-Time Login</strong>
+                        You may be prompted to change your password
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>Dashboard</strong>
+                        Interactive map or list view of barangays
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>Settings</strong>
+                        Admin-only system configuration
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>Survey Cycle</strong>
+                        All data is tied to the active survey cycle
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>Offline Mode</strong>
+                        Interviewers can survey without internet (auto-syncs later)
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>CPAP Workflow</strong>
+                        Draft → Submitted → Approved (or Revision Requested)
+                    </div>
+                    <div class="quick-ref-item">
+                        <strong>Satisfaction Index</strong>
+                        0-100 score (80-100 Excellent, 60-79 Good, 40-59 Fair, 20-39 Poor, 0-19 Critical)
+                    </div>
+                </div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <strong>Support:</strong> Contact your system administrator for technical issues or training
+                </div>
+            </section>
+        </div>
+
+        <div class="footer">
+            <p><strong>Version 1.0 | January 7, 2026 | PULSE Development Team</strong></p>
+            <p>Public Understanding and Local Service Evaluation</p>
+        </div>
+    </div>
+</body>
+</html>

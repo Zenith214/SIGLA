@@ -6,6 +6,7 @@ export interface User {
   role: string;
   profilePicture?: string;
   barangayDesignation?: number;
+  firstLogin?: boolean;
 }
 
 export interface LoginCredentials {
@@ -100,6 +101,7 @@ export async function getCurrentUser(): Promise<User | null> {
           role: userData.role,
           profilePicture: userData.profilePicture,
           barangayDesignation: userData.barangayDesignation,
+          firstLogin: userData.firstLogin,
         };
       } catch (jsonError) {
         console.error('Failed to parse user data:', jsonError);

@@ -1,0 +1,68 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAuth } from "./AuthProvider";
+import FirstTimePasswordChangeModal from "./FirstTimePasswordChangeModal";
+import OnboardingTour from "./OnboardingTour";
+
+interface FirstTimeLoginWrapperProps {
+  children: React.ReactNode;
+}
+
+export default function FirstTimeLoginWrapper({ children }: FirstTimeLoginWrapperProps) {
+  const { user, refreshUser } = useAuth();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [startTour, setStartTour] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
+
+  useEffect(() => {
+    // Check if user is first-time login
+    if (user && !hasChecked) {
+      setHasChecked(true);
+      
+      // Check if user has firstLogin flag set to true
+      if ((user as any).firstLogin === true) {
+        setShowPasswordModal(true);
+      } else {
+        // Check if tour should be shown
+        const tourCompleted = localStorage.getItem('onboardingTourCompleted');
+        if (!tourCompleted && window.location.pathname === '/dashboard') {
+          // Small delay to ensure page is fully loaded
+          setTimeout(() => setStartTour(true), 1000);
+        }
+      }
+    }
+  }, [user, hasChecked]);
+
+  const handlePasswordChangeSuccess = async () => {
+    setShowPasswordModal(false);
+    
+    // Refresh user data to get updated firstLogin status
+    await refreshUser();
+    
+    // Start tour after password change if on dashboard
+    const tourCompleted = localStorage.getItem('onboardingTourCompleted');
+    if (!tourCompleted && window.location.pathname === '/dashboard') {
+      setTimeout(() => setStartTour(true), 1000);
+    }
+  };
+
+  const handleTourComplete = () => {
+    setStartTour(false);
+    localStorage.setItem('onboardingTourCompleted', 'true');
+  };
+
+  return (
+    <>
+      {children}
+      <FirstTimePasswordChangeModal
+        isOpen={showPasswordModal}
+        onSuccess={handlePasswordChangeSuccess}
+      />
+      <OnboardingTour
+        shouldStart={startTour}
+        onComplete={handleTourComplete}
+      />
+    </>
+  );
+}

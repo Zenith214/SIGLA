@@ -1,0 +1,666 @@
+# PULSE System - Officer User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**Role:** Barangay Officer
+
+---
+
+## 📖 Table of Contents
+
+1. [Welcome Officer](#welcome-officer)
+2. [Getting Started](#getting-started)
+3. [Dashboard Features](#dashboard-features)
+4. [Understanding Your Report Card](#understanding-your-report-card)
+5. [Creating Your CPAP](#creating-your-cpap)
+6. [Using AI Suggestions](#using-ai-suggestions)
+7. [Submitting for Review](#submitting-for-review)
+8. [Tracking Implementation](#tracking-implementation)
+9. [Best Practices](#best-practices)
+10. [Troubleshooting](#troubleshooting)
+
+---
+
+## 👋 Welcome Officer
+
+As a Barangay Officer, you are responsible for creating and implementing the Citizen Priority Action Plan (CPAP) for your barangay. You use survey results from your community to develop data-driven action plans that improve local governance and service delivery.
+
+### What You Can Do
+
+✅ View your barangay's survey results
+✅ Access your barangay's report card
+✅ Create and edit CPAP
+✅ Use AI suggestions for action items
+✅ Submit CPAP for review
+✅ Track implementation progress
+✅ Communicate with reviewers via comments
+✅ View dashboard with auto-selected barangay
+✅ Switch between Map and List views
+✅ Use hover preview and interactive map
+
+---
+
+## 🚀 Getting Started
+
+### First Login
+
+1. Navigate to the PULSE system URL
+2. Enter your credentials
+3. Dashboard loads with **your barangay automatically selected**
+4. See your barangay's data immediately
+
+### NEW: Auto-Select Feature
+
+**What happens when you login**:
+1. System identifies your designated barangay
+2. Automatically selects and locks your barangay
+3. Fetches historical data
+4. Displays your barangay's details in the side panels
+
+**Benefits**:
+- No need to search for your barangay
+- Instant access to your data
+- Saves time on every login
+- Reduces confusion
+
+**Note**: You can still explore other barangays by clicking on them or searching.
+
+### Navigation Menu
+
+- **Dashboard**: Main overview (starts with List View by default)
+- **Analytics**: Detailed reports for your barangay
+- **CPAP**: Create and manage your action plan
+- **Profile**: Your account settings
+
+---
+
+## 🗺️ Dashboard Features
+
+### Default View: List View
+
+**Why List View?**
+- Easier to navigate on any device
+- Mobile-friendly interface
+- Quick access to barangay information
+- Simplified data presentation
+
+**What you see**:
+- Scrollable list of all barangays
+- Search functionality
+- Your barangay highlighted (if awardee)
+- Click any barangay to view details
+
+### Switching to Map View
+
+**How to switch**:
+1. Look for toggle buttons in the **Barangay Details Card header** (upper right)
+2. Click **"Map"** to see the geographic visualization
+3. Click **"List"** to return to list view
+
+**When to use Map View**:
+- Geographic context needed
+- Visual exploration
+- Hover preview features
+- Spatial analysis
+
+**When to use List View**:
+- Quick browsing
+- Searching by name
+- Mobile device
+- Simplified interface
+
+### Interactive Map Features (Map View)
+
+**Hover Preview**:
+1. Move mouse over any barangay
+2. See instant preview of data
+3. Blue ring appears around barangay
+4. Side panels update automatically
+
+**Click to Lock**:
+1. Click on a barangay
+2. Selection locks with pin marker
+3. Click "View Details" for full modal
+4. Access comprehensive information
+
+### Color Coding
+
+Barangays are color-coded by satisfaction level:
+- 🟢 **Green**: High satisfaction (80-100)
+- 🟡 **Yellow**: Moderate satisfaction (60-79)
+- 🟠 **Orange**: Low satisfaction (40-59)
+- 🔴 **Red**: Very low satisfaction (0-39)
+
+---
+
+## 📊 Understanding Your Report Card
+
+### When is it Available?
+
+Your report card is generated after:
+- Survey target is met
+- Data is processed and analyzed
+- Admin activates the report
+- You receive a notification
+
+### Accessing Your Report Card
+
+**Steps**:
+1. Navigate to **Dashboard**
+2. Your barangay is already selected
+3. Click **"View Report Card"** or **"View Details"**
+4. Report card modal opens
+
+### Report Card Sections
+
+**1. Overall Satisfaction Index**
+- Scale: 0-100
+- Shows overall community satisfaction
+- Color-coded indicator
+- Comparison with cutoff (58%)
+
+**Interpretation**:
+- **80-100**: Excellent - Community is very satisfied
+- **60-79**: Good - Generally positive feedback
+- **58-59**: Passing - Meets minimum threshold
+- **40-57**: Fair - Needs improvement
+- **0-39**: Poor - Significant issues to address
+
+**2. Service Area Ratings**
+
+Six service areas evaluated:
+1. **Financial Administration**: Budget transparency, financial management
+2. **Disaster Preparedness**: Emergency response, risk reduction
+3. **Social Protection**: Health, education, social services
+4. **Safety and Peace**: Crime prevention, conflict resolution
+5. **Business-Friendly**: Permits, business support
+6. **Environmental Management**: Waste management, environmental protection
+
+Each area shows:
+- Satisfaction percentage
+- Number of respondents
+- Top issues mentioned
+- Priority level
+
+**3. Action Grid**
+
+Categorizes services into four quadrants:
+- **MAINTAIN** (Green): High satisfaction, low need for action
+- **OPPORTUNITIES** (Blue): High satisfaction, high need for action
+- **MONITOR** (Yellow): Low satisfaction, low need for action
+- **FIX NOW** (Red): Low satisfaction, high need for action
+
+**4. Priority Issues**
+- Top concerns raised by citizens
+- Frequency of mentions
+- Severity ratings
+- Suggested focus areas
+
+**5. Demographics**
+- Age distribution
+- Gender breakdown
+- Geographic patterns
+- Household characteristics
+
+
+---
+
+## 📝 Creating Your CPAP
+
+### What is CPAP?
+
+**Citizen Priority Action Plan (CPAP)** is a structured document that:
+- Addresses issues identified in survey results
+- Defines specific actions to improve services
+- Sets timelines and responsibilities
+- Tracks implementation progress
+
+### When Can You Start?
+
+**Eligibility**:
+- ✅ Survey target is met
+- ✅ Report card is generated
+- ✅ You're assigned as officer for the barangay
+- ✅ Barangay is awarded to active cycle
+
+### Starting Your CPAP
+
+**Steps**:
+1. Navigate to **CPAP** → **CPAP Submission**
+2. If no CPAP exists, click **"Create a Plan"**
+3. System redirects to **Spreadsheet Editor**
+4. Begin creating action items
+
+### CPAP Spreadsheet Structure
+
+**13 Columns**:
+1. **Results/Observations** - Survey findings
+2. **Plan of Action** - Proposed solution
+3. **Activity** - Specific activity
+4. **Output** - Expected deliverable (REQUIRED)
+5. **Actual Output** - What was delivered
+6. **Status of Accomplishment** - Current status
+7. **Implementation Schedule** - Timeline
+8. **Actual Date** - When completed
+9. **Financial Requirements** - Budget needed
+10. **Responsible Person/Office** - Who is accountable
+11. **Committed/To be Committed** - Budget status
+12. **Means of Verification** - How to verify
+13. **Actions** - Delete row button
+
+**6 Service Areas**:
+1. Financial Administration
+2. Disaster Preparedness
+3. Social Protection
+4. Safety and Peace
+5. Business-Friendly
+6. Environmental Management
+
+### Creating Action Items
+
+**Step-by-Step**:
+
+1. **Select Service Area**
+   - Choose area needing improvement
+   - Based on your report card
+
+2. **Click "Add row for [Service Area]"**
+   - Opens new row in spreadsheet
+
+3. **Fill in Required Fields**:
+
+**Results/Observations**:
+```
+Example: "Low satisfaction with health services (45%). 
+Citizens report long wait times at health center and 
+lack of available medicines."
+```
+
+**Plan of Action**:
+```
+Example: "Improve health center efficiency and ensure 
+adequate medicine supply"
+```
+
+**Activity**:
+```
+Example: "1) Implement appointment scheduling system
+2) Hire additional health worker
+3) Establish medicine inventory system"
+```
+
+**Output** (REQUIRED):
+```
+Example: "Functional appointment system, 1 new health 
+worker hired, medicine inventory system operational"
+```
+
+**Implementation Schedule**:
+```
+Example: "January - June 2026"
+```
+
+**Financial Requirements**:
+```
+Example: "₱200,000.00
+- Appointment system: ₱50,000
+- Health worker salary: ₱120,000
+- Inventory system: ₱30,000"
+```
+
+**Responsible Person/Office**:
+```
+Example: "Barangay Health Officer / Health Committee"
+```
+
+**Means of Verification**:
+```
+Example: "Appointment logs, employment contract, 
+inventory records, patient satisfaction survey"
+```
+
+4. **Add More Rows** as needed (3-5 per service area recommended)
+
+5. **Save Your Work** - Click "Save Plan" or "Save All Changes"
+
+### Tips for Good Action Items
+
+✅ **DO**:
+- Address specific issues from survey
+- Set realistic timelines
+- Assign clear responsibilities
+- Define measurable outputs
+- Justify budget requests
+- Include verification methods
+
+❌ **DON'T**:
+- Be vague or general
+- Set unrealistic goals
+- Leave fields blank
+- Ignore survey findings
+- Overestimate budget
+- Forget to save
+
+---
+
+## 🤖 Using AI Suggestions
+
+### What is AI Suggestions?
+
+AI analyzes your survey results and generates recommended action items automatically, saving you time and providing data-driven suggestions.
+
+### How to Use AI Suggestions
+
+**Steps**:
+1. Click **"Get AI Suggestions"** button (above spreadsheet)
+2. System analyzes your survey data
+3. Modal shows how many suggestions were created
+4. Click **"OK"**
+5. AI-generated rows appear with **purple background**
+6. Warning banner appears at top
+
+### Understanding AI Suggestions
+
+**What AI Provides**:
+- Service area identification
+- Observation based on survey data
+- Suggested plan of action
+- Recommended output
+- Estimated timeline
+- Suggested verification methods
+
+**What AI Does NOT Provide**:
+- Specific budget amounts (you must add)
+- Responsible person names (you must assign)
+- Local context (you must customize)
+- Final decision (you have full control)
+
+### Editing AI Suggestions
+
+**How to Edit**:
+1. Click on any cell in purple row
+2. Modify the text
+3. Add missing information
+4. Customize for local context
+5. Save changes
+
+**What to Customize**:
+- Budget amounts (AI doesn't know local costs)
+- Responsible persons (assign specific names)
+- Timeline (adjust for local capacity)
+- Activities (add specific local actions)
+- Verification methods (add local procedures)
+
+### Managing AI Suggestions
+
+**Accept Suggestions**:
+- Edit as needed
+- Fill in missing fields
+- Save the plan
+
+**Reject Suggestions**:
+- Click trash icon on individual rows
+- Or click "Clear All Suggestions" to remove all
+
+**Mix and Match**:
+- Keep some AI suggestions
+- Delete others
+- Add your own manual rows
+- Create hybrid plan
+
+### Important Warnings
+
+⚠️ **AI Limitations**:
+- May contain inaccuracies
+- Doesn't know local context
+- Budget estimates may be off
+- Requires human review
+- Not a replacement for your judgment
+
+✅ **Your Responsibility**:
+- Review every suggestion
+- Verify accuracy
+- Customize for local needs
+- Add missing details
+- Make final decisions
+
+---
+
+## 📤 Submitting for Review
+
+### Before Submitting
+
+**Checklist**:
+- [ ] All required fields filled (especially Output)
+- [ ] At least 1 action item per priority service area
+- [ ] Budget estimates are reasonable
+- [ ] Timelines are realistic
+- [ ] Responsible persons are confirmed
+- [ ] Means of verification are clear
+- [ ] Reviewed for accuracy
+- [ ] Saved all changes
+
+### Submission Process
+
+**Steps**:
+1. Click **"Submit for Review"** button (top right)
+2. Review submission confirmation dialog
+3. Click **"Confirm Submission"**
+4. Status changes to **"SUBMITTED"**
+5. CPAP is locked (no more edits)
+6. Admin/Reviewer is notified
+
+### What Happens Next?
+
+**Admin Reviews Your CPAP**:
+1. Admin receives notification
+2. Reviews your action items
+3. May add comments or questions
+4. Makes a decision
+
+**Possible Outcomes**:
+
+**1. Approved** ✅
+- You receive notification
+- Can start implementation
+- Track progress in spreadsheet
+
+**2. Revision Requested** 🔄
+- You receive notification with feedback
+- CPAP is unlocked
+- Make requested changes
+- Resubmit for review
+
+**3. Rejected** ❌ (rare)
+- You receive notification with reasons
+- Must start over
+- Contact admin for guidance
+
+### Using Comments
+
+**Purpose**: Communicate with admin/reviewer
+
+**How to Use**:
+1. Click **"Comments"** button (right side)
+2. Sidebar opens
+3. Type your message
+4. Press **Enter** or click **Send**
+
+**When to Comment**:
+- Ask questions about requirements
+- Explain challenges or delays
+- Provide additional context
+- Respond to admin feedback
+- Share updates
+
+**Example Comments**:
+```
+"We're having difficulty finding a contractor for 
+Item 3. Can we extend the timeline by one month?"
+
+"Item 5 budget was estimated based on quotes from 
+three local suppliers. Happy to provide documentation."
+
+"Thank you for the feedback! I've updated Items 2 and 4 
+as requested. Ready for re-review."
+```
+
+---
+
+## 📈 Tracking Implementation
+
+### After Approval
+
+Once your CPAP is approved, you can track implementation progress:
+
+**Steps**:
+1. Navigate to **CPAP** → **CPAP Submission**
+2. Click **"Edit in Spreadsheet View"**
+3. Update these columns:
+   - **Actual Output**: What was actually delivered
+   - **Status of Accomplishment**: Current status
+   - **Actual Date**: When completed
+4. Click **"Save All Changes"**
+
+### Status Options
+
+- **Not Started**: No work has begun
+- **In Progress**: Currently working on it
+- **Completed**: Finished successfully
+- **Delayed**: Behind schedule, needs attention
+
+### Progress Tracking
+
+**System Calculates**:
+- Overall completion percentage
+- Status per service area
+- Timeline adherence
+- Budget utilization
+
+**Admin Sees**:
+- Your progress updates
+- Completion rates
+- Delayed items
+- Implementation trends
+
+### Regular Updates
+
+**Best Practice**:
+- Update status monthly
+- Document actual outputs
+- Note completion dates
+- Explain delays
+- Celebrate successes
+
+---
+
+## ✅ Best Practices
+
+### Creating Effective CPAPs
+
+1. **Start with Survey Data**: Base actions on actual community feedback
+2. **Be Specific**: Clear, measurable outputs
+3. **Be Realistic**: Achievable timelines and budgets
+4. **Assign Clearly**: Specific persons, not just offices
+5. **Plan Verification**: How will you prove completion?
+
+### Using AI Wisely
+
+1. **Use as Starting Point**: Don't accept blindly
+2. **Customize Everything**: Add local context
+3. **Verify Accuracy**: Check against survey data
+4. **Fill Gaps**: Add budget, persons, details
+5. **Mix with Manual**: Combine AI and your ideas
+
+### Communication Tips
+
+1. **Be Proactive**: Ask questions early
+2. **Be Responsive**: Reply to admin comments promptly
+3. **Be Clear**: Explain your reasoning
+4. **Be Professional**: Maintain respectful tone
+5. **Be Honest**: Admit challenges, ask for help
+
+### Implementation Success
+
+1. **Start Early**: Don't wait until deadline
+2. **Monitor Regularly**: Check progress weekly
+3. **Document Everything**: Keep records
+4. **Communicate Issues**: Report problems early
+5. **Update System**: Keep CPAP current
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Issue: Can't See CPAP Page**
+- Verify you have Officer role
+- Check barangay assignment
+- Confirm survey target is met
+- Ensure report card is generated
+- Contact admin
+
+**Issue: Can't Submit CPAP**
+- Check all required fields (especially Output)
+- Ensure at least one action item exists
+- Verify you clicked "Save" first
+- Try refreshing page
+- Contact admin if persists
+
+**Issue: AI Suggestions Not Working**
+- Ensure survey data exists
+- Check report card is generated
+- Refresh page and try again
+- Clear browser cache
+- Contact admin if ML service is down
+
+**Issue: Auto-Select Not Working**
+- Verify you have barangay designation
+- Check barangay exists in system
+- Refresh the page
+- Contact admin to verify assignment
+
+**Issue: View Toggle Not Showing**
+- Look in Barangay Details Card header (upper right)
+- Ensure you're on dashboard page
+- Verify you have Officer role
+- Try refreshing page
+
+---
+
+## 📞 Quick Reference
+
+### Common Tasks
+
+| Task | Navigation | Time |
+|------|-----------|------|
+| View Report Card | Dashboard → View Details | 5 min |
+| Create CPAP | CPAP → Create Plan | 30-60 min |
+| Use AI Suggestions | CPAP → Get AI Suggestions | 5 min |
+| Submit CPAP | CPAP → Submit for Review | 2 min |
+| Update Progress | CPAP → Edit Spreadsheet | 10 min |
+| Add Comment | CPAP → Comments | 1 min |
+
+---
+
+## 📄 Document Information
+
+**Manual Title**: PULSE System - Officer User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**For**: Barangay Officers
+
+**Related Documents**:
+- Complete User Manual (root directory)
+- CPAP Officer User Guide (docs folder)
+- CPAP AI Suggestions Guide (docs folder)
+
+---
+
+**End of Officer User Manual**
+
+**Built with ❤️ for better local governance in the Philippines**

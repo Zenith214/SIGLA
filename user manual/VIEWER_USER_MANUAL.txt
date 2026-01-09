@@ -1,0 +1,547 @@
+# PULSE System - Viewer User Manual
+
+**Version:** 2.0.0  
+**Last Updated:** January 7, 2026  
+**Role:** Viewer
+
+---
+
+## 📖 Table of Contents
+
+1. [Welcome Viewer](#welcome-viewer)
+2. [Getting Started](#getting-started)
+3. [Dashboard Navigation](#dashboard-navigation)
+4. [Exploring Barangay Data](#exploring-barangay-data)
+5. [Using Analytics](#using-analytics)
+6. [Viewing Historical Data](#viewing-historical-data)
+7. [Exporting Reports](#exporting-reports)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+
+---
+
+## 👋 Welcome Viewer
+
+As a Viewer, you have read-only access to the PULSE system. You can explore dashboards, view analytics, and access reports, but you cannot make changes or create content. This role is perfect for stakeholders, researchers, LGU officials, and anyone who needs to monitor progress without editing capabilities.
+
+### What You Can Do
+
+✅ View the main dashboard
+✅ Explore all barangay data
+✅ Use hover preview feature
+✅ Click to lock barangay selections
+✅ Switch between Map and List views
+✅ Access analytics and reports
+✅ View historical data across cycles
+✅ Export data (if permitted)
+✅ View satisfaction scores and trends
+✅ Compare barangays
+✅ See CPAP status (but not edit)
+
+**Your Role**: Observer and analyst, not editor or administrator.
+
+---
+
+## 🚀 Getting Started
+
+### First Login
+
+1. Navigate to the PULSE system URL
+2. Enter your viewer credentials
+3. Dashboard loads with **Map View** by default
+4. Explore the interactive features
+
+### Navigation Menu
+
+- **Dashboard**: Main overview with interactive map
+- **Analytics**: Detailed reports and analysis
+- **Profile**: Your account settings
+
+**Note**: You won't see Settings, Admin, or CPAP creation menus since those require edit permissions.
+
+### Understanding Your Access
+
+**Read-Only Access Means**:
+- You can view all data
+- You cannot modify anything
+- No save or submit buttons appear
+- You're in "observation mode"
+- Perfect for monitoring and analysis
+
+---
+
+## 🗺️ Dashboard Navigation
+
+### Default View: Map View
+
+**Why Map View for Viewers?**
+- Geographic visualization
+- Comprehensive overview
+- Interactive exploration
+- Professional presentation
+
+**What you see**:
+- Interactive map of all barangays
+- Color-coded satisfaction levels
+- Side panels with details
+- Hover preview functionality
+
+### Switching to List View
+
+**How to switch**:
+1. Look for toggle buttons in the **Barangay Details Card header** (upper right)
+2. Click **"List"** to see scrollable list of barangays
+3. Click **"Map"** to return to map view
+
+**When to use List View**:
+- Quick browsing of all barangays
+- Searching by name
+- Tabular data comparison
+- Mobile device viewing
+
+**When to use Map View**:
+- Geographic context
+- Visual exploration
+- Hover preview features
+- Spatial patterns
+
+### Interactive Map Features
+
+#### Hover Preview
+
+**How to use**:
+1. Move your mouse over any barangay on the map
+2. **Barangay Details Card** updates instantly
+3. **SGLGB History Card** shows historical data
+4. A **blue ring** appears around the hovered barangay
+5. A **"Hover Preview"** badge shows in the details card
+
+**Benefits**:
+- Quickly explore multiple barangays
+- Compare data without clicking
+- Efficient scanning
+- No commitment to selection
+
+**What you see in preview**:
+- Barangay name
+- Population and households
+- Survey progress
+- Satisfaction score
+- SGLGB history
+
+#### Click to Lock
+
+**How to use**:
+1. Click on any barangay territory
+2. The selection becomes **locked**
+3. A **pin marker** appears on the map
+4. The **"View Details" button** appears
+5. Click "View Details" for comprehensive information
+
+**To unlock**: Click on a different barangay or click the selected one again
+
+**What you see when locked**:
+- Full barangay details
+- Complete survey results
+- Service area breakdown
+- Demographics
+- Historical trends
+- CPAP status (if available)
+
+### Color Coding
+
+Barangays are color-coded by satisfaction level:
+- 🟢 **Green**: High satisfaction (80-100)
+- 🟡 **Yellow**: Moderate satisfaction (60-79)
+- 🟠 **Orange**: Low satisfaction (40-59)
+- 🔴 **Red**: Very low satisfaction (0-39)
+
+**Use color coding to**:
+- Quickly identify high/low performers
+- Spot patterns across regions
+- Prioritize areas for attention
+- Track improvements over time
+
+---
+
+## 📊 Exploring Barangay Data
+
+### Barangay Details Card
+
+**Information Displayed**:
+- **Basic Info**: Population, households, area
+- **Survey Progress**: Completion percentage
+- **Satisfaction Score**: Overall rating
+- **Status**: Survey and CPAP status
+
+**Interactive Elements**:
+- Hover to preview
+- Click to lock
+- View Details button (when locked)
+- Toggle between Map/List views
+
+### SGLGB History Card
+
+**Shows**:
+- Historical SGLGB awards
+- Past performance
+- Award years
+- Status trends
+
+**Use this to**:
+- Track barangay performance over time
+- Identify consistent performers
+- See improvement patterns
+- Understand historical context
+
+### Detailed Barangay Modal
+
+**Access**:
+1. Click on a barangay to lock
+2. Click **"View Details"** button
+3. Modal opens with comprehensive information
+
+**Sections in Modal**:
+
+**1. Overview**
+- Barangay name and logo
+- Population statistics
+- Geographic information
+- Contact details
+
+**2. Survey Results**
+- Overall satisfaction index
+- Service area ratings
+- Top issues identified
+- Demographics breakdown
+
+**3. Report Card** (if available)
+- Detailed satisfaction scores
+- Action grid (Maintain, Opportunities, Monitor, Fix Now)
+- Priority recommendations
+- Comparison with other barangays
+
+**4. CPAP Status** (if available)
+- Current status (Submitted, Approved, In Progress)
+- Action items summary
+- Implementation progress
+- Completion percentage
+
+**5. Historical Data**
+- Past survey cycles
+- Trend analysis
+- Year-over-year comparison
+- Performance trajectory
+
+---
+
+## 📈 Using Analytics
+
+### Accessing Analytics
+
+**Steps**:
+1. Click **"Analytics"** in main navigation
+2. Choose from available reports:
+   - Service Area Analysis
+   - Barangay Comparison
+   - Demographics Breakdown
+   - Trend Analysis
+   - Performance Dashboard
+
+### Service Area Analysis
+
+**What it shows**:
+- Average ratings for each service area
+- Top issues per area
+- Barangay rankings
+- Improvement opportunities
+
+**6 Service Areas**:
+1. Financial Administration
+2. Disaster Preparedness
+3. Social Protection
+4. Safety and Peace
+5. Business-Friendly
+6. Environmental Management
+
+**How to use**:
+1. Select a service area
+2. View average satisfaction
+3. See which barangays excel
+4. Identify common issues
+5. Compare across barangays
+
+### Barangay Comparison
+
+**Features**:
+- Side-by-side comparison
+- Multiple barangays at once
+- Radar charts
+- Performance metrics
+
+**How to use**:
+1. Select barangays to compare (2-5 recommended)
+2. View comparison charts
+3. Analyze differences
+4. Identify best practices
+5. Spot patterns
+
+### Demographics Analysis
+
+**Insights Available**:
+- Satisfaction by age group
+- Satisfaction by gender
+- Geographic patterns
+- Income level correlations
+- Education level trends
+
+**Use cases**:
+- Understand who is satisfied/dissatisfied
+- Identify demographic patterns
+- Target interventions
+- Inform policy decisions
+
+### Trend Analysis
+
+**What it shows**:
+- Performance over time
+- Improvement/decline patterns
+- Seasonal variations
+- Long-term trends
+
+**How to use**:
+1. Select time period
+2. Choose barangays
+3. View trend lines
+4. Analyze patterns
+5. Identify factors
+
+---
+
+## 🕐 Viewing Historical Data
+
+### Cycle Selector
+
+**How to use**:
+1. Look for **cycle selector** dropdown (top of dashboard)
+2. Click to see list of survey cycles
+3. Select a cycle
+4. All dashboard data updates to show that cycle
+
+**Available Cycles**:
+- Current active cycle (default)
+- Past completed cycles
+- Archived cycles
+
+**What changes when you select a cycle**:
+- Map colors update
+- Satisfaction scores change
+- Progress bars reflect that cycle
+- Analytics show cycle-specific data
+
+### Comparing Across Cycles
+
+**Steps**:
+1. View current cycle data
+2. Note key metrics
+3. Switch to previous cycle
+4. Compare the differences
+5. Identify trends
+
+**What to compare**:
+- Overall satisfaction changes
+- Service area improvements
+- Barangay rankings
+- Issue resolution
+- CPAP effectiveness
+
+### Historical Reports
+
+**Access**:
+1. Go to **Analytics** → **Historical Reports**
+2. Select date range
+3. Choose barangays
+4. Generate report
+
+**Report Types**:
+- Year-over-year comparison
+- Multi-cycle trends
+- Performance trajectories
+- Improvement analysis
+
+---
+
+## 📥 Exporting Reports
+
+### CSV Export
+
+**How to export**:
+1. Navigate to desired report or view
+2. Click **"Export to CSV"** button
+3. File downloads automatically
+4. Open in Excel or Google Sheets
+
+**What you can export**:
+- Barangay data tables
+- Survey results
+- Analytics reports
+- Comparison data
+- Historical trends
+
+### PDF Reports
+
+**How to generate**:
+1. Go to **Reports** → **Generate Report**
+2. Select:
+   - Report type
+   - Date range
+   - Barangays to include
+   - Sections to include
+3. Click **"Generate PDF"**
+4. Download when ready
+
+**PDF Report Types**:
+- Executive summary
+- Detailed barangay report
+- Comparative analysis
+- Trend report
+- Custom report
+
+### Best Practices for Exporting
+
+**Before Exporting**:
+- Filter data to what you need
+- Select relevant time period
+- Choose appropriate format
+- Verify data accuracy
+
+**After Exporting**:
+- Review exported data
+- Check for completeness
+- Organize files properly
+- Share with stakeholders
+
+---
+
+## ✅ Best Practices
+
+### Effective Data Exploration
+
+1. **Start with Overview**: Use map view to get big picture
+2. **Use Hover Preview**: Quickly scan multiple barangays
+3. **Lock for Details**: Click when you want deep dive
+4. **Compare Strategically**: Select 2-3 barangays for meaningful comparison
+5. **Track Trends**: Use cycle selector to see changes over time
+
+### Analytical Approach
+
+1. **Ask Questions**: What patterns do you see?
+2. **Look for Outliers**: Which barangays are exceptional?
+3. **Identify Trends**: Are things improving or declining?
+4. **Find Correlations**: What factors relate to satisfaction?
+5. **Document Insights**: Keep notes of findings
+
+### Reporting Tips
+
+1. **Know Your Audience**: Tailor reports to stakeholders
+2. **Use Visuals**: Charts and maps tell stories
+3. **Provide Context**: Explain what the data means
+4. **Highlight Key Findings**: Don't overwhelm with details
+5. **Suggest Actions**: What should be done based on data?
+
+### Staying Informed
+
+1. **Regular Monitoring**: Check dashboard weekly
+2. **Track Changes**: Note improvements and declines
+3. **Follow Cycles**: Monitor each survey cycle
+4. **Read Reports**: Review generated analytics
+5. **Ask Questions**: Contact admin for clarification
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Issue: Can't See Dashboard**
+- Verify you have Viewer role
+- Check if account is active
+- Clear browser cache
+- Try different browser
+- Contact admin
+
+**Issue: Hover Preview Not Working**
+- Ensure you're using a mouse (not touchscreen)
+- Hover directly over barangay territory
+- Wait a moment for data to load
+- Refresh the page
+- Try different browser
+
+**Issue: View Toggle Not Showing**
+- Look in Barangay Details Card header (upper right)
+- Ensure you're on dashboard page
+- Verify you have Viewer role
+- Refresh the page
+- Check browser compatibility
+
+**Issue: Can't Export Data**
+- Check if export is enabled for your account
+- Verify you have permission
+- Try different report type
+- Contact admin for access
+
+**Issue: Historical Data Not Loading**
+- Check if cycle has data
+- Verify cycle is not empty
+- Refresh the page
+- Try different cycle
+- Contact admin
+
+---
+
+## 📞 Quick Reference
+
+### Common Tasks
+
+| Task | How To | Time |
+|------|--------|------|
+| Explore Barangays | Hover over map | 1 min |
+| View Details | Click barangay → View Details | 2 min |
+| Switch Views | Click Map/List toggle | Instant |
+| Compare Barangays | Analytics → Comparison | 5 min |
+| View History | Select cycle from dropdown | 1 min |
+| Export Data | Click Export button | 2 min |
+
+### Keyboard Tips
+
+- **Esc**: Close modal
+- **Ctrl + F**: Search (in browser)
+- **Refresh**: F5 or Ctrl + R
+
+### Important Links
+
+- Dashboard: `/dashboard`
+- Analytics: `/analytics`
+- Profile: `/profile`
+
+---
+
+## 📄 Document Information
+
+**Manual Title**: PULSE System - Viewer User Manual
+
+**Version**: 2.0.0
+
+**Last Updated**: January 7, 2026
+
+**For**: Viewers (Read-Only Users)
+
+**Related Documents**:
+- Complete User Manual (root directory)
+- Analytics Documentation (docs folder)
+
+---
+
+**End of Viewer User Manual**
+
+**Built with ❤️ for better local governance in the Philippines**
