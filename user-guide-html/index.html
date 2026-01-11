@@ -36,6 +36,13 @@
             text-align: center;
         }
 
+        .header-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+
         .header h1 {
             font-size: 3em;
             margin-bottom: 10px;
@@ -145,6 +152,98 @@
             color: #667eea;
         }
 
+        .role-hierarchy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .hierarchy-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .hierarchy-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .hierarchy-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 0 auto 15px;
+        }
+
+        .hierarchy-card h4 {
+            color: #667eea;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .hierarchy-card p {
+            color: #555;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .access-guide {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .access-step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .access-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.3em;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            color: #667eea;
+            margin: 0 0 8px 0;
+            font-size: 1.1em;
+        }
+
+        .step-content p {
+            color: #555;
+            margin: 0;
+            line-height: 1.5;
+        }
+
         .role-card {
             background: #f8f9fa;
             border-radius: 15px;
@@ -188,7 +287,7 @@
 
         .instruction-image {
             width: 100%;
-            max-width: 600px;
+            max-width: 350px;
             height: auto;
             border-radius: 8px;
             border: 2px solid #e0e0e0;
@@ -200,6 +299,15 @@
         .instruction-image:hover {
             border-color: #667eea;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Specific classes for controlling page breaks */
+        .page-break-before {
+            page-break-before: always;
+        }
+
+        .avoid-break {
+            page-break-inside: avoid;
         }
 
         .image-caption {
@@ -358,10 +466,7 @@
         @media print {
             @page {
                 size: A4;
-                margin: 2cm 1.5cm;
-                /* Remove default browser headers and footers */
-                margin-top: 1.5cm;
-                margin-bottom: 1.5cm;
+                margin: 1.5cm 1.5cm;
             }
 
             /* Hide browser's default header/footer */
@@ -387,12 +492,22 @@
                 background: #667eea !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                padding: 30px 20px;
+                padding: 20px;
                 page-break-after: avoid;
             }
 
+            .header-logo {
+                width: 60px;
+                margin-bottom: 8px;
+            }
+
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 0.9em;
             }
 
             .nav {
@@ -400,18 +515,23 @@
             }
 
             .content {
-                padding: 20px;
+                padding: 15px;
             }
 
             .section {
                 page-break-inside: avoid;
-                margin-bottom: 30px;
+                margin-bottom: 0;
+            }
+
+            #about {
+                page-break-after: avoid;
             }
 
             .section h2 {
-                font-size: 1.5em;
+                font-size: 1.3em;
                 page-break-after: avoid;
-                margin-top: 20px;
+                margin-top: 0;
+                margin-bottom: 10px;
             }
 
             .section h3 {
@@ -448,12 +568,31 @@
             }
 
             .instruction-image {
-                max-width: 500px;
+                max-width: 220px;
                 height: auto;
                 page-break-inside: avoid;
-                margin: 8px 0;
+                margin: 5px 0;
                 border: 1px solid #ddd;
                 display: block;
+            }
+
+            /* Force page breaks for specific sections */
+            .page-break-before {
+                page-break-before: always !important;
+            }
+
+            .avoid-break {
+                page-break-inside: avoid !important;
+            }
+
+            /* Reduce spacing in print */
+            .steps ol {
+                margin-left: 15px;
+            }
+
+            .steps ol li {
+                padding: 4px 0;
+                line-height: 1.3;
             }
 
             .role-badge {
@@ -490,6 +629,102 @@
                 print-color-adjust: exact;
                 border-left: 3px solid #667eea;
                 page-break-inside: avoid;
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+
+            .about-box p {
+                font-size: 0.8em;
+                line-height: 1.3;
+                margin-bottom: 8px;
+            }
+
+            .section h3 {
+                font-size: 1.1em;
+                margin-top: 12px;
+                margin-bottom: 10px;
+                page-break-after: avoid;
+            }
+
+            .role-hierarchy-grid {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 8px;
+                page-break-inside: avoid;
+                margin-top: 8px;
+                margin-bottom: 12px;
+            }
+
+            .hierarchy-card {
+                background: white !important;
+                border: 1px solid #667eea;
+                padding: 10px;
+                page-break-inside: avoid;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .hierarchy-number {
+                background: #667eea !important;
+                color: white !important;
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+                margin-bottom: 8px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .hierarchy-card h4 {
+                font-size: 0.85em;
+                margin: 5px 0;
+                color: #667eea !important;
+            }
+
+            .hierarchy-card p {
+                font-size: 0.7em;
+                line-height: 1.2;
+            }
+
+            .access-guide {
+                background: white !important;
+                border: 1px solid #e0e0e0;
+                padding: 12px;
+                page-break-inside: avoid;
+                margin-top: 12px;
+            }
+
+            .access-step {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 10px;
+                page-break-inside: avoid;
+            }
+
+            .access-step:last-child {
+                margin-bottom: 0;
+            }
+
+            .step-number {
+                background: #667eea !important;
+                color: white !important;
+                width: 28px;
+                height: 28px;
+                font-size: 0.9em;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .step-content h4 {
+                font-size: 0.85em;
+                margin: 0 0 3px 0;
+                color: #667eea !important;
+            }
+
+            .step-content p {
+                font-size: 0.75em;
+                line-height: 1.3;
+                margin: 0;
             }
 
             .note {
@@ -595,7 +830,8 @@
 
     <div class="container">
         <div class="header">
-            <h1>📊 PULSE User Guide</h1>
+            <img src="album/logo4k.png" alt="PULSE Logo" class="header-logo">
+            <h1>PULSE User Guide</h1>
             <p>Public Understanding and Local Service Evaluation</p>
         </div>
 
@@ -617,6 +853,74 @@
                 <div class="about-box">
                     <p>PULSE (Public Understanding and Local Service Evaluation) is a digital platform for collecting citizen feedback on local government services in the Philippines. The system helps Municipal Local Governance Resource Centers (MLGRC) evaluate barangay performance, create data-driven action plans, and track governance improvements through surveys and analytics.</p>
                     <p><strong>Key Features:</strong> Interactive dashboards, ML-powered analytics, survey management, CPAP (Citizen Priority Action Plan) creation, and role-based access control.</p>
+                </div>
+
+                <h3 style="margin-top: 30px; margin-bottom: 20px;">Role Hierarchy</h3>
+                <div class="role-hierarchy-grid">
+                    <div class="hierarchy-card">
+                        <div class="hierarchy-number">1</div>
+                        <h4>Admin</h4>
+                        <p>System administrator with full control. Manages survey cycles, users, barangays, and reviews CPAPs.</p>
+                    </div>
+                    <div class="hierarchy-card">
+                        <div class="hierarchy-number">2</div>
+                        <h4>Field Supervisor</h4>
+                        <p>Oversees data collection in assigned barangays. Creates spots and assigns interviewers.</p>
+                    </div>
+                    <div class="hierarchy-card">
+                        <div class="hierarchy-number">3</div>
+                        <h4>Interviewer</h4>
+                        <p>Conducts face-to-face surveys with citizens at assigned spots using systematic sampling.</p>
+                    </div>
+                    <div class="hierarchy-card">
+                        <div class="hierarchy-number">4</div>
+                        <h4>Officer</h4>
+                        <p>Barangay official who views results and creates action plans (CPAPs) for their barangay.</p>
+                    </div>
+                    <div class="hierarchy-card">
+                        <div class="hierarchy-number">5</div>
+                        <h4>Viewer</h4>
+                        <p>Read-only access to dashboards, analytics, and reports. Cannot edit or create anything.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 40px; margin-bottom: 20px;">Accessing the System</h3>
+                <div class="access-guide">
+                    <div class="access-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Get Your Credentials</h4>
+                            <p>Your system administrator will provide you with an email address and temporary password.</p>
+                        </div>
+                    </div>
+                    <div class="access-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Open the System</h4>
+                            <p>Navigate to the PULSE system URL in your web browser (Chrome, Firefox, or Edge recommended).</p>
+                        </div>
+                    </div>
+                    <div class="access-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Login</h4>
+                            <p>Enter your email and password on the login page, then click "Sign In".</p>
+                        </div>
+                    </div>
+                    <div class="access-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Change Password (First-Time Users)</h4>
+                            <p>If this is your first login, you'll be prompted to change your password when you reach the dashboard. Create a strong password and confirm it.</p>
+                        </div>
+                    </div>
+                    <div class="access-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Explore Your Dashboard</h4>
+                            <p>After logging in, you'll see your role-specific dashboard. Take the onboarding tour if available to learn the interface.</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -649,7 +953,7 @@
                         <h4>Create a Survey Cycle:</h4>
                         <ol>
                             <li>Go to Settings → Survey Cycles
-                                <img src="album/create a survey cycle - 1.png" alt="Navigate to Survey Cycles" class="instruction-image">
+                                <img src="album/create survey cycle - 1.png" alt="Navigate to Survey Cycles" class="instruction-image">
                             </li>
                             <li>Fill in the "Active Survey Cycle" form:
                                 <ul style="margin-left: 20px; margin-top: 5px;">
@@ -658,7 +962,7 @@
                                     <li>Start Date</li>
                                     <li>End Date</li>
                                 </ul>
-                                <img src="album/create a survey cycle - 2.png" alt="Fill in the survey cycle form" class="instruction-image">
+                                <img src="album/create survey cycle - 2.png" alt="Fill in the survey cycle form" class="instruction-image">
                             </li>
                             <li>Click "Create New Survey Cycle" button</li>
                             <li>The cycle is created and automatically set as active</li>
@@ -671,17 +975,15 @@
                         <h4>Edit Barangay Information:</h4>
                         <ol>
                             <li>Go to Settings → Barangays
-                                <img src="album/Edit Barangay Information - 1.png" alt="Navigate to Barangays" class="instruction-image">
+                                <img src="album/Edit Barangay - 1.png" alt="Navigate to Barangays" class="instruction-image">
                             </li>
-                            <li>Find the barangay in the list</li>
-                            <li>Click the "Edit" button
-                                <img src="album/Edit Barangay Information - 3.png" alt="Click Edit button" class="instruction-image">
+                            <li>Find the barangay in the list
+                                <img src="album/Edit Barangay 2.png" alt="Find and click Edit button" class="instruction-image">
                             </li>
+                            <li>Click the "Edit" button</li>
                             <li>Update information: population, households, captain, description</li>
                             <li>Upload or update logo (optional)</li>
-                            <li>Click "Save"
-                                <img src="album/Edit Barangay Information - 6.png" alt="Save changes" class="instruction-image">
-                            </li>
+                            <li>Click "Save"</li>
                         </ol>
                         <p style="margin-top: 10px; font-size: 0.9em; color: #666;"><em>Note: Barangays are pre-loaded in the system. You can only edit their information, not add new ones.</em></p>
                     </div>
@@ -692,10 +994,10 @@
                         <h4>Create a User:</h4>
                         <ol>
                             <li>Go to Settings → Users & Roles
-                                <img src="album/create a user - 1.png" alt="Navigate to Users & Roles" class="instruction-image">
+                                <img src="album/create user - 1.png" alt="Navigate to Users & Roles" class="instruction-image">
                             </li>
                             <li>Click "Add User" button (opens a modal)
-                                <img src="album/create a user - 2.png" alt="Click Add User button" class="instruction-image">
+                                <img src="album/create user - 2.png" alt="Click Add User button" class="instruction-image">
                             </li>
                             <li>Fill in the form:
                                 <ul style="margin-left: 20px; margin-top: 5px;">
@@ -704,15 +1006,12 @@
                                     <li>Email</li>
                                     <li>Password</li>
                                     <li>Role (select from dropdown: Admin, FS/Supervisor, Interviewer, Officer, Viewer)</li>
-                                    <li>Barangay Designation (only appears if role is Officer)
-                                        <img src="album/create a user - 4.png" alt="Fill in user form" class="instruction-image">
-                                    </li>
+                                    <li>Barangay Designation (only appears if role is Officer)</li>
                                     <li>Status (Active/Inactive)</li>
                                 </ul>
+                                <img src="album/create user - 3.png" alt="Fill in user form" class="instruction-image">
                             </li>
-                            <li>Click "Save"
-                                <img src="album/create a user - 5.png" alt="Save new user" class="instruction-image">
-                            </li>
+                            <li>Click "Save"</li>
                         </ol>
                     </div>
                 </div>
@@ -722,14 +1021,14 @@
                         <h4>Assign Field Supervisor:</h4>
                         <ol>
                             <li>Go to Settings → Supervisor Assignments
-                                <img src="album/assign field supervisor - 1.png" alt="Navigate to Supervisor Assignments" class="instruction-image">
+                                <img src="album/assign supervisor - 1.png" alt="Navigate to Supervisor Assignments" class="instruction-image">
                             </li>
                             <li>Click "Assign Supervisor" button (opens a modal)
-                                <img src="album/assign field supervisor - 2.png" alt="Click Assign Supervisor button" class="instruction-image">
+                                <img src="album/assign supervisor - 2.png" alt="Click Assign Supervisor button" class="instruction-image">
                             </li>
                             <li>Select Field Supervisor from dropdown</li>
                             <li>Select one or more Barangays (checkboxes)
-                                <img src="album/assign field supervisor - 4.png" alt="Select supervisor and barangays" class="instruction-image">
+                                <img src="album/assign supervisor - 4.png" alt="Select supervisor and barangays" class="instruction-image">
                             </li>
                             <li>Survey Cycle is automatically set to active cycle</li>
                             <li>Click "Assign Supervisor"</li>
@@ -747,7 +1046,7 @@
                             <li>Click "Add Target" button (opens a modal) or "Bulk Create Targets" for all barangays</li>
                             <li>Select barangay from dropdown</li>
                             <li>Enter target number of respondents
-                                <img src="album/set survey targets - 4 .png" alt="Fill in target form" class="instruction-image">
+                                <img src="album/set survey targets - 4.png" alt="Fill in target form" class="instruction-image">
                             </li>
                             <li>Survey cycle is automatically set to active cycle</li>
                             <li>Click "Save"</li>
@@ -762,18 +1061,14 @@
                             <li>Go to Admin → CPAP Review
                                 <img src="album/review cpap - 1.png" alt="Navigate to CPAP Review" class="instruction-image">
                             </li>
-                            <li>Filter by status (Submitted)
-                                <img src="album/review cpap - 2.png" alt="Filter CPAPs" class="instruction-image">
-                            </li>
+                            <li>Filter by status (Submitted)</li>
                             <li>Click on a CPAP to review
                                 <img src="album/review cpap - 3.png" alt="Select CPAP to review" class="instruction-image">
                             </li>
                             <li>Check action items for clarity and feasibility</li>
-                            <li>Add comments if needed
-                                <img src="album/review cpap - 5.png" alt="Review action items" class="instruction-image">
-                            </li>
+                            <li>Add comments if needed</li>
                             <li>Click "Approve CPAP" or "Request Revision"
-                                <img src="album/reviewreview cpap - 6.png" alt="Approve or request revision" class="instruction-image">
+                                <img src="album/review cpap - 6.png" alt="Approve or request revision" class="instruction-image">
                             </li>
                         </ol>
                     </div>
@@ -799,13 +1094,20 @@
                     <div class="steps">
                         <h4>Create a Spot:</h4>
                         <ol>
-                            <li>Navigate to your FS Dashboard or Spot Allocation section</li>
-                            <li>Click "Create Spot" button (opens a modal)</li>
+                            <li>Navigate to your FS Dashboard or Spot Allocation section
+                                <img src="album/create a spot - 1.png" alt="Navigate to Spot Allocation" class="instruction-image">
+                            </li>
+                            <li>Click on a location on the map where you want to create the spot
+                                <img src="album/create a spot - 2.png" alt="Click on map location" class="instruction-image">
+                            </li>
+                            <li>A modal will open with the spot creation form
+                                <img src="album/create a spot - 3.png" alt="Spot creation form" class="instruction-image">
+                            </li>
                             <li>Fill in the form:
                                 <ul style="margin-left: 20px; margin-top: 5px;">
                                     <li>Spot Name (e.g., "Purok 1 - Main Road")</li>
                                     <li>Select Barangay from your assigned barangays</li>
-                                    <li>GPS coordinates (optional - can click map to set)</li>
+                                    <li>GPS coordinates (automatically filled from map click, or manually enter)</li>
                                     <li>Random Start Number (1-999 for systematic sampling)</li>
                                     <li>Number of questionnaires is fixed at 5 per spot</li>
                                 </ul>
@@ -819,7 +1121,9 @@
                     <div class="steps">
                         <h4>Assign Interviewer to Spot:</h4>
                         <ol>
-                            <li>Go to Spots section</li>
+                            <li>Go to Spots section
+                                <img src="album/assign interviewer - 1.png" alt="Assign interviewer interface" class="instruction-image">
+                            </li>
                             <li>Find your spot</li>
                             <li>Click "Assign Interviewer"</li>
                             <li>Select interviewer from dropdown</li>
@@ -833,7 +1137,9 @@
                     <div class="steps">
                         <h4>Monitor Progress:</h4>
                         <ol>
-                            <li>Access your FS Dashboard</li>
+                            <li>Access your FS Dashboard
+                                <img src="album/monitor progress - 1.png" alt="FS Dashboard progress view" class="instruction-image">
+                            </li>
                             <li>View completion percentage per barangay</li>
                             <li>Check spot-level progress</li>
                             <li>Track individual interviewer productivity</li>
@@ -843,7 +1149,7 @@
                 </div>
 
                 <!-- INTERVIEWER ROLE -->
-                <div id="interviewer" class="role-header">
+                <div id="interviewer" class="role-header page-break-before">
                     <h3><span class="role-badge">3</span> INTERVIEWER</h3>
                     
                     <div class="capabilities">
@@ -861,12 +1167,16 @@
 
                 <div class="instruction-card">
                     <div class="steps">
-                        <h4>Start a Survey:</h4>
+                        <h4>Start an Interview:</h4>
                         <ol>
-                            <li>Log in and go to Survey page</li>
+                            <li>Log in and go to Survey page
+                                <img src="album/start a survey - 1.png" alt="Navigate to Survey page" class="instruction-image">
+                            </li>
                             <li>Click "My Spots" tab</li>
                             <li>Select your assigned spot</li>
-                            <li>Click "Start New Survey"</li>
+                            <li>Click "Start Interview"
+                                <img src="album/start a survey - 4.png" alt="Start Interview button" class="instruction-image">
+                            </li>
                         </ol>
                     </div>
                 </div>
@@ -875,7 +1185,9 @@
                     <div class="steps">
                         <h4>Use Kish Grid (Respondent Selection):</h4>
                         <ol>
-                            <li>Ask: "How many people aged 18+ live here?"</li>
+                            <li>Ask: "How many people aged 18+ live here?"
+                                <img src="album/use kish grid - 1.png" alt="Kish Grid interface" class="instruction-image">
+                            </li>
                             <li>Enter the number</li>
                             <li>List all eligible members by age (oldest to youngest)</li>
                             <li>System automatically selects one person</li>
@@ -949,7 +1261,9 @@
                     <div class="steps">
                         <h4>View Your Dashboard:</h4>
                         <ol>
-                            <li>Log in (dashboard loads automatically)</li>
+                            <li>Log in (dashboard loads automatically)
+                                <img src="album/view dashboard - 1.png" alt="Officer dashboard view" class="instruction-image">
+                            </li>
                             <li>Your barangay is highlighted on the map</li>
                             <li>View satisfaction index and service area scores</li>
                             <li>Click "View Report Card" for detailed analysis</li>
@@ -961,8 +1275,11 @@
                     <div class="steps">
                         <h4>Create a CPAP:</h4>
                         <ol>
-                            <li>Go to CPAP page</li>
-                            <li>System creates CPAP automatically if none exists</li>
+                            <li>Go to CPAP page
+                                <img src="album/create cpap - 1.png" alt="Create CPAP button" class="instruction-image">
+                            </li>
+                            <li>Click "Create CPAP" button</li>
+                            <li>The CPAP spreadsheet will be created and ready for editing</li>
                             <li>Click "Add Item" to manually add action items</li>
                             <li>Or click "Get AI Suggestions" for ML-powered recommendations</li>
                         </ol>
@@ -973,9 +1290,13 @@
                     <div class="steps">
                         <h4>Add Action Item Manually:</h4>
                         <ol>
-                            <li>Click "Add Item"</li>
+                            <li>Click "Add Item"
+                                <img src="album/add action - 1.png" alt="Add Item button" class="instruction-image">
+                            </li>
                             <li>Select service area</li>
-                            <li>Fill in required fields (Results/Observations, Plan of Action, Activity, <span class="highlight">Output (required)</span>, Implementation Schedule, Financial Requirements, Responsible Person/Office, Means of Verification)</li>
+                            <li>Fill in required fields (Results/Observations, Plan of Action, Activity, <span class="highlight">Output (required)</span>, Implementation Schedule, Financial Requirements, Responsible Person/Office, Means of Verification)
+                                <img src="album/add action - 3.png" alt="Action item form" class="instruction-image">
+                            </li>
                             <li>Click "Save"</li>
                         </ol>
                     </div>
@@ -985,7 +1306,9 @@
                     <div class="steps">
                         <h4>Use AI Suggestions:</h4>
                         <ol>
-                            <li>Click "Get AI Suggestions"</li>
+                            <li>Click "Get AI Suggestions"
+                                <img src="album/use ai suggestion - 1.png" alt="AI Suggestions interface" class="instruction-image">
+                            </li>
                             <li>Review suggestions organized by timeframe (short/medium/long-term)</li>
                             <li>Click "Add to CPAP" on relevant suggestions</li>
                             <li>Edit as needed</li>
@@ -998,7 +1321,9 @@
                     <div class="steps">
                         <h4>Submit CPAP for Review:</h4>
                         <ol>
-                            <li>Ensure all action items have required "Output" field filled</li>
+                            <li>Ensure all action items have required "Output" field filled
+                                <img src="album/submit cpap - 1.png" alt="Submit CPAP button" class="instruction-image">
+                            </li>
                             <li>Click "Submit for Review"</li>
                             <li>Confirm submission</li>
                             <li>Status changes to "Submitted"</li>
@@ -1020,7 +1345,7 @@
                 </div>
 
                 <!-- VIEWER ROLE -->
-                <div id="viewer" class="role-header">
+                <div id="viewer" class="role-header page-break-before">
                     <h3><span class="role-badge">5</span> VIEWER</h3>
                     
                     <div class="capabilities">
@@ -1073,17 +1398,6 @@
                     </div>
                 </div>
 
-                <!-- DEVELOPER ROLE -->
-                <div class="role-header">
-                    <h3><span class="role-badge">6</span> DEVELOPER</h3>
-                    
-                    <div class="capabilities">
-                        <h4>What You Can Do:</h4>
-                        <ul>
-                            <li>Same as Admin (full system access for testing and development)</li>
-                        </ul>
-                    </div>
-                </div>
             </section>
 
             <section id="quick-ref" class="quick-ref">

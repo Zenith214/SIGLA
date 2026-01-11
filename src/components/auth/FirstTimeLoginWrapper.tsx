@@ -20,8 +20,8 @@ export default function FirstTimeLoginWrapper({ children }: FirstTimeLoginWrappe
     if (user && !hasChecked) {
       setHasChecked(true);
       
-      // Check if user has firstLogin flag set to true
-      if ((user as any).firstLogin === true) {
+      // Check if user has firstLogin flag set to true AND is on dashboard
+      if ((user as any).firstLogin === true && window.location.pathname === '/dashboard') {
         setShowPasswordModal(true);
       } else {
         // Check if tour should be shown

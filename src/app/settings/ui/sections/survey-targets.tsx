@@ -117,6 +117,9 @@ export function SurveyTargets() {
       fetch("/api/barangays").then(r => r.json()),
     ])
       .then(([targetsData, awardsResponse, barangaysData]) => {
+        console.log('🔍 Awards Response:', awardsResponse)
+        console.log('🔍 Barangays Data:', barangaysData)
+        
         setTargets(targetsData)
         
         // Get all barangays data
@@ -127,28 +130,41 @@ export function SurveyTargets() {
           allBarangays = barangaysData.data
         }
         
-        // Extract awards data from response
-        const awardsData = awardsResponse?.data || awardsResponse || []
+        // Extract awards data from response - handle nested data structure
+        let awardsData = []
+        if (awardsResponse?.success && awardsResponse?.data) {
+          awardsData = awardsResponse.data
+        } else if (awardsResponse?.data) {
+          awardsData = awardsResponse.data
+        } else if (Array.isArray(awardsResponse)) {
+          awardsData = awardsResponse
+        }
         
-        // Get barangay IDs that have awards in the active cycle
+        console.log('🔍 Extracted Awards Data:', awardsData)
+        
+        // Get barangay IDs that have awards (is_awardee = true) in the active cycle
         const awardedBarangayIds = new Set(
-          Array.isArray(awardsData) ? awardsData.map((award: any) => award.barangay_id) : []
+          Array.isArray(awardsData) 
+            ? awardsData
+                .filter((award: any) => award.is_awardee === true)
+                .map((award: any) => award.barangay_id)
+            : []
         )
         
-        // Get barangay IDs that already have targets
-        const targetedBarangayIds = new Set(
-          Array.isArray(targetsData) ? targetsData.map((target: any) => target.barangay_id) : []
-        )
+        console.log('🔍 Awarded Barangay IDs:', Array.from(awardedBarangayIds))
         
-        // Filter barangays: include those with awards OR those that already have targets
+        // Filter barangays: ONLY include those with awards in the current cycle
         const filteredBarangays = allBarangays.filter((b: any) => 
-          awardedBarangayIds.has(b.id) || targetedBarangayIds.has(b.id)
+          awardedBarangayIds.has(b.id)
         )
+        
+        console.log('🔍 Filtered Barangays:', filteredBarangays.map(b => ({ id: b.id, name: b.name })))
         
         setBarangays(filteredBarangays)
         setLoading(false)
       })
       .catch((err) => {
+        console.error('❌ Error loading data:', err)
         setError(err.message)
         setLoading(false)
       })

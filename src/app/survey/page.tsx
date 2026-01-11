@@ -693,7 +693,7 @@ function SurveyDashboardContent() {
                                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                                 >
                                   <PlayCircle className="w-4 h-4" />
-                                  {barangay.progress > 0 ? 'Continue Survey' : 'Start Survey'}
+                                  {barangay.progress > 0 ? 'Continue Interview' : 'Start Interview'}
                                 </Link>
                               )}
                             </div>

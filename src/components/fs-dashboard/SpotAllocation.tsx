@@ -128,7 +128,7 @@ export default function SpotAllocation() {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Spot Allocation</h2>
             <p className="text-sm text-gray-600 mt-1">
-              View and manage spot assignments for field interviewers
+              View, Create, and Manage spot assignments for field interviewers
             </p>
           </div>
           <div className="flex items-center gap-2">
