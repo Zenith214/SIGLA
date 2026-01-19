@@ -1996,12 +1996,13 @@ function ReportCardContent() {
                             if (trend && trend.available && trend.direction !== 'baseline') {
                               const isUp = trend.direction === 'up';
                               const isDown = trend.direction === 'down';
+                              const cyclesSkipped = trend.cyclesSkipped || 0;
                               return (
                                 <span className={`text-xs px-2 py-1 rounded ${isUp ? 'bg-green-100 text-green-700' :
                                   isDown ? 'bg-red-100 text-red-700' :
                                     'bg-gray-100 text-gray-600'
-                                  }`}>
-                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
+                                  }`} title={cyclesSkipped > 0 ? `Compared to ${trend.previousCycle} (skipped ${cyclesSkipped} cycle${cyclesSkipped > 1 ? 's' : ''} with no data)` : undefined}>
+                                  {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}{cyclesSkipped > 0 ? '*' : ''}
                                 </span>
                               );
                             }
@@ -2550,12 +2551,13 @@ function ReportCardContent() {
                   if (trend && trend.available && trend.direction !== 'baseline') {
                     const isUp = trend.direction === 'up';
                     const isDown = trend.direction === 'down';
+                    const cyclesSkipped = trend.cyclesSkipped || 0;
                     return (
                       <span className={`text-sm px-2 py-1 rounded ml-2 ${isUp ? 'bg-green-100 text-green-700' :
                         isDown ? 'bg-red-100 text-red-700' :
                           'bg-gray-100 text-gray-600'
-                        }`}>
-                        {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}
+                        }`} title={cyclesSkipped > 0 ? `Compared to ${trend.previousCycle} (skipped ${cyclesSkipped} cycle${cyclesSkipped > 1 ? 's' : ''} with no data)` : undefined}>
+                        {isUp ? '↑' : isDown ? '↓' : '→'} {trend.change > 0 ? '+' : ''}{trend.change}% vs {trend.previousCycle}{cyclesSkipped > 0 ? '*' : ''}
                       </span>
                     );
                   }

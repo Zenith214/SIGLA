@@ -741,37 +741,73 @@ async function calculateTrend(
 
     console.log(`✅ [TREND] Found previous cycle: ${previousCycle.name} (ID: ${previousCycle.cycle_id})`);
 
+    // Try to find a previous cycle with actual data for this barangay
+    // This handles cases where a barangay was not surveyed in the immediate previous cycle
+    // but has historical data from earlier cycles
+    let previousResponses: any[] = [];
+    let actualPreviousCycle = previousCycle;
+    let attemptsRemaining = 5; // Check up to 5 previous cycles
 
-    // Get survey responses from previous cycle for this barangay and service area
-    console.log(`🔍 [TREND] Fetching previous responses for Barangay ${barangayId}, Cycle ${previousCycle.cycle_id}, Service ${serviceArea}...`);
+    while (attemptsRemaining > 0 && previousResponses.length === 0) {
+      console.log(`🔍 [TREND] Attempt ${6 - attemptsRemaining}: Fetching responses for Barangay ${barangayId}, Cycle ${actualPreviousCycle.cycle_id}, Service ${serviceArea}...`);
 
-    const { data: previousResponses, error: responsesError } = await supabaseAdmin
-      .from('survey_response')
-      .select(`
-        response_id,
-        survey_section!inner (
-          section_key,
-          data
-        )
-      `)
-      .eq('barangay_id', barangayId)
-      .eq('survey_cycle_id', previousCycle.cycle_id)
-      .eq('survey_section.section_key', serviceArea)
-      .in('status', ['completed', 'submitted']);
+      const { data: responses, error: responsesError } = await supabaseAdmin
+        .from('survey_response')
+        .select(`
+          response_id,
+          survey_section!inner (
+            section_key,
+            data
+          )
+        `)
+        .eq('barangay_id', barangayId)
+        .eq('survey_cycle_id', actualPreviousCycle.cycle_id)
+        .eq('survey_section.section_key', serviceArea)
+        .in('status', ['completed', 'submitted']);
 
-    console.log(`🔍 [TREND] Previous responses query result:`, {
-      count: previousResponses?.length || 0,
-      error: responsesError?.message
-    });
+      console.log(`🔍 [TREND] Query result:`, {
+        cycleId: actualPreviousCycle.cycle_id,
+        cycleName: actualPreviousCycle.name,
+        count: responses?.length || 0,
+        error: responsesError?.message
+      });
 
-    if (responsesError || !previousResponses || previousResponses.length === 0) {
-      // No data from previous cycle for this service area
-      console.log(`⚠️ [TREND] No previous responses found - returning baseline`);
+      if (!responsesError && responses && responses.length > 0) {
+        // Found data!
+        previousResponses = responses;
+        console.log(`✅ [TREND] Found ${responses.length} responses in ${actualPreviousCycle.name}`);
+        break;
+      }
+
+      // No data in this cycle, try the next older cycle
+      console.log(`⚠️ [TREND] No data in ${actualPreviousCycle.name}, looking for older cycle...`);
+      
+      const { data: olderCycle } = await supabaseAdmin
+        .from('survey_cycle')
+        .select('cycle_id, name, year, is_active')
+        .lt('cycle_id', actualPreviousCycle.cycle_id)
+        .neq('year', currentCycleInfo?.year || 9999)
+        .order('cycle_id', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!olderCycle) {
+        console.log(`⚠️ [TREND] No older cycles available`);
+        break;
+      }
+
+      actualPreviousCycle = olderCycle;
+      attemptsRemaining--;
+    }
+
+    if (previousResponses.length === 0) {
+      // No data found in any previous cycle for this barangay
+      console.log(`⚠️ [TREND] No historical data found for this barangay - returning baseline`);
       return {
         change: 0,
         direction: 'baseline',
         available: false,
-        message: `No data from previous cycle (${previousCycle.name})`
+        message: `No historical data available for this barangay`
       };
     }
 
@@ -817,8 +853,9 @@ async function calculateTrend(
       available: true,
       previousScore: previousSatisfaction,
       currentScore: currentSatisfaction,
-      previousCycle: previousCycle.name,
-      previousCycleYear: previousCycle.year
+      previousCycle: actualPreviousCycle.name,
+      previousCycleYear: actualPreviousCycle.year,
+      cyclesSkipped: previousCycle.cycle_id - actualPreviousCycle.cycle_id - 1 // How many cycles were skipped
     };
 
     console.log(`🎉 [TREND] Returning trend result:`, trendResult);
