@@ -18,6 +18,8 @@ function getAgeGroup(age: number): string {
   return 'Unknown'
 }
 
+import { logger } from '@/lib/logger';
+
 export async function GET(request: NextRequest) {
   let client
   try {
@@ -95,7 +97,7 @@ export async function GET(request: NextRequest) {
     
     const serviceIds = serviceIdMap[serviceArea] || []
 
-    console.log('[Service Area Deep Dive] Service area:', serviceArea, 'Field:', field, 'Cycle:', cycleId)
+    logger.debug('[Service Area Deep Dive] Service area:', serviceArea, 'Field:', field, 'Cycle:', cycleId)
     
     // First, let's check what section keys exist
     const sectionKeysQuery = `
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest) {
       ORDER BY ss.section_key
     `
     const sectionKeysResult = await client.query(sectionKeysQuery, [cycleId])
-    console.log('[Service Area Deep Dive] Available section keys:', sectionKeysResult.rows)
+    logger.debug('[Service Area Deep Dive] Available section keys:', sectionKeysResult.rows)
     
     // Build demographic filter for survey responses
     let demographicFilter = ''
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
       console.log('[Service Area Deep Dive] Education filter:', educationalAttainment)
     }
     
-    console.log('[Service Area Deep Dive] Demographic filters:', { ageGroup, gender, householdIncome, educationalAttainment })
+    logger.debug('[Service Area Deep Dive] Demographic filters:', { ageGroup, gender, householdIncome, educationalAttainment })
     
     // Get list of barangays with completed surveys
     const barangaysQuery = `
@@ -153,7 +155,7 @@ export async function GET(request: NextRequest) {
     `
     
     const barangaysResult = await client.query(barangaysQuery, [...queryParams, ...demographicParams])
-    console.log('[Service Area Deep Dive] Found barangays after demographic filter:', barangaysResult.rows.length)
+    logger.debug('[Service Area Deep Dive] Found barangays after demographic filter:', barangaysResult.rows.length)
     
     const rankings = []
     
@@ -175,7 +177,7 @@ export async function GET(request: NextRequest) {
       const metricsQueryParams = [barangay.barangay_id, cycleId, field, ...demographicParams]
       const metricsResult = await client.query(metricsQuery, metricsQueryParams)
       
-      console.log(`[Service Area Deep Dive] Barangay ${barangay.barangay_name} (${field}):`, metricsResult.rows.length, 'responses')
+      logger.debug(`[Service Area Deep Dive] Barangay ${barangay.barangay_name} (${field}):`, metricsResult.rows.length, 'responses')
       
       // Debug: Check what section keys exist for this barangay
       if (metricsResult.rows.length === 0) {
@@ -188,11 +190,11 @@ export async function GET(request: NextRequest) {
           ORDER BY ss.section_key
         `
         const debugResult = await client.query(debugQuery, [barangay.barangay_id, cycleId])
-        console.log(`[Service Area Deep Dive] ${barangay.barangay_name} available section keys:`, debugResult.rows)
+        logger.debug(`[Service Area Deep Dive] ${barangay.barangay_name} available section keys:`, debugResult.rows)
       }
       
       if (metricsResult.rows.length > 0) {
-        console.log('[Service Area Deep Dive] Sample data:', JSON.stringify(metricsResult.rows[0].full_data).substring(0, 200))
+        logger.debug('[Service Area Deep Dive] Sample data:', JSON.stringify(metricsResult.rows[0].full_data).substring(0, 200))
       }
       
       if (metricsResult.rows.length === 0) {
@@ -322,7 +324,7 @@ export async function GET(request: NextRequest) {
       const satisfaction = respondentsAvailed.size > 0 ? Math.round((respondentsSatisfied.size / respondentsAvailed.size) * 100) : 0
       const needForAction = totalNfa > 0 ? Math.round((totalNfaYes / totalNfa) * 100) : 0
       
-      console.log(`[Service Area Deep Dive] ${barangay.barangay_name} (${field}) metrics:`, {
+      logger.debug(`[Service Area Deep Dive] ${barangay.barangay_name} (${field}) metrics:`, {
         awareness: `${respondentsAware.size}/${totalResponses} = ${awareness}%`,
         availment: `${respondentsAvailed.size}/${respondentsAware.size} = ${availment}%`,
         satisfaction: `${respondentsSatisfied.size}/${respondentsAvailed.size} = ${satisfaction}%`,
@@ -414,7 +416,7 @@ export async function GET(request: NextRequest) {
     // Sort by satisfaction descending
     rankings.sort((a, b) => b.satisfaction - a.satisfaction)
     
-    console.log('[Service Area Deep Dive] Calculated rankings for', rankings.length, 'barangays')
+    logger.info(`✅ [Service Area Deep Dive] Calculated rankings for ${rankings.length} barangays (${serviceArea})`)
 
     return NextResponse.json({ rankings })
 

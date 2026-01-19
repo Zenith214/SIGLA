@@ -186,7 +186,7 @@ export default function CPAPReviewPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to request revision");
+        throw new Error(errorData.message || "Failed to request rework");
       }
 
       toast({
@@ -201,7 +201,7 @@ export default function CPAPReviewPage() {
       console.error("Error requesting revision:", err);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to request revision",
+        description: err instanceof Error ? err.message : "Failed to request rework",
         type: "error",
       });
     } finally {
@@ -442,7 +442,7 @@ export default function CPAPReviewPage() {
                           size="sm"
                         >
                           <XCircle className="h-4 w-4 mr-2" />
-                          Request Revision
+                          Request Rework
                         </Button>
                         <Button
                           onClick={() => setShowApproveConfirm(true)}
@@ -463,7 +463,7 @@ export default function CPAPReviewPage() {
               <Dialog open={showRevisionForm} onOpenChange={setShowRevisionForm}>
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>Request Revision</DialogTitle>
+                    <DialogTitle>Request Rework</DialogTitle>
                     <DialogDescription>
                       Provide comments explaining what needs to be revised in this CPAP.
                     </DialogDescription>
@@ -514,7 +514,7 @@ export default function CPAPReviewPage() {
                       ) : (
                         <>
                           <XCircle className="h-4 w-4 mr-2" />
-                          Request Revision
+                          Request Rework
                         </>
                       )}
                     </Button>

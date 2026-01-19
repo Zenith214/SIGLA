@@ -60,8 +60,10 @@ export async function getCachedOrCompute<T>(
 
   // Check if force refresh is requested
   if (forceRefresh) {
+    console.log(`🔄 [${endpoint}] Force refresh - computing...`);
     const data = await computeFn()
     await saveToCache(cacheKey, endpoint, params, data, ttl)
+    console.log(`✅ [${endpoint}] Computed and cached`);
     return {
       data,
       cached: false,
@@ -78,14 +80,12 @@ export async function getCachedOrCompute<T>(
     .eq('cache_key', cacheKey)
     .single()
 
-  if (error && error.code !== 'PGRST116') {
-    console.error('Cache lookup error:', error)
-  }
-
   const now = new Date()
 
   // Cache hit - fresh data
   if (cached && new Date(cached.expires_at) > now) {
+    console.log(`✅ [${endpoint}] Cache hit (fresh, hits: ${cached.hit_count || 0})`);
+    
     // Update hit count and last accessed
     await supabase
       .from('ml_cache')
@@ -106,6 +106,8 @@ export async function getCachedOrCompute<T>(
 
   // Cache hit - stale data
   if (cached && staleWhileRevalidate) {
+    console.log(`⚠️ [${endpoint}] Cache hit (stale) - returning old data, refreshing in background`);
+    
     // Return stale data immediately
     const staleResult = {
       data: cached.data as T,
@@ -122,8 +124,10 @@ export async function getCachedOrCompute<T>(
   }
 
   // Cache miss or no stale-while-revalidate - compute now
+  console.log(`❌ [${endpoint}] Cache miss - computing...`);
   const data = await computeFn()
   await saveToCache(cacheKey, endpoint, params, data, ttl)
+  console.log(`✅ [${endpoint}] Computed and cached`);
 
   return {
     data,
@@ -160,33 +164,16 @@ async function saveToCache<T>(
     updated_at: now.toISOString()
   }
 
-  // Try to update existing entry first
-  const { data: existing } = await supabase
+  // Use upsert to handle race conditions
+  const { error } = await supabase
     .from('ml_cache')
-    .select('id')
-    .eq('cache_key', cacheKey)
-    .single()
+    .upsert(cacheEntry, {
+      onConflict: 'cache_key',
+      ignoreDuplicates: false
+    })
 
-  if (existing) {
-    // Update existing entry
-    const { error } = await supabase
-      .from('ml_cache')
-      .update(cacheEntry)
-      .eq('cache_key', cacheKey)
-
-    if (error) {
-      console.error('Cache update error:', error)
-    }
-  } else {
-    // Insert new entry
-    const { error } = await supabase
-      .from('ml_cache')
-      .insert(cacheEntry)
-
-    if (error && error.code !== '23505') {
-      // Ignore duplicate key errors (23505), log others
-      console.error('Cache insert error:', error)
-    }
+  if (error) {
+    console.error(`❌ [${endpoint}] Cache save failed:`, error.message)
   }
 }
 

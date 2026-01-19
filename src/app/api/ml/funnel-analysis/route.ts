@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const cycleId = searchParams.get('cycleId');
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    console.log(`🚀 [ML FUNNEL] Request received - Barangay: ${barangayId}, Cycle: ${cycleId}, Refresh: ${forceRefresh}`);
+    console.log(`\n🚀 [ML FUNNEL] API called - Barangay ${barangayId}, Cycle ${cycleId}`);
 
     if (!barangayId) {
       return NextResponse.json(
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // If survey is not complete, return a special response
     if (progress < 100) {
-      console.log(`⏳ [ML FUNNEL] Survey not complete for barangay ${barangayId} - Progress: ${progress}%`);
+      console.log(`⏳ [ML FUNNEL] Survey incomplete (${progress}%)`);
       return NextResponse.json({
         surveyIncomplete: true,
         progress: progress,
@@ -61,15 +61,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`✅ [ML FUNNEL] Survey complete (${progress}%) - Proceeding with ML analysis`);
-
-
     // Use caching with 12-hour TTL for funnel analysis
     const result = await getCachedOrCompute(
       'ml-funnel-analysis',
       { barangayId: parseInt(barangayId), cycleId: parseInt(cycleId) },
       async () => {
-        console.log(`🔄 [ML FUNNEL] Computing funnel analysis for barangay ${barangayId}, cycle ${cycleId}...`);
 
         let mlResults;
 
@@ -86,8 +82,6 @@ export async function GET(request: NextRequest) {
           mlApiUrl = mlApiUrl.replace(/\/$/, '');
           
           // Use HTTP API call to separate ML service
-          console.log(`🌐 [ML FUNNEL] Calling ML API at ${mlApiUrl}`);
-          
           try {
             const response = await fetch(`${mlApiUrl}/api/analyze`, {
               method: 'POST',
@@ -102,20 +96,16 @@ export async function GET(request: NextRequest) {
 
             if (!response.ok) {
               const errorText = await response.text();
-              console.error(`❌ [ML FUNNEL] ML API error (${response.status}):`, errorText);
               throw new Error(`ML API returned ${response.status}: ${errorText}`);
             }
 
             mlResults = await response.json();
-            console.log(`✅ [ML FUNNEL] Received ML results from API`);
           } catch (fetchError: any) {
             console.error('❌ [ML FUNNEL] Failed to call ML API:', fetchError.message);
             throw new Error(`Failed to connect to ML service: ${fetchError.message}`);
           }
         } else {
           // Fall back to local Python execution (for local development)
-          console.log(`🐍 [ML FUNNEL] Using local Python execution`);
-          
           const mlScriptPath = path.join(process.cwd(), 'ml', 'analyze_barangay.py');
           const venvPython = process.platform === 'win32' 
             ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
@@ -156,8 +146,6 @@ export async function GET(request: NextRequest) {
         expiresAt: result.expiresAt
       }
     };
-
-    console.log(`✅ [ML FUNNEL] Returned ${result.cached ? (result.stale ? 'stale cached' : 'fresh cached') : 'newly computed'} data for barangay ${barangayId}`);
 
     return NextResponse.json(response);
 

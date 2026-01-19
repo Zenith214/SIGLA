@@ -126,7 +126,7 @@ export function CPAPReviewModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to request revision");
+        throw new Error(errorData.message || "Failed to request rework");
       }
 
       toast({
@@ -140,7 +140,7 @@ export function CPAPReviewModal({
       console.error("Error requesting revision:", err);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to request revision",
+        description: err instanceof Error ? err.message : "Failed to request rework",
         type: "error",
       });
     } finally {
@@ -223,7 +223,7 @@ export function CPAPReviewModal({
           {/* Revision Form */}
           {showRevisionForm && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-orange-900">Request Revision</h4>
+              <h4 className="font-semibold text-orange-900">Request Rework</h4>
               <div>
                 <Label htmlFor="revision-comments">
                   Comments <span className="text-red-500">*</span>
@@ -268,7 +268,7 @@ export function CPAPReviewModal({
                   ) : (
                     <>
                       <XCircle className="h-4 w-4 mr-2" />
-                      Request Revision
+                      Request Rework
                     </>
                   )}
                 </Button>
@@ -322,7 +322,7 @@ export function CPAPReviewModal({
                 onClick={() => setShowRevisionForm(true)}
               >
                 <XCircle className="h-4 w-4 mr-2" />
-                Request Revision
+                Request Rework
               </Button>
               <Button
                 onClick={() => setShowApproveConfirm(true)}
