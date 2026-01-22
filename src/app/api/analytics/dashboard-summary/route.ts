@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Service area performance - calculate actual satisfaction from each service section
+    // Service area performance - use ml_cache data if available, otherwise calculate from sections
     const serviceAreas = [
       { key: 'financial', name: 'Financial Administration' },
       { key: 'disaster', name: 'Disaster Preparedness' },
@@ -307,54 +307,103 @@ export async function GET(request: NextRequest) {
       { key: 'environmental', name: 'Environmental Management' }
     ]
 
-    const serviceAreaPerformance = await Promise.all(
-      serviceAreas.map(async (area) => {
-        // Get all satisfaction scores for this service area
-        const satisfactionQuery = `
-          SELECT ss.data
-          FROM survey_response sr
-          LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
-          WHERE sr.survey_cycle_id = $1
-            AND sr.status IN ('completed', 'submitted')
-            AND ss.section_key = $2
-            AND ss.data IS NOT NULL
-        `
-        
-        const result = await client.query(satisfactionQuery, [activeCycleId, area.key])
-        
-        let totalSatisfaction = 0
-        let satisfactionCount = 0
-        
-        result.rows.forEach((row: any) => {
-          const sectionData = typeof row.data === 'string' ? JSON.parse(row.data) : row.data
-          
-          // Extract all satisfaction scores from this section
-          Object.keys(sectionData).forEach((key) => {
-            if (key.toLowerCase().includes('satisfaction')) {
-              const value = sectionData[key]
-              // Handle both numeric strings and "N - Description" format
-              const numericValue = typeof value === 'string' 
-                ? parseInt(value.charAt(0)) 
-                : parseInt(value)
-              
-              if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
-                totalSatisfaction += (numericValue / 5) * 100
-                satisfactionCount++
-              }
-            }
-          })
-        })
-        
-        const avgSatisfaction = satisfactionCount > 0 
-          ? Math.round(totalSatisfaction / satisfactionCount) 
-          : 0
-        
+    // Try to get data from ml_cache first (pre-calculated metrics)
+    const mlCacheQuery = `
+      SELECT data
+      FROM ml_cache
+      WHERE cycle_id = $1
+      LIMIT 1
+    `
+    
+    const mlCacheResult = await client.query(mlCacheQuery, [activeCycleId])
+    
+    let serviceAreaPerformance: Array<{ serviceArea: string; avgSatisfaction: number }> = []
+    
+    if (mlCacheResult.rows.length > 0 && mlCacheResult.rows[0].data?.service_scores) {
+      // Use pre-calculated ml_cache data
+      console.log('[Dashboard Summary] Using ml_cache service scores')
+      
+      const serviceScores = mlCacheResult.rows[0].data.service_scores
+      
+      serviceAreaPerformance = serviceAreas.map(area => {
+        const score = serviceScores[area.key]?.satisfaction || 0
         return {
           serviceArea: area.name,
-          avgSatisfaction
+          avgSatisfaction: Math.round(score)
         }
       })
-    )
+    } else {
+      // Fallback: Calculate from survey sections
+      console.log('[Dashboard Summary] Calculating service area performance from survey sections')
+      
+      serviceAreaPerformance = await Promise.all(
+        serviceAreas.map(async (area) => {
+          // Get all satisfaction scores for this service area
+          const satisfactionQuery = `
+            SELECT ss.data
+            FROM survey_response sr
+            LEFT JOIN survey_section ss ON sr.response_id = ss.response_id
+            WHERE sr.survey_cycle_id = $1
+              AND sr.status IN ('completed', 'submitted')
+              AND ss.section_key = $2
+              AND ss.data IS NOT NULL
+          `
+          
+          const result = await client.query(satisfactionQuery, [activeCycleId, area.key])
+          
+          console.log(`[Dashboard Summary] Service area ${area.key}: Found ${result.rows.length} responses`)
+          
+          let totalSatisfaction = 0
+          let satisfactionCount = 0
+          
+          result.rows.forEach((row: any) => {
+            const sectionData = typeof row.data === 'string' ? JSON.parse(row.data) : row.data
+            
+            // Extract all satisfaction scores from this section
+            Object.keys(sectionData).forEach((key) => {
+              if (key.toLowerCase().includes('satisfaction')) {
+                const value = sectionData[key]
+                
+                // Handle different satisfaction formats
+                let numericValue: number | null = null
+                
+                if (typeof value === 'number') {
+                  numericValue = value
+                } else if (typeof value === 'string') {
+                  const valueStr = value.toLowerCase().trim()
+                  
+                  // Check for binary format (Yes/No or Oo/Hindi)
+                  if (valueStr.includes('yes') || valueStr.includes('oo')) {
+                    numericValue = 5 // Satisfied = 5
+                  } else if (valueStr.includes('no') || valueStr.includes('hindi')) {
+                    numericValue = 1 // Not satisfied = 1
+                  } else {
+                    // Try to extract numeric value from "N - Description" format
+                    numericValue = parseInt(value.charAt(0))
+                  }
+                }
+                
+                if (numericValue !== null && !isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+                  totalSatisfaction += (numericValue / 5) * 100
+                  satisfactionCount++
+                }
+              }
+            })
+          })
+          
+          const avgSatisfaction = satisfactionCount > 0 
+            ? Math.round(totalSatisfaction / satisfactionCount) 
+            : 0
+          
+          console.log(`[Dashboard Summary] Service area ${area.key}: ${satisfactionCount} satisfaction scores, avg: ${avgSatisfaction}%`)
+          
+          return {
+            serviceArea: area.name,
+            avgSatisfaction
+          }
+        })
+      )
+    }
 
     return NextResponse.json({
       kpis,

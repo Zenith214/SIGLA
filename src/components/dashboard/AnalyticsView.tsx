@@ -42,46 +42,46 @@ export default function AnalyticsView() {
         </div>
 
         {/* View Tabs */}
-        <div className="flex gap-2 border-t pt-4">
+        <div className="flex flex-wrap gap-2 border-t pt-4">
           <Button
             variant={activeView === 'summary' ? 'default' : 'outline'}
             onClick={() => setActiveView('summary')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-shrink-0"
             size="sm"
           >
             <BarChart3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard Summary</span>
-            <span className="sm:hidden">Summary</span>
+            <span className="hidden md:inline">Dashboard Summary</span>
+            <span className="md:hidden">Summary</span>
           </Button>
           <Button
             variant={activeView === 'service-area' ? 'default' : 'outline'}
             onClick={() => setActiveView('service-area')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-shrink-0"
             size="sm"
           >
             <Layers className="w-4 h-4" />
-            <span className="hidden sm:inline">Service Area Deep Dive</span>
-            <span className="sm:hidden">Service Areas</span>
+            <span className="hidden md:inline">Service Area Deep Dive</span>
+            <span className="md:hidden">Services</span>
           </Button>
           <Button
             variant={activeView === 'demographics' ? 'default' : 'outline'}
             onClick={() => setActiveView('demographics')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-shrink-0"
             size="sm"
           >
             <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Demographics</span>
-            <span className="sm:hidden">Demo</span>
+            <span className="hidden md:inline">Demographics</span>
+            <span className="md:hidden">Demo</span>
           </Button>
           <Button
             variant={activeView === 'detailed' ? 'default' : 'outline'}
             onClick={() => setActiveView('detailed')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-shrink-0"
             size="sm"
           >
             <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Detailed Analytics</span>
-            <span className="sm:hidden">Details</span>
+            <span className="hidden md:inline">Detailed Analytics</span>
+            <span className="md:hidden">Details</span>
           </Button>
         </div>
       </div>

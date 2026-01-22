@@ -18,6 +18,7 @@ import {
 import { useActiveCycle } from '@/hooks/useSurveyCycle'
 import { CycleDisplay } from '@/components/survey-cycle'
 import DetailedResponsesView from './DetailedResponsesView'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 interface AnalyticsData {
   summary?: {
@@ -52,6 +53,8 @@ interface AnalyticsData {
 }
 
 export default function SurveyAnalyticsDashboard() {
+  const { user } = useAuth()
+  const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'developer'
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({})
   const [loading, setLoading] = useState(false)
   const [activeView, setActiveView] = useState<'summary' | 'detailed' | 'aggregated'>('summary')
@@ -351,6 +354,20 @@ export default function SurveyAnalyticsDashboard() {
                 {['all', 'financial', 'disaster', 'safety', 'social', 'business', 'environmental'].map((section) => {
                   const filteredQuestions = Object.entries(analyticsData.aggregated?.questions || {})
                     .filter(([key]) => section === 'all' || key.startsWith(section + '_'))
+                    .filter(([key, question]: [string, any]) => {
+                      // Hide corruption-related questions from non-admins
+                      const label = question.questionLabel || key
+                      const isCorruptionQuestion = 
+                        key.toLowerCase().includes('corruption') ||
+                        key.toLowerCase().includes('korapsyon') ||
+                        label.toLowerCase().includes('corruption') ||
+                        label.toLowerCase().includes('korapsyon')
+                      
+                      if (!isAdmin && isCorruptionQuestion) {
+                        return false
+                      }
+                      return true
+                    })
                   
                   return (
                     <TabsContent key={section} value={section} className="space-y-4">

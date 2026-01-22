@@ -35,6 +35,9 @@ export function UsersRoles() {
   const [searchTerm, setSearchTerm] = useState("")
   const [rolePermissionsVisible, setRolePermissionsVisible] = useState(false)
   const [viewingUser, setViewingUser] = useState<any | null>(null)
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [showPasswordReset, setShowPasswordReset] = useState(false)
   const { toast } = useToast()
 
   // Filter users based on search term
@@ -85,6 +88,8 @@ export function UsersRoles() {
       barangayDesignation: user.barangayDesignation || ""
     })
     setEditingUser(user)
+    setShowPasswordReset(false)
+    setNewPassword("")
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
@@ -110,6 +115,8 @@ export function UsersRoles() {
       setUsers(users.map(u => (u.id === updated.user.id ? updated.user : u)))
       setEditingUser(null)
       setEditForm(null)
+      setShowPasswordReset(false)
+      setNewPassword("")
       toast({
         title: "User Updated Successfully!",
         description: `${editForm.firstName} ${editForm.lastName}'s information has been updated.`,
@@ -122,6 +129,47 @@ export function UsersRoles() {
       });
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Password Reset
+  const handlePasswordReset = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Password",
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+
+    setResettingPassword(true)
+    try {
+      const res = await fetch(`/api/users/${editForm.id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || "Failed to reset password")
+      }
+      
+      setShowPasswordReset(false)
+      setNewPassword("")
+      toast({
+        title: "Password Reset Successfully!",
+        description: `Password for ${editForm.firstName} ${editForm.lastName} has been updated.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Password Reset Failed",
+        description: err.message || "An unexpected error occurred while resetting the password.",
+      });
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -472,8 +520,8 @@ export function UsersRoles() {
 
       {/* Edit Modal */}
       {editingUser && editForm && (
-        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) { setEditingUser(null); setEditForm(null); } }}>
-          <DialogContent className="max-w-md">
+        <Dialog open={!!editingUser} onOpenChange={open => { if (!open) { setEditingUser(null); setEditForm(null); setShowPasswordReset(false); setNewPassword(""); } }}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
             </DialogHeader>
@@ -522,10 +570,65 @@ export function UsersRoles() {
                   {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
                 </select>
               </div>
+
+              {/* Password Reset Section */}
+              <div className="pt-4 border-t">
+                {!showPasswordReset ? (
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    className="w-full text-orange-600 border-orange-300 hover:bg-orange-50"
+                    onClick={() => setShowPasswordReset(true)}
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Reset Password
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-orange-600 text-sm font-medium">
+                      <Shield className="w-4 h-4" />
+                      <span>Reset Password</span>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">New Password</label>
+                      <Input 
+                        type="password" 
+                        placeholder="Enter new password (min. 6 characters)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={resettingPassword}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setShowPasswordReset(false);
+                          setNewPassword("");
+                        }}
+                        disabled={resettingPassword}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button"
+                        size="sm"
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={handlePasswordReset}
+                        disabled={resettingPassword || !newPassword}
+                      >
+                        {resettingPassword ? 'Resetting...' : 'Confirm Reset'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => setEditingUser(null)} disabled={saving}>Cancel</Button>
-              <Button onClick={handleEditSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+              <Button variant="outline" onClick={() => { setEditingUser(null); setShowPasswordReset(false); setNewPassword(""); }} disabled={saving}>Cancel</Button>
+              <Button onClick={handleEditSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </DialogContent>
         </Dialog>

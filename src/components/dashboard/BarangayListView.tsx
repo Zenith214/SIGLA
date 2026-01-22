@@ -43,7 +43,49 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
   const [barangays, setBarangays] = useState<ApiBarangayData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+  const [funnelData, setFunnelData] = useState<any>(null);
+  const [loadingFunnel, setLoadingFunnel] = useState(true);
   const { activeCycle, hasActiveCycle } = useActiveCycle();
+
+  // Fetch funnel data for the selected barangay
+  useEffect(() => {
+    if (!selectedBarangay) {
+      setFunnelData(null);
+      setLoadingFunnel(false);
+      return;
+    }
+
+    const fetchFunnelData = async () => {
+      try {
+        setLoadingFunnel(true);
+        const cycleId = selectedCycleId || (hasActiveCycle && activeCycle ? activeCycle.cycle_id : null);
+        
+        if (!cycleId) {
+          console.warn('[Mobile] No cycle ID available for funnel data');
+          setLoadingFunnel(false);
+          return;
+        }
+
+        console.log(`[Mobile] Fetching funnel data for barangay ${selectedBarangay.id}, cycle ${cycleId}`);
+        const response = await fetch(`/api/ml/funnel-analysis?barangayId=${selectedBarangay.id}&cycleId=${cycleId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[Mobile] Funnel data received:', data);
+          console.log('[Mobile] Overall Satisfaction:', data.overall_satisfaction);
+          console.log('[Mobile] Overall Need Action:', data.overall_need_action);
+          setFunnelData(data);
+        } else {
+          console.error('[Mobile] Funnel API returned non-OK status:', response.status);
+        }
+      } catch (error) {
+        console.error('[Mobile] Error fetching funnel data:', error);
+      } finally {
+        setLoadingFunnel(false);
+      }
+    };
+
+    fetchFunnelData();
+  }, [selectedBarangay, selectedCycleId, activeCycle, hasActiveCycle]);
 
   // Fetch barangays from API
   useEffect(() => {
@@ -116,9 +158,34 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
   );
 
   if (selectedBarangay) {
-    // Mock satisfaction percentage - you can replace this with actual data
-    const satisfactionPercentage = 65; // Example value
+    const satisfactionPercentage = funnelData?.overall_satisfaction || 0;
+    
+    // Calculate overall NFA by averaging service area need_action scores (same as desktop)
+    const needForActionPercentage = (() => {
+      if (!funnelData?.service_scores) return 0;
+      
+      const serviceScores = Object.values(funnelData.service_scores);
+      const validScores = serviceScores.filter((score: any) => 
+        score.need_action !== null && score.need_action !== undefined
+      );
+      
+      if (validScores.length === 0) return 0;
+      
+      const avgNFA = validScores.reduce((sum: number, score: any) => 
+        sum + (score.need_action || 0), 0
+      ) / validScores.length;
+      
+      return avgNFA;
+    })();
+    
+    const surveyProgress = selectedBarangay.progress || 0;
     const isHighSatisfaction = satisfactionPercentage >= 58;
+
+    console.log('[Mobile Display] Barangay:', selectedBarangay.name);
+    console.log('[Mobile Display] Satisfaction:', satisfactionPercentage);
+    console.log('[Mobile Display] NFA (calculated):', needForActionPercentage);
+    console.log('[Mobile Display] Progress:', surveyProgress);
+    console.log('[Mobile Display] Service Scores:', funnelData?.service_scores);
 
     const handleViewReportCard = () => {
       // Navigate to score card page with barangay data
@@ -165,16 +232,69 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
         
         {/* Content - Satisfaction Index */}
         <div className="flex-1 overflow-auto p-4">
-          <div className="space-y-4">
-            {/* Overall Satisfaction */}
-            <div className="border border-gray-200 rounded-full px-6 py-3 text-center bg-white shadow-sm">
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-gray-700 font-medium text-base">Overall Satisfaction:</span>
-                <span className={`text-xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
-                  {satisfactionPercentage}%
-                </span>
+          {loadingFunnel ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading barangay data...</p>
               </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Survey Progress */}
+              <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700 font-medium text-sm">Survey Progress</span>
+                  <span className="text-gray-900 font-bold text-lg">{surveyProgress.toFixed(0)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      surveyProgress === 100 ? 'bg-green-500' :
+                      surveyProgress >= 50 ? 'bg-blue-500' : 'bg-gray-400'
+                    }`}
+                    style={{ width: `${surveyProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {surveyProgress === 100 
+                    ? 'Survey completed' 
+                    : surveyProgress === 0
+                    ? 'Survey has not started yet'
+                    : `${(100 - surveyProgress).toFixed(0)}% remaining`}
+                </p>
+              </div>
+
+              {/* Overall Satisfaction and Need for Action Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Overall Satisfaction */}
+                <div className="border-2 border-gray-300 rounded-xl p-4 bg-white shadow-sm">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">📊</div>
+                    <div className="text-xs font-semibold text-gray-600 mb-2">Overall Satisfaction</div>
+                    <div className={`text-2xl font-bold ${isHighSatisfaction ? 'text-green-600' : 'text-red-600'}`}>
+                      {satisfactionPercentage.toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {isHighSatisfaction ? 'Above cutoff' : 'Below cutoff'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Overall Need for Action */}
+                <div className="border-2 border-gray-300 rounded-xl p-4 bg-white shadow-sm">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">🎯</div>
+                    <div className="text-xs font-semibold text-gray-600 mb-2">Overall NFA</div>
+                    <div className={`text-2xl font-bold ${needForActionPercentage > 30 ? 'text-orange-600' : 'text-green-600'}`}>
+                      {needForActionPercentage.toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {needForActionPercentage > 30 ? 'Action needed' : 'Low priority'}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             {/* Barangay Logos - Side by Side */}
             <div className="grid grid-cols-2 gap-4">
@@ -206,118 +326,45 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
               </div>
             </div>
 
-            {/* View Score Card Button */}
-            <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
-              onClick={handleViewReportCard}
-            >
-              View Score Card
-            </button>
+              {/* View Score Card Button */}
+              <button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg"
+                onClick={handleViewReportCard}
+              >
+                View Score Card
+              </button>
 
-            {/* Action Grid */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm">
-              <div className="text-center mb-4">
-                <h2 className="text-lg font-bold text-gray-800 mb-1">Action Grid</h2>
-              </div>
+              {/* How to Use Section */}
+              <div className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm">
+                <h3 className="text-gray-800 font-semibold mb-3 text-base">How to Read This Report</h3>
 
-              {/* 2x2 Grid */}
-              <div className="grid grid-cols-2 gap-3 h-64">
-                {/* Top Left - Maintain */}
-                <div className="bg-green-100 border-2 border-green-300 rounded-xl p-3 flex flex-col">
-                  <div className="text-center mb-2">
-                    <h3 className="text-green-800 font-bold text-sm mb-1">MAINTAIN</h3>
-                    <span className="text-green-600 font-medium text-xs">High Satisfaction, Low Need for Action</span>
+                <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
+                  {/* Survey Progress */}
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Survey Progress</h4>
+                    <p>Shows the completion percentage of surveys for this barangay. Green indicates completed (100%), blue shows in progress (50%+), and gray means not started.</p>
                   </div>
-                  <div className="space-y-1 text-xs text-green-800">
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Safety, Peace & Order</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Business Friendliness</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Top Right - Opportunities */}
-                <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-3 flex flex-col">
-                  <div className="text-center mb-2">
-                    <h3 className="text-blue-800 font-bold text-sm mb-1">OPPORTUNITIES</h3>
-                    <span className="text-blue-600 font-medium text-xs">High Satisfaction, High Need for Action</span>
-                  </div>
-                  <div className="space-y-1 text-xs text-blue-800">
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Disaster Preparedness</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Social Protection</span>
+                  {/* Overall Satisfaction */}
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Overall Satisfaction</h4>
+                    <p>Shows the barangay's overall performance score. Green (58% or higher) indicates good performance, while red (below 58%) suggests areas needing improvement.</p>
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                      <p className="font-semibold text-blue-900 mb-1">How is 58% calculated?</p>
+                      <p className="text-blue-800">Cut-off = 50% + (0.98 / √n)</p>
+                      <p className="text-blue-700 mt-1">For n=150: Cut-off = 50% + 8% = <span className="font-semibold">58%</span></p>
                     </div>
                   </div>
-                </div>
 
-                {/* Bottom Left - Monitor */}
-                <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-3 flex flex-col">
-                  <div className="text-center mb-2">
-                    <h3 className="text-yellow-800 font-bold text-sm mb-1">MONITOR</h3>
-                    <span className="text-yellow-600 font-medium text-xs">Low Satisfaction, Low Need for Action</span>
-                  </div>
-                  <div className="space-y-1 text-xs text-yellow-800">
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Environmental Management</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Right - Fix Now */}
-                <div className="bg-red-100 border-2 border-red-300 rounded-xl p-3 flex flex-col">
-                  <div className="text-center mb-2">
-                    <h3 className="text-red-800 font-bold text-sm mb-1">FIX NOW</h3>
-                    <span className="text-red-600 font-medium text-xs">Low Satisfaction, High Need for Action</span>
-                  </div>
-                  <div className="space-y-1 text-xs text-red-800">
-                    <div className="flex items-center">
-                      <span className="mr-2">★</span>
-                      <span>Finance Administration</span>
-                    </div>
+                  {/* Overall NFA */}
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Overall Need for Action (NFA)</h4>
+                    <p>Indicates the percentage of services requiring improvements. Orange (above 30%) means action is needed, while green (below 30%) indicates low priority.</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* How to Use Section */}
-            <div className="border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-gray-50 to-blue-50 shadow-sm">
-              <h3 className="text-gray-800 font-semibold mb-3 text-base">How to Read This Report</h3>
-
-              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
-                {/* Overall Satisfaction */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-1">Overall Satisfaction</h4>
-                  <p>Shows the barangay's overall performance score. Green (58% or higher) indicates good performance, while red (below 58%) suggests areas needing improvement.</p>
-                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                    <p className="font-semibold text-blue-900 mb-1">How is 58% calculated?</p>
-                    <p className="text-blue-800">Cut-off = 50% + (0.98 / √n)</p>
-                    <p className="text-blue-700 mt-1">For n=150: Cut-off = 50% + 8% = <span className="font-semibold">58%</span></p>
-                  </div>
-                </div>
-
-                {/* Action Grid */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-1">Action Grid</h4>
-                  <p>Categorizes services based on satisfaction levels and action priority:</p>
-                  <ul className="mt-1 ml-2 space-y-1">
-                    <li><span className="text-green-700 font-medium">• MAINTAIN:</span> Keep up good work</li>
-                    <li><span className="text-blue-700 font-medium">• OPPORTUNITIES:</span> Build on strengths</li>
-                    <li><span className="text-yellow-700 font-medium">• MONITOR:</span> Watch for changes</li>
-                    <li><span className="text-red-700 font-medium">• FIX NOW:</span> Immediate attention needed</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     );

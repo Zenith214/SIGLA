@@ -40,6 +40,8 @@ import {
   ArrowUpDown
 } from 'lucide-react'
 import { getQuestionLabel } from '@/utils/questionLabels'
+import { formatAnswerValue, isSkipReasonField } from '@/utils/answerFormatter'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 interface DetailedResponse {
   responseId: number
@@ -62,6 +64,12 @@ interface DetailedResponsesViewProps {
 }
 
 export default function DetailedResponsesView({ responses, totalCount }: DetailedResponsesViewProps) {
+  const { user } = useAuth()
+  const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'developer'
+  
+  // Debug logging
+  console.log('DetailedResponsesView - User role:', user?.role, 'isAdmin:', isAdmin)
+  
   // State management
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBarangay, setSelectedBarangay] = useState('all')
@@ -407,6 +415,18 @@ export default function DetailedResponsesView({ responses, totalCount }: Detaile
               const satisfaction = getSatisfactionScore(response)
               const isExpanded = expandedResponse === response.responseId
               
+              // Count unawareness and non-availment reasons
+              let unawarenessCount = 0
+              let nonAvailmentCount = 0
+              response.sections?.forEach(section => {
+                if (section.data && typeof section.data === 'object') {
+                  Object.keys(section.data).forEach(key => {
+                    if (key.includes('unawareness_reason')) unawarenessCount++
+                    if (key.includes('non_availment_reason')) nonAvailmentCount++
+                  })
+                }
+              })
+              
               return (
                 <div key={response.responseId} className="border rounded-lg">
                   {/* Response Header */}
@@ -419,7 +439,7 @@ export default function DetailedResponsesView({ responses, totalCount }: Detaile
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               {getStatusIcon(response)}
                               <span className="font-semibold">Survey #{response.surveyNumber}</span>
                               <Badge variant="outline" className="text-xs">
@@ -428,6 +448,16 @@ export default function DetailedResponsesView({ responses, totalCount }: Detaile
                               {satisfaction > 0 && (
                                 <Badge className={`text-xs ${getSatisfactionColor(satisfaction)}`}>
                                   {satisfaction.toFixed(0)}% Satisfied
+                                </Badge>
+                              )}
+                              {unawarenessCount > 0 && (
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                  {unawarenessCount} Unawareness
+                                </Badge>
+                              )}
+                              {nonAvailmentCount > 0 && (
+                                <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                  {nonAvailmentCount} Non-Availment
                                 </Badge>
                               )}
                               {response.gpsVerificationStatus === 'flagged' && (
@@ -481,26 +511,117 @@ export default function DetailedResponsesView({ responses, totalCount }: Detaile
                     {/* Expanded Details */}
                     {isExpanded && response.sections && (
                       <div className="mt-4 pl-8 space-y-2">
-                        {response.sections.map((section, idx) => (
-                          <details key={idx} className="border rounded-lg">
-                            <summary className="p-3 cursor-pointer hover:bg-gray-50 font-medium text-sm flex items-center justify-between">
-                              {section.name}
-                              <ChevronDown className="w-4 h-4" />
-                            </summary>
-                            <div className="p-3 space-y-2 text-sm bg-gray-50">
-                              {section.data && typeof section.data === 'object' && 
-                                Object.entries(section.data).map(([key, value]) => (
-                                  <div key={key} className="flex justify-between py-1 border-b">
-                                    <span className="text-gray-600">
-                                      {getQuestionLabel(`${section.key}_${key}`) || key}:
-                                    </span>
-                                    <span className="font-medium">{String(value)}</span>
-                                  </div>
-                                ))
+                        {response.sections.map((section, idx) => {
+                          // Extract unawareness and non-availment reasons
+                          const unawarenessReasons: Array<{key: string, value: any}> = []
+                          const nonAvailmentReasons: Array<{key: string, value: any}> = []
+                          const regularData: Array<{key: string, value: any}> = []
+
+                          if (section.data && typeof section.data === 'object') {
+                            Object.entries(section.data).forEach(([key, value]) => {
+                              // Hide corruption-related questions from non-admins
+                              const fullKey = `${section.key}_${key}`
+                              const label = getQuestionLabel(fullKey)
+                              const isCorruptionQuestion = 
+                                key.toLowerCase().includes('corruption') ||
+                                key.toLowerCase().includes('korapsyon') ||
+                                label.toLowerCase().includes('corruption') ||
+                                label.toLowerCase().includes('korapsyon')
+                              
+                              if (!isAdmin && isCorruptionQuestion) {
+                                return // Skip this question
                               }
-                            </div>
-                          </details>
-                        ))}
+
+                              if (key.includes('unawareness_reason')) {
+                                unawarenessReasons.push({key, value})
+                              } else if (key.includes('non_availment_reason')) {
+                                nonAvailmentReasons.push({key, value})
+                              } else {
+                                regularData.push({key, value})
+                              }
+                            })
+                          }
+
+                          return (
+                            <details key={idx} className="border rounded-lg">
+                              <summary className="p-3 cursor-pointer hover:bg-gray-50 font-medium text-sm flex items-center justify-between">
+                                {section.name}
+                                <div className="flex items-center gap-2">
+                                  {unawarenessReasons.length > 0 && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                      {unawarenessReasons.length} Unawareness
+                                    </Badge>
+                                  )}
+                                  {nonAvailmentReasons.length > 0 && (
+                                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                                      {nonAvailmentReasons.length} Non-Availment
+                                    </Badge>
+                                  )}
+                                  <ChevronDown className="w-4 h-4" />
+                                </div>
+                              </summary>
+                              <div className="p-3 space-y-3 text-sm bg-gray-50">
+                                {/* Regular Questions */}
+                                {regularData.length > 0 && (
+                                  <div className="space-y-2">
+                                    {regularData.map(({key, value}) => (
+                                      <div key={key} className="flex justify-between py-1 border-b">
+                                        <span className="text-gray-600">
+                                          {getQuestionLabel(`${section.key}_${key}`) || key}:
+                                        </span>
+                                        <span className="font-medium">{formatAnswerValue(value)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Unawareness Reasons */}
+                                {unawarenessReasons.length > 0 && (
+                                  <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <AlertCircle className="w-4 h-4 text-blue-600" />
+                                      <span className="font-semibold text-blue-800 text-sm">
+                                        Unawareness Reasons
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {unawarenessReasons.map(({key, value}) => (
+                                        <div key={key} className="text-sm text-blue-700">
+                                          <span className="font-medium">
+                                            {getQuestionLabel(`${section.key}_${key}`) || key}:
+                                          </span>{' '}
+                                          {formatAnswerValue(value)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Non-Availment Reasons */}
+                                {nonAvailmentReasons.length > 0 && (
+                                  <div className="mt-3 p-3 bg-orange-50 border-l-4 border-orange-400 rounded">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <AlertCircle className="w-4 h-4 text-orange-600" />
+                                      <span className="font-semibold text-orange-800 text-sm">
+                                        Non-Availment Reasons
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {nonAvailmentReasons.map(({key, value}) => (
+                                        <div key={key} className="text-sm text-orange-700">
+                                          <span className="font-medium">
+                                            {getQuestionLabel(`${section.key}_${key}`) || key}:
+                                          </span>{' '}
+                                          {formatAnswerValue(value)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -597,26 +718,117 @@ export default function DetailedResponsesView({ responses, totalCount }: Detaile
 
               {selectedResponseDetail.sections && (
                 <div className="space-y-2">
-                  {selectedResponseDetail.sections.map((section, idx) => (
-                    <details key={idx} className="border rounded-lg" open>
-                      <summary className="p-3 cursor-pointer hover:bg-gray-50 font-medium flex items-center justify-between">
-                        {section.name}
-                        <ChevronDown className="w-4 h-4" />
-                      </summary>
-                      <div className="p-3 space-y-3 bg-gray-50">
-                        {section.data && typeof section.data === 'object' && 
-                          Object.entries(section.data).map(([key, value]) => (
-                            <div key={key} className="p-3 bg-white rounded">
-                              <div className="text-sm text-gray-600 mb-1">
-                                {getQuestionLabel(`${section.key}_${key}`) || key}
-                              </div>
-                              <div className="font-medium">{String(value)}</div>
-                            </div>
-                          ))
+                  {selectedResponseDetail.sections.map((section, idx) => {
+                    // Extract unawareness and non-availment reasons
+                    const unawarenessReasons: Array<{key: string, value: any}> = []
+                    const nonAvailmentReasons: Array<{key: string, value: any}> = []
+                    const regularData: Array<{key: string, value: any}> = []
+
+                    if (section.data && typeof section.data === 'object') {
+                      Object.entries(section.data).forEach(([key, value]) => {
+                        // Hide corruption-related questions from non-admins
+                        const fullKey = `${section.key}_${key}`
+                        const label = getQuestionLabel(fullKey)
+                        const isCorruptionQuestion = 
+                          key.toLowerCase().includes('corruption') ||
+                          key.toLowerCase().includes('korapsyon') ||
+                          label.toLowerCase().includes('corruption') ||
+                          label.toLowerCase().includes('korapsyon')
+                        
+                        if (!isAdmin && isCorruptionQuestion) {
+                          return // Skip this question
                         }
-                      </div>
-                    </details>
-                  ))}
+
+                        if (key.includes('unawareness_reason')) {
+                          unawarenessReasons.push({key, value})
+                        } else if (key.includes('non_availment_reason')) {
+                          nonAvailmentReasons.push({key, value})
+                        } else {
+                          regularData.push({key, value})
+                        }
+                      })
+                    }
+
+                    return (
+                      <details key={idx} className="border rounded-lg" open>
+                        <summary className="p-3 cursor-pointer hover:bg-gray-50 font-medium flex items-center justify-between">
+                          {section.name}
+                          <div className="flex items-center gap-2">
+                            {unawarenessReasons.length > 0 && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                {unawarenessReasons.length} Unawareness
+                              </Badge>
+                            )}
+                            {nonAvailmentReasons.length > 0 && (
+                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                                {nonAvailmentReasons.length} Non-Availment
+                              </Badge>
+                            )}
+                            <ChevronDown className="w-4 h-4" />
+                          </div>
+                        </summary>
+                        <div className="p-3 space-y-3 bg-gray-50">
+                          {/* Regular Questions */}
+                          {regularData.length > 0 && (
+                            <div className="space-y-2">
+                              {regularData.map(({key, value}) => (
+                                <div key={key} className="p-3 bg-white rounded">
+                                  <div className="text-sm text-gray-600 mb-1">
+                                    {getQuestionLabel(`${section.key}_${key}`) || key}
+                                  </div>
+                                  <div className="font-medium">{formatAnswerValue(value)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Unawareness Reasons */}
+                          {unawarenessReasons.length > 0 && (
+                            <div className="p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                              <div className="flex items-center gap-2 mb-3">
+                                <AlertCircle className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-blue-800">
+                                  Unawareness Reasons
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {unawarenessReasons.map(({key, value}) => (
+                                  <div key={key} className="p-2 bg-white rounded">
+                                    <div className="text-sm text-gray-600 mb-1">
+                                      {getQuestionLabel(`${section.key}_${key}`) || key}
+                                    </div>
+                                    <div className="font-medium text-blue-700">{formatAnswerValue(value)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Non-Availment Reasons */}
+                          {nonAvailmentReasons.length > 0 && (
+                            <div className="p-4 bg-orange-50 border-l-4 border-orange-400 rounded">
+                              <div className="flex items-center gap-2 mb-3">
+                                <AlertCircle className="w-5 h-5 text-orange-600" />
+                                <span className="font-semibold text-orange-800">
+                                  Non-Availment Reasons
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {nonAvailmentReasons.map(({key, value}) => (
+                                  <div key={key} className="p-2 bg-white rounded">
+                                    <div className="text-sm text-gray-600 mb-1">
+                                      {getQuestionLabel(`${section.key}_${key}`) || key}
+                                    </div>
+                                    <div className="font-medium text-orange-700">{formatAnswerValue(value)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    )
+                  })}
                 </div>
               )}
             </div>
