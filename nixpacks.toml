@@ -3,6 +3,10 @@
 nixPkgs = ["nodejs_20", "pnpm"]
 aptPkgs = ["libatomic1"]
 
+# Force Node.js provider (prevent Python detection from ml/ folder)
+[providers]
+node = true
+
 [phases.install]
 cmds = [
   "pnpm config set auto-install-peers true",

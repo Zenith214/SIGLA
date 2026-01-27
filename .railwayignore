@@ -1,5 +1,9 @@
 # Ignore Python ML service (deploy separately if needed)
 ml/
+ml/**
+*.py
+requirements.txt
+ml/railway.json
 
 # Ignore Python virtual environment
 .venv/
