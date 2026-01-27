@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  console.log('✅ [HEALTH CHECK] Endpoint called');
   return NextResponse.json({ 
     status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'pulse'
+    service: 'SIGLA Web App',
+    timestamp: new Date().toISOString()
   });
 }
