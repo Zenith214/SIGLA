@@ -20,6 +20,3 @@ cmds = [
 
 [start]
 cmd = "pnpm start"
-
-[variables]
-NODE_ENV = "production"
