@@ -1,5 +1,4 @@
 # Nixpacks configuration for Railway deployment
-# Force Node.js provider (prevent Python detection from ml/ folder)
 providers = ["node"]
 
 [phases.setup]
