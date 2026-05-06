@@ -38,7 +38,7 @@ export default function InteractiveSVGMap({
     "1katipunan": "Katipunan",
     "2tanwalang": "Tanwalang", 
     "3solongvale": "Solongvale",
-    "4tala-o": "Tala-O",
+    "4tala-o": "Tala-o",
     "5balasinon": "Balasinon",
     "6haradabutai": "Harada Butai",
     "7roxas": "Roxas",
@@ -47,17 +47,17 @@ export default function InteractiveSVGMap({
     "10talas": "Talas",
     "11carre": "Carre",
     "12buguis": "Buguis",
-    "13mckinley": "Mckinley",
+    "13mckinley": "McKinley",
     "14kiblagon": "Kiblagon",
     "15laperas": "Laperas",
     "16clib": "Clib",
-    "17osmena": "Osmeña",
+    "17osmena": "Osmena",
     "18luparan": "Luparan",
     "19poblacion": "Poblacion",
     "20tagolilong": "Tagolilong",
     "21lapla": "Lapla",
     "22litos": "Litos",
-    "23parame": "Parame",
+    "23parame": "Parami",
     "24labon": "Labon",
     "25waterfall": "Waterfall"
   };
@@ -100,12 +100,27 @@ export default function InteractiveSVGMap({
           
           // Create entries for all barangays (including those with no data)
           Object.values(barangayMapping).forEach((barangayName) => {
+            // Map display name back to database name for lookup
+            const dbNameMapping: Record<string, string> = {
+              "Harada Butai": "Haradabutai",
+              "Parami": "Parame",
+              "Solongvale": "Solong Vale"
+            };
+            const dbLookupName = dbNameMapping[barangayName] || barangayName;
+
             const barangayData = data.find((b: any) => 
-              (b.barangay_name || b.name) === barangayName
+              (b.barangay_name || b.name) === dbLookupName
             );
 
             if (barangayData) {
-              const name = barangayData.barangay_name || barangayData.name;
+              const name = barangayName; // Use the display name from mapping
+              
+              // Construct fallback logo URL if missing
+              let logo_url = barangayData.logo_url;
+              if (!logo_url) {
+                const extension = name === "Parami" ? "png" : "jpg";
+                logo_url = `/barangay-logos/${name}.${extension}`;
+              }
               barangaysByName[name] = {
                 id: barangayData.barangay_id || barangayData.id,
                 name: name,
@@ -117,7 +132,7 @@ export default function InteractiveSVGMap({
                 currentStatus: barangayData.currentStatus || barangayData.status,
                 description: barangayData.description || `No data available`,
                 seal: barangayData.seal || 'no',
-                logo_url: barangayData.logo_url || null,
+                logo_url: logo_url,
                 survey_count: barangayData.survey_count || 0,
                 completion_rate: barangayData.completion_rate || 0,
                 year: cycleId ? 'cycle' : new Date().getFullYear().toString(),
@@ -144,6 +159,10 @@ export default function InteractiveSVGMap({
             } else {
               // Create placeholder for barangays with no data
               const displayYear = cycleId ? 'cycle' : new Date().getFullYear().toString();
+              // Construct fallback logo URL for placeholder
+              const extension = barangayName === "Parami" ? "png" : "jpg";
+              const logo_url = `/barangay-logos/${barangayName}.${extension}`;
+
               barangaysByName[barangayName] = {
                 id: 0,
                 name: barangayName,
@@ -156,6 +175,7 @@ export default function InteractiveSVGMap({
                 description: `No data available`,
                 seal: 'no', // No seal for placeholder data
                 seal_original: 'no',
+                logo_url: logo_url,
                 survey_count: 0,
                 completion_rate: 0,
                 year: displayYear,

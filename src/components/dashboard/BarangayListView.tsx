@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { HistoricalCycleSelector } from "@/components/survey-cycle";
 
 import { type ApiBarangayData } from "@/utils/barangayUtils";
+import { getBarangayLogoPath } from "@/utils/logoUtils";
 
 // Helper function to convert status to progress value
 function getProgressValue(status: string | null) {
@@ -106,31 +107,49 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
           // Handle both new API format (with success/data structure) and legacy format
           const data = responseData.data || responseData;
           
-          // Map the data to include award status
-          const barangaysWithHistory = data.map((barangay: any) => ({
-            id: barangay.barangay_id || barangay.id,
-            name: barangay.barangay_name || barangay.name,
-            population: barangay.population || 0,
-            households: barangay.households || 0,
-            area: barangay.area || 0,
-            progress: barangay.progress || 0,
-            status: barangay.status || 'No data',
-            currentStatus: barangay.currentStatus || barangay.status,
-            description: barangay.description,
-            seal: barangay.seal,
-            logo_url: barangay.logo_url,
-            // Include cycle-aware award information
-            isAwardee: barangay.isAwardee || barangay.awardStatus?.isAwardee || false,
-            awardStatus: barangay.awardStatus,
-            cycleId: cycleId || undefined,
-            history: [
-              { 
-                year: cycleId ? 'cycle' : new Date().getFullYear().toString(), 
-                status: barangay.status || 'No data', 
-                score: barangay.survey_count > 0 ? `${Math.round(barangay.completion_rate || 0)}%` : "N/A"
-              }
-            ]
-          }));
+          // Map the data to include award status and apply name/logo corrections
+          const NAME_MAPPING: Record<string, string> = {
+            "Haradabutai": "Harada Butai",
+            "Parame": "Parami",
+            "Solong Vale": "Solongvale"
+          };
+
+          const barangaysWithHistory = data.map((barangay: any) => {
+            const rawName = barangay.barangay_name || barangay.name;
+            const correctedName = NAME_MAPPING[rawName] || rawName;
+
+            // Construct fallback logo URL if missing from database
+            let logo_url = barangay.logo_url;
+            if (!logo_url) {
+              const extension = correctedName === "Parami" ? "png" : "jpg";
+              logo_url = `/barangay-logos/${correctedName}.${extension}`;
+            }
+
+            return {
+              id: barangay.barangay_id || barangay.id,
+              name: correctedName,
+              population: barangay.population || 0,
+              households: barangay.households || 0,
+              area: barangay.area || 0,
+              progress: barangay.progress || 0,
+              status: barangay.status || 'No data',
+              currentStatus: barangay.currentStatus || barangay.status,
+              description: barangay.description,
+              seal: barangay.seal,
+              logo_url: logo_url,
+              // Include cycle-aware award information
+              isAwardee: barangay.isAwardee || barangay.awardStatus?.isAwardee || false,
+              awardStatus: barangay.awardStatus,
+              cycleId: cycleId || undefined,
+              history: [
+                { 
+                  year: cycleId ? 'cycle' : new Date().getFullYear().toString(), 
+                  status: barangay.status || 'No data', 
+                  score: barangay.survey_count > 0 ? `${Math.round(barangay.completion_rate || 0)}%` : "N/A"
+                }
+              ]
+            };
+          });
           
           setBarangays(barangaysWithHistory);
           console.log(`✅ Mobile view: Loaded ${barangaysWithHistory.length} barangays for cycle ${cycleId || 'current'}`);
@@ -300,20 +319,21 @@ export default function BarangayListView({ viewMode, onViewModeChange }: { viewM
             <div className="grid grid-cols-2 gap-4">
               {/* BLGU Logo */}
               <div className="border-2 border-gray-200 rounded-xl p-4 h-28 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
-                {selectedBarangay.logo_url ? (
-                  <img 
-                    src={selectedBarangay.logo_url} 
-                    alt={`${selectedBarangay.name} logo`}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.parentElement!.innerHTML = '<span class="text-sm font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
-                    }}
-                  />
-                ) : (
-                  <span className="text-sm font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
-                )}
+                {(() => {
+                  const logoUrl = getBarangayLogoPath(selectedBarangay.name);
+                  return (
+                    <img 
+                      src={logoUrl} 
+                      alt={`${selectedBarangay.name} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.parentElement!.innerHTML = '<span class="text-sm font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                      }}
+                    />
+                  );
+                })()}
               </div>
 
               {/* MLGRC Logo */}

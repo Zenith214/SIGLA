@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getBarangayLogoPath } from "@/utils/logoUtils";
 import { type ApiBarangayData } from "@/utils/barangayUtils";
 import { useActiveCycle, useSurveyCycle } from "@/hooks/useSurveyCycle";
 
@@ -424,24 +425,20 @@ export default function BarangaySatisfactionIndex({
                 {/* BLGU Logo */}
                 <div className="border-2 border-gray-200 rounded-xl p-4 h-32 flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 shadow-sm">
                   {(() => {
-                    console.log('[BarangaySatisfactionIndex] Barangay logo_url:', barangay.logo_url);
-                    console.log('[BarangaySatisfactionIndex] Full barangay data:', barangay);
-                    return null;
+                    const logoUrl = getBarangayLogoPath(barangay.name);
+                    return (
+                      <img 
+                        src={logoUrl} 
+                        alt={`${barangay.name} logo`}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<span class="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
+                        }}
+                      />
+                    );
                   })()}
-                  {barangay.logo_url ? (
-                    <img 
-                      src={barangay.logo_url} 
-                      alt={`${barangay.name} logo`}
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.parentElement!.innerHTML = '<span class="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>';
-                      }}
-                    />
-                  ) : (
-                    <span className="text-lg font-bold text-gray-700 tracking-wide">BLGU LOGO</span>
-                  )}
                 </div>
 
                 {/* MLGRC Logo */}

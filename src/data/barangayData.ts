@@ -44,7 +44,7 @@ export const barangayData: Record<string, BarangayData> = {
   },
   "barangay-3": {
     id: "barangay-3",
-    name: "Solong Vale",
+    name: "Solongvale",
     population: 15200,
     households: 3800,
     area: 18.5,
@@ -86,7 +86,7 @@ export const barangayData: Record<string, BarangayData> = {
   },
   "barangay-6": {
     id: "barangay-6",
-    name: "Haradabutai",
+    name: "Harada Butai",
     population: 7650,
     households: 1912,
     area: 10.4,
@@ -324,7 +324,7 @@ export const barangayData: Record<string, BarangayData> = {
   },
   "barangay-23": {
     id: "barangay-23",
-    name: "Parame",
+    name: "Parami",
     population: 8670,
     households: 2167,
     area: 11.4,
