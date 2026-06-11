@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable Turbopack to avoid React context SSR bugs in Next.js 16
-  webpack: (config) => {
-    return config;
-  },
   typescript: {
     // Warning: This allows production builds to successfully complete even if
     // your project has TypeScript errors.
