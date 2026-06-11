@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // Enable optimized package imports
     optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
+    // Force all pages to be dynamic (skip static prerendering entirely)
+    ppr: false,
   },
   images: {
     remotePatterns: [
