@@ -14,42 +14,49 @@ export default function FirstTimeLoginWrapper({ children }: FirstTimeLoginWrappe
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [startTour, setStartTour] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   useEffect(() => {
     // Check if user is first-time login
     if (user && !hasChecked) {
       setHasChecked(true);
       
-      // Check if user has firstLogin flag set to true AND is on dashboard
+      // If firstLogin is true and on dashboard, show password modal
       if ((user as any).firstLogin === true && window.location.pathname === '/dashboard') {
         setShowPasswordModal(true);
-      } else {
-        // Check if tour should be shown
-        const tourCompleted = localStorage.getItem('onboardingTourCompleted');
-        if (!tourCompleted && window.location.pathname === '/dashboard') {
-          // Small delay to ensure page is fully loaded
-          setTimeout(() => setStartTour(true), 1000);
-        }
       }
     }
   }, [user, hasChecked]);
 
   const handlePasswordChangeSuccess = async () => {
     setShowPasswordModal(false);
+    setPasswordChanged(true);
     
-    // Refresh user data to get updated firstLogin status
-    await refreshUser();
-    
+    // Don't update firstLogin yet - wait for tour completion
     // Start tour after password change if on dashboard
-    const tourCompleted = localStorage.getItem('onboardingTourCompleted');
-    if (!tourCompleted && window.location.pathname === '/dashboard') {
+    if (window.location.pathname === '/dashboard') {
       setTimeout(() => setStartTour(true), 1000);
     }
   };
 
-  const handleTourComplete = () => {
+  const handleTourComplete = async () => {
     setStartTour(false);
+    
+    // Save to localStorage for immediate effect
     localStorage.setItem('onboardingTourCompleted', 'true');
+    
+    // Mark firstLogin as false - onboarding is now complete
+    try {
+      await fetch('/api/user/complete-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      // Refresh user data to get updated firstLogin status
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+    }
   };
 
   return (

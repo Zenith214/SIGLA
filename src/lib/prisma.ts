@@ -10,16 +10,24 @@ if (!globalForPrisma.prismaConnectionRetries) {
   globalForPrisma.prismaConnectionRetries = 0;
 }
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
+// Skip Prisma init during build if DATABASE_URL missing (Railway build phase)
+const createPrismaClient = () => {
+  if (!process.env.DATABASE_URL) {
+    console.warn('DATABASE_URL not found, Prisma client not initialized (build phase)');
+    return null as any; // Return mock during build
+  }
+  
+  return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
     },
-  })
+  });
+};
+
+export const prisma = globalForPrisma.prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

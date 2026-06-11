@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        'SELECT "profilePicture", "barangayDesignation", "firstLogin" FROM "user" WHERE id = $1',
+        'SELECT "profilePicture", "barangayDesignation", "firstLogin", "tourCompleted" FROM "user" WHERE id = $1',
         [id]
       );
       
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
       const profilePicture = result.rows[0]?.profilePicture || null;
       const barangayDesignation = result.rows[0]?.barangayDesignation || null;
       const firstLogin = result.rows[0]?.firstLogin ?? true;
+      const tourCompleted = result.rows[0]?.tourCompleted ?? false;
       
       console.log('[/api/me] Returning barangayDesignation:', barangayDesignation);
       
@@ -58,7 +59,8 @@ export async function GET(req: NextRequest) {
         role: (role || 'officer').toLowerCase(),
         profilePicture,
         barangayDesignation,
-        firstLogin
+        firstLogin,
+        tourCompleted
       });
     } finally {
       client.release();

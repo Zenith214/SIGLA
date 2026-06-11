@@ -105,18 +105,12 @@ export async function POST(request: NextRequest) {
       // Hash new password
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
-      // Update password and firstLogin flag if this is a first-time login
-      if (isFirstLogin) {
-        await client.query(
-          'UPDATE "user" SET password = $1, "firstLogin" = false WHERE id = $2',
-          [newPasswordHash, decoded.id]
-        );
-      } else {
-        await client.query(
-          'UPDATE "user" SET password = $1 WHERE id = $2',
-          [newPasswordHash, decoded.id]
-        );
-      }
+      // Update password only - don't change firstLogin yet
+      // firstLogin will be set to false after tour completion
+      await client.query(
+        'UPDATE "user" SET password = $1 WHERE id = $2',
+        [newPasswordHash, decoded.id]
+      );
 
       return NextResponse.json({
         success: true,
