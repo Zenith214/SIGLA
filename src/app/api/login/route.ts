@@ -105,11 +105,12 @@ export async function POST(req: NextRequest) {
     const protocol = req.headers.get('x-forwarded-proto') || 'http';
     const isHttps = protocol === 'https';
     const host = req.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
     
-    // Use secure cookies only when actually on HTTPS
+    // Use secure cookies only when actually on HTTPS (not on localhost)
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction && isHttps,
+      secure: isProduction && isHttps && !isLocalhost, // Never secure on localhost
       sameSite: 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days

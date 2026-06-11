@@ -36,10 +36,25 @@ export async function GET(req: NextRequest) {
     // Fetch profile picture from database
     const client = await pool.connect();
     try {
-      const result = await client.query(
-        'SELECT "profilePicture", "barangayDesignation", "firstLogin", "tourCompleted" FROM "user" WHERE id = $1',
-        [id]
-      );
+      // Try to query with all columns, but handle if some don't exist
+      let result;
+      try {
+        result = await client.query(
+          'SELECT "profilePicture", "barangayDesignation", "firstLogin", "tourCompleted" FROM "user" WHERE id = $1',
+          [id]
+        );
+      } catch (dbError: any) {
+        // If tourCompleted column doesn't exist, try without it
+        if (dbError.message?.includes('tourCompleted')) {
+          console.log('⚠️ [/api/me] tourCompleted column not found, querying without it');
+          result = await client.query(
+            'SELECT "profilePicture", "barangayDesignation", "firstLogin" FROM "user" WHERE id = $1',
+            [id]
+          );
+        } else {
+          throw dbError;
+        }
+      }
       
       console.log('[/api/me] User ID:', id);
       // Query result hidden to reduce log noise (contains large profile picture base64)
@@ -66,6 +81,8 @@ export async function GET(req: NextRequest) {
       client.release();
     }
   } catch (e) {
+    console.error('❌ [/api/me] Token verification failed:', e instanceof Error ? e.message : e);
+    console.error('❌ [/api/me] JWT_SECRET being used:', JWT_SECRET ? `${JWT_SECRET.substring(0, 10)}...` : 'undefined');
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
 } 

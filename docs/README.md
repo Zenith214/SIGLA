@@ -1,145 +1,118 @@
 # PULSE Documentation
 
-This folder contains all technical documentation, implementation guides, and testing reports for the PULSE system.
+Welcome to the PULSE (Public Understanding and Local Service Evaluation) documentation.
 
-## 📚 Documentation Index
+## Quick Links
 
-### 🚀 Getting Started
-- [Database Setup Guide](DATABASE_SETUP_GUIDE.md)
-- [Environment Setup Guide](ENV_SETUP_GUIDE.md)
-- [Supabase Configuration Guide](SUPABASE_CONFIGURATION_GUIDE.md)
-- [Quick Start ML Cache](QUICK_START_ML_CACHE.md)
+- [Main README](../README.md) - Project overview and getting started
+- [AI Rules](AI_RULES.md) - Development guidelines and coding standards
+- [System Overview](SYSTEM_OVERVIEW.md) - Architecture and system design
+- [Project Structure](PROJECT_STRUCTURE.md) - Codebase organization
 
-### 🏗️ System Architecture
-- [System Overview](SYSTEM_OVERVIEW.md)
-- [AI Rules](AI_RULES.md)
-- [ML System Documentation](ML_SYSTEM_DOCUMENTATION.md)
-- [Calculation Methodology Overhaul](CALCULATION_METHODOLOGY_OVERHAUL.md)
+## Documentation Structure
 
-### 🔄 Survey Cycle System
-- [Complete Cycle Feature](COMPLETE_CYCLE_FEATURE.md)
-- [Cycle Integration Status](CYCLE-INTEGRATION-STATUS.md)
-- [Survey Cycle Integration Tasks](SURVEY_CYCLE_INTEGRATION_TASKS.md)
-- [Cycle-Aware Questionnaire Summary](CYCLE_AWARE_QUESTIONNAIRE_SUMMARY.md)
+### 📁 `/api-docs/`
+API documentation and endpoint references
+- API specifications
+- Endpoint documentation
+- Integration guides
 
-### 📝 Questionnaire Number System
-- [Auto Questionnaire Number Implementation](AUTO_QUESTIONNAIRE_NUMBER_IMPLEMENTATION.md)
-- [Questionnaire Number Setup](QUESTIONNAIRE_NUMBER_SETUP.md)
-- [Questionnaire Number Generation Timing](QUESTIONNAIRE_NUMBER_GENERATION_TIMING.md)
-- [Final Solution Summary](FINAL_SOLUTION_SUMMARY.md)
-- [Compatibility Check Summary](COMPATIBILITY_CHECK_SUMMARY.md)
+### 📁 `/features/`
+Feature-specific documentation
+- CPAP Module
+- CSIS Workflow
+- Analytics Dashboard
+- Survey Management
+- Supervisor Assignments
+- And more...
 
-### 📊 Analytics & Reporting
-- [Analytics Dashboard Integration](ANALYTICS_DASHBOARD_INTEGRATION.md)
-- [Overall Analytics Implementation](OVERALL_ANALYTICS_IMPLEMENTATION.md)
-- [Enhanced Analytics Implementation Plan](ENHANCED_ANALYTICS_IMPLEMENTATION_PLAN.md)
-- [Satisfaction Analytics Enhancement Summary](SATISFACTION_ANALYTICS_ENHANCEMENT_SUMMARY.md)
-- [Export Reports Analytics Update](EXPORT_REPORTS_ANALYTICS_UPDATE.md)
+### 📁 `/testing/`
+Testing documentation and reports
+- Testing checklists
+- Test results
+- QA reports
+- Accessibility testing
+- Performance testing
+- Cross-browser testing
 
-### 🤖 Machine Learning
-- [ML System Documentation](ML_SYSTEM_DOCUMENTATION.md)
-- [ML Cache Implementation](ML_CACHE_IMPLEMENTATION.md)
-- [ML System Test Results](ML_SYSTEM_TEST_RESULTS.md)
-- [ML Issues Fixed Summary](ML_ISSUES_FIXED_SUMMARY.md)
+### 📁 `/deployment/`
+Deployment guides and procedures
+- Railway deployment
+- Environment setup
+- Production deployment
+- Rollback procedures
 
-### 🗺️ Dashboard & UI
-- [Landing Page Implementation](LANDING-PAGE-IMPLEMENTATION.md)
-- [Hero Carousel Implementation](HERO-CAROUSEL-IMPLEMENTATION.md)
-- [Map Improvements Complete](MAP_IMPROVEMENTS_COMPLETE.md)
-- [Dashboard Zero Metrics Fix](FIX_DASHBOARD_ZERO_METRICS.md)
+### 📁 `/migrations/`
+Database migration documentation
+- Migration guides
+- Schema changes
+- Rollback procedures
+- Migration summaries
 
-### 🔐 Authentication & Security
-- [Login Fix Summary](LOGIN_FIX_SUMMARY.md)
-- [Settings Fix Summary](SETTINGS_FIX_SUMMARY.md)
+### 📁 `/root-docs/`
+Documentation that was previously in the root directory
+- User guides
+- Quick start guides
+- Implementation notes
 
-### 📱 Mobile & Accessibility
-- [Mobile Responsiveness Implementation](MOBILE_RESPONSIVENESS_IMPLEMENTATION.md)
-- [Accessibility Implementation Summary](ACCESSIBILITY_IMPLEMENTATION_SUMMARY.md)
-- [Cross Browser Testing Report](CROSS_BROWSER_TESTING_REPORT.md)
-- [Mobile Device Testing Report](MOBILE_DEVICE_TESTING_REPORT.md)
+### 📁 `/railway/`
+Railway-specific deployment documentation
 
-### 🧪 Testing & QA
-- [Testing QA Complete Summary](TESTING_QA_COMPLETE_SUMMARY.md)
-- [User Acceptance Testing Report](USER_ACCEPTANCE_TESTING_REPORT.md)
-- [UAT Quick Guide](UAT_QUICK_GUIDE.md)
-- [Testing Execution Guide](TESTING_EXECUTION_GUIDE.md)
-- [Performance Testing Report](PERFORMANCE_TESTING_REPORT.md)
+### 📁 `/archived-ml-algorithm-selection/`
+Historical ML algorithm selection documentation
 
-### 🔧 Bug Fixes & Improvements
-- [Merge Fix Complete Summary](MERGE_FIX_COMPLETE_SUMMARY.md)
-- [Build Fix Complete Summary](BUILD_FIX_COMPLETE_SUMMARY.md)
-- [Survey Targets Fix Summary](SURVEY_TARGETS_FIX_SUMMARY.md)
-- [Trend Calculation Bug Fixed](TREND_CALCULATION_BUG_FIXED.md)
+## Common Tasks
 
-### 🗄️ Database & Migration
-- [Supabase Migration Complete](SUPABASE_MIGRATION_COMPLETE.md)
-- [Supabase Migration Guide](SUPABASE_MIGRATION_GUIDE.md)
-- [Prisma to Supabase Fix Summary](PRISMA_TO_SUPABASE_FIX_SUMMARY.md)
-- [Database Seeding Complete Summary](DATABASE_SEEDING_COMPLETE_SUMMARY.md)
+### For Developers
+1. Read [AI_RULES.md](AI_RULES.md) for coding standards
+2. Check [SYSTEM_OVERVIEW.md](SYSTEM_OVERVIEW.md) for architecture
+3. Review feature docs in `/features/` before implementing changes
+4. Run tests following guides in `/testing/`
 
-### 💾 Backup System
-- [Backup System Complete Analysis](BACKUP_SYSTEM_COMPLETE_ANALYSIS.md)
-- [Backup Functionality Test Guide](BACKUP_FUNCTIONALITY_TEST_GUIDE.md)
-- [Backup Testing Complete Summary](BACKUP_TESTING_COMPLETE_SUMMARY.md)
+### For Administrators
+1. Review [User Manual](root-docs/USER_MANUAL.txt)
+2. Check feature-specific guides in `/features/`
+3. Follow deployment procedures in `/deployment/`
 
-### 🎨 UI/UX Improvements
-- [Toast Notification Upgrade Summary](TOAST_NOTIFICATION_UPGRADE_SUMMARY.md)
-- [Settings Notification Upgrade Complete](SETTINGS_NOTIFICATION_UPGRADE_COMPLETE.md)
-- [Tools Page Tabs Summary](TOOLS_PAGE_TABS_SUMMARY.md)
-- [Analytics UI Improvements](ANALYTICS-UI-IMPROVEMENTS.md)
+### For Testers
+1. Use checklists in `/testing/`
+2. Review feature documentation in `/features/`
+3. Check accessibility and performance testing guides
 
-### 📈 Trends & Analysis
-- [Trend Comparison Implementation](TREND_COMPARISON_IMPLEMENTATION.md)
-- [Trends System Explanation](TRENDS_SYSTEM_EXPLANATION.md)
-- [Service Trends API Fix](SERVICE-TRENDS-API-FIX.md)
+## Finding Documentation
 
-### 🔍 Debugging & Troubleshooting
-- [Debugging Guide](DEBUGGING_GUIDE.md)
-- [Debugging Session Summary](DEBUGGING_SESSION_SUMMARY.md)
-- [Debug Trends Issue](DEBUG_TRENDS_ISSUE.md)
+### By Feature
+- **CPAP Module**: `/features/*CPAP*.md`
+- **CSIS Workflow**: `/features/*CSIS*.md`
+- **Analytics**: `/features/*ANALYTICS*.md`
+- **Survey Management**: `/features/*SURVEY*.md`
+- **Supervisor Assignments**: `/features/*SUPERVISOR*.md`
 
-### 📋 Feature Specifications
-- [Multiple Interviewers Feature Spec](MULTIPLE-INTERVIEWERS-FEATURE-SPEC.md)
-- [Survey Dashboard Assignment Integration](SURVEY_DASHBOARD_ASSIGNMENT_INTEGRATION.md)
-- [Assignments Survey Targets Integration](ASSIGNMENTS_SURVEY_TARGETS_INTEGRATION.md)
+### By Task
+- **Testing**: `/testing/*TESTING*.md`
+- **Deployment**: `/deployment/*DEPLOYMENT*.md`
+- **Migration**: `/migrations/*MIGRATION*.md`
+- **API Integration**: `/api-docs/*API*.md`
 
-### 🔄 Migration & Updates
-- [NextJS 15 Async Params Fix](NEXTJS15_ASYNC_PARAMS_FIX.md)
-- [Async Params Fix Summary](ASYNC_PARAMS_FIX_SUMMARY.md)
+## Recent Changes
 
-### 📊 Data Files
-- [Backup Diagnostic Results](backup-diagnostic-results.json)
-- [Backup Test Results](backup-test-results.json)
-- [Backup Logic Test Results](backup-logic-test-results.json)
-- [Backup Edge Cases Test Results](backup-edge-cases-test-results.json)
-- [Temp Executive Summary](temp_exec_summary.json)
+For recent feature implementations and changes, see:
+- [RECENT_FEATURES_INDEX.md](RECENT_FEATURES_INDEX.md)
+- [RECENT_CHANGES_INDEX.md](RECENT_CHANGES_INDEX.md)
 
----
+## Contributing
 
-## 📝 Document Categories
+When adding new documentation:
+1. Place it in the appropriate subdirectory
+2. Use clear, descriptive filenames
+3. Update this README if adding new categories
+4. Follow the existing documentation format
+5. Include code examples where applicable
 
-### Implementation Guides
-Documents ending with `_IMPLEMENTATION.md` or `_GUIDE.md` contain step-by-step instructions for implementing features.
+## Support
 
-### Summary Documents
-Documents ending with `_SUMMARY.md` provide high-level overviews of completed work and changes.
-
-### Testing Reports
-Documents ending with `_REPORT.md` or `_TESTING.md` contain test results and quality assurance documentation.
-
-### Fix Documentation
-Documents ending with `_FIX.md` or `_FIXED.md` document bug fixes and issue resolutions.
-
----
-
-## 🔄 Keeping Documentation Updated
-
-When adding new features or making significant changes:
-1. Create a new markdown file in this folder
-2. Use a descriptive, uppercase filename with underscores
-3. Add an entry to this README under the appropriate category
-4. Include date and version information in the document
-
----
-
-**Last Updated:** 2025-11-05
+For technical support or questions:
+- Check relevant documentation first
+- Review troubleshooting guides in feature docs
+- Create an issue in the repository
+- Contact the development team

@@ -1,0 +1,560 @@
+# Register Page - Source Code
+
+**File:** `src/app/register/page.tsx`
+
+```tsx
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton, SkeletonForm } from "@/components/ui/skeleton"
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Check, X } from "lucide-react"
+
+export default function PulseRegister() {
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    organization: "",
+    jobTitle: "",
+  })
+  const [errors, setErrors] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    organization: "",
+    jobTitle: "",
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [registerStatus, setRegisterStatus] = useState<"idle" | "success" | "error">("idle")
+  const [apiError, setApiError] = useState("")
+  const [pageLoading, setPageLoading] = useState(true)
+  const router = useRouter()
+  
+  // Password validation state
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+  });
+
+  // Add page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Validate password in real-time
+  useEffect(() => {
+    setPasswordValidation({
+      minLength: formData.password.length >= 8,
+      hasUppercase: /[A-Z]/.test(formData.password),
+      hasLowercase: /[a-z]/.test(formData.password),
+      hasNumber: /[0-9]/.test(formData.password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password),
+    });
+  }, [formData.password]);
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (errors[field as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const validateAll = () => {
+    const newErrors = {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      phone: "",
+      organization: "",
+      jobTitle: "",
+    }
+    if (!formData.firstName) newErrors.firstName = "First name is required"
+    if (!formData.lastName) newErrors.lastName = "Last name is required"
+    if (!formData.email) newErrors.email = "Email address is required"
+    else if (!validateEmail(formData.email)) newErrors.email = "Please enter a valid email address"
+    
+    // Enhanced password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required"
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters"
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one uppercase letter"
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one lowercase letter"
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one number"
+    } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)) {
+      newErrors.password = "Password must contain at least one special character (!@#$%^&* etc.)"
+    }
+    
+    if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm your password"
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match"
+    if (!formData.phone) newErrors.phone = "Phone number is required"
+    if (!formData.organization) newErrors.organization = "Organization/Company Name is required"
+    if (!formData.jobTitle) newErrors.jobTitle = "Job Title/Role is required"
+    setErrors(newErrors)
+    return !Object.values(newErrors).some((err) => err)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!validateAll()) return
+    setIsLoading(true)
+    setRegisterStatus("idle")
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          organization: formData.organization,
+          jobTitle: formData.jobTitle,
+        }),
+        credentials: "include",
+      })
+      const data = await res.json();
+      
+      if (res.ok) {
+        setRegisterStatus("success")
+        setApiError("")
+        setTimeout(() => {
+          router.push("/");
+        }, 2000);
+      } else {
+        setRegisterStatus("error")
+        setApiError(data.message || "Failed to register. Please try again.")
+      }
+    } catch {
+      setRegisterStatus("error")
+      setApiError("Network error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
+          <img
+            src="/globe.svg"
+            alt="PULSE Government Emblem"
+            className="max-w-md max-h-md object-contain"
+          />
+        </div>
+        <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+          <div className="w-full max-w-2xl">
+            <Card className="shadow-lg border-0">
+              <CardHeader className="text-center pb-6">
+                <Skeleton className="h-8 w-48 mx-auto mb-2" />
+                <Skeleton className="h-4 w-64 mx-auto" />
+              </CardHeader>
+              <CardContent>
+                <SkeletonForm />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: "#dbeafe" }}>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ opacity: 0.5 }}>
+        <img
+          src="/globe.svg"
+          alt="PULSE Government Emblem"
+          className="max-w-md max-h-md object-contain"
+        />
+      </div>
+      <main className="flex items-center justify-center px-4 py-12 relative z-10 w-full">
+        <div className="w-full max-w-2xl">
+          <Card className="shadow-lg border-0">
+            <CardHeader className="text-center pb-6">
+              <CardTitle className="text-2xl font-bold" style={{ color: "#333333" }}>
+                Register Account
+              </CardTitle>
+              <CardDescription style={{ color: "#333333" }}>
+                Create your account to access the PULSE system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Status Messages */}
+              {registerStatus === "success" && (
+                <Alert className="mb-4 border-0" style={{ backgroundColor: "#228B22", color: "white" }}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>Registration successful! You will be redirected to the login page in 2 seconds.</AlertDescription>
+                </Alert>
+              )}
+              {registerStatus === "error" && (
+                <Alert className="mb-4 border-0" style={{ backgroundColor: "#C8102E", color: "white" }}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>Registration failed. {apiError ? `Error: ${apiError}` : "Please try again."}</AlertDescription>
+                </Alert>
+              )}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Left Column */}
+                  <div className="flex-1 space-y-6">
+                    {/* First Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        First Name
+                      </Label>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        value={formData.firstName}
+                        onChange={(e) => handleInputChange("firstName", e.target.value)}
+                        className={`transition-colors ${errors.firstName ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{
+                          borderColor: errors.firstName ? "#C8102E" : "#CCCCCC",
+                          ...(errors.firstName ? {} : ({ "--tw-ring-color": "#0072CE" } as React.CSSProperties)),
+                        }}
+                        placeholder="Enter your first name"
+                        disabled={isLoading}
+                        required
+                      />
+                      {errors.firstName && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.firstName}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Last Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Last Name
+                      </Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        value={formData.lastName}
+                        onChange={(e) => handleInputChange("lastName", e.target.value)}
+                        className={`transition-colors ${errors.lastName ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{
+                          borderColor: errors.lastName ? "#C8102E" : "#CCCCCC",
+                          ...(errors.lastName ? {} : ({ "--tw-ring-color": "#0072CE" } as React.CSSProperties)),
+                        }}
+                        placeholder="Enter your last name"
+                        disabled={isLoading}
+                        required
+                      />
+                      {errors.lastName && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.lastName}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Email Address
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        className={`transition-colors ${errors.email ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{
+                          borderColor: errors.email ? "#C8102E" : "#CCCCCC",
+                          ...(errors.email ? {} : ({ "--tw-ring-color": "#0072CE" } as React.CSSProperties)),
+                        }}
+                        placeholder="Enter your email address"
+                        disabled={isLoading}
+                        required
+                      />
+                      {errors.email && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange("password", e.target.value)}
+                          className={`pr-10 transition-colors ${errors.password ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                          style={{
+                            borderColor: errors.password ? "#C8102E" : "#CCCCCC",
+                            ...(errors.password ? {} : ({ "--tw-ring-color": "#0072CE" } as React.CSSProperties)),
+                          }}
+                          placeholder="Enter your password"
+                          disabled={isLoading}
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          disabled={isLoading}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.password}
+                        </p>
+                      )}
+                      {!errors.password && formData.password && (
+                        <div className="text-xs space-y-1 mt-2">
+                          <p className="font-medium text-gray-700">Password must contain:</p>
+                          <ul className="space-y-1">
+                            <li className={`flex items-center gap-2 ${passwordValidation.minLength ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.minLength ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least 8 characters</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasUppercase ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasUppercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one uppercase letter (A-Z)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasLowercase ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasLowercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one lowercase letter (a-z)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasNumber ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one number (0-9)</span>
+                            </li>
+                            <li className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-red-600'}`}>
+                              {passwordValidation.hasSpecialChar ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                              <span>At least one special character (!@#$%^&* etc.)</span>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Confirm Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                          className={`pr-10 transition-colors ${errors.confirmPassword ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                          style={{
+                            borderColor: errors.confirmPassword ? "#C8102E" : "#CCCCCC",
+                            ...(errors.confirmPassword ? {} : ({ "--tw-ring-color": "#0072CE" } as React.CSSProperties)),
+                          }}
+                          placeholder="Confirm your password"
+                          disabled={isLoading}
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          disabled={isLoading}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errors.confirmPassword && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.confirmPassword}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="flex-1 space-y-6">
+                    {/* Phone Number */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Phone Number
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 11)
+                          handleInputChange("phone", value)
+                        }}
+                        className={`transition-colors ${errors.phone ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{ borderColor: errors.phone ? "#C8102E" : "#CCCCCC", "--tw-ring-color": "#0072CE" } as React.CSSProperties }
+                        placeholder="Enter your phone number"
+                        disabled={isLoading}
+                        required
+                        maxLength={11}
+                      />
+                      {errors.phone && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.phone}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Organization */}
+                    <div className="space-y-2">
+                      <Label htmlFor="organization" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Organization/Company Name
+                      </Label>
+                      <Input
+                        id="organization"
+                        type="text"
+                        value={formData.organization}
+                        onChange={(e) => handleInputChange("organization", e.target.value)}
+                        className={`transition-colors ${errors.organization ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{ borderColor: errors.organization ? "#C8102E" : "#CCCCCC", "--tw-ring-color": "#0072CE" } as React.CSSProperties }
+                        placeholder="Enter your organization or company name"
+                        disabled={isLoading}
+                        required
+                      />
+                      {errors.organization && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.organization}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Job Title */}
+                    <div className="space-y-2">
+                      <Label htmlFor="jobTitle" className="text-sm font-medium" style={{ color: "#333333" }}>
+                        Job Title/Role
+                      </Label>
+                      <Input
+                        id="jobTitle"
+                        type="text"
+                        value={formData.jobTitle}
+                        onChange={(e) => handleInputChange("jobTitle", e.target.value)}
+                        className={`transition-colors ${errors.jobTitle ? "border-2 focus:ring-0" : "border focus:ring-2 focus:ring-opacity-50"}`}
+                        style={{ borderColor: errors.jobTitle ? "#C8102E" : "#CCCCCC", "--tw-ring-color": "#0072CE" } as React.CSSProperties }
+                        placeholder="Enter your job title or role"
+                        disabled={isLoading}
+                        required
+                      />
+                      {errors.jobTitle && (
+                        <p className="text-sm flex items-center gap-1" style={{ color: "#C8102E" }} role="alert">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.jobTitle}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Register Button */}
+                <div className="w-full flex justify-end mt-6">
+                  <Button
+                    type="submit"
+                    className="font-medium transition-colors focus:ring-2 focus:ring-opacity-50"
+                    style={{
+                      backgroundColor: "#0072CE",
+                      color: "white",
+                      "--tw-ring-color": "#0072CE",
+                    } as React.CSSProperties}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#005FA3"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#0072CE"
+                    }}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Registering..." : "Register"}
+                  </Button>
+                </div>
+              </form>
+
+              {/* Login Link */}
+              <div className="mt-4 text-center">
+                <span className="text-sm" style={{ color: "#333333" }}>Already have an account?</span>
+                <Link
+                  href="/"
+                  className="ml-2 text-sm font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
+                  style={{ color: "#0072CE", "--tw-ring-color": "#0072CE" } as React.CSSProperties}
+                >
+                  Login
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="text-center mt-8">
+            <p className="text-sm" style={{ color: "#333333" }}>
+              Need help? Contact{" "}
+              <a
+                href="#"
+                className="hover:underline focus:outline-none focus:ring-2 focus:ring-opacity-50 rounded px-1"
+                style={{ color: "#0072CE", "--tw-ring-color": "#0072CE" } as React.CSSProperties}
+              >
+                system administrator
+              </a>
+            </p>
+            <p className="text-xs mt-2" style={{ color: "#333333" }}>
+              © 2024 SIGLA System. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+} 
+```
+
+---
+
+**Note:** This is the complete registration page with two-column layout, real-time password validation with visual indicators (check/X marks), phone number formatting (11 digits max), and all required fields with proper validation.
