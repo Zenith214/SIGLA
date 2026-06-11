@@ -16,6 +16,7 @@ import { ComprehensivePrintView } from '@/components/reportcard/ComprehensivePri
 import { GovernanceIntegritySnapshot } from '@/components/reportcard/GovernanceIntegritySnapshot';
 import './print.css';
 import React from 'react';
+import { getBarangayLogoPath } from '@/utils/logoUtils';
 
 function ExecutiveSummarySection({ barangayId, cycleId, cachedSummary }: { barangayId: string; cycleId: number; cachedSummary?: any }) {
   const [summary, setSummary] = useState<any>(cachedSummary || null);
@@ -1660,20 +1661,21 @@ function ReportCardContent() {
           <div className="print:logo-section">
             <div className="print:logo-container">
               <div className="print:logo-placeholder">
-                {barangayData.logo_url ? (
-                  <img
-                    src={barangayData.logo_url}
-                    alt={`${barangayData.barangay} logo`}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.parentElement!.innerHTML = 'BLGU LOGO';
-                    }}
-                  />
-                ) : (
-                  'BLGU LOGO'
-                )}
+                {(() => {
+                  const logoUrl = getBarangayLogoPath(barangayData.barangay);
+                  return (
+                    <img
+                      src={logoUrl}
+                      alt={`${barangayData.barangay} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.parentElement!.innerHTML = 'BLGU LOGO';
+                      }}
+                    />
+                  );
+                })()}
               </div>
               <div className="print:logo-text">
                 Barangay Local Government Unit
@@ -1866,20 +1868,21 @@ function ReportCardContent() {
               <Card>
                 <CardContent className="p-3 sm:p-4">
                   <div className="border-2 border-gray-200 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-blue-50 to-gray-50 flex items-center justify-center h-20 sm:h-24">
-                    {barangayData.logo_url ? (
-                      <img
-                        src={barangayData.logo_url}
-                        alt={`${barangayData.barangay} logo`}
-                        className="max-w-full max-h-full object-contain"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.parentElement!.innerHTML = '<span class="text-sm sm:text-base font-bold text-gray-700">BLGU</span>';
-                        }}
-                      />
-                    ) : (
-                      <span className="text-sm sm:text-base font-bold text-gray-700">BLGU</span>
-                    )}
+                    {(() => {
+                      const logoUrl = getBarangayLogoPath(barangayData.barangay);
+                      return (
+                        <img
+                          src={logoUrl}
+                          alt={`${barangayData.barangay} logo`}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = '<span class="text-sm sm:text-base font-bold text-gray-700">BLGU</span>';
+                          }}
+                        />
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>

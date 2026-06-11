@@ -1,468 +1,402 @@
-// This is your Prisma schema file for SIGLA Survey System
-// Migrated from MySQL to PostgreSQL
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// ============================================================================
-// USER MANAGEMENT
-// ============================================================================
-
 model User {
-  id                  Int       @id @default(autoincrement())
-  email               String    @unique @db.VarChar(191)
-  password            String    @db.VarChar(191)
-  createdAt           DateTime  @default(now()) @map("createdAt")
-  firstName           String    @db.VarChar(191)
-  jobTitle            String?   @db.VarChar(191)
-  lastName            String    @db.VarChar(191)
-  organization        String?   @db.VarChar(191)
-  phone               String?   @db.VarChar(191)
-  role                String?   @default("officer") @db.VarChar(32)
-  status              String?   @default("Active") @db.VarChar(16)
-  lastLogin           DateTime?
-  barangayDesignation Int?
-  firstLogin          Boolean   @default(true)
-  tourCompleted       Boolean   @default(false)
+  id                     Int                      @id @default(autoincrement())
+  email                  String                   @unique
+  password               String
+  createdAt              DateTime                 @default(now()) @map("createdAt")
+  firstName              String
+  jobTitle               String?
+  lastName               String
+  organization           String?
+  phone                  String?
+  lastLogin              DateTime?
+  role                   String?                  @default("officer")
+  status                 String?                  @default("Active")
+  profilePicture         String?
+  barangayDesignation    Int?
+  firstLogin             Boolean?                 @default(true)
+  tourCompleted          Boolean                  @default(false)
+  assignments            Assignment[]
+  cpap_comments          CPAPComment[]
+  created_notifications  CPAPNotification[]       @relation("CreatedNotifications")
+  cpap_notifications     CPAPNotification[]       @relation("UserNotifications")
+  created_awards         CycleAward[]
+  fieldwork_attempts     fieldwork_attempts[]
+  fieldwork_exceptions   fieldwork_exceptions[]
+  questionnaires         Questionnaire[]
+  assigned_spots         Spot[]
+  supervisor_assignments supervisor_assignments[]
+  survey_responses       SurveyResponse[]
+  designated_barangay    Barangay?                @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onUpdate: NoAction)
 
-  // Relations
-  assignments              Assignment[]
-  survey_responses         SurveyResponse[]
-  created_awards           CycleAward[]
-  assigned_spots           Spot[]
-  cpap_comments            CPAPComment[]
-  cpap_notifications       CPAPNotification[]       @relation("UserNotifications")
-  created_notifications    CPAPNotification[]       @relation("CreatedNotifications")
-  designated_barangay      Barangay?                @relation("OfficerDesignation", fields: [barangayDesignation], references: [barangay_id], onDelete: SetNull)
-
-  @@index([barangayDesignation])
+  @@index([lastName, firstName])
+  @@index([role])
+  @@index([status])
   @@map("user")
 }
 
-// ============================================================================
-// BARANGAY MANAGEMENT
-// ============================================================================
-
 model Barangay {
-  barangay_id   Int          @id @default(autoincrement())
-  barangay_name String       @unique @db.VarChar(191)
-  seal          BarangaySeal @default(no)
-  description   String?      @db.Text
-  is_active     Boolean      @default(true)
-  created_at    DateTime     @default(now())
-  updated_at    DateTime?    @updatedAt
-  households    Int?         @default(0)
-  population    Int?         @default(0)
-  captain       String?      @db.VarChar(191)
-  currentStatus String?      @db.VarChar(32)
-  history       Json?
+  barangay_id                Int                          @id @default(autoincrement())
+  barangay_name              String                       @unique
+  seal                       barangay_seal                @default(no)
+  description                String?
+  is_active                  Boolean                      @default(true)
+  created_at                 DateTime                     @default(now())
+  updated_at                 DateTime?                    @updatedAt
+  households                 Int?                         @default(0)
+  population                 Int?                         @default(0)
+  area                       Decimal?
+  captain                    String?
+  currentStatus              String?
+  history                    String?
+  seal_expiration_date       DateTime?
+  logo_url                   String?
+  action_grid_classification action_grid_classification[]
+  ai_insight                 ai_insight[]
+  ai_recommendation          ai_recommendation[]
+  assignments                Assignment[]
+  barangay_history           barangay_history[]
+  cpaps                      CPAP[]
+  cycle_awards               CycleAward[]
+  fieldwork_exceptions       fieldwork_exceptions[]
+  ml_prediction              ml_prediction[]
+  questionnaire_counter      questionnaire_counter[]
+  spots                      Spot[]
+  supervisor_assignments     supervisor_assignments[]
+  surveys                    Survey[]
+  survey_responses           SurveyResponse[]
+  survey_targets             SurveyTarget[]
+  designated_officers        User[]                       @relation("OfficerDesignation")
 
-  // Relations
-  assignments         Assignment[]
-  surveys             Survey[]
-  survey_responses    SurveyResponse[]
-  survey_targets      SurveyTarget[]
-  year_data           BarangayYearData[]
-  cycle_awards        CycleAward[]
-  spots               Spot[]
-  cpaps               CPAP[]
-  designated_officers User[]             @relation("OfficerDesignation")
-
+  @@index([is_active])
+  @@index([seal])
   @@map("barangay")
 }
 
-// ============================================================================
-// ASSIGNMENT MANAGEMENT
-// ============================================================================
-
 model Assignment {
-  assignment_id   Int              @id @default(autoincrement())
+  assignment_id   Int               @id @default(autoincrement())
   barangay_id     Int
   user_id         Int
+  status          assignment_status @default(Pending)
+  progress        Int?              @default(0)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime?         @updatedAt
   survey_cycle_id Int?
-  status          AssignmentStatus @default(Pending)
-  progress        Int?             @default(0)
-  created_at      DateTime         @default(now())
-  updated_at      DateTime?        @updatedAt
-
-  // Relations
-  barangay     Barangay     @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  survey_cycle SurveyCycle? @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
+  barangay        Barangay          @relation(fields: [barangay_id], references: [barangay_id])
+  user            User              @relation(fields: [user_id], references: [id])
+  survey_cycle    SurveyCycle?      @relation(fields: [survey_cycle_id], references: [cycle_id], onUpdate: NoAction, map: "fk_assignment_cycle")
 
   @@index([barangay_id])
   @@index([user_id])
-  @@index([survey_cycle_id])
+  @@index([status])
+  @@index([survey_cycle_id], map: "idx_assignment_cycle_id")
   @@map("assignment")
 }
 
-// ============================================================================
-// BACKUP MANAGEMENT
-// ============================================================================
-
 model Backup {
-  backup_id Int          @id @default(autoincrement())
-  date      DateTime     @db.Date
-  time      DateTime     @db.Time
-  size      String?      @db.VarChar(20)
-  status    BackupStatus @default(Success)
+  backup_id Int           @id @default(autoincrement())
+  date      DateTime
+  time      DateTime
+  size      String?
+  status    backup_status @default(Success)
 
   @@map("backup")
 }
 
-model DataExportLog {
-  id           Int      @id @default(autoincrement())
-  user_id      Int
-  export_type  String   @db.VarChar(50)
-  anonymized   Boolean  @default(true)
-  record_count Int      @default(0)
-  exported_at  DateTime @default(now())
-  ip_address   String?  @db.VarChar(45)
-  user_agent   String?  @db.Text
-
-  @@index([user_id])
-  @@index([exported_at])
-  @@index([export_type])
-  @@index([anonymized])
-  @@map("data_export_log")
-}
-
-// ============================================================================
-// SURVEY MANAGEMENT
-// ============================================================================
-
 model Survey {
-  survey_id     Int          @id @default(autoincrement())
+  survey_id     Int           @id @default(autoincrement())
   barangay_id   Int
-  status        SurveyStatus @default(draft)
-  analyzed_data Json?
-  raw_data      Json?
-  created_at    DateTime     @default(now())
-  updated_at    DateTime?    @updatedAt
-
-  // Relations
-  barangay    Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  survey_logs SurveyLog[]
+  status        survey_status @default(draft)
+  analyzed_data String?
+  raw_data      String?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime?     @updatedAt
+  barangay      Barangay      @relation(fields: [barangay_id], references: [barangay_id])
+  survey_logs   SurveyLog[]
 
   @@index([barangay_id])
+  @@index([status])
   @@map("survey")
 }
 
 model SurveyLog {
   log_id     Int      @id @default(autoincrement())
   survey_id  Int
-  action     String   @db.VarChar(191)
-  details    String?  @db.Text
+  action     String   @db.VarChar(100)
+  details    String?
   created_at DateTime @default(now())
-
-  // Relations
-  survey Survey @relation(fields: [survey_id], references: [survey_id], onDelete: Cascade)
+  survey     Survey   @relation(fields: [survey_id], references: [survey_id])
 
   @@index([survey_id])
+  @@index([created_at])
   @@map("survey_log")
 }
 
-// ============================================================================
-// SURVEY RESPONSE SYSTEM
-// ============================================================================
-
 model SurveyResponse {
-  response_id           Int                   @id @default(autoincrement())
-  survey_number         String                @unique @db.VarChar(50)
-  barangay_id           Int
-  interviewer_id        Int
-  survey_cycle_id       Int?
-  questionnaire_id      String?               @unique @db.VarChar(50)
-  spot_id               Int?
-  visit_count           Int?                  @default(1)
-  respondent_name       String?               @db.VarChar(191)
-  respondent_age        Int?
-  respondent_gender     SurveyResponseGender?
-  location_lat          Decimal               @db.Decimal(10, 8)
-  location_lng          Decimal               @db.Decimal(11, 8)
-  location_address      String?               @db.Text
-  location_accuracy     Decimal?              @db.Decimal(8, 2)
-  location_timestamp    DateTime?
-  location_barangay     String?               @db.VarChar(191)
-  location_municipality String?               @db.VarChar(191)
-  location_province     String?               @db.VarChar(191)
-  status                SurveyResponseStatus  @default(draft)
-  progress              Int?                  @default(0)
-  started_at            DateTime              @default(now())
-  completed_at          DateTime?
-  submitted_at          DateTime?
-  created_at            DateTime              @default(now())
-  updated_at            DateTime?             @updatedAt
-  unawareness_reasons   Json?                 @default("{}")
-  non_availment_reasons Json?                 @default("{}")
-
-  // Relations
-  barangay      Barangay           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  interviewer   User               @relation(fields: [interviewer_id], references: [id], onDelete: Cascade)
-  survey_cycle  SurveyCycle?       @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
-  questionnaire Questionnaire?     @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: SetNull)
-  spot          Spot?              @relation(fields: [spot_id], references: [spot_id], onDelete: SetNull)
-  sections      SurveySection[]
-  answers       SurveyAnswer[]
-  attachments   SurveyAttachment[]
-  metadata      SurveyMetadata[]
-  validations   SurveyValidation[]
+  response_id                       Int                                @id @default(autoincrement())
+  survey_number                     String                             @unique
+  barangay_id                       Int
+  interviewer_id                    Int
+  respondent_name                   String?                            @db.VarChar(255)
+  respondent_age                    Int?
+  respondent_gender                 survey_response_respondent_gender?
+  location_lat                      Decimal                            @db.Decimal(10, 6)
+  location_lng                      Decimal                            @db.Decimal(10, 6)
+  location_address                  String?
+  location_accuracy                 Decimal?                           @db.Decimal(10, 2)
+  location_timestamp                DateTime?
+  location_barangay                 String?                            @db.VarChar(100)
+  location_municipality             String?                            @db.VarChar(100)
+  location_province                 String?                            @db.VarChar(100)
+  status                            survey_response_status             @default(draft)
+  progress                          Int?                               @default(0)
+  started_at                        DateTime                           @default(now())
+  completed_at                      DateTime?
+  submitted_at                      DateTime?
+  created_at                        DateTime                           @default(now())
+  updated_at                        DateTime?                          @updatedAt
+  respondent_educational_attainment String?                            @db.VarChar(191)
+  respondent_household_income       String?                            @db.VarChar(191)
+  survey_cycle_id                   Int?
+  respondent_purok                  String?                            @db.VarChar(50)
+  questionnaire_id                  String?                            @unique @db.VarChar(50)
+  spot_id                           Int?
+  visit_count                       Int?                               @default(1)
+  verification_location             Json?
+  gps_verification_status           String?                            @default("pending") @db.VarChar(20)
+  gps_distance_meters               Decimal?                           @db.Decimal(10, 2)
+  biological_sex                    String?                            @db.VarChar(50)
+  gender_identity                   String?                            @db.VarChar(100)
+  unawareness_reasons               Json?                              @default("{}")
+  non_availment_reasons             Json?                              @default("{}")
+  answers                           SurveyAnswer[]
+  attachments                       SurveyAttachment[]
+  metadata                          SurveyMetadata[]
+  survey_cycle                      SurveyCycle?                       @relation(fields: [survey_cycle_id], references: [cycle_id], onUpdate: NoAction, map: "fk_survey_response_cycle")
+  barangay                          Barangay                           @relation(fields: [barangay_id], references: [barangay_id])
+  interviewer                       User                               @relation(fields: [interviewer_id], references: [id])
+  questionnaire                     Questionnaire?                     @relation(fields: [questionnaire_id], references: [questionnaire_id])
+  spot                              Spot?                              @relation(fields: [spot_id], references: [spot_id])
+  sections                          SurveySection[]
+  validations                       SurveyValidation[]
 
   @@index([status])
   @@index([interviewer_id])
   @@index([barangay_id])
-  @@index([survey_cycle_id])
   @@index([questionnaire_id])
   @@index([spot_id])
   @@index([created_at])
-  @@index([completed_at])
+  @@index([respondent_educational_attainment], map: "idx_respondent_education")
+  @@index([respondent_household_income], map: "idx_respondent_income")
+  @@index([biological_sex], map: "idx_survey_response_biological_sex")
+  @@index([survey_cycle_id], map: "idx_survey_response_cycle_id")
+  @@index([gender_identity], map: "idx_survey_response_gender_identity")
+  @@index([gps_verification_status], map: "idx_survey_response_gps_status")
+  @@index([non_availment_reasons], map: "idx_survey_response_non_availment_reasons", type: Gin)
+  @@index([unawareness_reasons], map: "idx_survey_response_unawareness_reasons", type: Gin)
   @@map("survey_response")
 }
 
 model SurveySection {
-  section_id   Int                 @id @default(autoincrement())
+  section_id   Int                   @id @default(autoincrement())
   response_id  Int
-  section_name String              @db.VarChar(100)
-  section_key  String              @db.VarChar(50)
-  status       SurveySectionStatus @default(pending)
+  section_name String                @db.VarChar(100)
+  section_key  String                @db.VarChar(50)
+  status       survey_section_status @default(pending)
   data         Json?
   started_at   DateTime?
   completed_at DateTime?
-  created_at   DateTime            @default(now())
-  updated_at   DateTime?           @updatedAt
-
-  // Relations
-  response  SurveyResponse   @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
-  questions SurveyQuestion[]
+  created_at   DateTime              @default(now())
+  updated_at   DateTime?             @updatedAt
+  questions    SurveyQuestion[]
+  response     SurveyResponse        @relation(fields: [response_id], references: [response_id])
 
   @@unique([response_id, section_key])
+  @@unique([response_id, section_key], map: "unique_response_section_key")
   @@index([status])
-  @@index([section_key])
+  @@index([data(ops: JsonbPathOps)], map: "idx_survey_section_data_nfa_binary", type: Gin)
+  @@index([section_key], map: "idx_survey_section_key")
+  @@index([response_id], map: "idx_survey_section_response_id")
+  @@index([response_id, section_key], map: "idx_survey_section_response_section")
+  @@index([section_key], map: "idx_survey_section_section_key")
+  @@index([status], map: "idx_survey_section_status")
+  @@index([response_id])
   @@map("survey_section")
 }
 
 model SurveyQuestion {
-  question_id   Int                @id @default(autoincrement())
+  question_id   Int                           @id @default(autoincrement())
   section_id    Int
-  question_key  String             @db.VarChar(100)
-  question_text String             @db.Text
-  question_type SurveyQuestionType
-  options       Json?
-  required      Boolean            @default(false)
-  order_index   Int                @default(0)
-  depends_on    String?            @db.VarChar(100)
-  depends_value String?            @db.VarChar(191)
-  created_at    DateTime           @default(now())
-
-  // Relations
-  section SurveySection  @relation(fields: [section_id], references: [section_id], onDelete: Cascade)
-  answers SurveyAnswer[]
+  question_key  String                        @db.VarChar(100)
+  question_text String
+  question_type survey_question_question_type
+  options       String?
+  required      Boolean                       @default(false)
+  order_index   Int                           @default(0)
+  depends_on    String?                       @db.VarChar(100)
+  depends_value String?                       @db.VarChar(100)
+  created_at    DateTime                      @default(now())
+  answers       SurveyAnswer[]
+  section       SurveySection                 @relation(fields: [section_id], references: [section_id])
 
   @@index([question_key])
   @@index([section_id])
+  @@index([question_type])
   @@map("survey_question")
 }
 
 model SurveyAnswer {
-  answer_id      Int       @id @default(autoincrement())
+  answer_id      Int            @id @default(autoincrement())
   question_id    Int
   response_id    Int
-  answer_value   String?   @db.Text
-  answer_options Json?
-  answer_text    String?   @db.Text
-  answer_number  Decimal?  @db.Decimal(10, 2)
+  answer_value   String?        @db.VarChar(255)
+  answer_options String?
+  answer_text    String?
+  answer_number  Decimal?
   answer_rating  Int?
-  created_at     DateTime  @default(now())
-  updated_at     DateTime? @updatedAt
-
-  // Relations
-  question SurveyQuestion @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
-  response SurveyResponse @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime?      @updatedAt
+  question       SurveyQuestion @relation(fields: [question_id], references: [question_id])
+  response       SurveyResponse @relation(fields: [response_id], references: [response_id])
 
   @@unique([question_id, response_id])
   @@index([response_id])
+  @@index([question_id])
   @@map("survey_answer")
 }
 
 model SurveyAttachment {
-  attachment_id Int      @id @default(autoincrement())
+  attachment_id Int            @id @default(autoincrement())
   response_id   Int
-  file_name     String   @db.VarChar(255)
-  file_path     String   @db.VarChar(500)
-  file_type     String?  @db.VarChar(100)
+  file_name     String         @db.VarChar(255)
+  file_path     String         @db.VarChar(500)
+  file_type     String?        @db.VarChar(50)
   file_size     Int?
-  description   String?  @db.Text
-  uploaded_at   DateTime @default(now())
-
-  // Relations
-  response SurveyResponse @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
+  description   String?
+  uploaded_at   DateTime       @default(now())
+  response      SurveyResponse @relation(fields: [response_id], references: [response_id])
 
   @@index([response_id])
+  @@index([file_type])
   @@map("survey_attachment")
 }
 
 model SurveyMetadata {
-  metadata_id Int      @id @default(autoincrement())
+  metadata_id Int            @id @default(autoincrement())
   response_id Int
-  key_name    String   @db.VarChar(100)
-  key_value   String?  @db.Text
-  created_at  DateTime @default(now())
-
-  // Relations
-  response SurveyResponse @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
+  key_name    String         @db.VarChar(100)
+  key_value   String?
+  created_at  DateTime       @default(now())
+  response    SurveyResponse @relation(fields: [response_id], references: [response_id])
 
   @@unique([response_id, key_name])
   @@index([response_id])
+  @@index([key_name])
   @@map("survey_metadata")
 }
 
 model SurveyValidation {
-  validation_id      Int                    @id @default(autoincrement())
+  validation_id      Int                                 @id @default(autoincrement())
   response_id        Int
-  validation_type    SurveyValidationType
-  validation_status  SurveyValidationStatus
-  validation_message String?                @db.Text
-  validation_data    Json?
-  created_at         DateTime               @default(now())
+  validation_type    survey_validation_validation_type
+  validation_status  survey_validation_validation_status
+  validation_message String?
+  validation_data    String?
+  created_at         DateTime                            @default(now())
+  response           SurveyResponse                      @relation(fields: [response_id], references: [response_id])
 
-  // Relations
-  response SurveyResponse @relation(fields: [response_id], references: [response_id], onDelete: Cascade)
-
-  @@index([validation_type])
-  @@index([validation_status])
   @@index([response_id])
+  @@index([validation_type, validation_status])
   @@map("survey_validation")
 }
 
-// ============================================================================
-// SURVEY CYCLES & TARGETS
-// ============================================================================
-
 model SurveyCycle {
-  cycle_id   Int       @id @default(autoincrement())
-  name       String    @db.VarChar(191)
-  year       Int
-  is_active  Boolean   @default(false)
-  start_date DateTime? @db.Date
-  end_date   DateTime? @db.Date
-  created_at DateTime  @default(now())
-  updated_at DateTime? @updatedAt
+  cycle_id               Int                      @id @default(autoincrement())
+  year                   Int
+  start_date             DateTime?
+  end_date               DateTime?
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime?                @updatedAt
+  name                   String?                  @db.VarChar(191)
+  is_active              Boolean?                 @default(false)
+  assignments            Assignment[]
+  cpaps                  CPAP[]
+  cycle_awards           CycleAward[]
+  fieldwork_exceptions   fieldwork_exceptions[]
+  questionnaire_counter  questionnaire_counter[]
+  questionnaires         Questionnaire[]
+  spots                  Spot[]
+  supervisor_assignments supervisor_assignments[]
+  survey_responses       SurveyResponse[]
+  survey_targets         SurveyTarget[]
 
-  // Relations
-  survey_responses SurveyResponse[]
-  survey_targets   SurveyTarget[]
-  assignments      Assignment[]
-  cycle_awards     CycleAward[]
-  spots            Spot[]
-  questionnaires   Questionnaire[]
-  cpaps            CPAP[]
-
-  @@index([is_active])
+  @@index([is_active], map: "idx_survey_cycle_is_active")
   @@map("survey_cycle")
 }
 
 model SurveyTarget {
-  target_id       Int       @id @default(autoincrement())
+  target_id       Int          @id @default(autoincrement())
   barangay_id     Int
-  survey_cycle_id Int?
   target          Int
-  achieved        Int?      @default(0)
-  percentage      Int?      @default(0)
-  created_at      DateTime  @default(now())
-  updated_at      DateTime? @updatedAt
-
-  // Relations
-  barangay     Barangay     @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  survey_cycle SurveyCycle? @relation(fields: [survey_cycle_id], references: [cycle_id], onDelete: SetNull)
+  achieved        Int?         @default(0)
+  percentage      Int?         @default(0)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime?    @updatedAt
+  survey_cycle_id Int?
+  survey_cycle    SurveyCycle? @relation(fields: [survey_cycle_id], references: [cycle_id], onUpdate: NoAction, map: "fk_survey_target_cycle")
+  barangay        Barangay     @relation(fields: [barangay_id], references: [barangay_id])
 
   @@index([barangay_id])
-  @@index([survey_cycle_id])
+  @@index([survey_cycle_id], map: "idx_survey_target_cycle_id")
   @@map("survey_target")
 }
 
-// ============================================================================
-// CYCLE-AWARE AWARD MANAGEMENT
-// ============================================================================
-
 model CycleAward {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   barangay_id  Int
   cycle_id     Int
-  is_awardee   Boolean   @default(false)
-  awarded_date DateTime?
-  notes        String?   @db.Text
-  created_at   DateTime  @default(now())
-  updated_at   DateTime? @updatedAt
+  is_awardee   Boolean     @default(false)
+  awarded_date DateTime?   @db.Timestamp(6)
+  notes        String?
+  created_at   DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?   @default(now()) @updatedAt @db.Timestamp(6)
   created_by   Int?
+  barangay     Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cycle_awards_barangay")
+  survey_cycle SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cycle_awards_cycle")
+  creator      User?       @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_cycle_awards_user")
 
-  // Relations
-  barangay     Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  survey_cycle SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  creator      User?       @relation(fields: [created_by], references: [id], onDelete: SetNull)
-
-  @@unique([barangay_id, cycle_id])
-  @@index([cycle_id])
-  @@index([barangay_id])
-  @@index([is_awardee])
-  @@index([created_at])
+  @@unique([barangay_id, cycle_id], map: "uk_cycle_awards_barangay_cycle")
+  @@index([barangay_id], map: "idx_cycle_awards_barangay")
+  @@index([created_at], map: "idx_cycle_awards_created_at")
+  @@index([cycle_id], map: "idx_cycle_awards_cycle")
+  @@index([is_awardee], map: "idx_cycle_awards_status")
   @@map("cycle_awards")
 }
 
-// ============================================================================
-// YEAR-SPECIFIC BARANGAY DATA
-// ============================================================================
-
-model BarangayYearData {
-  id                Int          @id @default(autoincrement())
-  barangay_id       Int
-  year              String       @db.VarChar(10)
-  seal_status       BarangaySeal @default(no)
-  survey_status     String?      @db.VarChar(50)
-  survey_count      Int?         @default(0)
-  completion_rate   Decimal?     @db.Decimal(5, 2)
-  target_achieved   Int?         @default(0)
-  target_percentage Int?         @default(0)
-  notes             String?      @db.Text
-  created_at        DateTime     @default(now())
-  updated_at        DateTime?    @updatedAt
-
-  // Relations
-  barangay Barangay @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-
-  @@unique([barangay_id, year])
-  @@index([year])
-  @@index([barangay_id])
-  @@index([seal_status])
-  @@map("barangay_year_data")
-}
-
-// ============================================================================
-// CSIS WORKFLOW - SPOT MANAGEMENT
-// ============================================================================
-
 model Spot {
-  spot_id        Int        @id @default(autoincrement())
-  cycle_id       Int
-  barangay_id    Int
-  spot_name      String     @db.VarChar(100)
-  starting_point Json // { lat: number, lng: number }
-  random_start   Int // 1-999
-  assigned_fi_id Int?
-  status         SpotStatus @default(Pending)
-  created_at     DateTime   @default(now())
-  updated_at     DateTime?  @updatedAt
-
-  // Relations
-  cycle            SurveyCycle      @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  barangay         Barangay         @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  assigned_fi      User?            @relation(fields: [assigned_fi_id], references: [id], onDelete: SetNull)
+  spot_id          Int              @id @default(autoincrement())
+  cycle_id         Int
+  barangay_id      Int
+  spot_name        String           @db.VarChar(100)
+  starting_point   Json
+  random_start     Int
+  assigned_fi_id   Int?
+  status           SpotStatus       @default(Pending)
+  created_at       DateTime         @default(now())
+  updated_at       DateTime?        @updatedAt
   questionnaires   Questionnaire[]
+  assigned_fi      User?            @relation(fields: [assigned_fi_id], references: [id])
+  barangay         Barangay         @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  cycle            SurveyCycle      @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
   survey_responses SurveyResponse[]
 
   @@index([cycle_id])
@@ -473,119 +407,397 @@ model Spot {
 }
 
 model Questionnaire {
-  questionnaire_id String              @id @db.VarChar(50) // e.g., "2024-001-001"
-  spot_id          Int
-  cycle_id         Int
-  sequence_number  Int // 1-5 within spot
-  status           QuestionnaireStatus @default(Pending)
-  visit_count      Int                 @default(0)
-  created_at       DateTime            @default(now())
-  updated_at       DateTime?           @updatedAt
-
-  // Relations
-  spot            Spot            @relation(fields: [spot_id], references: [spot_id], onDelete: Cascade)
-  cycle           SurveyCycle     @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  visits          Visit[]
-  survey_response SurveyResponse?
+  questionnaire_id        String              @id @db.VarChar(50)
+  spot_id                 Int
+  cycle_id                Int
+  sequence_number         Int
+  status                  QuestionnaireStatus @default(Pending)
+  visit_count             Int                 @default(0)
+  created_at              DateTime            @default(now())
+  updated_at              DateTime?           @updatedAt
+  assigned_interviewer_id Int?
+  user                    User?               @relation(fields: [assigned_interviewer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cycle                   SurveyCycle         @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+  spot                    Spot                @relation(fields: [spot_id], references: [spot_id], onDelete: Cascade)
+  survey_response         SurveyResponse?
+  visits                  Visit[]
 
   @@index([spot_id])
   @@index([cycle_id])
   @@index([status])
+  @@index([assigned_interviewer_id], map: "idx_questionnaires_assigned_interviewer")
+  @@index([spot_id, assigned_interviewer_id], map: "idx_questionnaires_spot_assignment")
   @@map("questionnaires")
 }
 
 model Visit {
-  visit_id         Int          @id @default(autoincrement())
-  questionnaire_id String
+  visit_id         Int           @id @default(autoincrement())
+  questionnaire_id String        @db.VarChar(50)
   visit_number     Int
-  visit_timestamp  DateTime     @default(now())
+  visit_timestamp  DateTime      @default(now())
   outcome          VisitOutcome
-  notes            String?      @db.Text
-  location_lat     Decimal?     @db.Decimal(10, 8)
-  location_lng     Decimal?     @db.Decimal(11, 8)
-  created_at       DateTime     @default(now())
-
-  // Relations
-  questionnaire Questionnaire @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: Cascade)
+  notes            String?
+  location_lat     Decimal?      @db.Decimal(10, 8)
+  location_lng     Decimal?      @db.Decimal(11, 8)
+  created_at       DateTime      @default(now())
+  questionnaire    Questionnaire @relation(fields: [questionnaire_id], references: [questionnaire_id], onDelete: Cascade)
 
   @@index([questionnaire_id])
   @@index([visit_timestamp])
   @@map("visits")
 }
 
-// ============================================================================
-// ENUMS
-// ============================================================================
+model CPAP {
+  id             Int                @id @default(autoincrement())
+  barangay_id    Int
+  cycle_id       Int
+  status         CPAPStatus         @default(Draft)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
+  submitted_at   DateTime?
+  approved_at    DateTime?
+  admin_comments String?
+  comments       CPAPComment[]
+  items          CPAPItem[]
+  notifications  CPAPNotification[]
+  barangay       Barangay           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
+  cycle          SurveyCycle        @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
+
+  @@unique([barangay_id, cycle_id])
+  @@index([status])
+  @@index([barangay_id])
+  @@index([cycle_id])
+  @@map("cpaps")
+}
+
+model CPAPItem {
+  id                        Int      @id @default(autoincrement())
+  cpap_id                   Int
+  priority_area             String   @db.VarChar(255)
+  target_output             String
+  success_indicator         String
+  responsible_person        String   @db.VarChar(255)
+  timeline_start            DateTime @db.Date
+  timeline_end              DateTime @db.Date
+  actual_output             String?
+  accomplishment_status     String?  @db.VarChar(50)
+  remarks                   String?
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+  observation               String?
+  plan_of_action            String?
+  activity                  String?
+  financial_requirements    String?  @db.VarChar(255)
+  committed_to_be_committed String?
+  actual_date               String?
+  progress                  String?  @db.VarChar(50)
+  cpap                      CPAP     @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
+
+  @@index([cpap_id])
+  @@map("cpap_items")
+}
+
+model CPAPComment {
+  id           Int      @id @default(autoincrement())
+  cpap_id      Int
+  user_id      Int
+  comment_text String
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  cpap         CPAP     @relation(fields: [cpap_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([cpap_id], map: "idx_cpap_comments_cpap_id")
+  @@index([created_at(sort: Desc)], map: "idx_cpap_comments_created_at")
+  @@index([user_id], map: "idx_cpap_comments_user_id")
+  @@map("cpap_comments")
+}
+
+model CPAPNotification {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  cpap_id           Int
+  notification_type String   @db.VarChar(50)
+  message           String
+  is_read           Boolean  @default(false)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  created_by        Int?
+  cpap              CPAP     @relation(fields: [cpap_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator           User?    @relation("CreatedNotifications", fields: [created_by], references: [id], onUpdate: NoAction)
+  user              User     @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([cpap_id], map: "idx_cpap_notifications_cpap_id")
+  @@index([created_at(sort: Desc)], map: "idx_cpap_notifications_created_at")
+  @@index([is_read], map: "idx_cpap_notifications_is_read")
+  @@index([user_id], map: "idx_cpap_notifications_user_id")
+  @@map("cpap_notifications")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model action_grid_classification {
+  classification_id     Int       @id @default(autoincrement())
+  barangay_id           Int
+  section_name          String?
+  satisfaction_score    Decimal   @db.Decimal(5, 2)
+  need_for_action_score Decimal?  @db.Decimal(5, 2)
+  quadrant              String
+  recommendations       String?
+  created_at            DateTime  @default(now())
+  service_name          String?   @db.VarChar(50)
+  confidence            Decimal?  @default(0.85) @db.Decimal
+  need_action_score     Decimal?  @db.Decimal
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  barangay              Barangay  @relation(fields: [barangay_id], references: [barangay_id])
+
+  @@index([barangay_id, section_name])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ai_insight {
+  insight_id        Int                 @id @default(autoincrement())
+  barangay_id       Int
+  insight_type      String
+  title             String?             @db.VarChar(200)
+  content           String?
+  key_findings      String?
+  recommendations   String?
+  confidence_score  Decimal?            @db.Decimal(5, 4)
+  ml_prediction_id  Int?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime?
+  confidence        Decimal?            @db.Decimal(5, 4)
+  insight_text      String?
+  source            String?             @default("ML_ANALYSIS") @db.VarChar(50)
+  barangay          Barangay            @relation(fields: [barangay_id], references: [barangay_id])
+  ml_prediction     ml_prediction?      @relation(fields: [ml_prediction_id], references: [prediction_id])
+  ai_recommendation ai_recommendation[]
+
+  @@index([barangay_id, insight_type])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ai_recommendation {
+  recommendation_id       Int        @id @default(autoincrement())
+  insight_id              Int
+  barangay_id             Int
+  recommendation_type     String
+  priority_level          String?
+  title                   String?    @db.VarChar(200)
+  description             String?
+  expected_impact         String?    @db.VarChar(500)
+  resource_requirements   String?
+  implementation_timeline String?    @db.VarChar(100)
+  success_metrics         String?
+  created_at              DateTime   @default(now())
+  recommendation_text     String?
+  priority                String?    @default("MEDIUM") @db.VarChar(20)
+  recommendation_type_alt String?    @db.VarChar(50)
+  source                  String?    @default("ML_ANALYSIS") @db.VarChar(50)
+  related_insight         String?
+  updated_at              DateTime?  @default(now()) @db.Timestamp(6)
+  barangay                Barangay   @relation(fields: [barangay_id], references: [barangay_id])
+  ai_insight              ai_insight @relation(fields: [insight_id], references: [insight_id])
+
+  @@index([barangay_id, priority_level])
+}
+
+model barangay_history {
+  history_id  Int       @id @default(autoincrement())
+  barangay_id Int
+  year        String    @db.VarChar(4)
+  status      String    @db.VarChar(50)
+  score       String?   @db.VarChar(20)
+  notes       String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime?
+  barangay    Barangay  @relation(fields: [barangay_id], references: [barangay_id])
+
+  @@index([barangay_id])
+  @@index([status])
+  @@index([year])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fieldwork_attempts {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  exception_id         String               @db.Uuid
+  attempt_number       Int
+  interviewer_id       Int?
+  notes                String?
+  timestamp            DateTime?            @default(now()) @db.Timestamptz(6)
+  fieldwork_exceptions fieldwork_exceptions @relation(fields: [exception_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fieldwork_attempts_exception")
+  user                 User?                @relation(fields: [interviewer_id], references: [id], onUpdate: NoAction, map: "fk_fieldwork_attempts_interviewer")
+
+  @@index([exception_id], map: "idx_fieldwork_attempts_exception_id")
+  @@index([interviewer_id], map: "idx_fieldwork_attempts_interviewer")
+  @@index([timestamp(sort: Desc)], map: "idx_fieldwork_attempts_timestamp")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model fieldwork_exceptions {
+  id                    String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  survey_number         String               @db.VarChar(50)
+  questionnaire_number  Int
+  household_address     String
+  selected_respondent   String               @db.VarChar(255)
+  status                String               @default("unavailable") @db.VarChar(20)
+  attempt_count         Int                  @default(1)
+  requires_substitution Boolean              @default(false)
+  demographic_profile   Json?
+  barangay_id           Int?
+  interviewer_id        Int?
+  survey_cycle_id       Int?
+  created_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?            @default(now()) @db.Timestamptz(6)
+  fieldwork_attempts    fieldwork_attempts[]
+  barangay              Barangay?            @relation(fields: [barangay_id], references: [barangay_id], onUpdate: NoAction, map: "fk_fieldwork_exceptions_barangay")
+  survey_cycle          SurveyCycle?         @relation(fields: [survey_cycle_id], references: [cycle_id], onUpdate: NoAction, map: "fk_fieldwork_exceptions_cycle")
+  user                  User?                @relation(fields: [interviewer_id], references: [id], onUpdate: NoAction, map: "fk_fieldwork_exceptions_interviewer")
+
+  @@index([barangay_id], map: "idx_fieldwork_exceptions_barangay")
+  @@index([created_at(sort: Desc)], map: "idx_fieldwork_exceptions_created_at")
+  @@index([survey_cycle_id], map: "idx_fieldwork_exceptions_cycle")
+  @@index([interviewer_id], map: "idx_fieldwork_exceptions_interviewer")
+  @@index([questionnaire_number], map: "idx_fieldwork_exceptions_questionnaire_number")
+  @@index([status], map: "idx_fieldwork_exceptions_status")
+  @@index([survey_number], map: "idx_fieldwork_exceptions_survey_number")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model gemini_settings {
+  id              Int       @id @default(autoincrement())
+  api_key         String
+  is_active       Boolean?  @default(true)
+  tokens_used     Int?      @default(0)
+  tokens_limit    Int?      @default(1000000)
+  last_reset_date DateTime? @default(now()) @db.Timestamp(6)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  updated_at      DateTime? @default(now()) @db.Timestamp(6)
+  created_by      Int?
+  updated_by      Int?
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model gemini_token_usage {
+  id           Int       @id @default(autoincrement())
+  endpoint     String    @db.VarChar(100)
+  barangay_id  Int?
+  cycle_id     Int?
+  tokens_used  Int
+  request_type String?   @db.VarChar(50)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([created_at], map: "idx_gemini_token_usage_created_at")
+  @@index([endpoint], map: "idx_gemini_token_usage_endpoint")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ml_cache {
+  id               Int       @id @default(autoincrement())
+  cache_key        String    @unique @db.VarChar(255)
+  endpoint         String    @db.VarChar(100)
+  cycle_id         Int?
+  barangay_id      Int?
+  data             Json
+  computed_at      DateTime? @default(now()) @db.Timestamp(6)
+  expires_at       DateTime  @db.Timestamp(6)
+  is_stale         Boolean?  @default(false)
+  hit_count        Int?      @default(0)
+  last_accessed_at DateTime? @default(now()) @db.Timestamp(6)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([barangay_id, cycle_id, endpoint], map: "ml_cache_barangay_cycle_endpoint_unique")
+  @@index([endpoint, cycle_id], map: "idx_ml_cache_endpoint_cycle")
+  @@index([expires_at], map: "idx_ml_cache_expires_at")
+  @@index([is_stale], map: "idx_ml_cache_is_stale")
+  @@index([cache_key], map: "idx_ml_cache_key")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ml_model {
+  model_id            Int             @id @default(autoincrement())
+  model_name          String
+  model_type          String          @default("classifier")
+  algorithm           String          @default("random_forest")
+  version             String
+  model_data          Bytes
+  feature_names       String
+  performance_metrics String?
+  created_at          DateTime        @default(now())
+  updated_at          DateTime?
+  ml_prediction       ml_prediction[]
+
+  @@index([model_name, version])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ml_prediction {
+  prediction_id      Int          @id @default(autoincrement())
+  model_id           Int
+  barangay_id        Int
+  prediction_type    String
+  predicted_value    Decimal?     @db.Decimal(5, 2)
+  predicted_class    String?
+  confidence_score   Decimal?     @db.Decimal(5, 4)
+  feature_importance String?
+  created_at         DateTime     @default(now())
+  ai_insight         ai_insight[]
+  barangay           Barangay     @relation(fields: [barangay_id], references: [barangay_id])
+  ml_model           ml_model     @relation(fields: [model_id], references: [model_id])
+
+  @@index([barangay_id, prediction_type])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model questionnaire_counter {
+  barangay_id    Int
+  cycle_id       Int
+  current_number Int         @default(0)
+  updated_at     DateTime?   @default(now()) @db.Timestamp(6)
+  barangay       Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_barangay")
+  survey_cycle   SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cycle")
+
+  @@id([barangay_id, cycle_id])
+  @@index([cycle_id], map: "idx_questionnaire_counter_cycle")
+  @@index([updated_at], map: "idx_questionnaire_counter_updated")
+}
+
+model supervisor_assignments {
+  id            Int         @id @default(autoincrement())
+  supervisor_id Int
+  barangay_id   Int
+  cycle_id      Int
+  status        String?     @default("Active") @db.VarChar(20)
+  assigned_at   DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at    DateTime?   @default(now()) @db.Timestamp(6)
+  barangay      Barangay    @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_barangay")
+  survey_cycle  SurveyCycle @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cycle")
+  user          User        @relation(fields: [supervisor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_supervisor")
+
+  @@unique([supervisor_id, barangay_id, cycle_id], map: "unique_supervisor_barangay_cycle")
+  @@index([barangay_id], map: "idx_supervisor_assignments_barangay")
+  @@index([cycle_id], map: "idx_supervisor_assignments_cycle")
+  @@index([status], map: "idx_supervisor_assignments_status")
+  @@index([supervisor_id], map: "idx_supervisor_assignments_supervisor")
+}
+
+model system_settings {
+  setting_key   String    @id @db.VarChar(255)
+  setting_value String
+  description   String?
+  updated_at    DateTime? @default(now()) @db.Timestamp(6)
+  updated_by    Int?
+}
 
 enum BarangaySeal {
   yes
   no
-}
-
-enum AssignmentStatus {
-  Active
-  Pending
-  Completed
-}
-
-enum BackupStatus {
-  Success
-  Failed
-}
-
-enum SurveyStatus {
-  draft
-  ongoing
-  completed
-  archived
-}
-
-enum SurveyCycleStatus {
-  Active
-  Completed
-  Archived
-}
-
-enum SurveyQuestionType {
-  radio
-  checkbox
-  text
-  textarea
-  number
-  rating
-}
-
-enum SurveyResponseGender {
-  Male
-  Female
-  Other
-  LGBTQI
-}
-
-enum SurveyResponseStatus {
-  draft
-  in_progress
-  completed
-  submitted
-}
-
-enum SurveySectionStatus {
-  pending
-  in_progress
-  completed
-}
-
-enum SurveyValidationType {
-  location
-  completeness
-  consistency
-  quality
-}
-
-enum SurveyValidationStatus {
-  passed
-  failed
-  warning
 }
 
 enum SpotStatus {
@@ -609,108 +821,84 @@ enum VisitOutcome {
   Household_Moved
 }
 
-// ============================================================================
-// CPAP (CITIZEN PRIORITY ACTION PLAN) MODULE
-// ============================================================================
-
-model CPAP {
-  id             Int                @id @default(autoincrement())
-  barangay_id    Int
-  cycle_id       Int
-  status         CPAPStatus         @default(Draft)
-  created_at     DateTime           @default(now())
-  updated_at     DateTime           @updatedAt
-  submitted_at   DateTime?
-  approved_at    DateTime?
-  admin_comments String?            @db.Text
-
-  // Relations
-  barangay      Barangay           @relation(fields: [barangay_id], references: [barangay_id], onDelete: Cascade)
-  cycle         SurveyCycle        @relation(fields: [cycle_id], references: [cycle_id], onDelete: Cascade)
-  items         CPAPItem[]
-  comments      CPAPComment[]
-  notifications CPAPNotification[]
-
-  @@unique([barangay_id, cycle_id])
-  @@index([status])
-  @@index([barangay_id])
-  @@index([cycle_id])
-  @@map("cpaps")
-}
-
-model CPAPItem {
-  id                       Int       @id @default(autoincrement())
-  cpap_id                  Int
-  priority_area            String    @db.VarChar(255)
-  target_output            String    @db.Text
-  success_indicator        String    @db.Text
-  responsible_person       String    @db.VarChar(255)
-  timeline_start           DateTime  @db.Date
-  timeline_end             DateTime  @db.Date
-  actual_output            String?   @db.Text
-  accomplishment_status    String?   @db.VarChar(50)
-  remarks                  String?   @db.Text
-  // New spreadsheet columns
-  observation              String?   @db.Text
-  plan_of_action           String?   @db.Text
-  activity                 String?   @db.Text
-  financial_requirements   String?   @db.VarChar(255)
-  committed_to_be_committed String?  @db.Text
-  actual_date              String?   @db.Text
-  progress                 String?   @db.VarChar(50) // Ongoing, Delayed, Completed
-  created_at               DateTime  @default(now())
-  updated_at               DateTime  @updatedAt
-
-  // Relations
-  cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
-
-  @@index([cpap_id])
-  @@map("cpap_items")
-}
-
-model CPAPComment {
-  id           Int      @id @default(autoincrement())
-  cpap_id      Int
-  user_id      Int
-  comment_text String   @db.Text
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-
-  // Relations
-  cpap CPAP @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
-  user User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([cpap_id])
-  @@index([user_id])
-  @@index([created_at])
-  @@map("cpap_comments")
-}
-
-model CPAPNotification {
-  id                Int      @id @default(autoincrement())
-  user_id           Int
-  cpap_id           Int
-  notification_type String   @db.VarChar(50)
-  message           String   @db.Text
-  is_read           Boolean  @default(false)
-  created_at        DateTime @default(now())
-  created_by        Int?
-
-  // Relations
-  user       User  @relation("UserNotifications", fields: [user_id], references: [id], onDelete: Cascade)
-  cpap       CPAP  @relation(fields: [cpap_id], references: [id], onDelete: Cascade)
-  creator    User? @relation("CreatedNotifications", fields: [created_by], references: [id], onDelete: SetNull)
-
-  @@index([user_id])
-  @@index([cpap_id])
-  @@index([is_read])
-  @@index([created_at])
-  @@map("cpap_notifications")
-}
-
 enum CPAPStatus {
   Draft
   Submitted
   Approved
   Revision_Requested
+}
+
+enum assignment_status {
+  Active
+  Pending
+  Completed
+  Assigned
+  Accepted
+  In_Progress @map("In Progress")
+}
+
+enum backup_status {
+  Success
+  Failed
+}
+
+enum barangay_seal {
+  yes
+  no
+}
+
+enum survey_cycle_status {
+  Active
+  Completed
+  Archived
+}
+
+enum survey_question_question_type {
+  radio
+  checkbox
+  text
+  textarea
+  number
+  rating
+}
+
+enum survey_response_respondent_gender {
+  Male
+  Female
+  Other
+  LGBTQI
+  PreferNotToSay
+}
+
+enum survey_response_status {
+  draft
+  in_progress
+  completed
+  submitted
+}
+
+enum survey_section_status {
+  pending
+  in_progress
+  completed
+}
+
+enum survey_status {
+  draft
+  ongoing
+  completed
+  archived
+}
+
+enum survey_validation_validation_status {
+  passed
+  failed
+  warning
+}
+
+enum survey_validation_validation_type {
+  location
+  completeness
+  consistency
+  quality
 }

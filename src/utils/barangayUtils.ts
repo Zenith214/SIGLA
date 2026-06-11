@@ -35,6 +35,13 @@ export interface ApiBarangayData {
   isAwardee?: boolean; // Direct awardee flag for convenience
 }
 
+// Mapping for barangay names to ensure consistency with logo filenames
+const NAME_MAPPING: Record<string, string> = {
+  "Haradabutai": "Harada Butai",
+  "Parame": "Parami",
+  "Solong Vale": "Solongvale"
+};
+
 // Transform API data to match the expected format for the dashboard
 export function transformBarangayData(apiData: any[]): {
   [key: string]: ApiBarangayData;
@@ -55,9 +62,20 @@ export function transformBarangayData(apiData: any[]): {
       surveyStatus = "In Progress";
     }
 
+    // Apply name corrections for the UI
+    const rawName = barangay.name || barangay.barangay_name;
+    const correctedName = NAME_MAPPING[rawName] || rawName;
+
+    // Construct fallback logo URL if missing from database
+    let logo_url = barangay.logo_url;
+    if (!logo_url) {
+      const extension = correctedName === "Parami" ? "png" : "jpg";
+      logo_url = `/barangay-logos/${correctedName}.${extension}`;
+    }
+
     transformed[barangayKey] = {
       id: barangay.id,
-      name: barangay.name || barangay.barangay_name,
+      name: correctedName,
       population: barangay.population || 0,
       households: barangay.households || 0,
       area: barangay.area || 0,
@@ -66,7 +84,7 @@ export function transformBarangayData(apiData: any[]): {
       currentStatus: barangay.currentStatus,
       description: barangay.description,
       seal: barangay.seal,
-      logo_url: barangay.logo_url,
+      logo_url: logo_url,
       history: [
         {
           year: "2024",
