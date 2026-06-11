@@ -4,6 +4,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
+// Force dynamic rendering (skip SSR prerendering during build)
+export const dynamic = 'force-dynamic';
+
 export default function AuthDebugPage() {
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [cookieInfo, setCookieInfo] = useState<string>("");

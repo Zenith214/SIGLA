@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
     // your project has TypeScript errors.
     ignoreBuildErrors: true,
   },
+  // Skip static optimization for auth-dependent pages during build
+  experimental: {
+    // Enable optimized package imports
+    optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
+    // Skip prerendering pages with missing runtime context
+    missingSuspenseWithCSRBailout: false,
+  },
   images: {
     remotePatterns: [
       {
@@ -25,11 +32,6 @@ const nextConfig: NextConfig = {
     // Keep console logs for debugging authentication issues
     // TODO: Re-enable console removal after fixing login issues
     removeConsole: false,
-  },
-  // Optimize bundle
-  experimental: {
-    // Enable optimized package imports
-    optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
   },
   // Production optimizations
   productionBrowserSourceMaps: false,
