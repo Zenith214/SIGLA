@@ -1,13 +1,8 @@
 'use client';
 
-// global-error must be a client component and receive error/reset props
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+// global-error must be a client component
+// Keep absolutely minimal - no hooks, no event handlers during SSR
+export default function GlobalError() {
   return (
     <html>
       <body>
@@ -19,22 +14,22 @@ export default function GlobalError({
             Something went wrong
           </h2>
           <p style={{ color: '#666', marginBottom: '24px' }}>
-            An unexpected error occurred. Please try again.
+            Please refresh the page or contact support if the problem persists.
           </p>
-          <button
-            onClick={() => reset()}
+          <a
+            href="/"
             style={{
+              display: 'inline-block',
               padding: '12px 24px',
               backgroundColor: '#0070f3',
               color: 'white',
-              border: 'none',
+              textDecoration: 'none',
               borderRadius: '6px',
               fontSize: '16px',
-              cursor: 'pointer',
             }}
           >
-            Try again
-          </button>
+            Go Home
+          </a>
         </div>
       </body>
     </html>
