@@ -14,6 +14,7 @@ import "intro.js/introjs.css";
 // Force dynamic rendering for all pages (prevent static prerendering crashes)
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
+export const revalidate = 0;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

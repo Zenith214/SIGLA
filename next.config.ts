@@ -12,9 +12,15 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
     // Force all pages to be dynamic (skip static prerendering entirely)
     ppr: false,
+    // Skip generating error pages during build
+    skipMiddlewareUrlNormalize: true,
   },
   // Disable all static page generation to prevent context errors
   output: 'standalone',
+  // Generate build ID to avoid stale cache
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
+  },
   images: {
     remotePatterns: [
       {
