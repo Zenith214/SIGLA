@@ -1,23 +1,31 @@
 'use client';
 
-// global-error must be a client component
-// Keep absolutely minimal - no hooks, no event handlers during SSR
+// global-error must be a client component and self-contained
+// Cannot use root layout or any context providers during prerendering
 
-// Disable static generation to prevent SSR context errors
-export const dynamic = 'force-dynamic';
-
-export default function GlobalError() {
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error?: Error & { digest?: string };
+  reset?: () => void;
+}) {
   return (
-    <html>
-      <body>
-        <div style={{ padding: '40px', fontFamily: 'system-ui', textAlign: 'center' }}>
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Error - PULSE</title>
+      </head>
+      <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ padding: '40px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <h1 style={{ fontSize: '48px', margin: '0 0 16px', color: '#e53e3e' }}>
             Error
           </h1>
-          <h2 style={{ fontSize: '24px', margin: '0 0 16px', fontWeight: 'normal' }}>
+          <h2 style={{ fontSize: '24px', margin: '0 0 16px', fontWeight: 'normal', color: '#333' }}>
             Something went wrong
           </h2>
-          <p style={{ color: '#666', marginBottom: '24px' }}>
+          <p style={{ color: '#666', marginBottom: '24px', maxWidth: '500px' }}>
             Please refresh the page or contact support if the problem persists.
           </p>
           <a
