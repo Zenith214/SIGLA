@@ -2,6 +2,10 @@
 
 // global-error must be a client component
 // Keep absolutely minimal - no hooks, no event handlers during SSR
+
+// Disable static generation to prevent SSR context errors
+export const dynamic = 'force-dynamic';
+
 export default function GlobalError() {
   return (
     <html>
