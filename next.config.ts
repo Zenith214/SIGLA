@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     // Force all pages to be dynamic (skip static prerendering entirely)
     ppr: false,
   },
+  // Disable all static page generation to prevent context errors
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
