@@ -1,25 +1,10 @@
 'use client';
 
-import * as React from 'react';
-
 // global-error MUST be completely self-contained
-// Cannot import ANYTHING from the app that uses context
-// This file replaces the root layout entirely
+// Cannot import ANYTHING that might trigger context usage
+// No React imports - use global React from Next.js
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error?: Error & { digest?: string };
-  reset?: () => void;
-}) {
-  // Use useEffect to avoid SSR mismatch
-  React.useEffect(() => {
-    if (error) {
-      console.error('Global error:', error);
-    }
-  }, [error]);
-
+export default function GlobalError() {
   return (
     <html lang="en">
       <head>
@@ -55,23 +40,6 @@ export default function GlobalError({
               An unexpected error occurred. Please try refreshing the page or contact support if the problem persists.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {reset && (
-                <button
-                  onClick={() => reset()}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  Try Again
-                </button>
-              )}
               <a
                 href="/"
                 style={{
