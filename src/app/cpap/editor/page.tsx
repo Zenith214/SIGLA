@@ -8,6 +8,9 @@ import { useActiveCycle } from "@/hooks/useSurveyCycle";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
+
+// Force dynamic rendering (skip SSR prerendering during build)
+export const dynamic = 'force-dynamic';
 import { ArrowLeft, Loader2, Sparkles, AlertTriangle, Lightbulb } from "lucide-react";
 import { CPAPSpreadsheet } from "@/components/cpap/CPAPSpreadsheet";
 import { AISuggestionsModal } from "@/components/cpap/AISuggestionsModal";
