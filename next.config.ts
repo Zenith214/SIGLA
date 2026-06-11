@@ -6,17 +6,6 @@ const nextConfig: NextConfig = {
     // your project has TypeScript errors.
     ignoreBuildErrors: true,
   },
-  // Skip Prisma validation during build (Railway injects DATABASE_URL at runtime)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Skip Prisma client initialization during build
-      config.externals = [...(config.externals || []), '@prisma/client'];
-    }
-    return config;
-  },
   images: {
     remotePatterns: [
       {
