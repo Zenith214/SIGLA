@@ -18,7 +18,8 @@ const nextConfig: NextConfig = {
     ppr: false,
   },
   // Disable all static page generation to prevent context errors
-  output: 'standalone',
+  // Remove standalone output as it may cause 404 generation issues
+  // output: 'standalone',
   // Generate build ID to avoid stale cache
   generateBuildId: async () => {
     return `build-${Date.now()}`;
