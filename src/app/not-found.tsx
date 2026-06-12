@@ -1,6 +1,9 @@
 import Link from 'next/link';
 
+// Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
 
 export default function NotFound() {
   return (

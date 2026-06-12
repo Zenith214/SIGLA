@@ -14,12 +14,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // Enable optimized package imports
     optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
-    // Force all pages to be dynamic (skip static prerendering entirely)
-    ppr: false,
   },
-  // Disable all static page generation to prevent context errors
-  // Remove standalone output as it may cause 404 generation issues
-  // output: 'standalone',
   // Generate build ID to avoid stale cache
   generateBuildId: async () => {
     return `build-${Date.now()}`;

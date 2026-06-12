@@ -1,5 +1,10 @@
 'use client';
 
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 // global-error MUST be completely self-contained
 // Cannot import ANYTHING that might trigger context usage
 // No React imports - use global React from Next.js
