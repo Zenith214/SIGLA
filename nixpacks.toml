@@ -14,7 +14,8 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "rm -rf .next",
+  "rm -rf node_modules",
+  "pnpm install --frozen-lockfile",
   "pnpm prisma generate",
   "pnpm build"
 ]

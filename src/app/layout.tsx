@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/components/auth/AuthProvider";
-import FirstTimeLoginWrapper from "@/components/auth/FirstTimeLoginWrapper";
-import { SurveyCycleProvider } from "@/contexts/SurveyCycleContext";
-import { ToastProviderWrapper } from "@/components/providers/ToastProviderWrapper";
-import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
-import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 import "./globals.css";
 import "../styles/intro-custom.css";
 import "intro.js/introjs.css";
@@ -25,11 +19,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-// Force dynamic rendering for all pages (prevent static prerendering crashes)
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "PULSE - Public Understanding and Local Service Evaluation",
@@ -72,18 +61,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToastProviderWrapper>
-          <AuthProvider>
-            <SurveyCycleProvider>
-              <ServiceWorkerRegistration />
-              <PWAUpdatePrompt />
-              <OfflineIndicator />
-              <FirstTimeLoginWrapper>
-                {children}
-              </FirstTimeLoginWrapper>
-            </SurveyCycleProvider>
-          </AuthProvider>
-        </ToastProviderWrapper>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
