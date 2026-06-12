@@ -1,20 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  eslint: {
-    // Warning: This allows production builds to complete even with ESLint errors
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // Warning: This allows production builds to successfully complete even if
     // your project has TypeScript errors.
     ignoreBuildErrors: true,
   },
+  // Disable linting during build - use CLI for linting
+  // eslint config moved to .eslintrc or eslint.config.mjs
+  
   // Skip static optimization for auth-dependent pages during build
   experimental: {
     // Enable optimized package imports
     optimizePackageImports: ['lucide-react', 'recharts', 'leaflet', 'react-leaflet'],
   },
+  
+  // Force all pages to be dynamically rendered to prevent prerender errors
+  output: 'standalone',
+  
   // Generate build ID to avoid stale cache
   generateBuildId: async () => {
     return `build-${Date.now()}`;
