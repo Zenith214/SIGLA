@@ -14,6 +14,7 @@ cmds = [
 
 [phases.build]
 cmds = [
+  "rm -rf .next",
   "pnpm prisma generate",
   "pnpm build"
 ]

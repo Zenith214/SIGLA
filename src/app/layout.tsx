@@ -26,6 +26,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Force dynamic rendering for all pages (prevent static prerendering crashes)
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "PULSE - Public Understanding and Local Service Evaluation",
   description: "A comprehensive survey platform for measuring citizen satisfaction with local government services and improving governance effectiveness.",
